@@ -17,7 +17,7 @@ const PACKS_CONFIG = [
 ];
 
 const corsOptions = {
-  origin: 'https://mellifluous-frangipane-43f625.netlify.app/'
+  origin: 'inaturamouche.netlify.app'
 };
 app.use(cors(corsOptions));
 
