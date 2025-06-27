@@ -17,7 +17,7 @@ const PACKS_CONFIG = [
 ];
 
 const corsOptions = {
-  origin: 'inaturamouche.netlify.app'
+  origin: 'https://inaturamouche.netlify.app'
 };
 app.use(cors(corsOptions));
 
