@@ -16,6 +16,7 @@ function CustomFilter({ filters, dispatch }) {
   return (
     <div className="custom-filter-container">
       {/* --- SECTION INCLUSION --- */}
+      <form onSubmit={(e) => e.preventDefault()}>
       <fieldset>
         <legend>Taxons à INCLURE</legend>
         <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez voir dans le quiz.</p>
@@ -34,6 +35,7 @@ function CustomFilter({ filters, dispatch }) {
           ))}
         </div>
       </fieldset>
+      </form>
 
       {/* --- SECTION EXCLUSION --- */}
       <fieldset>

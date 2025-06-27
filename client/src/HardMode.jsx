@@ -113,6 +113,7 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       <h2 className="main-hard-mode-title">Identifier l'espèce</h2>
       
       <div className="proposition-panel">
+        <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
         <div className="ranks-list">
           {RANKS.map((rank) => (
             <div className="rank-item" key={rank}>
@@ -132,6 +133,7 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
             </div>
           ))}
         </div>
+        </form>
       </div>
 
       <div className="media-panel">
