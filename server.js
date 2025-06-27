@@ -3,7 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // La définition des packs est dupliquée ici pour que le serveur soit autonome.
 // Dans une application plus grande, ce fichier pourrait être partagé.
@@ -16,7 +16,10 @@ const PACKS_CONFIG = [
     { id: 'great_barrier_reef_life', api_params: { taxon_id: '1', place_id: '131021' }}
 ];
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://VOTRE_FUTUR_SITE.netlify.app'
+};
+app.use(cors(corsOptions));
 
 async function getFullTaxaDetails(taxonIds) {
     if (!taxonIds || taxonIds.length === 0) return [];

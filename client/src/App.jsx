@@ -74,7 +74,8 @@ function App() {
         }
       }
       
-      const response = await fetch(`http://localhost:3001/api/quiz-question?${queryParams.toString()}`);
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${apiUrl}/api/quiz-question?${queryParams.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Une erreur est survenue.");
@@ -165,7 +166,9 @@ function App() {
           <p>{ACHIEVEMENTS[newlyUnlocked[0]].title}</p>
         </div>
       )}
-
+      <nav className="main-nav">
+          <button onClick={() => setIsProfileVisible(true)}>Mon Profil</button>
+      </nav>
       <header className="app-header">
        <img 
           src={titleImage} 
@@ -174,9 +177,6 @@ function App() {
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
         />
-        <nav className="main-nav">
-          <button onClick={() => setIsProfileVisible(true)}>Mon Profil</button>
-      </nav>
       </header>
       
       <main className="screen-container">
