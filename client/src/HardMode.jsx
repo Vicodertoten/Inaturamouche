@@ -28,7 +28,9 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
     setGuesses(newGuessesCount);
 
     try {
-      const response = await axios.get(`http://localhost:3001/api/taxon/${selection.id}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await axios.get(`${apiUrl}/api/taxon/${selection.id}`);
+      
       const guessedTaxonHierarchy = response.data;
       if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
 
