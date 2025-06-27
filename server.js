@@ -21,10 +21,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-async function getFullTaxaDetails(taxonIds) {
+// --- FONCTIONS UTILITAIRES ---
+async function getFullTaxaDetails(taxonIds, locale) {
     if (!taxonIds || taxonIds.length === 0) return [];
     try {
-        const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`);
+        const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { params: { locale } });
         return response.data.results;
     } catch (error) {
         console.error("Erreur lors de la récupération des détails des taxons:", error.message);
@@ -38,17 +39,19 @@ function getTaxonName(taxon) {
 }
 
 
+// --- ROUTES DE L'API ---
+
 app.get('/api/quiz-question', async (req, res) => {
-    const { pack_id, taxon_ids, include_taxa, exclude_taxa, lat, lng, radius, d1, d2 } = req.query;
+    const { pack_id, taxon_ids, include_taxa, exclude_taxa, lat, lng, radius, d1, d2, locale = 'fr' } = req.query;
 
     const params = {
         quality_grade: 'research',
         photos: true,
         rank: 'species',
         per_page: 200,
+        locale: locale
     };
 
-    // --- LOGIQUE DE FILTRE FINALE ET ROBUSTE ---
     if (pack_id) {
         const selectedPack = PACKS_CONFIG.find(p => p.id === pack_id);
         if (selectedPack && selectedPack.api_params) {
@@ -59,22 +62,13 @@ app.get('/api/quiz-question', async (req, res) => {
         params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(',') : taxon_ids;
     } 
     else if (include_taxa || exclude_taxa) {
-        if(include_taxa) {
-            params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(',') : include_taxa;
-        }
-        if(exclude_taxa) {
-            params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(',') : exclude_taxa;
-        }
+        if(include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(',') : include_taxa;
+        if(exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(',') : exclude_taxa;
     }
 
-    // Filtres additionnels
     if (lat && lng && radius) Object.assign(params, { lat, lng, radius });
     if (d1) params.d1 = d1;
     if (d2) params.d2 = d2;
-
-    console.log("=============================================");
-    console.log("Paramètres finaux envoyés à iNaturalist:", params);
-    console.log("=============================================");
 
     try {
         const obsResponse = await axios.get('https://api.inaturalist.org/v1/observations', { params });
@@ -98,7 +92,7 @@ app.get('/api/quiz-question', async (req, res) => {
         const [targetObservation, ...lureObservations] = uniqueTaxonObservations;
         const allTaxonIds = [targetObservation.taxon.id, ...lureObservations.map(obs => obs.taxon.id)];
         
-        const allTaxaDetails = await getFullTaxaDetails(allTaxonIds, req.query.locale || 'fr');
+        const allTaxaDetails = await getFullTaxaDetails(allTaxonIds, locale);
         const detailsMap = new Map(allTaxaDetails.map(t => [t.id, t]));
         const correctTaxonDetails = detailsMap.get(targetObservation.taxon.id);
 
@@ -114,7 +108,7 @@ app.get('/api/quiz-question', async (req, res) => {
                 name: correctTaxonDetails.name, 
                 common_name: getTaxonName(correctTaxonDetails), 
                 ancestors: correctTaxonDetails.ancestors,
-                wikipedia_url: correctTaxonDetails.wikipedia_url 
+                wikipedia_url: correctTaxonDetails.wikipedia_url
             },
             choix_mode_facile: finalChoices.sort(() => Math.random() - 0.5),
             inaturalist_url: targetObservation.uri
@@ -129,11 +123,11 @@ app.get('/api/quiz-question', async (req, res) => {
 
 
 app.get('/api/taxa/autocomplete', async (req, res) => {
-  const { q, rank } = req.query;
+  const { q, rank, locale = 'fr' } = req.query;
   if (!q || q.length < 2) return res.json([]);
   
   try {
-    const params = { q, is_active: true, per_page: 10 };
+    const params = { q, is_active: true, per_page: 10, locale };
     if (rank) params.rank = rank;
     
     const response = await axios.get('https://api.inaturalist.org/v1/taxa/autocomplete', { params });
@@ -141,7 +135,7 @@ app.get('/api/taxa/autocomplete', async (req, res) => {
     if (initialSuggestions.length === 0) return res.json([]);
 
     const taxonIds = initialSuggestions.map(t => t.id);
-    const taxaDetails = await getFullTaxaDetails(taxonIds, 'fr');
+    const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
     const detailsMap = new Map(taxaDetails.map(t => [t.id, t]));
 
     const suggestionsWithAncestors = initialSuggestions.map(taxon => {
@@ -173,6 +167,7 @@ app.get('/api/taxon/:id', async (req, res) => {
 });
 
 
+// --- Lancement du Serveur ---
 app.listen(PORT, () => {
     console.log(`Serveur Inaturamouche démarré sur http://localhost:${PORT}`);
 });
