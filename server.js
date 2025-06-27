@@ -33,7 +33,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // --- FONCTIONS UTILITAIRES ---
-async function getFullTaxaDetails(taxonIds, locale) {
+async function getFullTaxaDetails(taxonIds, locale = 'fr') {
     if (!taxonIds || taxonIds.length === 0) return [];
     try {
         const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { params: { locale } });
