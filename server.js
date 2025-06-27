@@ -16,8 +16,19 @@ const PACKS_CONFIG = [
     { id: 'great_barrier_reef_life', api_params: { taxon_id: '1', place_id: '131021' }}
 ];
 
+const allowedOrigins = [
+  'https://inaturamouche.netlify.app', // Votre frontend en production
+  'http://localhost:5173'              // Votre frontend en développement local
+];
 const corsOptions = {
-  origin: 'https://inaturamouche.netlify.app'
+  origin: function (origin, callback) {
+    // Permet les requêtes sans origine (ex: Postman, apps mobiles) ou si l'origine est dans la liste blanche
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
 };
 app.use(cors(corsOptions));
 
