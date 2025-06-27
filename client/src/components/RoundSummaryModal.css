@@ -1,0 +1,111 @@
+/* src/components/RoundSummaryModal.css (mis à jour) */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content.summary-modal {
+  background-color: var(--surface-color);
+  /* MODIFIÉ: Padding réduit pour gagner de l'espace */
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  width: 90%;
+  max-width: 420px; /* Légère réduction de la largeur max */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  /* MODIFIÉ: Espacement entre les éléments réduit */
+  gap: 1rem;
+  border: 1px solid var(--border-color);
+  animation: slide-up 0.4s ease-out;
+
+  /* NOUVEAU: Contrainte de hauteur pour garantir que le modal ne dépasse jamais l'écran */
+  max-height: 90vh; /* Le modal ne dépassera jamais 90% de la hauteur de la vue */
+  overflow-y: auto;   /* Si le contenu est VRAIMENT trop grand, le scroll se fera DANS le modal */
+}
+
+@keyframes slide-up {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.summary-modal h2 {
+  margin: 0;
+  /* MODIFIÉ: Taille de la police du titre réduite */
+  font-size: 1.6rem;
+}
+
+.win-title { color: var(--success-color); }
+.lose-title { color: var(--error-color); }
+
+.correct-answer-section {
+  background-color: var(--bg-color);
+  /* MODIFIÉ: Padding interne réduit */
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.answer-image {
+  width: 100%;
+  /* MODIFIÉ: Hauteur de l'image significativement réduite */
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  border: 2px solid var(--border-color);
+}
+
+.answer-name {
+  margin: 0.5rem 0 0.25rem 0;
+  /* MODIFIÉ: Taille de police réduite */
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.answer-scientific-name {
+  margin: 0;
+  /* MODIFIÉ: Taille de police réduite */
+  font-size: 0.9rem;
+  color: var(--text-color-muted);
+}
+
+.score-section {
+  /* MODIFIÉ: Taille de police et marge ajustées */
+  font-size: 1rem;
+  margin-top: -0.25rem;
+}
+
+.score-points, .score-total {
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+/* MODIFIÉ: Espacement ajusté pour les liens */
+.modal-links {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Assurez-vous que les liens ne sont pas trop gros */
+.modal-links .external-link {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}

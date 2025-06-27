@@ -208,3 +208,33 @@ button:focus-visible {
         opacity: 1;
     }
 }
+
+.hint-button-easy {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  background-color: var(--accent-color);
+  color: var(--bg-color);
+  border: none;
+  border-radius: 6px;
+  margin-left: 1rem; /* Pour l'espacer du titre de la question */
+}
+.hint-button-easy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Style pour un choix enlevé par l'indice */
+.choices button.removed {
+  opacity: 0.4;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  background-color: var(--surface-color) !important; /* Pour outrepasser les autres styles */
+  border-color: var(--border-color) !important;
+  color: var(--text-color-muted) !important;
+}
+
+/* Petit ajustement pour le header du jeu */
+.game-header .header-left {
+  display: flex;
+  align-items: center;
+}
