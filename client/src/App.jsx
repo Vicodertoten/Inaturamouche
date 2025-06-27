@@ -9,7 +9,7 @@ import { checkNewAchievements, ACHIEVEMENTS } from './achievements';
 // --- COMPOSANTS (chemins standardisés) ---
 import Configurator from './Configurator';
 import HardMode from './HardMode';
-import EasyMode from './components/EasyMode';
+import EasyMode from './components/Easymode';
 import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
 import ProfileModal from './components/ProfileModal';
