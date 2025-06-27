@@ -110,7 +110,7 @@ app.get('/api/quiz-question', async (req, res) => {
         if (!correctTaxonDetails) {
             throw new Error(`Impossible de récupérer les détails du taxon (ID: ${targetObservation.taxon.id})`);
         }
-
+        console.log(">>>> DÉTAILS DU TAXON REÇU PAR INATURALIST:", correctTaxonDetails);    
         const finalChoices = [getTaxonName(correctTaxonDetails), ...lureObservations.map(obs => getTaxonName(detailsMap.get(obs.taxon.id)))];
         const questionQuiz = {
             image_urls: targetObservation.photos.map(p => p.url.replace('square', 'large')),
