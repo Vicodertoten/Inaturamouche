@@ -1,0 +1,66 @@
+/* --- VARIABLES DE COULEURS GLOBALES --- */
+:root {
+  --font-family-main: 'Poppins', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  
+  /* Palette "Nature" */
+  --bg-color: #283618;
+  --surface-color: #3a5a40;
+  --primary-color: #606c38;
+  --accent-color: #dda15e;
+  --success-color: #588157;
+  --error-color: #bc4749;
+  --text-color: #fefae0;
+  --text-color-muted: #dad7cd;
+  --border-color: #588157;
+  --accent-color-transparent: rgba(221, 161, 94, 0.2);
+
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --border-radius: 12px;
+}
+
+/* --- STYLE DE BASE --- */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  font-family: var(--font-family-main);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+body {
+  /* On retire le display:flex ici, il n'est plus nécessaire */
+  padding-top: 2rem; /* On garde un peu d'espace en haut */
+}
+
+/* --- CORRECTION : #root prend toute la largeur --- */
+#root {
+  width: 100%;
+  /* On retire max-width et margin, c'est le rôle de .App maintenant */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+h1 {
+  font-size: 2.2em;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-color);
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.8em;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--text-color);
+  text-align: center;
+}
+
+button {
+  font-family: var(--font-family-main);
+}

@@ -1,0 +1,167 @@
+/* --- Styles du conteneur principal --- */
+.pack-selector {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pack-selector label {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.pack-details {
+  padding: 1.5rem;
+  padding-top: 0rem;
+  background-color: rgba(0,0,0,0.1);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+.pack-details h4 { margin: 0 0 0.5rem 0; }
+.pack-details p { color: var(--text-color-muted); }
+
+
+.custom-filter-container fieldset {
+  margin-top: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+.custom-filter-container legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+}
+.custom-filter-description {
+  font-size: 0.9rem;
+  margin-top: 0rem;
+  margin-bottom: 1rem;
+  color: var(--text-color-muted);
+}
+
+
+/* --- NOUVEAU : STYLES GÉNÉRAUX POUR LES CHAMPS DE FORMULAIRE --- */
+.form-input,
+.pack-select-dropdown,
+.autocomplete-container input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-family-main);
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+.form-input:hover,
+.pack-select-dropdown:hover,
+.autocomplete-container input:hover {
+  border-color: var(--primary-color);
+}
+.form-input:focus,
+.pack-select-dropdown:focus,
+.autocomplete-container input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-color-transparent);
+}
+.date-filters {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+
+/* --- NOUVEAU : STYLES POUR LES CASES À COCHER PERSONNALISÉES --- */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+/* On cache la case à cocher par défaut */
+.checkbox-label input[type="checkbox"] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+/* Notre fausse case à cocher */
+.custom-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-color);
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  flex-shrink: 0;
+}
+/* Style au survol */
+.checkbox-label:hover .custom-checkbox {
+  border-color: var(--primary-color);
+}
+/* Style quand la case est cochée */
+.checkbox-label input:checked + .custom-checkbox {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+/* Le "V" de validation (la coche) */
+.custom-checkbox::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 12px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+/* On affiche la coche quand la case est cochée */
+.checkbox-label input:checked + .custom-checkbox::after {
+  display: block;
+}
+
+
+/* --- Styles des "Pills" (inchangés) --- */
+.pills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0rem;
+  min-height: 5px;
+}
+.taxon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 500;
+  color: #fff;
+}
+.include-pills .taxon-pill { background-color: #2a4b37; }
+.exclude-pills .taxon-pill { background-color: #581e1e; }
+.taxon-pill .remove-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.taxon-pill .remove-btn:hover { background: rgba(255, 255, 255, 0.4); }

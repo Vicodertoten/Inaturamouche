@@ -1,0 +1,225 @@
+/* --- Mise en page principale pour le mode difficile --- */
+.hard-mode-container {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- Styles pour les écrans larges (ordinateurs) --- */
+@media (min-width: 992px) {
+  .hard-mode-container {
+    display: grid;
+    /* On définit 2 colonnes de taille égale */
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+    /* On ne définit PAS grid-template-rows, on laisse le flux naturel faire */
+  }
+
+  /* --- CORRECTION DE LA LOGIQUE DE PLACEMENT --- */
+
+  /* Le titre se place automatiquement sur la 1ère rangée et s'étend sur les 2 colonnes */
+  .main-hard-mode-title {
+    grid-column: 1 / 3;
+    text-align: center;
+  }
+
+  /* Les 2 panneaux suivants se placent automatiquement sur la 2ème rangée */
+  .proposition-panel {
+    grid-column: 1 / 2;
+  }
+
+  .media-panel {
+    grid-column: 2 / 3;
+  }
+
+  /* Le panneau d'actions se place automatiquement sur la 3ème rangée et s'étend sur les 2 colonnes */
+  .actions-panel {
+    grid-column: 1 / 3;
+  }
+}
+
+/* --- Styles pour les écrans petits (mobiles) --- */
+@media (max-width: 991px) {
+  .hard-mode-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .main-hard-mode-title { order: 1; }
+  .media-panel { order: 2; }
+  .proposition-panel { order: 3; }
+  .actions-panel { order: 4; }
+}
+
+/* --- Style du titre principal --- */
+.main-hard-mode-title {
+  font-size: 2rem;
+  color: var(--text-color);
+  width: 100%;
+  text-align: center;
+}
+
+
+/* --- Styles des panneaux (communs aux deux vues) --- */
+.proposition-panel, .media-panel, .actions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.panel-title { 
+  display: none; 
+}
+
+.ranks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rank-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rank-item label {
+  font-weight: 600;
+  text-transform: capitalize;
+  text-align: right;
+  color: var(--text-color-muted);
+}
+
+.known-taxon {
+  padding: 12px 16px;
+  background-color: var(--bg-color);
+  border: 2px solid var(--success-color);
+  border-radius: 8px;
+  font-weight: 500;
+  color: var(--success-color);
+}
+
+.actions-panel {
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.hard-mode-stats {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  padding: 1rem;
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 8px;
+}
+
+.hard-mode-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+
+/* --- Styles pour l'autocomplétion --- */
+.autocomplete-container { 
+  position: relative; 
+  width: 100%; 
+}
+
+.spinner-autocomplete {
+  width: 16px; 
+  height: 16px; 
+  border: 2px solid var(--border-color);
+  border-bottom-color: var(--accent-color); 
+  border-radius: 50%;
+  position: absolute; 
+  right: 10px; 
+  top: 50%; 
+  transform: translateY(-50%);
+  animation: rotation 1s linear infinite;
+}
+
+.suggestions-list {
+  position: absolute; 
+  background-color: #333; 
+  border: 1px solid #555;
+  list-style: none; 
+  padding: 0; 
+  margin: 4px 0 0 0; 
+  width: 100%;
+  max-height: 200px; 
+  overflow-y: auto; 
+  z-index: 1000; 
+  border-radius: 8px;
+}
+
+.suggestions-list li { 
+  padding: 10px; 
+  cursor: pointer; 
+}
+
+.suggestions-list li:hover { 
+  background-color: var(--primary-color); 
+}
+
+.suggestions-list .rank { 
+  color: #aaa; 
+  font-size: 0.8em; 
+  margin-left: 10px; 
+}
+
+.suggestions-list li.incorrect-suggestion {
+  color: #999;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.suggestions-list li.incorrect-suggestion:hover {
+    background-color: transparent;
+}
+
+.suggestions-list li.suggestion-active {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+}
+
+/* --- NOUVEAU : Conteneur pour les boutons externes --- */
+.external-links-container {
+  display: flex;
+  justify-content: center; /* Assure le centrage horizontal */
+  gap: 1rem;
+  width: 100%; /* Prend toute la largeur pour permettre le centrage */
+}
+
+/* --- NOUVEAU : Classe commune pour les deux liens --- */
+.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  flex-shrink: 0; /* Empêche les boutons de se réduire */
+}
+
+.external-link:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
