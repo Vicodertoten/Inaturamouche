@@ -10,7 +10,6 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// On ajoute une valeur par défaut `[]` à la prop pour éviter les crashs
 function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incorrectAncestorIds = [] }) {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -27,7 +26,8 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
     setIsLoading(true);
     try {
       const params = { q: searchTerm, ...extraParams };
-      const response = await axios.get('http://localhost:3001/api/taxa/autocomplete', { params });
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await axios.get(`${apiUrl}/api/taxa/autocomplete`, { params });
       setSuggestions(response.data);
     } catch (error) {
       console.error(`Erreur de recherche pour l'autocomplétion`, error);
@@ -82,15 +82,22 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
   return (
     <div className="autocomplete-container" ref={containerRef}>
       <input
-        type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown} placeholder={placeholder} disabled={disabled}
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        // --- AJOUTS POUR AMÉLIORER LA COMPATIBILITÉ MOBILE ---
+        autoComplete="off"      // Désactive la saisie semi-automatique native du navigateur
+        autoCorrect="off"       // Désactive la correction automatique
+        autoCapitalize="none"   // Empêche la mise en majuscule automatique
+        spellCheck="false"      // Désactive le correcteur orthographique
       />
       {isLoading && <div className="spinner-autocomplete"></div>}
       {suggestions.length > 0 && (
         <ul className="suggestions-list">
           {suggestions.map((s, index) => {
-            // La vérification 'isIncorrect' ne sert plus à rien dans ce contexte,
-            // mais on la garde pour le mode difficile. Elle ne plantera plus.
             const isIncorrect = incorrectAncestorIds.length > 0 && (s.ancestor_ids?.some(id => incorrectAncestorIds.includes(id)) || incorrectAncestorIds.includes(s.id));
             const isActive = index === activeIndex;
             
