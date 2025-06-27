@@ -13,6 +13,7 @@ import EasyMode from './components/Easymode';
 import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
 import ProfileModal from './components/ProfileModal';
+import LanguageSwitcher from './components/LanguageSwitcher';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -26,6 +27,7 @@ const MAX_QUESTIONS_PER_GAME = 5;
 
 function App() {
   // --- ÉTATS ---
+  const [language, setLanguage] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatch] = useReducer(customFilterReducer, initialCustomFilters);
   const [question, setQuestion] = useState(null);
@@ -34,13 +36,9 @@ function App() {
   const [score, setScore] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
   const [sessionStats, setSessionStats] = useState({ correctAnswers: 0 });
-  
-  // États pour la navigation dans l'app
   const [isGameActive, setIsGameActive] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [gameMode, setGameMode] = useState('easy');
-
-  // États pour le profil joueur
   const [playerProfile, setPlayerProfile] = useState(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
@@ -49,6 +47,10 @@ function App() {
   useEffect(() => {
     setPlayerProfile(loadProfile());
   }, []);
+
+    useEffect(() => {
+    localStorage.setItem('inaturamouche_lang', language);
+  }, [language]);
 
   const fetchQuestion = useCallback(async () => {
     setLoading(true); setError(null);
@@ -167,6 +169,7 @@ function App() {
         </div>
       )}
       <nav className="main-nav">
+        <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
           <button onClick={() => setIsProfileVisible(true)}>Mon Profil</button>
       </nav>
       <header className="app-header">
