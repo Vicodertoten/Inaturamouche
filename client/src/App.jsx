@@ -19,7 +19,7 @@ import titleImage from './assets/inaturamouche-title.png';
 import './App.css';
 import './HardMode.css';
 import './components/ImageViewer.css'; 
-import './Configurator.css';
+import './configurator.css';
 import './components/ProfileModal.css'; 
 
 const MAX_QUESTIONS_PER_GAME = 5;
