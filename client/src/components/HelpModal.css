@@ -1,0 +1,81 @@
+/* src/components/HelpModal.css */
+
+/* Fond et contenu de la modale (similaire à ProfileModal) */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.3s ease;
+}
+
+.modal-content {
+  background-color: var(--surface-color);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  width: 90%;
+  max-width: 550px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  animation: slide-up 0.4s ease-out;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-up { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: var(--text-color-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-title {
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+/* Style des sections d'aide */
+.help-section {
+  margin-bottom: 1.5rem;
+}
+
+.help-section h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.help-section p, .help-section ul {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+.help-section ul {
+  padding-left: 20px;
+}
+.help-section li {
+  margin-bottom: 0.5rem;
+}
+
+/* Bouton pour fermer */
+.start-button-modal {
+  width: 100%;
+  background-color: var(--primary-color);
+  border: none;
+  color: #fff;
+}

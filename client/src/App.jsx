@@ -12,6 +12,7 @@ import HardMode from './HardMode';
 import EasyMode from './components/Easymode';
 import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
+import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import titleImage from './assets/inaturamouche-title.png';
@@ -21,7 +22,8 @@ import './App.css';
 import './HardMode.css';
 import './components/ImageViewer.css'; 
 import './configurator.css';
-import './components/ProfileModal.css'; 
+import './components/ProfileModal.css';
+import './components/HelpModal.css'; 
 
 const MAX_QUESTIONS_PER_GAME = 5;
 
@@ -41,7 +43,9 @@ function App() {
   const [gameMode, setGameMode] = useState('easy');
   const [playerProfile, setPlayerProfile] = useState(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
+  const [isHelpVisible, setIsHelpVisible] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
+  
 
   // --- EFFETS ---
   useEffect(() => {
@@ -156,10 +160,12 @@ function App() {
   };
 
   // --- RENDU DU COMPOSANT ---
-  return (
+    return (
     <div className="App">
-      {/* Affichage de la modale de profil si elle est visible */}
+      {/* Affichage des modales */}
       {isProfileVisible && <ProfileModal profile={playerProfile} onClose={() => setIsProfileVisible(false)} />}
+      {/* NOUVEAU: On gère l'affichage du modal d'aide ici */}
+      {isHelpVisible && <HelpModal onClose={() => setIsHelpVisible(false)} />}
       
       {/* Notification de Succès */}
       {newlyUnlocked.length > 0 && (
@@ -194,6 +200,14 @@ function App() {
         ) : (
           <div className="screen configurator-screen">
             <div className="card">
+              {/* NOUVEAU: Le bouton d'aide est placé ici */}
+              <button
+                className="help-button"
+                onClick={() => setIsHelpVisible(true)}
+                title="Aide et informations"
+              >
+                ?
+              </button>
                <div className="mode-selector">
                   <h3>Choisir le mode :</h3>
                   <button onClick={() => setGameMode('easy')} className={gameMode === 'easy' ? 'active' : ''}>Facile</button>
