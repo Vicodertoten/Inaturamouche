@@ -35,9 +35,40 @@ app.use(cors(corsOptions));
 // --- FONCTIONS UTILITAIRES ---
 async function getFullTaxaDetails(taxonIds, locale = 'fr') {
     if (!taxonIds || taxonIds.length === 0) return [];
+
     try {
-        const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { params: { locale } });
-        return response.data.results;
+        // 1. Premier appel pour obtenir les données localisées (surtout le nom commun en français)
+        const localizedResponse = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { params: { locale } });
+        const localizedResults = localizedResponse.data.results;
+
+        // Si la locale demandée n'est pas l'anglais, on fait un second appel pour les données manquantes
+        if (!locale.startsWith('en') && localizedResults.length > 0) {
+            
+            // 2. Second appel SANS locale pour obtenir les données par défaut (qui incluent l'URL wiki de manière fiable)
+            const defaultResponse = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`);
+            const defaultResults = defaultResponse.data.results;
+            
+            // On crée une Map pour retrouver facilement les données par défaut par leur ID
+            const defaultDetailsMap = new Map(defaultResults.map(t => [t.id, t]));
+
+            // 3. On fusionne les résultats
+            const finalResults = localizedResults.map(localizedTaxon => {
+                const defaultTaxon = defaultDetailsMap.get(localizedTaxon.id);
+
+                // Si l'URL wiki est manquante dans la version FR, on la prend dans la version par défaut
+                if (!localizedTaxon.wikipedia_url && defaultTaxon && defaultTaxon.wikipedia_url) {
+                    console.log(`>>>> Lien Wiki trouvé pour ${localizedTaxon.name} dans les données par défaut.`);
+                    localizedTaxon.wikipedia_url = defaultTaxon.wikipedia_url;
+                }
+                return localizedTaxon;
+            });
+
+            return finalResults;
+        }
+
+        // Si la locale est 'en', le premier appel suffit
+        return localizedResults;
+
     } catch (error) {
         console.error("Erreur lors de la récupération des détails des taxons:", error.message);
         return [];

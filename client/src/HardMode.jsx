@@ -1,10 +1,10 @@
-// src/HardMode.jsx (mis à jour)
+// src/HardMode.jsx (corrigé et amélioré)
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
-import RoundSummaryModal from './components/RoundSummaryModal'; // NOUVEAU: Import du modal
+import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -18,13 +18,12 @@ const SCORE_PER_RANK = {
   order: 20,
   family: 25,
   genus: 30,
-  species: 40, // Points pour la découverte du rang, le bonus final s'ajoute
+  species: 40,
 };
 
-
 function HardMode({ question, score, onNextQuestion, onQuit }) {
-   const [knownTaxa, setKnownTaxa] = useState({});
-  const [guesses, setGuesses] = useState(10); // Initial guesses
+  const [knownTaxa, setKnownTaxa] = useState({});
+  const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
   const [incorrectGuessIds, setIncorrectGuessIds] = useState([]);
   
@@ -42,10 +41,9 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
     setScoreInfo(null);
   }, [question, score]);
   
-  // NOUVEAU: Fonction pour afficher un feedback temporaire
   const showFeedback = (message) => {
     setFeedbackMessage(message);
-    setTimeout(() => setFeedbackMessage(''), 2500);
+    setTimeout(() => setFeedbackMessage(''), 3000);
   };
 
   const handleGuess = async (selection) => {
@@ -57,7 +55,6 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await axios.get(`${apiUrl}/api/taxon/${selection.id}`);
-      
       const guessedTaxonHierarchy = response.data;
       if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
 
@@ -66,8 +63,8 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
 
       let newKnownTaxa = { ...knownTaxa };
       let newPoints = 0;
-
       const taxaToCheck = [...guessedTaxonHierarchy.ancestors, guessedTaxonHierarchy];
+
       for (const taxon of taxaToCheck) {
         if (bonneReponseAncestorIds.has(taxon.id) && RANKS.includes(taxon.rank) && !newKnownTaxa[taxon.rank]) {
           newKnownTaxa[taxon.rank] = {
@@ -80,38 +77,42 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       
       setKnownTaxa(newKnownTaxa);
       setCurrentScore(prev => prev + newPoints);
-
+      
       const isSpeciesGuessed = newKnownTaxa.species?.id === bonne_reponse.id;
 
+      // --- CORRECTION MAJEURE : Logique de fin de partie restructurée ---
+
+      // 1. On vérifie la condition de VICTOIRE en premier
       if (isSpeciesGuessed) {
-        // MODIFIÉ: Logique de victoire
         const bonusPoints = newGuessesCount * 5;
         setScoreInfo({ points: newPoints, bonus: bonusPoints });
-        setRoundStatus('won'); // Déclenche le modal de victoire
+        setRoundStatus('won');
+        return; // On arrête la fonction ici, c'est gagné.
+      }
+      
+      // 2. Si ce n'est pas gagné, on vérifie la condition de DÉFAITE
+      if (newGuessesCount <= 0) {
+        setScoreInfo({ points: newPoints, bonus: 0 });
+        setRoundStatus('lost');
+        return; // On arrête la fonction, c'est perdu.
+      }
+
+      // 3. Si la partie n'est ni gagnée ni perdue, on continue et on donne du feedback
+      const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
+      if (newPoints > 0) {
+        showFeedback(`Bonne branche ! +${newPoints} points !`);
+      } else if (isSelectionCorrectAncestor) {
+        showFeedback("Correct, mais cette proposition n'a pas révélé de nouveau rang.");
       } else {
-        const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
-        if (newPoints > 0) {
-            showFeedback(`Bonne branche ! +${newPoints} points !`);
-        } else if (isSelectionCorrectAncestor) {
-            // NOUVEAU CAS: Bonne lignée, mais rien de nouveau n'a été débloqué
-            showFeedback("Correct, mais cette proposition n'a pas révélé de nouveau rang. Essayez un taxon différent.");
-        } else {
-            // Cas existant: Totalement incorrect
-            showFeedback("Incorrect. Cette suggestion n'est pas dans la bonne lignée.");
-            setIncorrectGuessIds(prev => [...prev, selection.id]);
-        }
-        
-        if (newGuessesCount <= 0) {
-          // MODIFIÉ: Logique de défaite
-          setScoreInfo({ points: newPoints, bonus: 0 });
-          setRoundStatus('lost'); // Déclenche le modal de défaite
-        }
+        showFeedback("Incorrect. Cette suggestion n'est pas dans la bonne lignée.");
+        setIncorrectGuessIds(prev => [...prev, selection.id]);
       }
 
     } catch (error) {
       console.error("Erreur de validation", error);
-      showFeedback("Une erreur est survenue lors de la vérification."); // MODIFIÉ
-      if (guesses - 1 <= 0) {
+      showFeedback("Une erreur est survenue lors de la vérification.");
+      // Sécurité : si une erreur arrive au dernier essai, on termine la partie
+      if (newGuessesCount <= 0) {
         setScoreInfo({ points: 0, bonus: 0 });
         setRoundStatus('lost');
       }
@@ -119,7 +120,6 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
   };
   
   const handleNext = () => {
-    // MODIFIÉ: Gère le clic sur "Question Suivante" dans le modal
     const totalPoints = (scoreInfo?.points || 0) + (scoreInfo?.bonus || 0);
     onNextQuestion(totalPoints);
   };
@@ -129,24 +129,45 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       showFeedback("Pas assez de chances pour cet indice !");
       return;
     }
+
     const firstUnknownRank = RANKS.find(rank => !knownTaxa[rank]);
     if (firstUnknownRank) {
-      setGuesses(prev => prev - REVEAL_HINT_COST);
+      // On calcule immédiatement le nouveau nombre de chances
+      const newGuessesCount = guesses - REVEAL_HINT_COST;
+      setGuesses(newGuessesCount);
+
       showFeedback(`Indice utilisé ! Le rang '${firstUnknownRank}' a été révélé.`);
+      
       const taxonData = firstUnknownRank === 'species' 
         ? question.bonne_reponse 
         : question.bonne_reponse.ancestors.find(a => a.rank === firstUnknownRank);
+
       if (taxonData) {
-        setKnownTaxa(prev => ({ ...prev, 
+        setKnownTaxa(prev => ({ 
+          ...prev, 
           [firstUnknownRank]: { 
             id: taxonData.id, 
             name: taxonData.preferred_common_name ? `${taxonData.preferred_common_name} (${taxonData.name})` : taxonData.name
           }
         }));
+        
+        // D'abord, on vérifie si l'indice donne la victoire
+        if (firstUnknownRank === 'species') {
+          const speciesPoints = SCORE_PER_RANK.species || 0;
+          setCurrentScore(prev => prev + speciesPoints);
+          setScoreInfo({ points: speciesPoints, bonus: 0 }); 
+          setRoundStatus('won');
+          return; // La partie est gagnée, on arrête tout
+        }
+        
+        // NOUVEAU : Si ce n'est pas une victoire, on vérifie si l'indice a causé une défaite
+        if (newGuessesCount <= 0) {
+          setScoreInfo({ points: 0, bonus: 0 }); // 0 points car on a perdu
+          setRoundStatus('lost');
+        }
       }
     }
   };
-  console.log("Données de la bonne réponse :", question.bonne_reponse);
   
   const isGameOver = roundStatus !== 'playing';
   const canUseAnyHint = !!RANKS.find(r => !knownTaxa[r]);
