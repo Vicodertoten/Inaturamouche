@@ -43,7 +43,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
           </div>
         )}
         
-        <button onClick={onNext} className="start-button">
+        <button onClick={onNext} className="start-button-modal">
           Question Suivante
         </button>
       </div>
