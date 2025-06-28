@@ -31,7 +31,7 @@ html, body {
 
 body {
   /* On retire le display:flex ici, il n'est plus nécessaire */
-  padding-top: 2rem; /* On garde un peu d'espace en haut */
+  padding-top: 0.5rem; /* On garde un peu d'espace en haut */
 }
 
 /* --- CORRECTION : #root prend toute la largeur --- */
