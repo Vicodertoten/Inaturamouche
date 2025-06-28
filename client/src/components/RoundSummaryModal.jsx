@@ -1,11 +1,25 @@
-// src/components/RoundSummaryModal.jsx (mis à jour)
+// src/components/RoundSummaryModal.jsx (version finale corrigée)
 
 import React from 'react';
 import './RoundSummaryModal.css';
 
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
-  const { bonne_reponse } = question;
+  if (!question || !question.bonne_reponse) {
+    return null; 
+  }
+
+  const { bonne_reponse, inaturalist_url } = question;
   const isWin = status === 'win';
+
+  // --- LA SEULE LIGNE À CHANGER EST CI-DESSOUS ---
+  const commonName = bonne_reponse.common_name; // On lit `common_name` au lieu de `preferred_common_name`
+  
+  const scientificName = bonne_reponse.name;
+  const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
+  const wikipediaUrl = bonne_reponse.wikipedia_url;
+
+  // On vérifie que le nom commun n'est pas simplement une répétition du nom scientifique
+  const displayCommonName = commonName && commonName !== scientificName ? commonName : null;
 
   return (
     <div className="modal-backdrop">
@@ -16,17 +30,21 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
         
         <div className="correct-answer-section">
           <p>La réponse était :</p>
-          <img src={bonne_reponse.image_url || question.image_urls[0]} alt={bonne_reponse.name} className="answer-image" />
-          <h3 className="answer-name">{bonne_reponse.preferred_common_name || bonne_reponse.name}</h3>
-          <p className="answer-scientific-name"><em>{bonne_reponse.name}</em></p>
+          <img src={imageUrl} alt={commonName || scientificName} className="answer-image" />
           
-          {/* --- NOUVEAU : Ajout des liens externes ici --- */}
+          {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}
+          {displayCommonName && (
+            <h3 className="answer-name">{displayCommonName}</h3>
+          )}
+          
+          <p className="answer-scientific-name"><em>{scientificName}</em></p>
+          
           <div className="external-links-container modal-links">
-            <a href={question.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
+            <a href={inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
               Voir sur iNaturalist
             </a>
-            {bonne_reponse.wikipedia_url && (
-              <a href={bonne_reponse.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+            {wikipediaUrl && (
+              <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="external-link">
                 Page Wikipédia
               </a>
             )}

@@ -169,7 +169,6 @@ function App() {
         </div>
       )}
       <nav className="main-nav">
-        <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
           <button onClick={() => setIsProfileVisible(true)}>Mon Profil</button>
       </nav>
       <header className="app-header">
