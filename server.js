@@ -57,7 +57,6 @@ async function getFullTaxaDetails(taxonIds, locale = 'fr') {
 
                 // Si l'URL wiki est manquante dans la version FR, on la prend dans la version par défaut
                 if (!localizedTaxon.wikipedia_url && defaultTaxon && defaultTaxon.wikipedia_url) {
-                    console.log(`>>>> Lien Wiki trouvé pour ${localizedTaxon.name} dans les données par défaut.`);
                     localizedTaxon.wikipedia_url = defaultTaxon.wikipedia_url;
                 }
                 return localizedTaxon;
@@ -141,7 +140,6 @@ app.get('/api/quiz-question', async (req, res) => {
         if (!correctTaxonDetails) {
             throw new Error(`Impossible de récupérer les détails du taxon (ID: ${targetObservation.taxon.id})`);
         }
-        console.log(">>>> DÉTAILS DU TAXON REÇU PAR INATURALIST:", correctTaxonDetails);    
         const finalChoices = [getTaxonName(correctTaxonDetails), ...lureObservations.map(obs => getTaxonName(detailsMap.get(obs.taxon.id)))];
         const questionQuiz = {
             image_urls: targetObservation.photos.map(p => p.url.replace('square', 'large')),
@@ -205,6 +203,22 @@ app.get('/api/taxon/:id', async (req, res) => {
     res.json(response.data.results[0]);
   } catch (error) {
     res.status(404).json({ error: "Taxon non trouvé." });
+  }
+});
+
+app.get('/api/taxa', async (req, res) => {
+  const { ids, locale = 'fr' } = req.query;
+  if (!ids) {
+    return res.status(400).json({ error: "Le paramètre 'ids' est requis." });
+  }
+  
+  const taxonIds = ids.split(',');
+  try {
+    const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
+    res.json(taxaDetails);
+  } catch (error) {
+    console.error("Erreur dans /api/taxa:", error.message);
+    res.status(500).json({ error: "Erreur lors de la récupération des taxons." });
   }
 });
 

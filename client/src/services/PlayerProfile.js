@@ -1,24 +1,46 @@
+// src/services/PlayerProfile.js
+
 const PROFILE_KEY = 'inaturamouche_playerProfile';
 
-// L'objet de profil par défaut pour un nouveau joueur
+// L'objet de profil par défaut pour un nouveau joueur ou pour mettre à jour un ancien profil
 const getDefaultProfile = () => ({
-  totalScore: 0,
+  xp: 0,
   stats: {
     gamesPlayed: 0,
-    questionsAnswered: 0,
+    easyQuestionsAnswered: 0,
+    hardQuestionsAnswered: 0,
     correctEasy: 0,
     correctHard: 0,
-    rankAccuracy: {},
+    speciesMastery: {}, // ex: { taxonId: count, ... }
     packsPlayed: {}
   },
   achievements: [],
 });
 
-// Charger le profil depuis le localStorage
-export const loadProfile = () => {
+// Charger le profil en fusionnant avec le profil par défaut pour la compatibilité
+export const loadProfileWithDefaults = () => {
   try {
     const profileJson = localStorage.getItem(PROFILE_KEY);
-    return profileJson ? JSON.parse(profileJson) : getDefaultProfile();
+    const loadedProfile = profileJson ? JSON.parse(profileJson) : {};
+
+    const defaultProfile = getDefaultProfile();
+    
+    // Fusion profonde pour garantir que toutes les clés existent
+    const finalProfile = {
+      ...defaultProfile,
+      ...loadedProfile,
+      // On remplace totalScore par xp s'il existe
+      xp: loadedProfile.totalScore || loadedProfile.xp || 0,
+      stats: {
+        ...defaultProfile.stats,
+        ...(loadedProfile.stats || {}),
+      },
+    };
+    // On supprime l'ancienne clé totalScore pour faire le ménage
+    delete finalProfile.totalScore; 
+
+    return finalProfile;
+
   } catch (error) {
     console.error("Erreur lors du chargement du profil :", error);
     return getDefaultProfile();
@@ -33,31 +55,4 @@ export const saveProfile = (profile) => {
   } catch (error) {
     console.error("Erreur lors de la sauvegarde du profil :", error);
   }
-};
-
-// Fonction pour mettre à jour le profil après une partie
-export const updateProfileAfterGame = (currentProfile, gameData) => {
-  const newProfile = { ...currentProfile };
-
-  // Mise à jour du score total
-  newProfile.totalScore += gameData.score;
-  
-  // Mise à jour des statistiques générales
-  newProfile.stats.gamesPlayed = (newProfile.stats.gamesPlayed || 0) + 1;
-  newProfile.stats.questionsAnswered = (newProfile.stats.questionsAnswered || 0) + gameData.questionsPlayed;
-
-  // Mise à jour des stats par mode de jeu
-  if(gameData.mode === 'easy') {
-    newProfile.stats.correctEasy = (newProfile.stats.correctEasy || 0) + gameData.correctAnswers;
-  } else {
-    newProfile.stats.correctHard = (newProfile.stats.correctHard || 0) + gameData.correctAnswers;
-    // On pourrait aussi mettre à jour la précision par rang ici
-  }
-
-  // Mise à jour des packs joués
-  const packId = gameData.packId;
-  newProfile.stats.packsPlayed[packId] = (newProfile.stats.packsPlayed[packId] || 0) + 1;
-  
-  saveProfile(newProfile);
-  return newProfile;
 };

@@ -1,10 +1,14 @@
+// src/App.jsx
+
 import React, { useState, useEffect, useCallback, useReducer } from 'react';
 
 // --- CONFIGS & SERVICES (chemins standardisés) ---
 import { PACKS } from './packs';
 import { initialCustomFilters, customFilterReducer } from './state/filterReducer';
-import { loadProfile, saveProfile } from './services/PlayerProfile';
+import { loadProfileWithDefaults, saveProfile } from './services/PlayerProfile';
 import { checkNewAchievements, ACHIEVEMENTS } from './achievements';
+import { fetchQuizQuestion } from './services/api'; // NOUVEL IMPORT
+
 
 // --- COMPOSANTS (chemins standardisés) ---
 import Configurator from './Configurator';
@@ -14,7 +18,6 @@ import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
-import LanguageSwitcher from './components/LanguageSwitcher';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -45,14 +48,14 @@ function App() {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [isHelpVisible, setIsHelpVisible] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
-  
+  const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
 
   // --- EFFETS ---
   useEffect(() => {
-    setPlayerProfile(loadProfile());
+    setPlayerProfile(loadProfileWithDefaults());
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('inaturamouche_lang', language);
   }, [language]);
 
@@ -61,6 +64,7 @@ function App() {
     try {
       const activePack = PACKS.find(p => p.id === activePackId);
       let queryParams = new URLSearchParams();
+      queryParams.set('locale', language); // On passe la langue à l'API
 
       if (activePack.type === 'list') {
         activePack.taxa_ids.forEach(id => queryParams.append('taxon_ids', id));
@@ -80,13 +84,8 @@ function App() {
         }
       }
       
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${apiUrl}/api/quiz-question?${queryParams.toString()}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Une erreur est survenue.");
-      }
-      setQuestion(await response.json());
+      const questionData = await fetchQuizQuestion(queryParams);
+      setQuestion(questionData);
     } catch (err) { 
       setError(err.message); 
       setIsGameActive(false); 
@@ -94,7 +93,7 @@ function App() {
     } finally { 
       setLoading(false); 
     }
-  }, [activePackId, customFilters]);
+  }, [activePackId, customFilters, language]);
 
   useEffect(() => {
     if (isGameActive && !question && questionCount > 0 && !loading) {
@@ -113,6 +112,7 @@ function App() {
     setQuestion(null);
     setSessionStats({ correctAnswers: 0 });
     setNewlyUnlocked([]);
+    setSessionCorrectSpecies([]);
   };
   
   const returnToConfig = () => {
@@ -124,50 +124,77 @@ function App() {
 
   const handleNextQuestion = (pointsGagnes = 0) => {
     const isCorrect = pointsGagnes > 0;
+    const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
     
+    // Mise à jour des stats de la session en cours
     setScore(prev => prev + pointsGagnes);
     if(isCorrect) {
       setSessionStats(prev => ({...prev, correctAnswers: prev.correctAnswers + 1}));
+      setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
     }
 
+    // Si la partie n'est pas terminée, on passe à la question suivante
     if (questionCount < MAX_QUESTIONS_PER_GAME) {
       setQuestionCount(prev => prev + 1);
       setQuestion(null);
     } else {
-      const finalScore = score + pointsGagnes;
-      const finalCorrectAnswers = sessionStats.correctAnswers + (isCorrect ? 1 : 0);
-      const updatedProfile = { ...playerProfile };
+      // --- DÉBUT DU BLOC DE FIN DE PARTIE : C'EST ICI QUE TOUT SE JOUE ---
+      // Ce bloc est maintenant la seule source de vérité pour la mise à jour du profil.
       
-      updatedProfile.totalScore += finalScore;
+      const finalCorrectAnswersInSession = sessionStats.correctAnswers + (isCorrect ? 1 : 0);
+      const finalScoreInGame = score + pointsGagnes;
+      
+      // On s'assure de travailler sur une copie fraîche du profil
+      const updatedProfile = JSON.parse(JSON.stringify(playerProfile));
+      
+      // --- MISE À JOUR ATOMIQUE DES STATS ---
+      // On garantit que les compteurs de bonnes réponses et de questions jouées
+      // sont TOUJOURS mis à jour ensemble.
+      
+      updatedProfile.xp = (updatedProfile.xp || 0) + finalScoreInGame;
       updatedProfile.stats.gamesPlayed = (updatedProfile.stats.gamesPlayed || 0) + 1;
+      
+      if(gameMode === 'easy') {
+        updatedProfile.stats.correctEasy = (updatedProfile.stats.correctEasy || 0) + finalCorrectAnswersInSession;
+        updatedProfile.stats.easyQuestionsAnswered = (updatedProfile.stats.easyQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+      } else { // mode 'hard'
+        updatedProfile.stats.correctHard = (updatedProfile.stats.correctHard || 0) + finalCorrectAnswersInSession;
+        updatedProfile.stats.hardQuestionsAnswered = (updatedProfile.stats.hardQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+      }
+
+      // Le reste de la logique pour la maîtrise, les packs et les succès
+      const finalCorrectSpecies = isCorrect ? [...sessionCorrectSpecies, currentQuestionId] : sessionCorrectSpecies;
+      if (!updatedProfile.stats.speciesMastery) updatedProfile.stats.speciesMastery = {};
+      finalCorrectSpecies.forEach(speciesId => {
+        updatedProfile.stats.speciesMastery[speciesId] = (updatedProfile.stats.speciesMastery[speciesId] || 0) + 1;
+      });
+
+      if (!updatedProfile.stats.packsPlayed) updatedProfile.stats.packsPlayed = {};
       updatedProfile.stats.packsPlayed[activePackId] = (updatedProfile.stats.packsPlayed[activePackId] || 0) + 1;
-      updatedProfile.stats.questionsAnswered = (updatedProfile.stats.questionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
-      if(gameMode === 'easy') updatedProfile.stats.correctEasy = (updatedProfile.stats.correctEasy || 0) + finalCorrectAnswers;
-      else updatedProfile.stats.correctHard = (updatedProfile.stats.correctHard || 0) + finalCorrectAnswers;
 
       const unlockedIds = checkNewAchievements(updatedProfile);
       if (unlockedIds.length > 0) {
+        if(!updatedProfile.achievements) updatedProfile.achievements = [];
         updatedProfile.achievements.push(...unlockedIds);
         setNewlyUnlocked(unlockedIds);
         setTimeout(() => setNewlyUnlocked([]), 5000);
       }
       
+      // On sauvegarde le profil mis à jour et on termine la partie
       saveProfile(updatedProfile);
       setPlayerProfile(updatedProfile);
       setIsGameActive(false);
       setIsGameOver(true);
+      // --- FIN DU BLOC DE FIN DE PARTIE ---
     }
   };
 
   // --- RENDU DU COMPOSANT ---
-    return (
+  return (
     <div className="App">
-      {/* Affichage des modales */}
       {isProfileVisible && <ProfileModal profile={playerProfile} onClose={() => setIsProfileVisible(false)} />}
-      {/* NOUVEAU: On gère l'affichage du modal d'aide ici */}
       {isHelpVisible && <HelpModal onClose={() => setIsHelpVisible(false)} />}
       
-      {/* Notification de Succès */}
       {newlyUnlocked.length > 0 && (
         <div className="achievement-toast">
           🏆 Succès Débloqué !
@@ -175,7 +202,11 @@ function App() {
         </div>
       )}
       <nav className="main-nav">
-          <button onClick={() => setIsProfileVisible(true)}>Mon Profil</button>
+          <button onClick={() => {
+              setIsProfileVisible(true);
+            }}>
+            Mon Profil
+          </button>
       </nav>
       <header className="app-header">
        <img 
@@ -200,7 +231,6 @@ function App() {
         ) : (
           <div className="screen configurator-screen">
             <div className="card">
-              {/* NOUVEAU: Le bouton d'aide est placé ici */}
               <button
                 className="help-button"
                 onClick={() => setIsHelpVisible(true)}
