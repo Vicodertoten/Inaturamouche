@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { autocompleteTaxa } from './services/api'; // NOUVEL IMPORT
+
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -26,9 +28,8 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
     setIsLoading(true);
     try {
       const params = { q: searchTerm, ...extraParams };
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.get(`${apiUrl}/api/taxa/autocomplete`, { params });
-      setSuggestions(response.data);
+      const data = await autocompleteTaxa(searchTerm, extraParams);
+      setSuggestions(data);
     } catch (error) {
       console.error(`Erreur de recherche pour l'autocomplétion`, error);
       setSuggestions([]);

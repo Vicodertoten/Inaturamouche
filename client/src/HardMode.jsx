@@ -6,6 +6,8 @@ import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
+import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
+
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 10;
@@ -53,9 +55,7 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
     setGuesses(newGuessesCount);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.get(`${apiUrl}/api/taxon/${selection.id}`);
-      const guessedTaxonHierarchy = response.data;
+      const guessedTaxonHierarchy = await getTaxonDetails(selection.id);
       if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
 
       const { bonne_reponse } = question;
