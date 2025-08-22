@@ -52,6 +52,10 @@ export const loadProfileWithDefaults = () => {
       finalProfile.stats.speciesMastery.correct = finalProfile.stats.speciesMastery.correct || {};
       finalProfile.stats.speciesMastery.failed = finalProfile.stats.speciesMastery.failed || [];
     }
+    // Éviter les doublons et normaliser les IDs
+    finalProfile.stats.speciesMastery.failed = [...new Set(
+      finalProfile.stats.speciesMastery.failed.map(id => Number(id))
+    )];
     // Migration des anciennes structures packsPlayed qui stockaient simplement un nombre
     if (finalProfile.stats.packsPlayed) {
       const migrated = {};
