@@ -52,5 +52,5 @@ Le serveur génère les questions à partir d'iNaturalist et renvoie uniquement 
    cd client
    npm run dev
    ```
-L'interface est accessible sur http://localhost:5173 et communique avec l'API disponible sur http://localhost:3001.
+L'interface déployée est accessible sur https://inaturamouche.netlify.app et communique avec l'API disponible sur https://inaturamouche-api.onrender.com.
 
