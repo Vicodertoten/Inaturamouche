@@ -36,6 +36,36 @@ app.use((req, res, next) => {
 });
 
 // --- FONCTIONS UTILITAIRES ---
+const TOKENS_PER_MINUTE = 60;
+let tokens = TOKENS_PER_MINUTE;
+
+// Recharge progressivement le réservoir, jusqu'à un maximum de 60 tokens
+setInterval(() => {
+  tokens = Math.min(TOKENS_PER_MINUTE, tokens + 1);
+}, 1000);
+
+async function acquireToken() {
+  while (tokens <= 0) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  tokens--;
+}
+
+// Wrapper fetch avec gestion des 429 et du header Retry-After
+async function fetchWithBackoff(url, options = {}, maxRetries = 5) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    await acquireToken();
+    const response = await fetch(url, options);
+    if (response.status !== 429) {
+      return response;
+    }
+    const retryAfter = response.headers.get('Retry-After');
+    const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, attempt) * 1000;
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  throw new Error('Too many retries');
+}
+
 async function fetchJSON(url, params = {}) {
     const urlObj = new URL(url);
     Object.entries(params).forEach(([key, value]) => {
@@ -43,7 +73,7 @@ async function fetchJSON(url, params = {}) {
             urlObj.searchParams.append(key, value);
         }
     });
-    const response = await fetch(urlObj);
+    const response = await fetchWithBackoff(urlObj);
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
