@@ -5,8 +5,19 @@ import './HelpModal.css'; // Nous allons créer ce fichier CSS juste après
 
 function HelpModal({ onClose }) {
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
     document.querySelector('.modal-content')?.focus();
-  }, []);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   return (
     // Le fond assombri qui ferme le modal au clic
