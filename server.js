@@ -241,5 +241,5 @@ app.get('/api/taxa', async (req, res) => {
 
 // --- Lancement du Serveur ---
 app.listen(PORT, () => {
-    console.log(`Serveur Inaturamouche démarré sur http://localhost:${PORT}`);
+    console.log(`Serveur Inaturamouche démarré sur le port ${PORT}`);
 });
