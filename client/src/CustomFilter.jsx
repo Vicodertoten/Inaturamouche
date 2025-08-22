@@ -2,12 +2,12 @@ import React from 'react';
 import AutocompleteInput from './AutocompleteInput';
 import MapFilter from './MapFilter';
 
-const TaxonPill = ({ taxon, onRemove }) => (
+const TaxonPill = React.memo(({ taxon, onRemove }) => (
   <div className="taxon-pill">
     <span>{taxon.name}</span>
     <button onClick={onRemove} className="remove-btn" title="Retirer ce taxon">×</button>
   </div>
-);
+));
 
 function CustomFilter({ filters, dispatch }) {
 
