@@ -95,8 +95,8 @@
   color: var(--text-color-muted);
 }
 
-.known-taxon {
-  padding: 12px 16px;
+  .known-taxon {
+    padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
   background-color: var(--bg-color);
   border: 2px solid var(--success-color);
   border-radius: 8px;
@@ -104,19 +104,19 @@
   color: var(--success-color);
 }
 
-.actions-panel {
-  align-items: center;
-  margin-top: 1rem;
-}
+  .actions-panel {
+    align-items: center;
+    margin-top: var(--space-3);
+  }
 
-.hard-mode-stats {
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--accent-color);
-  padding: 1rem;
+  .hard-mode-stats {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    padding: var(--space-3);
   background-color: rgba(0,0,0,0.2);
   border-radius: 8px;
 }
@@ -202,11 +202,11 @@
 }
 
 /* --- NOUVEAU : Classe commune pour les deux liens --- */
-.external-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  .external-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px var(--space-3);
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -224,18 +224,18 @@
   transform: translateY(-2px);
 }
 
-.feedback-bar {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 500;
-  color: #fff;
-  background-color: var(--primary-color);
-  margin-bottom: -0.5rem; /* Se place joliment entre les stats et les boutons */
-  animation: fade-in-down 0.5s ease;
-}
+  .feedback-bar {
+    width: 100%;
+    max-width: 400px;
+    padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+    color: #fff;
+    background-color: var(--primary-color);
+    margin-bottom: calc(var(--space-2) * -1); /* Se place joliment entre les stats et les boutons */
+    animation: fade-in-down 0.5s ease;
+  }
 
 @keyframes fade-in-down {
   from { opacity: 0; transform: translateY(-10px); }
@@ -243,8 +243,8 @@
 }
 
 /* --- Amélioration Visuelle pour Taxon Connu --- */
-.known-taxon {
-  padding: 12px 16px;
+  .known-taxon {
+    padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
   background-color: var(--bg-color);
   border: 2px solid var(--success-color);
   border-radius: 8px;
@@ -269,8 +269,8 @@
   }
 }
 
-.action-button {
-  padding: 12px 16px;
+  .action-button {
+    padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background-color: var(--surface-color);
