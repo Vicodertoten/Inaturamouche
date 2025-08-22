@@ -265,11 +265,23 @@ function App() {
               >
                 ?
               </button>
-               <div className="mode-selector">
-                  <h3>Choisir le mode :</h3>
-                  <button onClick={() => setGameMode('easy')} className={gameMode === 'easy' ? 'active' : ''}>Facile</button>
-                  <button onClick={() => setGameMode('hard')} className={gameMode === 'hard' ? 'active' : ''}>Difficile</button>
-              </div>
+                 <div className="mode-selector">
+                    <h3>Choisir le mode :</h3>
+                    <button
+                      onClick={() => setGameMode('easy')}
+                      className={gameMode === 'easy' ? 'active' : ''}
+                      title="Mode facile : choix multiple"
+                    >
+                      Facile
+                    </button>
+                    <button
+                      onClick={() => setGameMode('hard')}
+                      className={gameMode === 'hard' ? 'active' : ''}
+                      title="Mode difficile : réponse libre"
+                    >
+                      Difficile
+                    </button>
+                </div>
               <Configurator 
                 onStartGame={startGame} 
                 error={error}
