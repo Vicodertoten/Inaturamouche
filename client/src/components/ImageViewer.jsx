@@ -5,7 +5,7 @@ import { getSizedImageUrl } from '../utils/imageUtils';
 // Constante pour le niveau de zoom maximal
 const MAX_ZOOM = 2.5;
 
-function ImageViewer({ imageUrls, alt }) {
+function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   // --- États du composant ---
   const [currentIndex, setCurrentIndex] = useState(0); // Index de l'image affichée
   const [rotation, setRotation] = useState(0);       // Angle de rotation de l'image
@@ -35,6 +35,19 @@ function ImageViewer({ imageUrls, alt }) {
   useEffect(() => {
     setIsLoaded(currentIndex === 0);
   }, [currentIndex]);
+
+  // Précharge l'image de la prochaine question si fournie
+  useEffect(() => {
+    if (!nextImageUrl) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = getSizedImageUrl(nextImageUrl, 'large');
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, [nextImageUrl]);
 
   // --- Fonctions pour les contrôles ---
   const resetViewState = () => {

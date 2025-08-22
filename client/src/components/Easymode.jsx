@@ -6,7 +6,7 @@ const MAX_QUESTIONS_PER_GAME = 5;
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 // MODIFIÉ: Ajout de onUpdateScore pour la pénalité de l'indice
-const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore }) => { 
+const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl }) => {
   const [answerStatus, setAnswerStatus] = useState({ answered: false, correctAnswer: '', selectedAnswer: '' });
   const [showSummary, setShowSummary] = useState(false);
   
@@ -86,9 +86,10 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore }) =
           </header>
           <main className="game-main">
             <div className="image-section">
-              <ImageViewer 
+              <ImageViewer
                 imageUrls={question.image_urls || [question.image_url]}
                 alt="Quelle est cette espèce ?"
+                nextImageUrl={nextImageUrl}
               />
             </div>
             <div className="choices">
