@@ -65,5 +65,15 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          leaflet: ['leaflet', 'react-leaflet']
+        }
+      }
+    }
+  },
 })
 
