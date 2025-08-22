@@ -6,6 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
+import { computeScore } from './utils/scoring';
 
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -22,7 +23,7 @@ const SCORE_PER_RANK = {
   species: 40,
 };
 
-function HardMode({ question, score, onNextQuestion, onQuit }) {
+function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl }) {
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
@@ -83,15 +84,26 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
 
       // 1. On vérifie la condition de VICTOIRE en premier
       if (isSpeciesGuessed) {
-        const bonusPoints = newGuessesCount * 5;
-        setScoreInfo({ points: newPoints, bonus: bonusPoints });
+        const { points, bonus } = computeScore({
+          mode: 'hard',
+          basePoints: newPoints,
+          guessesRemaining: newGuessesCount,
+          isCorrect: true
+        });
+        setScoreInfo({ points, bonus });
         setRoundStatus('win');
         return; // On arrête la fonction ici, c'est gagné.
       }
-      
+
       // 2. Si ce n'est pas gagné, on vérifie la condition de DÉFAITE
       if (newGuessesCount <= 0) {
-        setScoreInfo({ points: newPoints, bonus: 0 });
+        const { points, bonus } = computeScore({
+          mode: 'hard',
+          basePoints: newPoints,
+          guessesRemaining: newGuessesCount,
+          isCorrect: false
+        });
+        setScoreInfo({ points, bonus });
         setRoundStatus('lose');
         return; // On arrête la fonction, c'est perdu.
       }
@@ -112,15 +124,25 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       showFeedback("Une erreur est survenue lors de la vérification.");
       // Sécurité : si une erreur arrive au dernier essai, on termine la partie
       if (newGuessesCount <= 0) {
-        setScoreInfo({ points: 0, bonus: 0 });
+        const { points, bonus } = computeScore({
+          mode: 'hard',
+          basePoints: 0,
+          guessesRemaining: newGuessesCount,
+          isCorrect: false
+        });
+        setScoreInfo({ points, bonus });
         setRoundStatus('lose');
       }
     }
   };
   
   const handleNext = () => {
-    const totalPoints = (scoreInfo?.points || 0) + (scoreInfo?.bonus || 0);
-    onNextQuestion(totalPoints, roundStatus === 'win');
+    const result = {
+      points: scoreInfo?.points || 0,
+      bonus: scoreInfo?.bonus || 0,
+      isCorrect: roundStatus === 'win'
+    };
+    onNextQuestion(result);
   };
 
   const handleRevealNameHint = () => {
@@ -154,14 +176,26 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
         if (firstUnknownRank === 'species') {
           const speciesPoints = SCORE_PER_RANK.species || 0;
           setCurrentScore(prev => prev + speciesPoints);
-          setScoreInfo({ points: speciesPoints, bonus: 0 });
+          const { points, bonus } = computeScore({
+            mode: 'hard',
+            basePoints: speciesPoints,
+            guessesRemaining: newGuessesCount,
+            isCorrect: true
+          });
+          setScoreInfo({ points, bonus });
           setRoundStatus('win');
           return; // La partie est gagnée, on arrête tout
         }
-        
+
         // NOUVEAU : Si ce n'est pas une victoire, on vérifie si l'indice a causé une défaite
         if (newGuessesCount <= 0) {
-          setScoreInfo({ points: 0, bonus: 0 }); // 0 points car on a perdu
+          const { points, bonus } = computeScore({
+            mode: 'hard',
+            basePoints: 0,
+            guessesRemaining: newGuessesCount,
+            isCorrect: false
+          });
+          setScoreInfo({ points, bonus });
           setRoundStatus('lose');
         }
       }
@@ -205,14 +239,17 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
         </div>
 
         <div className="media-panel">
-          <ImageViewer 
+          <ImageViewer
             imageUrls={question.image_urls || [question.image_url]}
-            alt="Espèce à identifier" 
+            alt="Espèce à identifier"
+            nextImageUrl={nextImageUrl}
           />
         </div>
 
         <div className="actions-panel">
-          {feedbackMessage && <div className="feedback-bar">{feedbackMessage}</div>}
+          {feedbackMessage && (
+            <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
+          )}
           <div className="hard-mode-stats">Chances : {guesses} | Score : {currentScore}</div>
           
           {/* MODIFIÉ: Grille d'actions pour inclure les nouveaux indices */}

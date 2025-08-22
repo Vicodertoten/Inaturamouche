@@ -1,9 +1,11 @@
 import express from 'express';
-import axios from 'axios';
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import dotenv from 'dotenv';
 import PACKS from './shared/packs.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,21 +16,24 @@ app.use(compression());
 
 // Les packs sont maintenant partagés avec le client.
 
-const allowedOrigins = [
-  'https://inaturamouche.netlify.app', // Votre frontend en production
-  'http://localhost:5173'              // Votre frontend en développement local
-];
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permet les requêtes sans origine (ex: Postman, apps mobiles) ou si l'origine est dans la liste blanche
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
+const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+
+if (allowedOrigins.length > 0) {
+  const corsOptions = {
+    origin: function (origin, callback) {
+      // Permet les requêtes sans origine (ex: Postman, apps mobiles) ou si l'origine est dans la liste blanche
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
     }
-  }
-};
-app.use(cors(corsOptions));
+  };
+  app.use(cors(corsOptions));
+} else {
+  // Autorise toutes les origines lorsque aucune liste blanche n'est spécifiée
+  app.use(cors());
+}
 
 // Gestion du cache pour toutes les réponses
 app.use((req, res, next) => {
@@ -36,21 +41,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- FONCTIONS UTILITAIRES ---
+async function fetchJSON(url, params = {}) {
+    const urlObj = new URL(url);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+            urlObj.searchParams.append(key, value);
+        }
+    });
+    const response = await fetch(urlObj);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    return response.json();
+}
+
 async function getFullTaxaDetails(taxonIds, locale = 'fr') {
     if (!taxonIds || taxonIds.length === 0) return [];
 
     try {
         // 1. Premier appel pour obtenir les données localisées (surtout le nom commun en français)
-        const localizedResponse = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { params: { locale } });
-        const localizedResults = localizedResponse.data.results;
+        const localizedResponse = await fetchJSON(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`, { locale });
+        const localizedResults = localizedResponse.results;
 
         // Si la locale demandée n'est pas l'anglais, on fait un second appel pour les données manquantes
         if (!locale.startsWith('en') && localizedResults.length > 0) {
             
             // 2. Second appel SANS locale pour obtenir les données par défaut (qui incluent l'URL wiki de manière fiable)
-            const defaultResponse = await axios.get(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`);
-            const defaultResults = defaultResponse.data.results;
+            const defaultResponse = await fetchJSON(`https://api.inaturalist.org/v1/taxa/${taxonIds.join(',')}`);
+            const defaultResults = defaultResponse.results;
             
             // On crée une Map pour retrouver facilement les données par défaut par leur ID
             const defaultDetailsMap = new Map(defaultResults.map(t => [t.id, t]));
@@ -116,13 +134,13 @@ app.get('/api/quiz-question', async (req, res) => {
     if (d2) params.d2 = d2;
 
     try {
-        const obsResponse = await axios.get('https://api.inaturalist.org/v1/observations', { params });
-        
-        if (!obsResponse.data.results || obsResponse.data.results.length === 0) {
+        const obsResponse = await fetchJSON('https://api.inaturalist.org/v1/observations', params);
+
+        if (!obsResponse.results || obsResponse.results.length === 0) {
             throw new Error("Aucune observation trouvée avec vos critères. Essayez d'élargir votre recherche.");
         }
-        
-        const shuffledObs = obsResponse.data.results.filter(obs => obs.taxon && obs.photos.length > 0).sort(() => 0.5 - Math.random());
+
+        const shuffledObs = obsResponse.results.filter(obs => obs.taxon && obs.photos.length > 0).sort(() => 0.5 - Math.random());
         let uniqueTaxonObservations = [], seenTaxonIds = new Set();
         for (const obs of shuffledObs) {
             if (!seenTaxonIds.has(obs.taxon.id)) {
@@ -174,8 +192,8 @@ app.get('/api/taxa/autocomplete', async (req, res) => {
     const params = { q, is_active: true, per_page: 10, locale };
     if (rank) params.rank = rank;
     
-    const response = await axios.get('https://api.inaturalist.org/v1/taxa/autocomplete', { params });
-    const initialSuggestions = response.data.results;
+    const response = await fetchJSON('https://api.inaturalist.org/v1/taxa/autocomplete', params);
+    const initialSuggestions = response.results;
     if (initialSuggestions.length === 0) return res.json([]);
 
     const taxonIds = initialSuggestions.map(t => t.id);
@@ -203,8 +221,8 @@ app.get('/api/taxon/:id', async (req, res) => {
   const { id } = req.params;
   const { locale = 'fr' } = req.query;
   try {
-    const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${id}`, { params: { locale } });
-    res.json(response.data.results[0]);
+    const response = await fetchJSON(`https://api.inaturalist.org/v1/taxa/${id}`, { locale });
+    res.json(response.results[0]);
   } catch (error) {
     res.status(404).json({ error: "Taxon non trouvé." });
   }
@@ -229,5 +247,5 @@ app.get('/api/taxa', async (req, res) => {
 
 // --- Lancement du Serveur ---
 app.listen(PORT, () => {
-    console.log(`Serveur Inaturamouche démarré sur http://localhost:${PORT}`);
+    console.log(`Serveur Inaturamouche démarré sur le port ${PORT}`);
 });

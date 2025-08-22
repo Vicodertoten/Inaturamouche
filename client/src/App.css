@@ -117,6 +117,7 @@ button:focus-visible {
 }
 
 /* Boutons de choix dans le jeu */
+.choices button { min-height: 44px; }
 .choices button.correct, .choices button.correct:hover { background-color: var(--success-color); border-color: var(--success-color); color: #fff; }
 .choices button.incorrect, .choices button.incorrect:hover { background-color: var(--error-color); border-color: var(--error-color); color: #fff; }
 .choices button.disabled, .choices button.disabled:hover { opacity: 0.6; cursor: not-allowed; }
@@ -317,6 +318,15 @@ button:focus-visible {
   border-color: var(--primary-color);
   color: #fff;
   transform: scale(1.1);
+}
+
+.help-button:focus-visible {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+  transform: scale(1.1);
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 /* Le reste de votre CSS reste inchangé */

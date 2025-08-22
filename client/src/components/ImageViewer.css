@@ -77,3 +77,27 @@
   min-width: 50px;
   text-align: center;
 }
+
+/* Placeholder skeleton affiché pendant le chargement des images */
+.image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface-color);
+  animation: image-placeholder-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes image-placeholder-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
