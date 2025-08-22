@@ -15,9 +15,9 @@
   animation: fade-in 0.3s ease;
 }
 
-.modal-content {
-  background-color: var(--surface-color);
-  padding: 2rem;
+  .modal-content {
+    background-color: var(--surface-color);
+    padding: var(--space-5);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   width: 90%;
@@ -43,18 +43,18 @@
   line-height: 1;
 }
 
-.modal-title {
-  margin: 0 0 1.5rem 0;
+  .modal-title {
+    margin: 0 0 var(--space-4) 0;
   text-align: center;
 }
 
 /* Style des sections d'aide */
-.help-section {
-  margin-bottom: 1.5rem;
+  .help-section {
+    margin-bottom: var(--space-4);
 }
 
-.help-section h4 {
-  margin: 0 0 0.5rem 0;
+  .help-section h4 {
+    margin: 0 0 var(--space-2) 0;
   color: var(--accent-color);
   font-size: 1.1rem;
 }
@@ -68,8 +68,8 @@
 .help-section ul {
   padding-left: 20px;
 }
-.help-section li {
-  margin-bottom: 0.5rem;
+  .help-section li {
+    margin-bottom: var(--space-2);
 }
 
 /* Bouton pour fermer */
