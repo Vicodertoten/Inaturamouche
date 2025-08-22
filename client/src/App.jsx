@@ -52,6 +52,8 @@ function App() {
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
+  const [isReviewMode, setIsReviewMode] = useState(false);
 
 const handleProfileReset = () => {
   setPlayerProfile(loadProfileWithDefaults());
@@ -77,25 +79,29 @@ const handleProfileReset = () => {
       setError(null);
     }
     try {
-      const activePack = PACKS.find(p => p.id === activePackId);
       let queryParams = new URLSearchParams();
       queryParams.set('locale', language); // On passe la langue à l'API
 
-      if (activePack.type === 'list') {
-        activePack.taxa_ids.forEach(id => queryParams.append('taxon_ids', id));
-      } else if (activePack.type === 'dynamic') {
-        queryParams.set('pack_id', activePack.id);
-      } else { // 'custom'
-        customFilters.includedTaxa.forEach(t => queryParams.append('include_taxa', t.id));
-        customFilters.excludedTaxa.forEach(t => queryParams.append('exclude_taxa', t.id));
-        if (customFilters.place_enabled) {
-          queryParams.set('lat', customFilters.lat);
-          queryParams.set('lng', customFilters.lng);
-          queryParams.set('radius', customFilters.radius);
-        }
-        if (customFilters.date_enabled) {
-          if(customFilters.d1) queryParams.set('d1', customFilters.d1);
-          if(customFilters.d2) queryParams.set('d2', customFilters.d2);
+      if (isReviewMode) {
+        (playerProfile?.stats?.missedSpecies || []).forEach(id => queryParams.append('taxon_ids', id));
+      } else {
+        const activePack = PACKS.find(p => p.id === activePackId);
+        if (activePack.type === 'list') {
+          activePack.taxa_ids.forEach(id => queryParams.append('taxon_ids', id));
+        } else if (activePack.type === 'dynamic') {
+          queryParams.set('pack_id', activePack.id);
+        } else { // 'custom'
+          customFilters.includedTaxa.forEach(t => queryParams.append('include_taxa', t.id));
+          customFilters.excludedTaxa.forEach(t => queryParams.append('exclude_taxa', t.id));
+          if (customFilters.place_enabled) {
+            queryParams.set('lat', customFilters.lat);
+            queryParams.set('lng', customFilters.lng);
+            queryParams.set('radius', customFilters.radius);
+          }
+          if (customFilters.date_enabled) {
+            if(customFilters.d1) queryParams.set('d1', customFilters.d1);
+            if(customFilters.d2) queryParams.set('d2', customFilters.d2);
+          }
         }
       }
 
@@ -118,7 +124,7 @@ const handleProfileReset = () => {
         setLoading(false);
       }
     }
-  }, [activePackId, customFilters, language]);
+  }, [activePackId, customFilters, language, isReviewMode, playerProfile]);
 
   useEffect(() => {
     if (isGameActive && !question && questionCount > 0 && !loading) {
@@ -128,7 +134,7 @@ const handleProfileReset = () => {
 
 
   // --- GESTIONNAIRES D'ÉVÉNEMENTS ---
-  const startGame = () => {
+  const startGame = (review = false) => {
     setScore(0);
     setQuestionCount(1);
     setIsGameActive(true);
@@ -140,7 +146,9 @@ const handleProfileReset = () => {
     setNewlyUnlocked([]);
     setSessionCorrectSpecies([]);
     setSessionSpeciesData([]);
+    setSessionMissedSpecies([]);
     setCurrentStreak(0);
+    setIsReviewMode(review);
   };
 
   const returnToConfig = () => {
@@ -150,6 +158,7 @@ const handleProfileReset = () => {
     setError(null);
     setQuestion(null);
     setNextQuestion(null);
+    setIsReviewMode(false);
   };
 
   const updateScore = (delta) => {
@@ -177,8 +186,10 @@ const handleProfileReset = () => {
       bonus = 2 * newStreak;
       setSessionStats(prev => ({ ...prev, correctAnswers: prev.correctAnswers + 1 }));
       setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
+      setSessionMissedSpecies(prev => prev.filter(id => id !== currentQuestionId));
     } else {
       setCurrentStreak(0);
+      setSessionMissedSpecies(prev => [...prev, currentQuestionId]);
     }
 
     // Mise à jour des stats de la session en cours
@@ -228,10 +239,22 @@ const handleProfileReset = () => {
 
       // Le reste de la logique pour la maîtrise, les packs et les succès
       const finalCorrectSpecies = isCorrect ? [...sessionCorrectSpecies, currentQuestionId] : sessionCorrectSpecies;
+      const finalMissedSpecies = isCorrect ? sessionMissedSpecies : [...sessionMissedSpecies, currentQuestionId];
       if (!updatedProfile.stats.speciesMastery) updatedProfile.stats.speciesMastery = {};
       finalCorrectSpecies.forEach(speciesId => {
-        updatedProfile.stats.speciesMastery[speciesId] = (updatedProfile.stats.speciesMastery[speciesId] || 0) + 1;
+        if (!updatedProfile.stats.speciesMastery[speciesId]) {
+          updatedProfile.stats.speciesMastery[speciesId] = { correct: 0 };
+        }
+        updatedProfile.stats.speciesMastery[speciesId].correct += 1;
       });
+
+      if (!updatedProfile.stats.missedSpecies) updatedProfile.stats.missedSpecies = [];
+      finalMissedSpecies.forEach(id => {
+        if (!updatedProfile.stats.missedSpecies.includes(id)) {
+          updatedProfile.stats.missedSpecies.push(id);
+        }
+      });
+      updatedProfile.stats.missedSpecies = updatedProfile.stats.missedSpecies.filter(id => !finalCorrectSpecies.includes(id));
 
       if (!updatedProfile.stats.packsPlayed) updatedProfile.stats.packsPlayed = {};
       if (!updatedProfile.stats.packsPlayed[activePackId]) {
@@ -343,8 +366,10 @@ const handleProfileReset = () => {
                       Difficile
                     </button>
                 </div>
-              <Configurator 
-                onStartGame={startGame} 
+              <Configurator
+                onStartGame={() => startGame(false)}
+                onStartReview={() => startGame(true)}
+                hasMissedSpecies={(playerProfile?.stats?.missedSpecies?.length || 0) > 0}
                 error={error}
                 activePackId={activePackId}
                 setActivePackId={setActivePackId}
