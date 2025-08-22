@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useState, useEffect, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useReducer, lazy, Suspense } from 'react';
 
 // --- CONFIGS & SERVICES (chemins standardisés) ---
 import PACKS from '../../shared/packs.js';
@@ -11,10 +11,10 @@ import { fetchQuizQuestion } from './services/api'; // NOUVEL IMPORT
 
 
 // --- COMPOSANTS (chemins standardisés) ---
-import Configurator from './Configurator';
-import HardMode from './HardMode';
-import EasyMode from './components/Easymode';
-import EndScreen from './components/EndScreen';
+const Configurator = lazy(() => import('./Configurator'));
+const HardMode = lazy(() => import('./HardMode'));
+const EasyMode = lazy(() => import('./components/Easymode'));
+const EndScreen = lazy(() => import('./components/EndScreen'));
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
@@ -316,68 +316,70 @@ const handleProfileReset = () => {
       </header>
       
       <main className="screen-container">
-        {isGameActive ? (
-          loading || !question 
-            ? <Spinner /> 
-            : ( gameMode === 'easy' 
-                ? <EasyMode
-                    question={question}
-                    score={score}
-                    questionCount={questionCount}
-                    onAnswer={(isCorrect, points) => handleNextQuestion(points, isCorrect)}
-                    onUpdateScore={updateScore}
-                  />
-                : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
-            )
-        ) : isGameOver ? (
-          <EndScreen
-            score={score}
-            sessionCorrectSpecies={sessionCorrectSpecies}
-            sessionSpeciesData={sessionSpeciesData}
-            newlyUnlocked={newlyUnlocked}
-            onRestart={startGame}
-            onReturnHome={returnToConfig}
-          />
-        ) : (
-          <div className="screen configurator-screen">
-            <div className="card">
-              <button
-                className="help-button"
-                onClick={() => setIsHelpVisible(true)}
-                title="Aide et informations"
-              >
-                ?
-              </button>
-              <div className="mode-selector">
-                    <h3>Choisir le mode :</h3>
-                    <button
-                      onClick={() => setGameMode('easy')}
-                      className={gameMode === 'easy' ? 'active' : ''}
-                      title="Mode facile : choix multiple"
-                    >
-                      Facile
-                    </button>
-                    <button
-                      onClick={() => setGameMode('hard')}
-                      className={gameMode === 'hard' ? 'active' : ''}
-                      title="Mode difficile : réponse libre"
-                    >
-                      Difficile
-                    </button>
-                </div>
-              <Configurator
-                onStartGame={() => startGame(false)}
-                onStartReview={() => startGame(true)}
-                hasMissedSpecies={(playerProfile?.stats?.missedSpecies?.length || 0) > 0}
-                error={error}
-                activePackId={activePackId}
-                setActivePackId={setActivePackId}
-                customFilters={customFilters}
-                dispatch={dispatch}
-              />
+        <Suspense fallback={<Spinner />}>
+          {isGameActive ? (
+            loading || !question
+              ? <Spinner />
+              : ( gameMode === 'easy'
+                  ? <EasyMode
+                      question={question}
+                      score={score}
+                      questionCount={questionCount}
+                      onAnswer={(isCorrect, points) => handleNextQuestion(points, isCorrect)}
+                      onUpdateScore={updateScore}
+                    />
+                  : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
+              )
+          ) : isGameOver ? (
+            <EndScreen
+              score={score}
+              sessionCorrectSpecies={sessionCorrectSpecies}
+              sessionSpeciesData={sessionSpeciesData}
+              newlyUnlocked={newlyUnlocked}
+              onRestart={startGame}
+              onReturnHome={returnToConfig}
+            />
+          ) : (
+            <div className="screen configurator-screen">
+              <div className="card">
+                <button
+                  className="help-button"
+                  onClick={() => setIsHelpVisible(true)}
+                  title="Aide et informations"
+                >
+                  ?
+                </button>
+                <div className="mode-selector">
+                      <h3>Choisir le mode :</h3>
+                      <button
+                        onClick={() => setGameMode('easy')}
+                        className={gameMode === 'easy' ? 'active' : ''}
+                        title="Mode facile : choix multiple"
+                      >
+                        Facile
+                      </button>
+                      <button
+                        onClick={() => setGameMode('hard')}
+                        className={gameMode === 'hard' ? 'active' : ''}
+                        title="Mode difficile : réponse libre"
+                      >
+                        Difficile
+                      </button>
+                  </div>
+                <Configurator
+                  onStartGame={() => startGame(false)}
+                  onStartReview={() => startGame(true)}
+                  hasMissedSpecies={(playerProfile?.stats?.missedSpecies?.length || 0) > 0}
+                  error={error}
+                  activePackId={activePackId}
+                  setActivePackId={setActivePackId}
+                  customFilters={customFilters}
+                  dispatch={dispatch}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </Suspense>
       </main>
     </div>
   );

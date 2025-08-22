@@ -1,9 +1,15 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import helmet from 'helmet';
 import PACKS from './shared/packs.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Sécurisation et optimisation des réponses HTTP
+app.use(helmet());
+app.use(compression());
 
 // Les packs sont maintenant partagés avec le client.
 
@@ -22,6 +28,12 @@ const corsOptions = {
   }
 };
 app.use(cors(corsOptions));
+
+// Gestion du cache pour toutes les réponses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+  next();
+});
 
 // --- FONCTIONS UTILITAIRES ---
 async function fetchJSON(url, params = {}) {

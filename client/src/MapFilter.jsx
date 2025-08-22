@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // Ce sous-composant gère les interactions avec la carte
 function MapLogic({ center, radius, dispatch }) {
@@ -22,7 +23,7 @@ function MapLogic({ center, radius, dispatch }) {
 // Le composant principal du filtre de carte
 function MapFilter({ filters, dispatch }) {
   const { lat, lng, radius } = filters;
-  const center = { lat, lng };
+  const center = useMemo(() => ({ lat, lng }), [lat, lng]);
 
   const handleRadiusChange = (e) => {
     const newRadius = Number(e.target.value);
@@ -59,3 +60,4 @@ function MapFilter({ filters, dispatch }) {
 }
 
 export default MapFilter;
+
