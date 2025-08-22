@@ -64,3 +64,7 @@ h2 {
 button {
   font-family: var(--font-family-main);
 }
+:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
