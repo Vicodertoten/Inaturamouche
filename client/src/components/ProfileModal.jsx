@@ -34,7 +34,7 @@ function ProfileModal({ profile, onClose, onResetProfile }) {
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
 
-  const sortedMastery = Object.entries(profile?.stats?.speciesMastery || {})
+  const sortedMastery = Object.entries(profile?.stats?.speciesMastery?.correct || {})
                               .sort(([,a],[,b]) => b - a)
                               .slice(0, 5);
 

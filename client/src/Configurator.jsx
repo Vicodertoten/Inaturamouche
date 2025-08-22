@@ -2,7 +2,7 @@ import React from 'react';
 import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 
-function Configurator({ onStartGame, error, activePackId, setActivePackId, customFilters, dispatch }) {
+function Configurator({ onStartGame, onReviewMistakes, canReview, error, activePackId, setActivePackId, customFilters, dispatch }) {
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -39,6 +39,9 @@ function Configurator({ onStartGame, error, activePackId, setActivePackId, custo
         )}
       </div>
 
+      {canReview && (
+        <button onClick={onReviewMistakes} className="start-button review-button">Réviser mes erreurs</button>
+      )}
       <button onClick={onStartGame} className="start-button">Lancer la partie !</button>
     </div>
   );

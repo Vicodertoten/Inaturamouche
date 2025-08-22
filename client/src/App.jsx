@@ -49,6 +49,8 @@ function App() {
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
+  const [sessionIncorrectSpecies, setSessionIncorrectSpecies] = useState([]);
+  const [isReviewMode, setIsReviewMode] = useState(false);
 
 const handleProfileReset = () => {
   setPlayerProfile(loadProfileWithDefaults());
@@ -71,38 +73,42 @@ const handleProfileReset = () => {
   const fetchQuestion = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const activePack = PACKS.find(p => p.id === activePackId);
       let queryParams = new URLSearchParams();
       queryParams.set('locale', language); // On passe la langue à l'API
 
-      if (activePack.type === 'list') {
-        activePack.taxa_ids.forEach(id => queryParams.append('taxon_ids', id));
-      } else if (activePack.type === 'dynamic') {
-        queryParams.set('pack_id', activePack.id);
-      } else { // 'custom'
-        customFilters.includedTaxa.forEach(t => queryParams.append('include_taxa', t.id));
-        customFilters.excludedTaxa.forEach(t => queryParams.append('exclude_taxa', t.id));
-        if (customFilters.place_enabled) {
-          queryParams.set('lat', customFilters.lat);
-          queryParams.set('lng', customFilters.lng);
-          queryParams.set('radius', customFilters.radius);
-        }
-        if (customFilters.date_enabled) {
-          if(customFilters.d1) queryParams.set('d1', customFilters.d1);
-          if(customFilters.d2) queryParams.set('d2', customFilters.d2);
+      if (isReviewMode) {
+        (playerProfile?.stats?.speciesMastery?.failed || []).forEach(id => queryParams.append('taxon_ids', id));
+      } else {
+        const activePack = PACKS.find(p => p.id === activePackId);
+        if (activePack.type === 'list') {
+          activePack.taxa_ids.forEach(id => queryParams.append('taxon_ids', id));
+        } else if (activePack.type === 'dynamic') {
+          queryParams.set('pack_id', activePack.id);
+        } else { // 'custom'
+          customFilters.includedTaxa.forEach(t => queryParams.append('include_taxa', t.id));
+          customFilters.excludedTaxa.forEach(t => queryParams.append('exclude_taxa', t.id));
+          if (customFilters.place_enabled) {
+            queryParams.set('lat', customFilters.lat);
+            queryParams.set('lng', customFilters.lng);
+            queryParams.set('radius', customFilters.radius);
+          }
+          if (customFilters.date_enabled) {
+            if(customFilters.d1) queryParams.set('d1', customFilters.d1);
+            if(customFilters.d2) queryParams.set('d2', customFilters.d2);
+          }
         }
       }
-      
+
       const questionData = await fetchQuizQuestion(queryParams);
       setQuestion(questionData);
-    } catch (err) { 
-      setError(err.message); 
-      setIsGameActive(false); 
-      setIsGameOver(false); 
-    } finally { 
-      setLoading(false); 
+    } catch (err) {
+      setError(err.message);
+      setIsGameActive(false);
+      setIsGameOver(false);
+    } finally {
+      setLoading(false);
     }
-  }, [activePackId, customFilters, language]);
+  }, [activePackId, customFilters, language, isReviewMode, playerProfile]);
 
   useEffect(() => {
     if (isGameActive && !question && questionCount > 0 && !loading) {
@@ -122,6 +128,17 @@ const handleProfileReset = () => {
     setSessionStats({ correctAnswers: 0 });
     setNewlyUnlocked([]);
     setSessionCorrectSpecies([]);
+    setSessionIncorrectSpecies([]);
+  };
+
+  const startReview = () => {
+    const failed = playerProfile?.stats?.speciesMastery?.failed || [];
+    if (failed.length === 0) {
+      alert('Aucune espèce à réviser.');
+      return;
+    }
+    setIsReviewMode(true);
+    startGame();
   };
   
   const returnToConfig = () => {
@@ -129,6 +146,7 @@ const handleProfileReset = () => {
     setIsGameOver(false);
     setQuestionCount(0);
     setError(null);
+    setIsReviewMode(false);
   };
 
   const updateScore = (delta) => {
@@ -144,6 +162,8 @@ const handleProfileReset = () => {
     if(isCorrect) {
       setSessionStats(prev => ({...prev, correctAnswers: prev.correctAnswers + 1}));
       setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
+    } else {
+      setSessionIncorrectSpecies(prev => [...prev, currentQuestionId]);
     }
 
     // Si la partie n'est pas terminée, on passe à la question suivante
@@ -183,9 +203,19 @@ const handleProfileReset = () => {
 
       // Le reste de la logique pour la maîtrise, les packs et les succès
       const finalCorrectSpecies = isCorrect ? [...sessionCorrectSpecies, currentQuestionId] : sessionCorrectSpecies;
-      if (!updatedProfile.stats.speciesMastery) updatedProfile.stats.speciesMastery = {};
+      const finalIncorrectSpecies = !isCorrect ? [...sessionIncorrectSpecies, currentQuestionId] : sessionIncorrectSpecies;
+      if (!updatedProfile.stats.speciesMastery) {
+        updatedProfile.stats.speciesMastery = { correct: {}, failed: [] };
+      }
       finalCorrectSpecies.forEach(speciesId => {
-        updatedProfile.stats.speciesMastery[speciesId] = (updatedProfile.stats.speciesMastery[speciesId] || 0) + 1;
+        updatedProfile.stats.speciesMastery.correct[speciesId] = (updatedProfile.stats.speciesMastery.correct[speciesId] || 0) + 1;
+        // retirer des erreurs si l'espèce était ratée auparavant
+        updatedProfile.stats.speciesMastery.failed = updatedProfile.stats.speciesMastery.failed.filter(id => id !== speciesId);
+      });
+      finalIncorrectSpecies.forEach(speciesId => {
+        if (!updatedProfile.stats.speciesMastery.failed.includes(speciesId)) {
+          updatedProfile.stats.speciesMastery.failed.push(speciesId);
+        }
       });
 
       if (!updatedProfile.stats.packsPlayed) updatedProfile.stats.packsPlayed = {};
@@ -208,6 +238,7 @@ const handleProfileReset = () => {
       setPlayerProfile(updatedProfile);
       setIsGameActive(false);
       setIsGameOver(true);
+      setIsReviewMode(false);
       // --- FIN DU BLOC DE FIN DE PARTIE ---
     }
   };
@@ -297,13 +328,15 @@ const handleProfileReset = () => {
                       Difficile
                     </button>
                 </div>
-              <Configurator 
-                onStartGame={startGame} 
-                error={error}
-                activePackId={activePackId}
-                setActivePackId={setActivePackId}
-                customFilters={customFilters}
-                dispatch={dispatch}
+          <Configurator
+            onStartGame={startGame}
+            onReviewMistakes={startReview}
+            canReview={playerProfile?.stats?.speciesMastery?.failed?.length > 0}
+            error={error}
+            activePackId={activePackId}
+            setActivePackId={setActivePackId}
+            customFilters={customFilters}
+            dispatch={dispatch}
               />
             </div>
           </div>

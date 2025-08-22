@@ -36,7 +36,7 @@ export const checkNewAchievements = (profile) => {
       unlocked.push('ACCURACY_HARD_75');
     }
 
-    const masteredSpeciesCount = Object.values(stats.speciesMastery || {}).filter(count => count >= 3).length;
+    const masteredSpeciesCount = Object.values(stats.speciesMastery?.correct || {}).filter(count => count >= 3).length;
     if (masteredSpeciesCount >= 5 && !achievements.includes('MASTER_5_SPECIES')) {
       unlocked.push('MASTER_5_SPECIES');
     }

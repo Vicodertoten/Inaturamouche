@@ -13,7 +13,10 @@ const getDefaultProfile = () => ({
     correctHard: 0,
     accuracyEasy: 0,
     accuracyHard: 0,
-    speciesMastery: {}, // ex: { taxonId: count, ... }
+    // speciesMastery conserve désormais deux informations :
+    // - correct : { taxonId: count, ... }
+    // - failed  : [taxonId, ...]
+    speciesMastery: { correct: {}, failed: [] },
     packsPlayed: {},
   },
   achievements: [],
@@ -38,6 +41,17 @@ export const loadProfileWithDefaults = () => {
         ...(loadedProfile.stats || {}),
       },
     };
+    // Migration de l'ancienne structure speciesMastery (objet simple)
+    if (!finalProfile.stats.speciesMastery || Array.isArray(finalProfile.stats.speciesMastery)) {
+      finalProfile.stats.speciesMastery = { correct: {}, failed: [] };
+    } else if (!finalProfile.stats.speciesMastery.correct) {
+      // l'ancien format était { taxonId: count, ... }
+      const oldMastery = finalProfile.stats.speciesMastery;
+      finalProfile.stats.speciesMastery = { correct: oldMastery, failed: [] };
+    } else {
+      finalProfile.stats.speciesMastery.correct = finalProfile.stats.speciesMastery.correct || {};
+      finalProfile.stats.speciesMastery.failed = finalProfile.stats.speciesMastery.failed || [];
+    }
     // Migration des anciennes structures packsPlayed qui stockaient simplement un nombre
     if (finalProfile.stats.packsPlayed) {
       const migrated = {};
