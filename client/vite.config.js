@@ -6,8 +6,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'assets/*.png', 'offline.html'],
+      includeAssets: [
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'assets/*.png',
+        'offline.html',
+        'packs/*.json'
+      ],
       manifest: {
         name: 'Inaturamouche',
         short_name: 'Inaturamouche',
@@ -37,10 +44,11 @@ export default defineConfig({
         ]
       },
       workbox: {
+        globPatterns: ['**/*.{js,css,html,json}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/static\.inaturalist\.org\/.*$/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'inaturalist-images',
               cacheableResponse: {
