@@ -1,6 +1,7 @@
 // src/services/api.js
 
-const API_BASE_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL =
+  import.meta?.env?.VITE_API_URL || 'https://inaturamouche-api.onrender.com';
 
 async function apiGet(path, params = {}) {
   const url = new URL(path, API_BASE_URL);
