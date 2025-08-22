@@ -9,7 +9,7 @@ import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
-const INITIAL_GUESSES = 10;
+const INITIAL_GUESSES = 6;
 const REVEAL_HINT_COST = 2;
 
 const SCORE_PER_RANK = {
@@ -85,14 +85,14 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       if (isSpeciesGuessed) {
         const bonusPoints = newGuessesCount * 5;
         setScoreInfo({ points: newPoints, bonus: bonusPoints });
-        setRoundStatus('won');
+        setRoundStatus('win');
         return; // On arrête la fonction ici, c'est gagné.
       }
       
       // 2. Si ce n'est pas gagné, on vérifie la condition de DÉFAITE
       if (newGuessesCount <= 0) {
         setScoreInfo({ points: newPoints, bonus: 0 });
-        setRoundStatus('lost');
+        setRoundStatus('lose');
         return; // On arrête la fonction, c'est perdu.
       }
 
@@ -113,14 +113,14 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
       // Sécurité : si une erreur arrive au dernier essai, on termine la partie
       if (newGuessesCount <= 0) {
         setScoreInfo({ points: 0, bonus: 0 });
-        setRoundStatus('lost');
+        setRoundStatus('lose');
       }
     }
   };
   
   const handleNext = () => {
     const totalPoints = (scoreInfo?.points || 0) + (scoreInfo?.bonus || 0);
-    onNextQuestion(totalPoints);
+    onNextQuestion(totalPoints, roundStatus === 'win');
   };
 
   const handleRevealNameHint = () => {
@@ -154,15 +154,15 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
         if (firstUnknownRank === 'species') {
           const speciesPoints = SCORE_PER_RANK.species || 0;
           setCurrentScore(prev => prev + speciesPoints);
-          setScoreInfo({ points: speciesPoints, bonus: 0 }); 
-          setRoundStatus('won');
+          setScoreInfo({ points: speciesPoints, bonus: 0 });
+          setRoundStatus('win');
           return; // La partie est gagnée, on arrête tout
         }
         
         // NOUVEAU : Si ce n'est pas une victoire, on vérifie si l'indice a causé une défaite
         if (newGuessesCount <= 0) {
           setScoreInfo({ points: 0, bonus: 0 }); // 0 points car on a perdu
-          setRoundStatus('lost');
+          setRoundStatus('lose');
         }
       }
     }
