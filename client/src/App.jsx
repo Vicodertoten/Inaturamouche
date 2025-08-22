@@ -32,7 +32,7 @@ const MAX_QUESTIONS_PER_GAME = 5;
 
 function App() {
   // --- ÉTATS ---
-  const [language, setLanguage] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
+  const [language] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatch] = useReducer(customFilterReducer, initialCustomFilters);
   const [question, setQuestion] = useState(null);
@@ -49,6 +49,10 @@ function App() {
   const [isHelpVisible, setIsHelpVisible] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
+
+  const handleProfileReset = () => {
+    setPlayerProfile(loadProfileWithDefaults());
+  };
 
   // --- EFFETS ---
   useEffect(() => {
@@ -206,7 +210,13 @@ function App() {
   // --- RENDU DU COMPOSANT ---
   return (
     <div className="App">
-      {isProfileVisible && <ProfileModal profile={playerProfile} onClose={() => setIsProfileVisible(false)} />}
+      {isProfileVisible && (
+        <ProfileModal
+          profile={playerProfile}
+          onClose={() => setIsProfileVisible(false)}
+          onResetProfile={handleProfileReset}
+        />
+      )}
       {isHelpVisible && <HelpModal onClose={() => setIsHelpVisible(false)} />}
       
       {newlyUnlocked.length > 0 && (

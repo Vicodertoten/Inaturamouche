@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
 import { autocompleteTaxa } from './services/api'; // NOUVEL IMPORT
 
 
@@ -27,7 +26,6 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
     }
     setIsLoading(true);
     try {
-      const params = { q: searchTerm, ...extraParams };
       const data = await autocompleteTaxa(searchTerm, extraParams);
       setSuggestions(data);
     } catch (error) {

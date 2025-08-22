@@ -3,6 +3,7 @@ import { ACHIEVEMENTS } from '../achievements';
 import './ProfileModal.css';
 import { getTaxaByIds } from '../services/api';
 import PACKS from '../../../shared/packs.js';
+import { resetProfile } from '../services/PlayerProfile';
 
 // --- Fonctions de calcul pour le système de niveaux ---
 const getLevelFromXp = (xp) => {
@@ -28,43 +29,42 @@ const MasteryItem = ({ taxon, count }) => {
 };
 
 
-function ProfileModal({ profile, onClose }) {
+function ProfileModal({ profile, onClose, onResetProfile }) {
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
 
-  if (!profile) return null;
-
-  const sortedMastery = Object.entries(profile.stats.speciesMastery || {})
+  const sortedMastery = Object.entries(profile?.stats?.speciesMastery || {})
                               .sort(([,a],[,b]) => b - a)
                               .slice(0, 5);
 
   useEffect(() => {
-    if (activeTab === 'stats' && sortedMastery.length > 0 && masteryDetails.length === 0) {
-      const fetchMasteryDetails = async () => {
-        setIsLoadingMastery(true);
-        const idsToFetch = sortedMastery.map(([id]) => id);
-        try {
-          const taxaData = await getTaxaByIds(idsToFetch);
-          
-          // --- CORRECTION 1 : On conserve l'ID dans notre nouvel objet ---
-          const detailsWithCount = sortedMastery.map(([id, count]) => {
-            const taxonDetail = taxaData.find(t => t.id == id);
-            // On retourne un objet qui contient l'ID, le taxon, et le compteur.
-            return { id, taxon: taxonDetail, count };
-          });
+    if (activeTab !== 'stats' || !profile || sortedMastery.length === 0 || masteryDetails.length > 0) return;
+    const fetchMasteryDetails = async () => {
+      setIsLoadingMastery(true);
+      const idsToFetch = sortedMastery.map(([id]) => id);
+      try {
+        const taxaData = await getTaxaByIds(idsToFetch);
 
-          setMasteryDetails(detailsWithCount);
-        } catch (error) {
-          console.error("Erreur chargement des espèces maîtrisées:", error);
-        }
-        setIsLoadingMastery(false);
-      };
-      fetchMasteryDetails();
-    }
+        // --- CORRECTION 1 : On conserve l'ID dans notre nouvel objet ---
+        const detailsWithCount = sortedMastery.map(([id, count]) => {
+          const taxonDetail = taxaData.find(t => t.id == id);
+          // On retourne un objet qui contient l'ID, le taxon, et le compteur.
+          return { id, taxon: taxonDetail, count };
+        });
+
+        setMasteryDetails(detailsWithCount);
+      } catch (error) {
+        console.error("Erreur chargement des espèces maîtrisées:", error);
+      }
+      setIsLoadingMastery(false);
+    };
+    fetchMasteryDetails();
     // --- CORRECTION 2 : Tableau des dépendances optimisé ---
     // On ne dépend que de l'onglet actif et de la source des données.
-  }, [activeTab, profile.stats.speciesMastery]);
+  }, [activeTab, profile, sortedMastery, masteryDetails.length]);
+
+  if (!profile) return null;
 
   // ... (le reste des calculs est inchangé)
   const level = getLevelFromXp(profile.xp);
@@ -112,6 +112,19 @@ function ProfileModal({ profile, onClose }) {
                   <div className="stat-item"><span className="stat-value">{profile.stats.gamesPlayed || 0}</span><span className="stat-label">Parties Jouées</span></div>
                   <div className="stat-item"><span className="stat-value">{overallAccuracy}%</span><span className="stat-label">Précision Globale</span></div>
                 </div>
+              </div>
+              <div className="profile-section">
+                <button
+                  className="reset-profile-button"
+                  onClick={() => {
+                    if (window.confirm('Voulez-vous vraiment réinitialiser votre profil ?')) {
+                      resetProfile();
+                      if (onResetProfile) onResetProfile();
+                    }
+                  }}
+                >
+                  Réinitialiser le profil
+                </button>
               </div>
             </div>
           )}
