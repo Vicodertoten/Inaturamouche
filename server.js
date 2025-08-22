@@ -1,20 +1,12 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
+import PACKS from './shared/packs.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// La définition des packs est dupliquée ici pour que le serveur soit autonome.
-// Dans une application plus grande, ce fichier pourrait être partagé.
-const PACKS_CONFIG = [
-    { id: 'world_birds', api_params: { taxon_id: '3', popular: 'true' } },
-    { id: 'france_mammals', api_params: { taxon_id: '40151', place_id: '6753' } },
-    { id: 'belgium_herps', api_params: { taxon_id: '26036,20978', place_id: '6911' }},
-    { id: 'amazing_insects', api_params: { taxon_id: '47158', popular: 'true' }},
-    { id: 'mediterranean_flora', api_params: { taxon_id: '47126', place_id: '53832' }},
-    { id: 'great_barrier_reef_life', api_params: { taxon_id: '1', place_id: '131021' }}
-];
+// Les packs sont maintenant partagés avec le client.
 
 const allowedOrigins = [
   'https://inaturamouche.netlify.app', // Votre frontend en production
@@ -94,11 +86,11 @@ app.get('/api/quiz-question', async (req, res) => {
     };
 
     if (pack_id) {
-        const selectedPack = PACKS_CONFIG.find(p => p.id === pack_id);
+        const selectedPack = PACKS.find(p => p.id === pack_id);
         if (selectedPack && selectedPack.api_params) {
             Object.assign(params, selectedPack.api_params);
         }
-    } 
+    }
     else if (taxon_ids) {
         params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(',') : taxon_ids;
     } 
