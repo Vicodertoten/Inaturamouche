@@ -1,5 +1,5 @@
 import React from 'react';
-import { PACKS } from './packs';
+import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 
 function Configurator({ onStartGame, error, activePackId, setActivePackId, customFilters, dispatch }) {
