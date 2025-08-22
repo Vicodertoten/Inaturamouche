@@ -18,6 +18,7 @@ import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
+import HomeIntro from './components/HomeIntro';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -49,6 +50,7 @@ function App() {
   const [isHelpVisible, setIsHelpVisible] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
+  const [showHomeIntro, setShowHomeIntro] = useState(() => !localStorage.getItem('home_intro_seen'));
 
   const handleProfileReset = () => {
     setPlayerProfile(loadProfileWithDefaults());
@@ -275,7 +277,8 @@ function App() {
               >
                 ?
               </button>
-                 <div className="mode-selector">
+              {showHomeIntro && <HomeIntro onClose={() => setShowHomeIntro(false)} />}
+              <div className="mode-selector">
                     <h3>Choisir le mode :</h3>
                     <button
                       onClick={() => setGameMode('easy')}
