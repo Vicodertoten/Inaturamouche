@@ -18,6 +18,7 @@ const EndScreen = lazy(() => import('./components/EndScreen'));
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
+import StreakBadge from './components/StreakBadge';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -305,10 +306,11 @@ const handleProfileReset = () => {
             Mon Profil
           </button>
       </nav>
+      {isGameActive && <StreakBadge streak={currentStreak} />}
       <header className="app-header">
-       <img 
-          src={titleImage} 
-          alt="Titre Inaturamouche" 
+       <img
+          src={titleImage}
+          alt="Titre Inaturamouche"
           className={`app-title-image ${isGameActive || isGameOver ? 'clickable' : ''}`}
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
