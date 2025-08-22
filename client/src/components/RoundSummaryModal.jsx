@@ -2,6 +2,7 @@
 
 import React from 'react';
 import './RoundSummaryModal.css';
+import { getSizedImageUrl } from '../utils/imageUtils';
 
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   if (!question || !question.bonne_reponse) {
@@ -30,7 +31,14 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
         
         <div className="correct-answer-section">
           <p>La réponse était :</p>
-          <img src={imageUrl} alt={commonName || scientificName} className="answer-image" />
+          <img
+            src={getSizedImageUrl(imageUrl, 'large')}
+            srcSet={`${getSizedImageUrl(imageUrl, 'small')} 300w, ${getSizedImageUrl(imageUrl, 'medium')} 600w, ${getSizedImageUrl(imageUrl, 'large')} 1024w`}
+            sizes="(max-width: 600px) 100vw, 400px"
+            alt={commonName || scientificName}
+            className="answer-image"
+            loading="lazy"
+          />
           
           {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}
           {displayCommonName && (
