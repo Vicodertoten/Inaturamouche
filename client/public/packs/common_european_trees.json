@@ -1,0 +1,252 @@
+[
+  {
+    "scientific_name": "Quercus robur",
+    "common_name": "Chêne pédonculé",
+    "inaturalist_id": "56133"
+  },
+  {
+    "scientific_name": "Quercus petraea",
+    "common_name": "Chêne sessile",
+    "inaturalist_id": "200942"
+  },
+  {
+    "scientific_name": "Fagus sylvatica",
+    "common_name": "Hêtre commun",
+    "inaturalist_id": "54227"
+  },
+  {
+    "scientific_name": "Carpinus betulus",
+    "common_name": "Charme commun",
+    "inaturalist_id": "55801"
+  },
+  {
+    "scientific_name": "Acer pseudoplatanus",
+    "common_name": "Érable sycomore",
+    "inaturalist_id": "119791"
+  },
+  {
+    "scientific_name": "Acer platanoides",
+    "common_name": "Érable plane",
+    "inaturalist_id": "54763"
+  },
+  {
+    "scientific_name": "Tilia cordata",
+    "common_name": "Tilleul à petites feuilles",
+    "inaturalist_id": "132600"
+  },
+  {
+    "scientific_name": "Tilia platyphyllos",
+    "common_name": "Tilleul à grandes feuilles",
+    "inaturalist_id": "169761"
+  },
+  {
+    "scientific_name": "Fraxinus excelsior",
+    "common_name": "Frêne commun",
+    "inaturalist_id": "125440"
+  },
+  {
+    "scientific_name": "Ulmus glabra",
+    "common_name": "Orme de montagne",
+    "inaturalist_id": "170056"
+  },
+  {
+    "scientific_name": "Ulmus minor",
+    "common_name": "Orme champêtre",
+    "inaturalist_id": "79461"
+  },
+  {
+    "scientific_name": "Betula pendula",
+    "common_name": "Bouleau verruqueux",
+    "inaturalist_id": "83992"
+  },
+  {
+    "scientific_name": "Betula pubescens",
+    "common_name": "Bouleau pubescent",
+    "inaturalist_id": "119061"
+  },
+  {
+    "scientific_name": "Populus nigra",
+    "common_name": "Peuplier noir",
+    "inaturalist_id": "47565"
+  },
+  {
+    "scientific_name": "Populus tremula",
+    "common_name": "Tremble",
+    "inaturalist_id": "47571"
+  },
+  {
+    "scientific_name": "Salix alba",
+    "common_name": "Saule blanc",
+    "inaturalist_id": "54841"
+  },
+  {
+    "scientific_name": "Alnus glutinosa",
+    "common_name": "Aulne glutineux",
+    "inaturalist_id": "966205"
+  },
+  {
+    "scientific_name": "Picea abies",
+    "common_name": "Épicéa commun",
+    "inaturalist_id": "63567"
+  },
+  {
+    "scientific_name": "Abies alba",
+    "common_name": "Sapin pectiné",
+    "inaturalist_id": "136319"
+  },
+  {
+    "scientific_name": "Pinus sylvestris",
+    "common_name": "Pin sylvestre",
+    "inaturalist_id": "58722"
+  },
+  {
+    "scientific_name": "Pinus nigra",
+    "common_name": "Pin noir",
+    "inaturalist_id": "135790"
+  },
+  {
+    "scientific_name": "Larix decidua",
+    "common_name": "Mélèze d'Europe",
+    "inaturalist_id": "59747"
+  },
+  {
+    "scientific_name": "Juniperus communis",
+    "common_name": "Genévrier commun",
+    "inaturalist_id": "58725"
+  },
+  {
+    "scientific_name": "Taxus baccata",
+    "common_name": "If commun",
+    "inaturalist_id": "47553"
+  },
+  {
+    "scientific_name": "Castanea sativa",
+    "common_name": "Châtaignier commun",
+    "inaturalist_id": "121763"
+  },
+  {
+    "scientific_name": "Sorbus aucuparia",
+    "common_name": "Sorbier des oiseaux",
+    "inaturalist_id": "56063"
+  },
+  {
+    "scientific_name": "Aria edulis",
+    "common_name": "Alisier blanc",
+    "inaturalist_id": "900799"
+  },
+  {
+    "scientific_name": "Prunus avium",
+    "common_name": "Merisier, Cerisier des oiseaux",
+    "inaturalist_id": "61964"
+  },
+  {
+    "scientific_name": "Prunus padus",
+    "common_name": "Merisier à grappes",
+    "inaturalist_id": "143793"
+  },
+  {
+    "scientific_name": "Malus domestica",
+    "common_name": "Pommier commun",
+    "inaturalist_id": "469472"
+  },
+  {
+    "scientific_name": "Pyrus communis",
+    "common_name": "Poirier commun",
+    "inaturalist_id": "63951"
+  },
+  {
+    "scientific_name": "Crataegus monogyna",
+    "common_name": "Aubépine monogyne",
+    "inaturalist_id": "51147"
+  },
+  {
+    "scientific_name": "Crataegus laevigata",
+    "common_name": "Aubépine à deux styles",
+    "inaturalist_id": "54428"
+  },
+  {
+    "scientific_name": "Robinia pseudoacacia",
+    "common_name": "Robinier faux-acacia",
+    "inaturalist_id": "56088"
+  },
+  {
+    "scientific_name": "Aesculus hippocastanum",
+    "common_name": "Marronnier d'Inde",
+    "inaturalist_id": "84298"
+  },
+  {
+    "scientific_name": "Platanus × hispanica",
+    "common_name": "Platane commun",
+    "inaturalist_id": "552449"
+  },
+  {
+    "scientific_name": "Cupressus sempervirens",
+    "common_name": "Cyprès commun",
+    "inaturalist_id": "64261"
+  },
+  {
+    "scientific_name": "Quercus suber",
+    "common_name": "Chêne-liège",
+    "inaturalist_id": "50868"
+  },
+  {
+    "scientific_name": "Quercus ilex",
+    "common_name": "Chêne vert",
+    "inaturalist_id": "78805"
+  },
+  {
+    "scientific_name": "Olea europaea",
+    "common_name": "Olivier",
+    "inaturalist_id": "57140"
+  },
+  {
+    "scientific_name": "Ceratonia siliqua",
+    "common_name": "Caroubier",
+    "inaturalist_id": "82742"
+  },
+  {
+    "scientific_name": "Laurus nobilis",
+    "common_name": "Laurier-sauce",
+    "inaturalist_id": "54759"
+  },
+  {
+    "scientific_name": "Arbutus unedo",
+    "common_name": "Arbousier",
+    "inaturalist_id": "82689"
+  },
+  {
+    "scientific_name": "Erica arborea",
+    "common_name": "Bruyère arborescente",
+    "inaturalist_id": "82688"
+  },
+  {
+    "scientific_name": "Populus alba",
+    "common_name": "Peuplier blanc",
+    "inaturalist_id": "47570"
+  },
+  {
+    "scientific_name": "Populus x canadensis",
+    "common_name": "Peuplier hybride euraméricain",
+    "inaturalist_id": "181684"
+  },
+  {
+    "scientific_name": "Salix caprea",
+    "common_name": "Saule marsault",
+    "inaturalist_id": "55846"
+  },
+  {
+    "scientific_name": "Alnus incana",
+    "common_name": "Aulne blanc",
+    "inaturalist_id": "75377"
+  },
+  {
+    "scientific_name": "Ostrya carpinifolia",
+    "common_name": "Ostryer à feuilles de charme",
+    "inaturalist_id": "334194"
+  },
+  {
+    "scientific_name": "Buxus sempervirens",
+    "common_name": "Buis commun",
+    "inaturalist_id": "133397"
+  }
+]
