@@ -161,13 +161,19 @@ function App() {
       
       updatedProfile.xp = (updatedProfile.xp || 0) + finalScoreInGame;
       updatedProfile.stats.gamesPlayed = (updatedProfile.stats.gamesPlayed || 0) + 1;
-      
+
       if(gameMode === 'easy') {
         updatedProfile.stats.correctEasy = (updatedProfile.stats.correctEasy || 0) + finalCorrectAnswersInSession;
         updatedProfile.stats.easyQuestionsAnswered = (updatedProfile.stats.easyQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+        updatedProfile.stats.accuracyEasy = updatedProfile.stats.easyQuestionsAnswered > 0
+          ? updatedProfile.stats.correctEasy / updatedProfile.stats.easyQuestionsAnswered
+          : 0;
       } else { // mode 'hard'
         updatedProfile.stats.correctHard = (updatedProfile.stats.correctHard || 0) + finalCorrectAnswersInSession;
         updatedProfile.stats.hardQuestionsAnswered = (updatedProfile.stats.hardQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+        updatedProfile.stats.accuracyHard = updatedProfile.stats.hardQuestionsAnswered > 0
+          ? updatedProfile.stats.correctHard / updatedProfile.stats.hardQuestionsAnswered
+          : 0;
       }
 
       // Le reste de la logique pour la maîtrise, les packs et les succès
@@ -178,7 +184,11 @@ function App() {
       });
 
       if (!updatedProfile.stats.packsPlayed) updatedProfile.stats.packsPlayed = {};
-      updatedProfile.stats.packsPlayed[activePackId] = (updatedProfile.stats.packsPlayed[activePackId] || 0) + 1;
+      if (!updatedProfile.stats.packsPlayed[activePackId]) {
+        updatedProfile.stats.packsPlayed[activePackId] = { correct: 0, answered: 0 };
+      }
+      updatedProfile.stats.packsPlayed[activePackId].correct += finalCorrectAnswersInSession;
+      updatedProfile.stats.packsPlayed[activePackId].answered += MAX_QUESTIONS_PER_GAME;
 
       const unlockedIds = checkNewAchievements(updatedProfile);
       if (unlockedIds.length > 0) {
@@ -247,7 +257,14 @@ function App() {
                 : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
             )
         ) : isGameOver ? (
-          <EndScreen score={score} onRestart={startGame} />
+          <EndScreen
+            score={score}
+            sessionStats={sessionStats}
+            sessionCorrectSpecies={sessionCorrectSpecies}
+            newlyUnlocked={newlyUnlocked}
+            onRestart={startGame}
+            onShowProfile={() => setIsProfileVisible(true)}
+          />
         ) : (
           <div className="screen configurator-screen">
             <div className="card">
@@ -258,11 +275,23 @@ function App() {
               >
                 ?
               </button>
-               <div className="mode-selector">
-                  <h3>Choisir le mode :</h3>
-                  <button onClick={() => setGameMode('easy')} className={gameMode === 'easy' ? 'active' : ''}>Facile</button>
-                  <button onClick={() => setGameMode('hard')} className={gameMode === 'hard' ? 'active' : ''}>Difficile</button>
-              </div>
+                 <div className="mode-selector">
+                    <h3>Choisir le mode :</h3>
+                    <button
+                      onClick={() => setGameMode('easy')}
+                      className={gameMode === 'easy' ? 'active' : ''}
+                      title="Mode facile : choix multiple"
+                    >
+                      Facile
+                    </button>
+                    <button
+                      onClick={() => setGameMode('hard')}
+                      className={gameMode === 'hard' ? 'active' : ''}
+                      title="Mode difficile : réponse libre"
+                    >
+                      Difficile
+                    </button>
+                </div>
               <Configurator 
                 onStartGame={startGame} 
                 error={error}
