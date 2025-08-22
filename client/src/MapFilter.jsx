@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // Ce sous-composant gère les interactions avec la carte
 function MapLogic({ center, radius, dispatch }) {
