@@ -11,6 +11,7 @@ function ImageViewer({ imageUrls, alt }) {
   const [rotation, setRotation] = useState(0);       // Angle de rotation de l'image
   const [scale, setScale] = useState(1);     // Niveau de zoom courant
   const [transform, setTransform] = useState({ x: 0, y: 0 }); // Position de l'image lors du déplacement (pan)
+  const [isLoaded, setIsLoaded] = useState(true); // État de chargement de l'image
 
   // --- Références pour la gestion du déplacement ---
   const containerRef = useRef(null); // Référence au conteneur pour gérer le style du curseur
@@ -27,7 +28,13 @@ function ImageViewer({ imageUrls, alt }) {
     setRotation(0);
     setScale(1);
     setTransform({ x: 0, y: 0 });
+    setIsLoaded(true);
   }, [imageUrls]);
+
+  // Réinitialise l'état de chargement à chaque changement d'image
+  useEffect(() => {
+    setIsLoaded(currentIndex === 0);
+  }, [currentIndex]);
 
   // --- Fonctions pour les contrôles ---
   const resetViewState = () => {
@@ -168,6 +175,9 @@ function ImageViewer({ imageUrls, alt }) {
           sizes="(max-width: 600px) 100vw, 600px"
           alt={alt}
           loading="lazy"
+          decoding={currentIndex === 0 ? 'async' : undefined}
+          fetchpriority={currentIndex === 0 ? 'high' : undefined}
+          onLoad={() => setIsLoaded(true)}
           style={{
             transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale}) rotate(${rotation}deg)`,
             transition:
@@ -177,6 +187,9 @@ function ImageViewer({ imageUrls, alt }) {
           }}
           draggable="false"
         />
+        {!isLoaded && currentIndex !== 0 && (
+          <div className="image-placeholder" />
+        )}
       </div>
       <div className="image-controls">
         <button onClick={handlePrev} disabled={imageUrls.length <= 1}>‹</button>
