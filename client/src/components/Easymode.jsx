@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
+import { computeScore } from '../utils/scoring';
 
 const MAX_QUESTIONS_PER_GAME = 5;
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
@@ -34,9 +35,7 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore }) =
   };
   
   const handleNext = () => {
-    const isCorrect = answerStatus.selectedAnswer === answerStatus.correctAnswer;
-    // Le score est déjà déduit si l'indice a été utilisé
-    onAnswer(isCorrect, isCorrect ? 10 : 0); 
+    onAnswer({ ...scoreInfo, isCorrect: isCorrectAnswer });
   };
 
   const handleHint = () => {
@@ -54,16 +53,16 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore }) =
     }
   };
 
+  const isCorrectAnswer = answerStatus.selectedAnswer === answerStatus.correctAnswer;
+  const scoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
+
   return (
     <>
       {showSummary && (
         <RoundSummaryModal
-          status={answerStatus.selectedAnswer === answerStatus.correctAnswer ? 'win' : 'lose'}
+          status={isCorrectAnswer ? 'win' : 'lose'}
           question={question}
-          scoreInfo={{ 
-            points: answerStatus.selectedAnswer === answerStatus.correctAnswer ? 10 : 0, 
-            bonus: 0 
-          }}
+          scoreInfo={scoreInfo}
           onNext={handleNext}
         />
       )}

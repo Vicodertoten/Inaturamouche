@@ -165,9 +165,25 @@ const handleProfileReset = () => {
     setScore(prev => prev + delta);
   };
 
-  const handleNextQuestion = (pointsGagnes = 0, isCorrectParam = null) => {
-    const isCorrect = isCorrectParam ?? (pointsGagnes > 0);
+  const handleNextQuestion = ({ points = 0, bonus = 0, isCorrect = null } = {}) => {
+    const isCorrectFinal = isCorrect ?? (points > 0);
     const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
+
+    const newStreak = isCorrectFinal ? currentStreak + 1 : 0;
+    setCurrentStreak(newStreak);
+
+    let streakBonus = 0;
+    if (isCorrectFinal) {
+      streakBonus = 2 * newStreak;
+      setSessionStats(prev => ({ ...prev, correctAnswers: prev.correctAnswers + 1 }));
+      setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
+      setSessionMissedSpecies(prev => prev.filter(id => id !== currentQuestionId));
+    } else {
+      setSessionMissedSpecies(prev => [...prev, currentQuestionId]);
+    }
+
+    const totalBonus = bonus + streakBonus;
+
     setSessionSpeciesData(prev => [
       ...prev,
       {
@@ -176,24 +192,13 @@ const handleProfileReset = () => {
         common_name: question.bonne_reponse.common_name,
         wikipedia_url: question.bonne_reponse.wikipedia_url,
         inaturalist_url: question.inaturalist_url,
+        bonus: totalBonus,
+        streak: newStreak,
       },
     ]);
-    let bonus = 0;
-
-    if (isCorrect) {
-      const newStreak = currentStreak + 1;
-      setCurrentStreak(newStreak);
-      bonus = 2 * newStreak;
-      setSessionStats(prev => ({ ...prev, correctAnswers: prev.correctAnswers + 1 }));
-      setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
-      setSessionMissedSpecies(prev => prev.filter(id => id !== currentQuestionId));
-    } else {
-      setCurrentStreak(0);
-      setSessionMissedSpecies(prev => [...prev, currentQuestionId]);
-    }
 
     // Mise à jour des stats de la session en cours
-    updateScore(pointsGagnes + bonus);
+    updateScore(points + totalBonus);
 
     // Si la partie n'est pas terminée, on passe à la question suivante
     if (questionCount < MAX_QUESTIONS_PER_GAME) {
@@ -209,10 +214,10 @@ const handleProfileReset = () => {
     } else {
       // --- DÉBUT DU BLOC DE FIN DE PARTIE : C'EST ICI QUE TOUT SE JOUE ---
       // Ce bloc est maintenant la seule source de vérité pour la mise à jour du profil.
-      
-      const finalCorrectAnswersInSession = sessionStats.correctAnswers + (isCorrect ? 1 : 0);
-      const finalScoreInGame = score + pointsGagnes + bonus;
-      
+
+      const finalCorrectAnswersInSession = sessionStats.correctAnswers + (isCorrectFinal ? 1 : 0);
+      const finalScoreInGame = score + points + totalBonus;
+
       // On s'assure de travailler sur une copie fraîche du profil
       const updatedProfile = JSON.parse(JSON.stringify(playerProfile));
       
@@ -238,8 +243,8 @@ const handleProfileReset = () => {
       }
 
       // Le reste de la logique pour la maîtrise, les packs et les succès
-      const finalCorrectSpecies = isCorrect ? [...sessionCorrectSpecies, currentQuestionId] : sessionCorrectSpecies;
-      const finalMissedSpecies = isCorrect ? sessionMissedSpecies : [...sessionMissedSpecies, currentQuestionId];
+      const finalCorrectSpecies = isCorrectFinal ? [...sessionCorrectSpecies, currentQuestionId] : sessionCorrectSpecies;
+      const finalMissedSpecies = isCorrectFinal ? sessionMissedSpecies : [...sessionMissedSpecies, currentQuestionId];
       if (!updatedProfile.stats.speciesMastery) updatedProfile.stats.speciesMastery = {};
       finalCorrectSpecies.forEach(speciesId => {
         if (!updatedProfile.stats.speciesMastery[speciesId]) {
@@ -325,7 +330,7 @@ const handleProfileReset = () => {
                       question={question}
                       score={score}
                       questionCount={questionCount}
-                      onAnswer={(isCorrect, points) => handleNextQuestion(points, isCorrect)}
+                      onAnswer={handleNextQuestion}
                       onUpdateScore={updateScore}
                     />
                   : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
