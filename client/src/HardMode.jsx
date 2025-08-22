@@ -212,7 +212,9 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
         </div>
 
         <div className="actions-panel">
-          {feedbackMessage && <div className="feedback-bar">{feedbackMessage}</div>}
+          {feedbackMessage && (
+            <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
+          )}
           <div className="hard-mode-stats">Chances : {guesses} | Score : {currentScore}</div>
           
           {/* MODIFIÉ: Grille d'actions pour inclure les nouveaux indices */}
