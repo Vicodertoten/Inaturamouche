@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ACHIEVEMENTS } from '../achievements';
 import './ProfileModal.css';
 import { getTaxaByIds } from '../services/api';
+import PACKS from '../../../shared/packs.js';
 
 // --- Fonctions de calcul pour le système de niveaux ---
 const getLevelFromXp = (xp) => {
@@ -76,6 +77,8 @@ function ProfileModal({ profile, onClose }) {
   const totalAnswered = (profile.stats.easyQuestionsAnswered || 0) + (profile.stats.hardQuestionsAnswered || 0);
   const totalCorrect = (profile.stats.correctEasy || 0) + (profile.stats.correctHard || 0);
   const overallAccuracy = totalAnswered > 0 ? ((totalCorrect / totalAnswered) * 100).toFixed(1) : "0.0";
+  const easyAccuracy = ((profile.stats.accuracyEasy || 0) * 100).toFixed(1);
+  const hardAccuracy = ((profile.stats.accuracyHard || 0) * 100).toFixed(1);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -116,10 +119,42 @@ function ProfileModal({ profile, onClose }) {
           {activeTab === 'stats' && (
             <div className="fade-in">
               <div className="profile-section">
+                <h3>Précision par mode</h3>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-value">{easyAccuracy}%</span>
+                    <span className="stat-label">Mode Facile</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{hardAccuracy}%</span>
+                    <span className="stat-label">Mode Difficile</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-section">
+                <h3>Statistiques par Pack</h3>
+                <ul className="pack-stats-list">
+                  {Object.entries(profile.stats.packsPlayed || {}).map(([packId, { correct, answered }]) => {
+                    const pack = PACKS.find(p => p.id === packId);
+                    const acc = answered > 0 ? ((correct / answered) * 100).toFixed(1) : '0.0';
+                    return (
+                      <li key={packId} className="pack-stat-item">
+                        <span className="pack-name">{pack ? pack.title : packId}</span>
+                        <span className="pack-count">{correct}/{answered} ({acc}%)</span>
+                      </li>
+                    );
+                  })}
+                  {Object.keys(profile.stats.packsPlayed || {}).length === 0 && (
+                    <p className="empty-state">Aucun pack joué.</p>
+                  )}
+                </ul>
+              </div>
+
+              <div className="profile-section">
                 <h3>Maîtrise (Top 5)</h3>
                 {isLoadingMastery ? <p>Chargement...</p> : (
                   <ul className="mastery-list">
-                    {/* --- CORRECTION 3 : On peut maintenant utiliser l'ID en toute sécurité --- */}
                     {masteryDetails.map(({ id, taxon, count }) => (
                       <MasteryItem key={id} taxon={taxon} count={count} />
                     ))}
