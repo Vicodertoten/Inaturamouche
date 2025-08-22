@@ -1,25 +1,25 @@
 // src/services/api.js
 
-import axios from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
-});
+async function apiGet(path, params = {}) {
+  const url = new URL(path, API_BASE_URL);
+  const searchParams = params instanceof URLSearchParams ? params : new URLSearchParams(params);
+  url.search = searchParams.toString();
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Erreur réseau');
+  }
+  return data;
+}
 
 /**
  * Récupère une question de quiz en fonction des paramètres de filtres.
- * @param {URLSearchParams} params - Les paramètres de la requête.
+ * @param {URLSearchParams|Object} params - Les paramètres de la requête.
  * @returns {Promise<Object>} La question du quiz.
  */
-export const fetchQuizQuestion = async (params) => {
-  try {
-    const response = await apiClient.get('/api/quiz-question', { params });
-    return response.data;
-  } catch (error) {
-    // Propage l'erreur pour que le composant puisse la gérer
-    throw new Error(error.response?.data?.error || "Impossible de charger la question.");
-  }
-};
+export const fetchQuizQuestion = (params) => apiGet('/api/quiz-question', params);
 
 /**
  * Récupère les détails complets pour un seul taxon.
@@ -27,14 +27,8 @@ export const fetchQuizQuestion = async (params) => {
  * @param {string} locale - La langue souhaitée.
  * @returns {Promise<Object>} Les détails du taxon.
  */
-export const getTaxonDetails = async (id, locale = 'fr') => {
-  try {
-    const response = await apiClient.get(`/api/taxon/${id}`, { params: { locale } });
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || "Taxon non trouvé.");
-  }
-};
+export const getTaxonDetails = (id, locale = 'fr') =>
+  apiGet(`/api/taxon/${id}`, { locale });
 
 /**
  * Récupère une liste de suggestions pour l'autocomplétion.
@@ -43,29 +37,19 @@ export const getTaxonDetails = async (id, locale = 'fr') => {
  * @param {string} locale - La langue souhaitée.
  * @returns {Promise<Array>} Une liste de suggestions.
  */
-export const autocompleteTaxa = async (query, extraParams = {}, locale = 'fr') => {
-    const params = { q: query, locale, ...extraParams };
-    try {
-        const response = await apiClient.get('/api/taxa/autocomplete', { params });
-        return response.data;
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Erreur de recherche.");
-    }
+export const autocompleteTaxa = (query, extraParams = {}, locale = 'fr') => {
+  const params = { q: query, locale, ...extraParams };
+  return apiGet('/api/taxa/autocomplete', params);
 };
 
 /**
- * NOUVEAU: Récupère les détails pour plusieurs taxons en un seul appel.
+ * Récupère les détails pour plusieurs taxons en un seul appel.
  * @param {Array<string|number>} ids - Un tableau d'IDs de taxons.
  * @param {string} locale - La langue souhaitée.
  * @returns {Promise<Array>} Un tableau de détails de taxons.
  */
-export const getTaxaByIds = async (ids, locale = 'fr') => {
-  if (!ids || ids.length === 0) return [];
-  try {
-    // L'endpoint attend des IDs séparés par des virgules
-    const response = await apiClient.get(`/api/taxa?ids=${ids.join(',')}`, { params: { locale } });
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || "Taxons non trouvés.");
-  }
+export const getTaxaByIds = (ids, locale = 'fr') => {
+  if (!ids || ids.length === 0) return Promise.resolve([]);
+  return apiGet('/api/taxa', { ids: ids.join(','), locale });
 };
+
