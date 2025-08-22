@@ -23,7 +23,7 @@ function MapLogic({ center, radius, dispatch }) {
 // Le composant principal du filtre de carte
 function MapFilter({ filters, dispatch }) {
   const { lat, lng, radius } = filters;
-  const center = { lat, lng };
+  const center = useMemo(() => ({ lat, lng }), [lat, lng]);
 
   const handleRadiusChange = (e) => {
     const newRadius = Number(e.target.value);
@@ -60,3 +60,4 @@ function MapFilter({ filters, dispatch }) {
 }
 
 export default MapFilter;
+
