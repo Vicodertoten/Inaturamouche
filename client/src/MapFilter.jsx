@@ -45,7 +45,7 @@ function MapFilter({ filters, dispatch }) {
         />
         <p>Cliquez sur la carte pour définir le centre de la zone.</p>
       </div>
-      <div style={{ height: '400px', width: '100%', marginBottom: '1rem', position: 'relative' }}>
+        <div style={{ height: '400px', width: '100%', marginBottom: 'var(--space-3)', position: 'relative' }}>
         <MapContainer center={[lat, lng]} zoom={5} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
