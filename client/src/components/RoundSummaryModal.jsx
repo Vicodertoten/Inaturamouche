@@ -1,12 +1,25 @@
 // src/components/RoundSummaryModal.jsx (version finale corrigée)
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onNext]);
+
   if (!question || !question.bonne_reponse) {
-    return null; 
+    return null;
   }
 
   const { bonne_reponse, inaturalist_url } = question;
