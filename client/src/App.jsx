@@ -50,6 +50,7 @@ function App() {
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
+  const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
 
 const handleProfileReset = () => {
@@ -138,6 +139,7 @@ const handleProfileReset = () => {
     setSessionStats({ correctAnswers: 0 });
     setNewlyUnlocked([]);
     setSessionCorrectSpecies([]);
+    setSessionSpeciesData([]);
     setCurrentStreak(0);
   };
 
@@ -157,6 +159,16 @@ const handleProfileReset = () => {
   const handleNextQuestion = (pointsGagnes = 0, isCorrectParam = null) => {
     const isCorrect = isCorrectParam ?? (pointsGagnes > 0);
     const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
+    setSessionSpeciesData(prev => [
+      ...prev,
+      {
+        id: currentQuestionId,
+        name: question.bonne_reponse.name,
+        common_name: question.bonne_reponse.common_name,
+        wikipedia_url: question.bonne_reponse.wikipedia_url,
+        inaturalist_url: question.inaturalist_url,
+      },
+    ]);
     let bonus = 0;
 
     if (isCorrect) {
@@ -299,6 +311,7 @@ const handleProfileReset = () => {
             score={score}
             sessionStats={sessionStats}
             sessionCorrectSpecies={sessionCorrectSpecies}
+            sessionSpeciesData={sessionSpeciesData}
             newlyUnlocked={newlyUnlocked}
             onRestart={startGame}
             onShowProfile={() => setIsProfileVisible(true)}
