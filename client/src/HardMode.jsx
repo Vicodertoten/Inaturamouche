@@ -23,7 +23,7 @@ const SCORE_PER_RANK = {
   species: 40,
 };
 
-function HardMode({ question, score, onNextQuestion, onQuit }) {
+function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl }) {
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
@@ -239,9 +239,10 @@ function HardMode({ question, score, onNextQuestion, onQuit }) {
         </div>
 
         <div className="media-panel">
-          <ImageViewer 
+          <ImageViewer
             imageUrls={question.image_urls || [question.image_url]}
-            alt="Espèce à identifier" 
+            alt="Espèce à identifier"
+            nextImageUrl={nextImageUrl}
           />
         </div>
 

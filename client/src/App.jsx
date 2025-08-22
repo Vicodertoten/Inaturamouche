@@ -287,6 +287,7 @@ const handleProfileReset = () => {
   };
 
   // --- RENDU DU COMPOSANT ---
+  const nextImageUrl = nextQuestion?.image_urls?.[0] || nextQuestion?.image_url;
   return (
     <div className="App">
       {isProfileVisible && (
@@ -395,8 +396,15 @@ const handleProfileReset = () => {
                       questionCount={questionCount}
                       onAnswer={handleNextQuestion}
                       onUpdateScore={updateScore}
+                      nextImageUrl={nextImageUrl}
                     />
-                  : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
+                  : <HardMode
+                      question={question}
+                      score={score}
+                      onNextQuestion={handleNextQuestion}
+                      onQuit={returnToConfig}
+                      nextImageUrl={nextImageUrl}
+                    />
               )
           ) : isGameOver ? (
             <EndScreen
