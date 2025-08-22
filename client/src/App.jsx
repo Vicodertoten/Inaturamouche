@@ -18,7 +18,6 @@ import EndScreen from './components/EndScreen';
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
-import HomeIntro from './components/HomeIntro';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -47,13 +46,17 @@ function App() {
   const [gameMode, setGameMode] = useState('easy');
   const [playerProfile, setPlayerProfile] = useState(null);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
-  const [isHelpVisible, setIsHelpVisible] = useState(false);
+  const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
-  const [showHomeIntro, setShowHomeIntro] = useState(() => !localStorage.getItem('home_intro_seen'));
 
-  const handleProfileReset = () => {
-    setPlayerProfile(loadProfileWithDefaults());
+const handleProfileReset = () => {
+  setPlayerProfile(loadProfileWithDefaults());
+};
+
+  const handleCloseHelp = () => {
+    localStorage.setItem('home_intro_seen', '1');
+    setIsHelpVisible(false);
   };
 
   // --- EFFETS ---
@@ -219,7 +222,7 @@ function App() {
           onResetProfile={handleProfileReset}
         />
       )}
-      {isHelpVisible && <HelpModal onClose={() => setIsHelpVisible(false)} />}
+      {isHelpVisible && <HelpModal onClose={handleCloseHelp} />}
       
       {newlyUnlocked.length > 0 && (
         <div className="achievement-toast">
@@ -277,7 +280,6 @@ function App() {
               >
                 ?
               </button>
-              {showHomeIntro && <HomeIntro onClose={() => setShowHomeIntro(false)} />}
               <div className="mode-selector">
                     <h3>Choisir le mode :</h3>
                     <button
