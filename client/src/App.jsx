@@ -122,12 +122,16 @@ function App() {
     setError(null);
   };
 
-  const handleNextQuestion = (pointsGagnes = 0) => {
-    const isCorrect = pointsGagnes > 0;
+  const updateScore = (delta) => {
+    setScore(prev => prev + delta);
+  };
+
+  const handleNextQuestion = (pointsGagnes = 0, isCorrectParam = null) => {
+    const isCorrect = isCorrectParam ?? (pointsGagnes > 0);
     const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
-    
+
     // Mise à jour des stats de la session en cours
-    setScore(prev => prev + pointsGagnes);
+    updateScore(pointsGagnes);
     if(isCorrect) {
       setSessionStats(prev => ({...prev, correctAnswers: prev.correctAnswers + 1}));
       setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
@@ -223,7 +227,13 @@ function App() {
           loading || !question 
             ? <Spinner /> 
             : ( gameMode === 'easy' 
-                ? <EasyMode question={question} score={score} questionCount={questionCount} onAnswer={(isCorrect) => handleNextQuestion(isCorrect ? 10 : 0)} />
+                ? <EasyMode
+                    question={question}
+                    score={score}
+                    questionCount={questionCount}
+                    onAnswer={(isCorrect, points) => handleNextQuestion(points, isCorrect)}
+                    onUpdateScore={updateScore}
+                  />
                 : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
             )
         ) : isGameOver ? (
