@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import dotenv from 'dotenv';
 import PACKS from './shared/packs.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,10 +16,7 @@ app.use(compression());
 
 // Les packs sont maintenant partagés avec le client.
 
-const allowedOrigins = [
-  'https://inaturamouche.netlify.app', // Votre frontend en production
-  'http://localhost:5173'              // Votre frontend en développement local
-];
+const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
 const corsOptions = {
   origin: function (origin, callback) {
     // Permet les requêtes sans origine (ex: Postman, apps mobiles) ou si l'origine est dans la liste blanche
