@@ -1,11 +1,15 @@
 // src/components/RoundSummaryModal.jsx (version finale corrigée)
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
+  const buttonRef = useRef(null);
+  const previousActiveRef = useRef(null);
+
   useEffect(() => {
+    previousActiveRef.current = document.activeElement;
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         onNext();
@@ -13,8 +17,14 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
     };
 
     window.addEventListener('keydown', handleKeyDown);
+    if (buttonRef.current) {
+      buttonRef.current.focus();
+    }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      if (previousActiveRef.current && previousActiveRef.current.focus) {
+        previousActiveRef.current.focus();
+      }
     };
   }, [onNext]);
 
@@ -37,7 +47,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content summary-modal">
+      <div className="modal-content summary-modal" role="dialog" aria-modal="true">
         <h2 className={isWin ? 'win-title' : 'lose-title'}>
           {isWin ? '🎉 Espèce trouvée !' : '😟 Dommage !'}
         </h2>
@@ -82,7 +92,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
           </div>
         )}
         
-        <button onClick={onNext} className="start-button-modal">
+        <button ref={buttonRef} onClick={onNext} className="start-button-modal">
           Question Suivante
         </button>
       </div>
