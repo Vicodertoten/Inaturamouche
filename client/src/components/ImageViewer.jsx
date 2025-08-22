@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ImageViewer.css';
+import { getSizedImageUrl } from '../utils/imageUtils';
 
 // Constante pour le niveau de zoom
 const ZOOM_LEVEL = 2.5;
@@ -122,8 +123,11 @@ function ImageViewer({ imageUrls, alt }) {
         onMouseLeave={handleMouseLeave}
       >
         <img
-          src={imageUrls[currentIndex]}
+          src={getSizedImageUrl(imageUrls[currentIndex], 'large')}
+          srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w, ${getSizedImageUrl(imageUrls[currentIndex], 'large')} 1024w`}
+          sizes="(max-width: 600px) 100vw, 600px"
           alt={alt}
+          loading="lazy"
           style={{
             transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${isZoomed ? ZOOM_LEVEL : 1}) rotate(${rotation}deg)`,
             transition: isPanning.current ? 'none' : 'transform 0.3s ease', // Désactive la transition pendant le déplacement pour plus de fluidité
