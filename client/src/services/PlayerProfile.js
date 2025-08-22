@@ -13,7 +13,8 @@ const getDefaultProfile = () => ({
     correctHard: 0,
     accuracyEasy: 0,
     accuracyHard: 0,
-    speciesMastery: {}, // ex: { taxonId: count, ... }
+    speciesMastery: {}, // ex: { taxonId: { correct: n } }
+    missedSpecies: [],
     packsPlayed: {},
   },
   achievements: [],
@@ -52,6 +53,27 @@ export const loadProfileWithDefaults = () => {
         }
       });
       finalProfile.stats.packsPlayed = migrated;
+    }
+
+    // Migration de l'ancienne structure speciesMastery (stockant un nombre)
+    if (finalProfile.stats.speciesMastery) {
+      Object.entries(finalProfile.stats.speciesMastery).forEach(([id, val]) => {
+        if (typeof val === 'number') {
+          finalProfile.stats.speciesMastery[id] = { correct: val };
+        } else {
+          finalProfile.stats.speciesMastery[id] = { correct: val.correct || 0 };
+        }
+      });
+    }
+
+    // Normalisation de la liste des espèces ratées (suppression doublons + conversion en nombres)
+    if (Array.isArray(finalProfile.stats.missedSpecies)) {
+      const normalized = finalProfile.stats.missedSpecies
+        .map(id => parseInt(id, 10))
+        .filter(id => !isNaN(id));
+      finalProfile.stats.missedSpecies = Array.from(new Set(normalized));
+    } else {
+      finalProfile.stats.missedSpecies = [];
     }
     // On supprime l'ancienne clé totalScore pour faire le ménage
     delete finalProfile.totalScore;
