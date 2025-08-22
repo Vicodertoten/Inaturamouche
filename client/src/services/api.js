@@ -1,6 +1,6 @@
 // src/services/api.js
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3001';
 
 async function apiGet(path, params = {}) {
   const url = new URL(path, API_BASE_URL);
@@ -9,7 +9,9 @@ async function apiGet(path, params = {}) {
   const res = await fetch(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || 'Erreur réseau');
+    const error = new Error(data.error || 'Erreur réseau');
+    error.status = res.status;
+    throw error;
   }
   return data;
 }
