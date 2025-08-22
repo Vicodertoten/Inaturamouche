@@ -319,5 +319,14 @@ button:focus-visible {
   transform: scale(1.1);
 }
 
+.help-button:focus-visible {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+  transform: scale(1.1);
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 /* Le reste de votre CSS reste inchangé */
 /* ... */
