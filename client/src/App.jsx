@@ -247,7 +247,14 @@ function App() {
                 : <HardMode question={question} score={score} onNextQuestion={handleNextQuestion} onQuit={returnToConfig} />
             )
         ) : isGameOver ? (
-          <EndScreen score={score} onRestart={startGame} />
+          <EndScreen
+            score={score}
+            sessionStats={sessionStats}
+            sessionCorrectSpecies={sessionCorrectSpecies}
+            newlyUnlocked={newlyUnlocked}
+            onRestart={startGame}
+            onShowProfile={() => setIsProfileVisible(true)}
+          />
         ) : (
           <div className="screen configurator-screen">
             <div className="card">
