@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'assets/*.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'assets/*.png', 'offline.html'],
       manifest: {
         name: 'Inaturamouche',
         short_name: 'Inaturamouche',
@@ -35,7 +35,27 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/static\.inaturalist\.org\/.*$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'inaturalist-images',
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              }
+            }
+          }
+        ],
+        navigateFallback: '/offline.html'
       }
     })
   ],
 })
+
