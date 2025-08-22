@@ -59,6 +59,13 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 30
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/api\.inaturalist\.org/,
+            handler: 'NetworkFirst',
+            options: {
+              networkTimeoutSeconds: 3
+            }
           }
         ],
         navigateFallback: '/offline.html'
