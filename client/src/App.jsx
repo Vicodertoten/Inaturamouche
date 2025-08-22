@@ -36,6 +36,7 @@ function App() {
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatch] = useReducer(customFilterReducer, initialCustomFilters);
   const [question, setQuestion] = useState(null);
+  const [nextQuestion, setNextQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [score, setScore] = useState(0);
@@ -68,8 +69,11 @@ const handleProfileReset = () => {
     localStorage.setItem('inaturamouche_lang', language);
   }, [language]);
 
-  const fetchQuestion = useCallback(async () => {
-    setLoading(true); setError(null);
+  const fetchQuestion = useCallback(async (prefetchOnly = false) => {
+    if (!prefetchOnly) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const activePack = PACKS.find(p => p.id === activePackId);
       let queryParams = new URLSearchParams();
@@ -92,15 +96,25 @@ const handleProfileReset = () => {
           if(customFilters.d2) queryParams.set('d2', customFilters.d2);
         }
       }
-      
+
       const questionData = await fetchQuizQuestion(queryParams);
-      setQuestion(questionData);
-    } catch (err) { 
-      setError(err.message); 
-      setIsGameActive(false); 
-      setIsGameOver(false); 
-    } finally { 
-      setLoading(false); 
+      if (prefetchOnly) {
+        setNextQuestion(questionData);
+      } else {
+        setQuestion(questionData);
+        // Préchargement de la question suivante
+        fetchQuestion(true);
+      }
+    } catch (err) {
+      if (!prefetchOnly) {
+        setError(err.message);
+        setIsGameActive(false);
+        setIsGameOver(false);
+      }
+    } finally {
+      if (!prefetchOnly) {
+        setLoading(false);
+      }
     }
   }, [activePackId, customFilters, language]);
 
@@ -119,16 +133,19 @@ const handleProfileReset = () => {
     setIsGameOver(false);
     setError(null);
     setQuestion(null);
+    setNextQuestion(null);
     setSessionStats({ correctAnswers: 0 });
     setNewlyUnlocked([]);
     setSessionCorrectSpecies([]);
   };
-  
+
   const returnToConfig = () => {
     setIsGameActive(false);
     setIsGameOver(false);
     setQuestionCount(0);
     setError(null);
+    setQuestion(null);
+    setNextQuestion(null);
   };
 
   const updateScore = (delta) => {
@@ -149,7 +166,14 @@ const handleProfileReset = () => {
     // Si la partie n'est pas terminée, on passe à la question suivante
     if (questionCount < MAX_QUESTIONS_PER_GAME) {
       setQuestionCount(prev => prev + 1);
-      setQuestion(null);
+      if (nextQuestion) {
+        setQuestion(nextQuestion);
+        setNextQuestion(null);
+        fetchQuestion(true);
+      } else {
+        setQuestion(null);
+        fetchQuestion();
+      }
     } else {
       // --- DÉBUT DU BLOC DE FIN DE PARTIE : C'EST ICI QUE TOUT SE JOUE ---
       // Ce bloc est maintenant la seule source de vérité pour la mise à jour du profil.
