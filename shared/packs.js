@@ -1,8 +1,8 @@
 // On importe les listes de données statiques
-import europeanMushrooms from './common_european_mushrooms.json';
-import europeanTrees from './common_european_trees.json';
+import europeanMushrooms from './data/common_european_mushrooms.json' with { type: 'json' };
+import europeanTrees from './data/common_european_trees.json' with { type: 'json' };
 
-export const PACKS = [
+const PACKS = [
   {
     id: 'custom',
     type: 'custom', // Un type spécial pour notre filtre avancé
@@ -70,3 +70,5 @@ export const PACKS = [
   }
 },
 ];
+
+export default PACKS;
