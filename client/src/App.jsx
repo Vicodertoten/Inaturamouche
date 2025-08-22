@@ -346,6 +346,7 @@ const handleProfileReset = () => {
                   className="help-button"
                   onClick={() => setIsHelpVisible(true)}
                   title="Aide et informations"
+                  aria-label="Afficher l'aide"
                 >
                   ?
                 </button>
