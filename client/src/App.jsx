@@ -32,7 +32,7 @@ const MAX_QUESTIONS_PER_GAME = 5;
 
 function App() {
   // --- ÉTATS ---
-  const [language, setLanguage] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
+  const [language] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatch] = useReducer(customFilterReducer, initialCustomFilters);
   const [question, setQuestion] = useState(null);
