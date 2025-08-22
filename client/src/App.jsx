@@ -49,6 +49,7 @@ function App() {
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
 
 const handleProfileReset = () => {
   setPlayerProfile(loadProfileWithDefaults());
@@ -122,6 +123,7 @@ const handleProfileReset = () => {
     setSessionStats({ correctAnswers: 0 });
     setNewlyUnlocked([]);
     setSessionCorrectSpecies([]);
+    setCurrentStreak(0);
   };
   
   const returnToConfig = () => {
@@ -138,13 +140,20 @@ const handleProfileReset = () => {
   const handleNextQuestion = (pointsGagnes = 0, isCorrectParam = null) => {
     const isCorrect = isCorrectParam ?? (pointsGagnes > 0);
     const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
+    let bonus = 0;
+
+    if (isCorrect) {
+      const newStreak = currentStreak + 1;
+      setCurrentStreak(newStreak);
+      bonus = 2 * newStreak;
+      setSessionStats(prev => ({ ...prev, correctAnswers: prev.correctAnswers + 1 }));
+      setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
+    } else {
+      setCurrentStreak(0);
+    }
 
     // Mise à jour des stats de la session en cours
-    updateScore(pointsGagnes);
-    if(isCorrect) {
-      setSessionStats(prev => ({...prev, correctAnswers: prev.correctAnswers + 1}));
-      setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
-    }
+    updateScore(pointsGagnes + bonus);
 
     // Si la partie n'est pas terminée, on passe à la question suivante
     if (questionCount < MAX_QUESTIONS_PER_GAME) {
@@ -155,7 +164,7 @@ const handleProfileReset = () => {
       // Ce bloc est maintenant la seule source de vérité pour la mise à jour du profil.
       
       const finalCorrectAnswersInSession = sessionStats.correctAnswers + (isCorrect ? 1 : 0);
-      const finalScoreInGame = score + pointsGagnes;
+      const finalScoreInGame = score + pointsGagnes + bonus;
       
       // On s'assure de travailler sur une copie fraîche du profil
       const updatedProfile = JSON.parse(JSON.stringify(playerProfile));
