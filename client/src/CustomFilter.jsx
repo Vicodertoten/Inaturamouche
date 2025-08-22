@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import AutocompleteInput from './AutocompleteInput';
-import MapFilter from './MapFilter';
+const MapFilter = lazy(() => import('./MapFilter'));
 
 const TaxonPill = ({ taxon, onRemove }) => (
   <div className="taxon-pill">
@@ -66,7 +66,11 @@ function CustomFilter({ filters, dispatch }) {
             Filtrer par Lieu
           </label>
         </legend>
-        {filters.place_enabled && <MapFilter filters={filters} dispatch={dispatch} />}
+        {filters.place_enabled && (
+          <Suspense fallback={<div>Chargement de la carte...</div>}>
+            <MapFilter filters={filters} dispatch={dispatch} />
+          </Suspense>
+        )}
       </fieldset>
 
       <fieldset>
