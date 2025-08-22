@@ -50,6 +50,10 @@ function App() {
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
 
+  const handleProfileReset = () => {
+    setPlayerProfile(loadProfileWithDefaults());
+  };
+
   // --- EFFETS ---
   useEffect(() => {
     setPlayerProfile(loadProfileWithDefaults());
@@ -196,7 +200,13 @@ function App() {
   // --- RENDU DU COMPOSANT ---
   return (
     <div className="App">
-      {isProfileVisible && <ProfileModal profile={playerProfile} onClose={() => setIsProfileVisible(false)} />}
+      {isProfileVisible && (
+        <ProfileModal
+          profile={playerProfile}
+          onClose={() => setIsProfileVisible(false)}
+          onResetProfile={handleProfileReset}
+        />
+      )}
       {isHelpVisible && <HelpModal onClose={() => setIsHelpVisible(false)} />}
       
       {newlyUnlocked.length > 0 && (

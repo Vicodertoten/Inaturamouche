@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ACHIEVEMENTS } from '../achievements';
 import './ProfileModal.css';
 import { getTaxaByIds } from '../services/api';
+import { resetProfile } from '../services/PlayerProfile';
 
 // --- Fonctions de calcul pour le système de niveaux ---
 const getLevelFromXp = (xp) => {
@@ -27,7 +28,7 @@ const MasteryItem = ({ taxon, count }) => {
 };
 
 
-function ProfileModal({ profile, onClose }) {
+function ProfileModal({ profile, onClose, onResetProfile }) {
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
@@ -109,6 +110,19 @@ function ProfileModal({ profile, onClose }) {
                   <div className="stat-item"><span className="stat-value">{profile.stats.gamesPlayed || 0}</span><span className="stat-label">Parties Jouées</span></div>
                   <div className="stat-item"><span className="stat-value">{overallAccuracy}%</span><span className="stat-label">Précision Globale</span></div>
                 </div>
+              </div>
+              <div className="profile-section">
+                <button
+                  className="reset-profile-button"
+                  onClick={() => {
+                    if (window.confirm('Voulez-vous vraiment réinitialiser votre profil ?')) {
+                      resetProfile();
+                      if (onResetProfile) onResetProfile();
+                    }
+                  }}
+                >
+                  Réinitialiser le profil
+                </button>
               </div>
             </div>
           )}

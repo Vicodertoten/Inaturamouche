@@ -56,3 +56,12 @@ export const saveProfile = (profile) => {
     console.error("Erreur lors de la sauvegarde du profil :", error);
   }
 };
+
+// Supprimer complètement le profil sauvegardé
+export const resetProfile = () => {
+  try {
+    localStorage.removeItem(PROFILE_KEY);
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation du profil :", error);
+  }
+};
