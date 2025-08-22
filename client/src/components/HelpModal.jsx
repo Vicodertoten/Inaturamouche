@@ -9,7 +9,7 @@ function HelpModal({ onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       {/* On empêche la propagation du clic pour que le modal ne se ferme pas quand on clique dessus */}
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="close-button" title="Fermer">×</button>
+        <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>
         
         <h2 className="modal-title">Bienvenue sur Inaturamouche !</h2>
         
