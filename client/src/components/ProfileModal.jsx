@@ -40,6 +40,19 @@ function ProfileModal({ profile, onClose, onResetProfile }) {
                               .slice(0, 5);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
     if (activeTab !== 'stats' || !profile || sortedMastery.length === 0 || masteryDetails.length > 0) return;
     const fetchMasteryDetails = async () => {
       setIsLoadingMastery(true);
