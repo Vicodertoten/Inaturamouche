@@ -13,7 +13,9 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
 
   return (
     <div>
-      {error && <p className="error-message">Erreur : {error}</p>}
+      {error && (
+        <p className="error-message" aria-live="assertive">Erreur : {error}</p>
+      )}
       
       <div className="pack-selector">
         {/* --- MODIFICATION ICI --- */}
