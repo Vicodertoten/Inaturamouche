@@ -11,8 +11,10 @@ const getDefaultProfile = () => ({
     hardQuestionsAnswered: 0,
     correctEasy: 0,
     correctHard: 0,
+    accuracyEasy: 0,
+    accuracyHard: 0,
     speciesMastery: {}, // ex: { taxonId: count, ... }
-    packsPlayed: {}
+    packsPlayed: {},
   },
   achievements: [],
 });
@@ -36,8 +38,23 @@ export const loadProfileWithDefaults = () => {
         ...(loadedProfile.stats || {}),
       },
     };
+    // Migration des anciennes structures packsPlayed qui stockaient simplement un nombre
+    if (finalProfile.stats.packsPlayed) {
+      const migrated = {};
+      Object.entries(finalProfile.stats.packsPlayed).forEach(([packId, data]) => {
+        if (typeof data === 'number') {
+          migrated[packId] = { correct: 0, answered: 0 };
+        } else {
+          migrated[packId] = {
+            correct: data.correct || 0,
+            answered: data.answered || 0,
+          };
+        }
+      });
+      finalProfile.stats.packsPlayed = migrated;
+    }
     // On supprime l'ancienne clé totalScore pour faire le ménage
-    delete finalProfile.totalScore; 
+    delete finalProfile.totalScore;
 
     return finalProfile;
 
