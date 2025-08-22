@@ -115,7 +115,11 @@ const handleProfileReset = () => {
       }
     } catch (err) {
       if (!prefetchOnly) {
-        setError(err.message);
+        if (err.status === 404 || err.status === 500) {
+          setError('Aucune espèce trouvée, élargissez la recherche');
+        } else {
+          setError(err.message);
+        }
         setIsGameActive(false);
         setIsGameOver(false);
       }
