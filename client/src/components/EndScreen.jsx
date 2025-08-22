@@ -3,36 +3,39 @@ import { ACHIEVEMENTS } from '../achievements';
 
 const EndScreen = ({
   score,
-  sessionStats,
   sessionCorrectSpecies = [],
   sessionSpeciesData = [],
   newlyUnlocked = [],
   onRestart,
-  onShowProfile,
+  onReturnHome,
 }) => {
-  const totalQuestions = sessionStats?.totalQuestions || 5;
-  const accuracy = ((sessionStats?.correctAnswers || 0) / totalQuestions) * 100;
-  const speciesCount = new Set(sessionCorrectSpecies).size;
+  const totalQuestions = sessionSpeciesData.length || 0;
+  const correctCount = sessionCorrectSpecies.length;
+  const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+  const isWin = correctCount >= Math.ceil(totalQuestions / 2);
 
   return (
     <div className="screen end-screen">
       <div className="card">
-        <h1>Partie terminée !</h1>
+        <h1>{isWin ? 'Victoire !' : 'Défaite'}</h1>
         <h2>
           Votre score final : <span className="score">{score}</span>
         </h2>
         <p>Précision : {accuracy.toFixed(0)}%</p>
-        <p>Espèces correctement identifiées : {speciesCount}</p>
         {sessionSpeciesData.length > 0 && (
           <div className="played-species">
             <h3>Espèces rencontrées :</h3>
             <ul className="species-list">
               {sessionSpeciesData.map((sp) => {
                 const displayCommon = sp.common_name && sp.common_name !== sp.name ? sp.common_name : null;
+                const isFound = sessionCorrectSpecies.includes(sp.id);
                 return (
                   <li key={sp.id}>
-                    {displayCommon && <span className="species-common">{displayCommon}</span>}
-                    <em>{sp.name}</em>
+                    <div className="species-info">
+                      {displayCommon && <span className="species-common">{displayCommon}</span>}
+                      <em>{sp.name}</em>
+                      <span className="species-status">{isFound ? '✅' : '❌'}</span>
+                    </div>
                     <div className="external-links-container">
                       <a
                         href={sp.inaturalist_url}
@@ -70,7 +73,7 @@ const EndScreen = ({
           </div>
         )}
         <button onClick={onRestart} className="start-button">Rejouer</button>
-        <button onClick={onShowProfile}>Voir mon profil</button>
+        <button onClick={onReturnHome}>Accueil</button>
       </div>
     </div>
   );

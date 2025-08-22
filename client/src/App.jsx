@@ -332,12 +332,11 @@ const handleProfileReset = () => {
         ) : isGameOver ? (
           <EndScreen
             score={score}
-            sessionStats={sessionStats}
             sessionCorrectSpecies={sessionCorrectSpecies}
             sessionSpeciesData={sessionSpeciesData}
             newlyUnlocked={newlyUnlocked}
             onRestart={startGame}
-            onShowProfile={() => setIsProfileVisible(true)}
+            onReturnHome={returnToConfig}
           />
         ) : (
           <div className="screen configurator-screen">
