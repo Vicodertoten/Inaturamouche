@@ -16,6 +16,9 @@ const getDefaultProfile = () => ({
     speciesMastery: {}, // ex: { taxonId: { correct: n } }
     missedSpecies: [],
     packsPlayed: {},
+    averageTimeMs: 0,
+    bestStreak: 0,
+    categoryStats: {},
   },
   achievements: [],
 });
@@ -78,6 +81,13 @@ export const loadProfileWithDefaults = () => {
     // On supprime l'ancienne clé totalScore pour faire le ménage
     delete finalProfile.totalScore;
 
+    // Valeurs par défaut pour les nouvelles métriques
+    finalProfile.stats.averageTimeMs = Number(finalProfile.stats.averageTimeMs) || 0;
+    finalProfile.stats.bestStreak = finalProfile.stats.bestStreak || 0;
+    if (!finalProfile.stats.categoryStats || typeof finalProfile.stats.categoryStats !== 'object') {
+      finalProfile.stats.categoryStats = {};
+    }
+
     return finalProfile;
 
   } catch (error) {
@@ -89,7 +99,16 @@ export const loadProfileWithDefaults = () => {
 // Sauvegarder le profil dans le localStorage
 export const saveProfile = (profile) => {
   try {
-    const profileJson = JSON.stringify(profile);
+    const profileToSave = {
+      ...profile,
+      stats: {
+        ...profile.stats,
+        averageTimeMs: profile.stats?.averageTimeMs || 0,
+        bestStreak: profile.stats?.bestStreak || 0,
+        categoryStats: profile.stats?.categoryStats || {},
+      },
+    };
+    const profileJson = JSON.stringify(profileToSave);
     localStorage.setItem(PROFILE_KEY, profileJson);
   } catch (error) {
     console.error("Erreur lors de la sauvegarde du profil :", error);

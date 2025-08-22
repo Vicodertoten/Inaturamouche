@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useState, useEffect, useCallback, useReducer, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useReducer, lazy, Suspense, useRef } from 'react';
 
 // --- CONFIGS & SERVICES (chemins standardisés) ---
 import PACKS from '../../shared/packs.js';
@@ -18,6 +18,7 @@ const EndScreen = lazy(() => import('./components/EndScreen'));
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
+import DetailedProfileModal from './components/DetailedProfileModal';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -52,8 +53,13 @@ function App() {
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [sessionBestStreak, setSessionBestStreak] = useState(0);
+  const [sessionTimeMs, setSessionTimeMs] = useState(0);
+  const [sessionCategoryStats, setSessionCategoryStats] = useState({});
   const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [isDetailedProfileVisible, setIsDetailedProfileVisible] = useState(false);
+  const questionStartRef = useRef(null);
 
 const handleProfileReset = () => {
   setPlayerProfile(loadProfileWithDefaults());
@@ -110,6 +116,7 @@ const handleProfileReset = () => {
         setNextQuestion(questionData);
       } else {
         setQuestion(questionData);
+        questionStartRef.current = Date.now();
         // Préchargement de la question suivante
         fetchQuestion(true);
       }
@@ -148,6 +155,10 @@ const handleProfileReset = () => {
     setSessionSpeciesData([]);
     setSessionMissedSpecies([]);
     setCurrentStreak(0);
+    setSessionBestStreak(0);
+    setSessionTimeMs(0);
+    setSessionCategoryStats({});
+    questionStartRef.current = null;
     setIsReviewMode(review);
   };
 
@@ -159,6 +170,11 @@ const handleProfileReset = () => {
     setQuestion(null);
     setNextQuestion(null);
     setIsReviewMode(false);
+    setSessionCategoryStats({});
+    setSessionBestStreak(0);
+    setSessionTimeMs(0);
+    setCurrentStreak(0);
+    questionStartRef.current = null;
   };
 
   const updateScore = (delta) => {
@@ -168,6 +184,19 @@ const handleProfileReset = () => {
   const handleNextQuestion = (pointsGagnes = 0, isCorrectParam = null) => {
     const isCorrect = isCorrectParam ?? (pointsGagnes > 0);
     const currentQuestionId = question.bonne_reponse.id; // On sauvegarde l'ID avant de changer de question
+    const elapsed = questionStartRef.current ? Date.now() - questionStartRef.current : 0;
+    setSessionTimeMs(prev => prev + elapsed);
+    const category = question?.bonne_reponse?.ancestors?.[1]?.name || 'Inconnue';
+    setSessionCategoryStats(prev => {
+      const prevStats = prev[category] || { correct: 0, answered: 0 };
+      return {
+        ...prev,
+        [category]: {
+          correct: prevStats.correct + (isCorrect ? 1 : 0),
+          answered: prevStats.answered + 1,
+        },
+      };
+    });
     setSessionSpeciesData(prev => [
       ...prev,
       {
@@ -183,6 +212,7 @@ const handleProfileReset = () => {
     if (isCorrect) {
       const newStreak = currentStreak + 1;
       setCurrentStreak(newStreak);
+      setSessionBestStreak(prev => Math.max(prev, newStreak));
       bonus = 2 * newStreak;
       setSessionStats(prev => ({ ...prev, correctAnswers: prev.correctAnswers + 1 }));
       setSessionCorrectSpecies(prev => [...prev, currentQuestionId]);
@@ -202,6 +232,7 @@ const handleProfileReset = () => {
         setQuestion(nextQuestion);
         setNextQuestion(null);
         fetchQuestion(true);
+        questionStartRef.current = Date.now();
       } else {
         setQuestion(null);
         fetchQuestion();
@@ -212,10 +243,13 @@ const handleProfileReset = () => {
       
       const finalCorrectAnswersInSession = sessionStats.correctAnswers + (isCorrect ? 1 : 0);
       const finalScoreInGame = score + pointsGagnes + bonus;
-      
+
       // On s'assure de travailler sur une copie fraîche du profil
       const updatedProfile = JSON.parse(JSON.stringify(playerProfile));
-      
+
+      const totalAnsweredBefore = (updatedProfile.stats.easyQuestionsAnswered || 0) + (updatedProfile.stats.hardQuestionsAnswered || 0);
+      const totalTimeBefore = (updatedProfile.stats.averageTimeMs || 0) * totalAnsweredBefore;
+
       // --- MISE À JOUR ATOMIQUE DES STATS ---
       // On garantit que les compteurs de bonnes réponses et de questions jouées
       // sont TOUJOURS mis à jour ensemble.
@@ -263,6 +297,22 @@ const handleProfileReset = () => {
       updatedProfile.stats.packsPlayed[activePackId].correct += finalCorrectAnswersInSession;
       updatedProfile.stats.packsPlayed[activePackId].answered += MAX_QUESTIONS_PER_GAME;
 
+      updatedProfile.stats.bestStreak = Math.max(updatedProfile.stats.bestStreak || 0, sessionBestStreak);
+
+      if (!updatedProfile.stats.categoryStats) updatedProfile.stats.categoryStats = {};
+      Object.entries(sessionCategoryStats).forEach(([cat, { correct, answered }]) => {
+        if (!updatedProfile.stats.categoryStats[cat]) {
+          updatedProfile.stats.categoryStats[cat] = { correct: 0, answered: 0 };
+        }
+        updatedProfile.stats.categoryStats[cat].correct += correct;
+        updatedProfile.stats.categoryStats[cat].answered += answered;
+      });
+
+      const totalAnsweredAfter = (updatedProfile.stats.easyQuestionsAnswered || 0) + (updatedProfile.stats.hardQuestionsAnswered || 0);
+      updatedProfile.stats.averageTimeMs = totalAnsweredAfter > 0
+        ? (totalTimeBefore + sessionTimeMs) / totalAnsweredAfter
+        : 0;
+
       const unlockedIds = checkNewAchievements(updatedProfile);
       if (unlockedIds.length > 0) {
         if(!updatedProfile.achievements) updatedProfile.achievements = [];
@@ -290,6 +340,12 @@ const handleProfileReset = () => {
           onResetProfile={handleProfileReset}
         />
       )}
+      {isDetailedProfileVisible && (
+        <DetailedProfileModal
+          profile={playerProfile}
+          onClose={() => setIsDetailedProfileVisible(false)}
+        />
+      )}
       {isHelpVisible && <HelpModal onClose={handleCloseHelp} />}
       
       {newlyUnlocked.length > 0 && (
@@ -304,11 +360,14 @@ const handleProfileReset = () => {
             }}>
             Mon Profil
           </button>
+          <button onClick={() => setIsDetailedProfileVisible(true)}>
+            Profil détaillé
+          </button>
       </nav>
       <header className="app-header">
-       <img 
-          src={titleImage} 
-          alt="Titre Inaturamouche" 
+       <img
+          src={titleImage}
+          alt="Titre Inaturamouche"
           className={`app-title-image ${isGameActive || isGameOver ? 'clickable' : ''}`}
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
