@@ -4,17 +4,12 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const PACKS = require('./shared/packs');
 
-// La définition des packs est dupliquée ici pour que le serveur soit autonome.
-// Dans une application plus grande, ce fichier pourrait être partagé.
-const PACKS_CONFIG = [
-    { id: 'world_birds', api_params: { taxon_id: '3', popular: 'true' } },
-    { id: 'france_mammals', api_params: { taxon_id: '40151', place_id: '6753' } },
-    { id: 'belgium_herps', api_params: { taxon_id: '26036,20978', place_id: '6911' }},
-    { id: 'amazing_insects', api_params: { taxon_id: '47158', popular: 'true' }},
-    { id: 'mediterranean_flora', api_params: { taxon_id: '47126', place_id: '53832' }},
-    { id: 'great_barrier_reef_life', api_params: { taxon_id: '1', place_id: '131021' }}
-];
+// On extrait uniquement les packs dynamiques pour le backend
+const PACKS_CONFIG = PACKS
+  .filter(p => p.api_params)
+  .map(({ id, api_params }) => ({ id, api_params }));
 
 const allowedOrigins = [
   'https://inaturamouche.netlify.app', // Votre frontend en production

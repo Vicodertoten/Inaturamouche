@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useReducer } from 'react';
 
 // --- CONFIGS & SERVICES (chemins standardisés) ---
-import { PACKS } from './packs';
+import PACKS from '../../shared/packs.js';
 import { initialCustomFilters, customFilterReducer } from './state/filterReducer';
 import { loadProfileWithDefaults, saveProfile } from './services/PlayerProfile';
 import { checkNewAchievements, ACHIEVEMENTS } from './achievements';
