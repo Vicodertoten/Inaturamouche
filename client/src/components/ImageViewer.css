@@ -20,6 +20,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer; /* Indique qu'on peut cliquer pour zoomer */
+  touch-action: none; /* Permet de gérer le pan/zoom manuellement */
 }
 
 .image-wrapper img {
