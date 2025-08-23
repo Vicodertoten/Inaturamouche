@@ -17,8 +17,8 @@ export default defineConfig({
         'packs/*.json'
       ],
       manifest: {
-        name: 'Inaturamouche',
-        short_name: 'Inaturamouche',
+        name: 'Inaturaquizz',
+        short_name: 'Inaturaquizz',
         description: 'Un quiz pour tester vos connaissances sur la nature.',
         theme_color: '#283618',
         background_color: '#283618',
