@@ -309,10 +309,15 @@ const handleProfileReset = () => {
         />
       )}
       <nav className="main-nav">
-          <button onClick={() => {
+          <button
+            className="profile-button"
+            onClick={() => {
               setIsProfileVisible(true);
-            }}>
-            Mon Profil
+            }}
+            aria-label="Mon Profil"
+          >
+            <span className="profile-text">Mon Profil</span>
+            <span className="profile-icon" aria-hidden="true">👤</span>
           </button>
       </nav>
       <header className="app-header">
