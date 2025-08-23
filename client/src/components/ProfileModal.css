@@ -204,3 +204,10 @@
 .achievement-title { margin: 0; font-size: 1.1rem; font-weight: 600; }
 .achievement-item.unlocked .achievement-title { color: var(--accent-color); }
 .achievement-description { margin: 0; font-size: 0.9rem; color: var(--text-color-muted); }
+@media (max-width: 480px) {
+  .modal-content.profile-modal {
+    width: 90%;
+    padding: var(--space-3);
+    max-height: 80vh;
+  }
+}
