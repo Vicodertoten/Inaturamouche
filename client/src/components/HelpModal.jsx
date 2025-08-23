@@ -26,7 +26,7 @@ function HelpModal({ onClose }) {
       <div className="modal-content" tabIndex="-1" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>
         
-        <h2 className="modal-title">Bienvenue sur Inaturamouche !</h2>
+        <h2 className="modal-title">Bienvenue sur Inaturaquizz !</h2>
         
         <div className="help-section">
           <h4>Principe du jeu</h4>
