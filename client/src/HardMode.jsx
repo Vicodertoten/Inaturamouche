@@ -1,14 +1,13 @@
 // src/HardMode.jsx (corrigé et amélioré)
 
 import React, { useState, useEffect } from 'react';
-import ImageViewer from './components/ImageViewer';
+import ImageViewer from './ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
-import RoundSummaryModal from './components/RoundSummaryModal';
+import RoundSummaryModal from './RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
-import StreakBadge from './components/StreakBadge';
-
+import StreakBadge from './StreakBadge';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 6;
@@ -82,9 +81,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
 
       const isSpeciesGuessed = newKnownTaxa.species?.id === bonne_reponse.id;
 
-      // --- CORRECTION MAJEURE : Logique de fin de partie restructurée ---
-
-      // 1. On vérifie la condition de VICTOIRE en premier
+      // --- Logique fin de partie ---
       if (isSpeciesGuessed) {
         const { points, bonus } = computeScore({
           mode: 'hard',
@@ -95,10 +92,9 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
         const streakBonus = 2 * (currentStreak + 1);
         setScoreInfo({ points, bonus, streakBonus });
         setRoundStatus('win');
-        return; // On arrête la fonction ici, c'est gagné.
+        return;
       }
 
-      // 2. Si ce n'est pas gagné, on vérifie la condition de DÉFAITE
       if (newGuessesCount <= 0) {
         const { points, bonus } = computeScore({
           mode: 'hard',
@@ -108,10 +104,9 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
         });
         setScoreInfo({ points, bonus, streakBonus: 0 });
         setRoundStatus('lose');
-        return; // On arrête la fonction, c'est perdu.
+        return;
       }
 
-      // 3. Si la partie n'est ni gagnée ni perdue, on continue et on donne du feedback
       const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
       if (newPoints > 0) {
         showFeedback(`Bonne branche ! +${newPoints} points !`);
@@ -125,7 +120,6 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
     } catch (error) {
       console.error("Erreur de validation", error);
       showFeedback("Une erreur est survenue lors de la vérification.");
-      // Sécurité : si une erreur arrive au dernier essai, on termine la partie
       if (newGuessesCount <= 0) {
         const totalPoints = currentScore - score;
         const { points, bonus } = computeScore({
@@ -158,7 +152,6 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
 
     const firstUnknownRank = RANKS.find(rank => !knownTaxa[rank]);
     if (firstUnknownRank) {
-      // On calcule immédiatement le nouveau nombre de chances
       const newGuessesCount = guesses - REVEAL_HINT_COST;
       setGuesses(newGuessesCount);
 
@@ -177,7 +170,6 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
           }
         }));
         
-        // D'abord, on vérifie si l'indice donne la victoire
         if (firstUnknownRank === 'species') {
           const speciesPoints = SCORE_PER_RANK.species || 0;
           const roundPoints = currentScore + speciesPoints - score;
@@ -191,10 +183,9 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
           const streakBonus = 2 * (currentStreak + 1);
           setScoreInfo({ points, bonus, streakBonus });
           setRoundStatus('win');
-          return; // La partie est gagnée, on arrête tout
+          return;
         }
 
-        // NOUVEAU : Si ce n'est pas une victoire, on vérifie si l'indice a causé une défaite
         if (newGuessesCount <= 0) {
           const roundPoints = currentScore - score;
           const { points, bonus } = computeScore({
@@ -214,7 +205,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
   const canUseAnyHint = !!RANKS.find(r => !knownTaxa[r]);
 
   return (
-<>
+    <>
       {isGameOver && (
         <RoundSummaryModal status={roundStatus} question={question} scoreInfo={scoreInfo} onNext={handleNext} />
       )}
@@ -263,7 +254,6 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
             <StreakBadge streak={currentStreak} />
           </div>
           
-          {/* MODIFIÉ: Grille d'actions pour inclure les nouveaux indices */}
           <div className="hard-mode-actions">
             <button onClick={onQuit} disabled={isGameOver} className="action-button quit">Abandonner</button>
             <button 
