@@ -12,7 +12,6 @@ const EndScreen = ({
   const totalQuestions = sessionSpeciesData.length || 0;
   const correctCount = sessionCorrectSpecies.length;
   const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
-  const isWin = correctCount >= Math.ceil(totalQuestions / 2);
 
   const sortedSpecies = [...sessionSpeciesData].sort((a, b) => {
     const aFound = sessionCorrectSpecies.includes(a.id);
@@ -26,7 +25,6 @@ const EndScreen = ({
   return (
     <div className="screen end-screen">
       <div className="card">
-        <h1>{isWin ? 'Victoire !' : 'Défaite'}</h1>
         <div className="summary">
           <p className="score-line">
             Score final : <span className="score">{score}</span>
