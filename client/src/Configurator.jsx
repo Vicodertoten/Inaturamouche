@@ -23,6 +23,7 @@ function Configurator({ onStartGame, onStartReview, canStartReview, error, setEr
         <div
           className="tooltip"
           data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
+          onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
           title="Sélectionnez un pack thématique ou personnalisez votre partie"
         >
           <select

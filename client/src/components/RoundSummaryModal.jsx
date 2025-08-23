@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
+
 // Affiche le récapitulatif d'une manche avec le résultat (victoire/défaite)
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
+
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
 
@@ -32,7 +34,6 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   }
 
   const { bonne_reponse, inaturalist_url } = question;
-  const isWin = status === 'win';
 
   const commonName = bonne_reponse.common_name;
 
@@ -59,6 +60,9 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
             alt={commonName || scientificName}
             className="answer-image"
             loading="lazy"
+            decoding={imageUrl ? 'async' : undefined}
+            fetchpriority={imageUrl ? 'high' : undefined}
+            style={{ width: '100%', aspectRatio: '4 / 3' }}
           />
           
           {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}
