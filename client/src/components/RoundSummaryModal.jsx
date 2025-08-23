@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
-const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
+const RoundSummaryModal = ({ question, scoreInfo, onNext }) => {
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
 
@@ -33,7 +33,6 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   }
 
   const { bonne_reponse, inaturalist_url } = question;
-  const isWin = status === 'win';
 
   // --- LA SEULE LIGNE À CHANGER EST CI-DESSOUS ---
   const commonName = bonne_reponse.common_name; // On lit `common_name` au lieu de `preferred_common_name`
@@ -48,10 +47,6 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   return (
     <div className="modal-backdrop">
       <div className="modal-content summary-modal" role="dialog" aria-modal="true">
-        <h2 className={isWin ? 'win-title' : 'lose-title'}>
-          {isWin ? '🎉 Espèce trouvée !' : '😟 Dommage !'}
-        </h2>
-        
         <div className="correct-answer-section">
           <p>La réponse était :</p>
           <img
