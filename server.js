@@ -193,4 +193,55 @@ app.get('/api/taxa/autocomplete', async (req, res) => {
     const initialSuggestions = response.data.results;
     if (initialSuggestions.length === 0) return res.json([]);
 
-    const taxonI
+    const taxonIds = initialSuggestions.map(t => t.id);
+    const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
+    const detailsMap = new Map(taxaDetails.map(t => [t.id, t]));
+
+    const suggestionsWithAncestors = initialSuggestions.map(taxon => {
+      const details = detailsMap.get(taxon.id);
+      return {
+        id: taxon.id,
+        name: taxon.preferred_common_name ? `${taxon.preferred_common_name} (${taxon.name})` : taxon.name,
+        rank: taxon.rank,
+        ancestor_ids: details ? details.ancestors.map(a => a.id) : []
+      };
+    });
+
+    res.json(suggestionsWithAncestors);
+  } catch (error) {
+    console.error('Erreur dans /api/taxa/autocomplete:', error.message);
+    res.status(500).json({ error: 'Erreur lors de la recherche.' });
+  }
+});
+
+app.get('/api/taxon/:id', async (req, res) => {
+  const { id } = req.params;
+  const { locale = 'fr' } = req.query;
+  try {
+    const response = await axios.get(`https://api.inaturalist.org/v1/taxa/${id}`, { params: { locale } });
+    res.json(response.data.results[0]);
+  } catch (error) {
+    res.status(404).json({ error: 'Taxon non trouvé.' });
+  }
+});
+
+app.get('/api/taxa', async (req, res) => {
+  const { ids, locale = 'fr' } = req.query;
+  if (!ids) {
+    return res.status(400).json({ error: "Le paramètre 'ids' est requis." });
+  }
+
+  const taxonIds = ids.split(',');
+  try {
+    const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
+    res.json(taxaDetails);
+  } catch (error) {
+    console.error('Erreur dans /api/taxa:', error.message);
+    res.status(500).json({ error: 'Erreur lors de la récupération des taxons.' });
+  }
+});
+
+/* -------------------- START -------------------- */
+app.listen(PORT, () => {
+  console.log(`Serveur Inaturamouche démarré sur http://localhost:${PORT}`);
+});
