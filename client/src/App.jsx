@@ -323,6 +323,8 @@ const handleProfileReset = () => {
           className={`app-title-image ${isGameActive || isGameOver ? 'clickable' : ''}`}
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
+          decoding="async"
+          fetchpriority="high"
         />
       </header>
       
