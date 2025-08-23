@@ -29,7 +29,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     return cb(new Error("Origin not allowed by CORS"));
   },
-  credentials: true, // Mets false si tu n’utilises ni cookies ni Authorization côté navigateur
+  credentials: false, // Mets false si tu n’utilises ni cookies ni Authorization côté navigateur
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   exposedHeaders: ["Content-Length", "Content-Type"],
