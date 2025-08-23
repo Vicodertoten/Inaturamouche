@@ -56,6 +56,9 @@ const RoundSummaryModal = ({ question, scoreInfo, onNext }) => {
             alt={commonName || scientificName}
             className="answer-image"
             loading="lazy"
+            decoding={imageUrl ? 'async' : undefined}
+            fetchpriority={imageUrl ? 'high' : undefined}
+            style={{ width: '100%', aspectRatio: '4 / 3' }}
           />
           
           {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}
