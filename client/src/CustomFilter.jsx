@@ -19,7 +19,7 @@ function CustomFilter({ filters, dispatch }) {
       <form onSubmit={(e) => e.preventDefault()}>
       <fieldset>
         <legend>Taxons à INCLURE</legend>
-        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez voir dans le quiz.</p>
+        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez voir dans le quiz. (ex: oiseaux, cervidés, champignons; passereaux...)</p>
         <AutocompleteInput 
           placeholder="Rechercher un taxon à inclure..."
           onSelect={(selection) => dispatch({ type: 'ADD_INCLUDED_TAXON', payload: selection })}
@@ -40,7 +40,7 @@ function CustomFilter({ filters, dispatch }) {
       {/* --- SECTION EXCLUSION --- */}
       <fieldset>
         <legend>Taxons à EXCLURE</legend>
-        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez retirer du quiz.</p>
+        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez retirer du quiz.(ex: oiseaux, cervidés, champignons; passereaux...)</p>
         <AutocompleteInput 
           placeholder="Rechercher un taxon à exclure..."
           onSelect={(selection) => dispatch({ type: 'ADD_EXCLUDED_TAXON', payload: selection })}
