@@ -340,6 +340,7 @@ const handleProfileReset = () => {
                       onAnswer={handleNextQuestion}
                       onUpdateScore={updateScore}
                       nextImageUrl={nextImageUrl}
+                      currentStreak={currentStreak}
                     />
                   : <HardMode
                       question={question}
@@ -347,6 +348,7 @@ const handleProfileReset = () => {
                       onNextQuestion={handleNextQuestion}
                       onQuit={returnToConfig}
                       nextImageUrl={nextImageUrl}
+                      currentStreak={currentStreak}
                     />
               )
           ) : isGameOver ? (
