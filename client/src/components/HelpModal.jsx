@@ -21,7 +21,7 @@ function HelpModal({ onClose }) {
 
   return (
     // Le fond assombri qui ferme le modal au clic
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       {/* On empêche la propagation du clic pour que le modal ne se ferme pas quand on clique dessus */}
       <div className="modal-content" tabIndex="-1" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>

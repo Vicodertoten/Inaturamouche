@@ -323,6 +323,8 @@ const handleProfileReset = () => {
           className={`app-title-image ${isGameActive || isGameOver ? 'clickable' : ''}`}
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
+          decoding="async"
+          fetchpriority="high"
         />
       </header>
       
@@ -376,6 +378,8 @@ const handleProfileReset = () => {
                         onClick={() => setGameMode('easy')}
                         className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
                         data-tooltip="Mode facile : quatre propositions et indice facultatif"
+
+                        onPointerLeave={e => e.currentTarget.blur()}
                         title="Mode facile : quatre propositions et indice facultatif"
                       >
                         Facile
@@ -384,6 +388,7 @@ const handleProfileReset = () => {
                         onClick={() => setGameMode('hard')}
                         className={`tooltip ${gameMode === 'hard' ? 'active' : ''}`}
                         data-tooltip="Mode difficile : devinez la taxonomie avec essais limités"
+                        onPointerLeave={e => e.currentTarget.blur()}
                         title="Mode difficile : devinez la taxonomie avec essais limités"
                       >
                         Difficile
