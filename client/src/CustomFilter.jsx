@@ -19,9 +19,9 @@ function CustomFilter({ filters, dispatch }) {
       <form onSubmit={(e) => e.preventDefault()}>
       <fieldset>
         <legend>Taxons à INCLURE</legend>
-        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez voir dans le quiz. (ex: oiseaux, cervidés, champignons; passereaux...)</p>
+        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez voir dans le quiz.</p>
         <AutocompleteInput 
-          placeholder="Rechercher un taxon à inclure..."
+          placeholder="(ex: oiseaux, cervidés, champignons; passereaux...)"
           onSelect={(selection) => dispatch({ type: 'ADD_INCLUDED_TAXON', payload: selection })}
           // La prop 'incorrectAncestorIds' est volontairement retirée.
         />
@@ -40,9 +40,9 @@ function CustomFilter({ filters, dispatch }) {
       {/* --- SECTION EXCLUSION --- */}
       <fieldset>
         <legend>Taxons à EXCLURE</legend>
-        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez retirer du quiz.(ex: oiseaux, cervidés, champignons; passereaux...)</p>
+        <p className="custom-filter-description">Ajoutez les groupes que vous souhaitez retirer du quiz.</p>
         <AutocompleteInput 
-          placeholder="Rechercher un taxon à exclure..."
+          placeholder="(ex: oiseaux, cervidés, champignons; passereaux...)"
           onSelect={(selection) => dispatch({ type: 'ADD_EXCLUDED_TAXON', payload: selection })}
            // La prop 'incorrectAncestorIds' est volontairement retirée.
         />
