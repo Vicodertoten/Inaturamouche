@@ -20,9 +20,12 @@
   .main-nav .profile-text {
     display: none;
   }
+  .main-nav .profile-button {
+    padding: 0.25rem;
+  }
   .main-nav .profile-icon {
     display: inline;
-    font-size: 1.5rem;
+    font-size: 1rem;
   }
 }
 
