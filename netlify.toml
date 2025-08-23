@@ -1,0 +1,33 @@
+# --- Build monorepo : on construit depuis client/ ---
+[build]
+  base    = "client"     # Netlify lance la build depuis ce sous-dossier
+  publish = "dist"       # chemin de sortie relatif à base
+  command = "npm ci && npm run build"
+
+# --- SPA : fallback vers index.html pour le routing côté client ---
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200
+
+# --- Cache long pour les actifs fingerprintés Vite (/assets/...) ---
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# --- Quelques headers de base (facultatif) ---
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# --- Variables par contexte (production / previews) ---
+[context.production.environment]
+  VITE_API_BASE_URL = "https://inaturamouche.onrender.com"
+  NODE_VERSION = "20"
+
+[context.deploy-preview.environment]
+  VITE_API_BASE_URL = "https://inaturamouche.onrender.com"
+  NODE_VERSION = "20"
