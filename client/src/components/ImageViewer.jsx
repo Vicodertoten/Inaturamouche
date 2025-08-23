@@ -228,7 +228,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           <div className="image-placeholder" />
         )}
         {imageUrls.length > 1 && (
-          <div className="nav-overlay">
+          <div className="nav-overlay" role="group" aria-label="Contrôles de navigation">
             <button
               type="button"
               className="nav-button prev"
@@ -239,17 +239,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               }}
             >
               ‹
-            </button>
-            <button
-              type="button"
-              className="nav-button next"
-              aria-label="Image suivante"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-            >
-              ›
             </button>
             <div className="dots" role="tablist" aria-label="Choix de l'image">
               {imageUrls.map((_, idx) => (
@@ -267,6 +256,17 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                 />
               ))}
             </div>
+            <button
+              type="button"
+              className="nav-button next"
+              aria-label="Image suivante"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+            >
+              ›
+            </button>
           </div>
         )}
       </div>
