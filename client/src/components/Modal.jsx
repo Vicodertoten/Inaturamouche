@@ -13,7 +13,7 @@ function Modal({ onClose, children }) {
   }, [onClose]);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-content" tabIndex="-1" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>
         {children}
