@@ -332,6 +332,7 @@ button:focus-visible {
 /* Tooltip style */
 .tooltip {
   position: relative;
+  display: inline-block;
 }
 
 .tooltip::after {
@@ -352,9 +353,8 @@ button:focus-visible {
   z-index: 10;
 }
 
-.tooltip:hover::after {
+.tooltip:hover::after,
+.tooltip:focus::after,
+.tooltip:focus-within::after {
   opacity: 1;
 }
-
-/* Le reste de votre CSS reste inchangé */
-/* ... */
