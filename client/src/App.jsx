@@ -376,14 +376,14 @@ const handleProfileReset = () => {
                       <button
                         onClick={() => setGameMode('easy')}
                         className={gameMode === 'easy' ? 'active' : ''}
-                        title="Mode facile : choix multiple"
+                        title="Mode facile : quatre propositions et indice facultatif"
                       >
                         Facile
                       </button>
                       <button
                         onClick={() => setGameMode('hard')}
                         className={gameMode === 'hard' ? 'active' : ''}
-                        title="Mode difficile : réponse libre"
+                        title="Mode difficile : devinez la taxonomie avec essais limités"
                       >
                         Difficile
                       </button>
