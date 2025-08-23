@@ -7,7 +7,8 @@ const MAX_QUESTIONS_PER_GAME = 5;
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 // MODIFIÉ: Ajout de onUpdateScore pour la pénalité de l'indice
-const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl }) => {
+// et currentStreak pour calculer le bonus de série
+const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl, currentStreak }) => {
   const [answerStatus, setAnswerStatus] = useState({ answered: false, correctAnswer: '', selectedAnswer: '' });
   const [showSummary, setShowSummary] = useState(false);
   
@@ -54,7 +55,8 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
   };
 
   const isCorrectAnswer = answerStatus.selectedAnswer === answerStatus.correctAnswer;
-  const scoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
+  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
+  const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
 
   return (
     <>
