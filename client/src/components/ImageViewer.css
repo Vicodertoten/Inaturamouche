@@ -8,31 +8,31 @@
 
 /* Wrapper qui contient l'image, gère le fond et le clipping */
 .image-wrapper {
-  flex-grow: 1; /* Prend toute la hauteur disponible */
+  flex-grow: 1;
   width: 100%;
   background-color: var(--bg-color);
   border-radius: var(--border-radius);
   border: 2px solid var(--border-color);
-  overflow: hidden; /* Crucial pour que l'image ne dépasse pas lors du zoom/pan */
-  position: relative;
+  overflow: hidden; /* Important pour le zoom/pan */
+  position: relative; /* Clé pour l'overlay */
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer; /* Indique qu'on peut cliquer pour zoomer */
+  cursor: pointer;
 }
 
 .image-wrapper img {
   width: 100%;
   height: auto;
-  object-fit: contain; /* Affiche l'image entièrement sans la déformer */
-  user-select: none; /* Empêche la sélection de l'image */
-  -webkit-user-drag: none; /* Empêche le glisser-déposer natif */
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Animation douce */
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: relative;
   z-index: 0;
 }
 
-/* Overlay regroupant flèches et points */
+/* Overlay regroupant flèches et points — centré bas, translucide */
 .nav-overlay {
   position: absolute;
   bottom: 10px;
@@ -45,6 +45,7 @@
   background-color: rgba(0, 0, 0, 0.4);
   border-radius: 9999px;
   z-index: 1;
+  backdrop-filter: blur(2px);
 }
 
 /* Boutons de navigation */
@@ -61,8 +62,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background .2s ease, transform .1s ease;
 }
-
+.nav-button:hover { background-color: rgba(0, 0, 0, 0.65); }
+.nav-button:active { transform: scale(0.96); }
 .nav-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -73,41 +76,43 @@
   display: flex;
   gap: 8px;
 }
-
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.55);
   border: none;
   cursor: pointer;
   padding: 0;
+  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
 }
-
+.dot:hover { background-color: rgba(255, 255, 255, 0.8); transform: scale(1.15); }
+.dot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .dot.active {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
+  transform: scale(1.35);
 }
 
 /* Placeholder skeleton affiché pendant le chargement des images */
 .image-placeholder {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background-color: var(--surface-color);
   animation: image-placeholder-pulse 1.5s ease-in-out infinite;
   pointer-events: none;
+  z-index: 0;
 }
 
 @keyframes image-placeholder-pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .nav-overlay { bottom: 8px; padding: 6px 8px; gap: 8px; }
+  .nav-button { width: 36px; height: 36px; font-size: 1.1rem; }
+  .dot { width: 8px; height: 8px; }
 }
