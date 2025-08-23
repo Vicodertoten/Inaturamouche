@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
+import StreakBadge from './StreakBadge';
 
 const MAX_QUESTIONS_PER_GAME = 5;
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 // MODIFIÉ: Ajout de onUpdateScore pour la pénalité de l'indice
-const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl }) => {
+// et currentStreak pour calculer le bonus de série
+const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl, currentStreak }) => {
   const [answerStatus, setAnswerStatus] = useState({ answered: false, correctAnswer: '', selectedAnswer: '' });
   const [showSummary, setShowSummary] = useState(false);
   
@@ -54,7 +56,8 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
   };
 
   const isCorrectAnswer = answerStatus.selectedAnswer === answerStatus.correctAnswer;
-  const scoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
+  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
+  const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
 
   return (
     <>
@@ -81,7 +84,10 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
                 Indice (-{HINT_COST_EASY} pts)
               </button>
             </div>
-            <h2 className="score">Score: {score}</h2>
+            <div className="score-container">
+              <h2 className="score">Score: {score}</h2>
+              <StreakBadge streak={currentStreak} />
+            </div>
           </header>
           <main className="game-main">
             <div className="image-section">
