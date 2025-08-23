@@ -17,12 +17,14 @@ app.use(compression());
 // Les packs sont maintenant partagés avec le client.
 const allowedOrigins = ['http://localhost:5173', 'https://inaturamouche.netlify.app', 'https://inaturaquizz.netlify.app'];
 
-app.use(
-  cors({
-    origin: (o, cb) =>
-      allowedOrigins.includes(o) || !o ? cb(null, true) : cb(new Error()),
-  })
-);
+app.use(cors({
+  origin(origin, cb) {
+    // autoriser requêtes sans en-tête Origin (ex: tests curl) ou celles venant d'origines listées
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Origin not allowed by CORS'));
+  },
+  credentials: true, // mets false si tu n’envoies pas de cookies/credentials
+}));
 app.options('*', cors());
 app.use((req, res, next) => {
   res.header('Vary', 'Origin');
