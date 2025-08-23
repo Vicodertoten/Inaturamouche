@@ -54,6 +54,7 @@
 .win-title { color: var(--success-color); }
 .lose-title { color: var(--error-color); }
 
+
   .correct-answer-section {
     background-color: var(--bg-color);
     /* MODIFIÉ: Padding interne réduit */
