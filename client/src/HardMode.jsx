@@ -13,22 +13,13 @@ const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'specie
 const INITIAL_GUESSES = 6;
 const REVEAL_HINT_COST = 2;
 
-const SCORE_PER_RANK = {
-  kingdom: 5,
-  phylum: 10,
-  class: 15,
-  order: 20,
-  family: 25,
-  genus: 30,
-  species: 40,
-};
+const SCORE_PER_RANK = { kingdom:5, phylum:10, class:15, order:20, family:25, genus:30, species:40 };
 
 function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, currentStreak }) {
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
   const [incorrectGuessIds, setIncorrectGuessIds] = useState([]);
-  
   const [roundStatus, setRoundStatus] = useState('playing');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [scoreInfo, setScoreInfo] = useState(null);
@@ -42,98 +33,61 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
     setFeedbackMessage('');
     setScoreInfo(null);
   }, [question, score]);
-  
-  const showFeedback = (message) => {
-    setFeedbackMessage(message);
-    setTimeout(() => setFeedbackMessage(''), 3000);
-  };
+
+  const showFeedback = (msg) => { setFeedbackMessage(msg); setTimeout(() => setFeedbackMessage(''), 3000); };
 
   const handleGuess = async (selection) => {
-    if (!selection || !selection.id) return;
-
-    const newGuessesCount = guesses - 1;
-    setGuesses(newGuessesCount);
-
+    if (!selection?.id) return;
+    const newGuessesCount = guesses - 1; setGuesses(newGuessesCount);
     try {
-      const guessedTaxonHierarchy = await getTaxonDetails(selection.id);
-      if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
+      const guessed = await getTaxonDetails(selection.id);
+      if (!guessed) throw new Error("Données du taxon invalides");
 
       const { bonne_reponse } = question;
-      const bonneReponseAncestorIds = new Set(bonne_reponse.ancestors.map(a => a.id).concat(bonne_reponse.id));
+      const bonneSet = new Set(bonne_reponse.ancestors.map(a => a.id).concat(bonne_reponse.id));
 
-      let newKnownTaxa = { ...knownTaxa };
-      let newPoints = 0;
-      const taxaToCheck = [...guessedTaxonHierarchy.ancestors, guessedTaxonHierarchy];
+      let newKnown = { ...knownTaxa };
+      let add = 0;
+      const toCheck = [...guessed.ancestors, guessed];
 
-      for (const taxon of taxaToCheck) {
-        if (bonneReponseAncestorIds.has(taxon.id) && RANKS.includes(taxon.rank) && !newKnownTaxa[taxon.rank]) {
-          newKnownTaxa[taxon.rank] = {
-            id: taxon.id,
-            name: taxon.preferred_common_name || taxon.name
-          };
-          newPoints += SCORE_PER_RANK[taxon.rank] || 0;
+      for (const t of toCheck) {
+        if (bonneSet.has(t.id) && RANKS.includes(t.rank) && !newKnown[t.rank]) {
+          newKnown[t.rank] = { id: t.id, name: t.preferred_common_name || t.name };
+          add += SCORE_PER_RANK[t.rank] || 0;
         }
       }
 
-      const roundPoints = currentScore + newPoints - score;
-      setKnownTaxa(newKnownTaxa);
-      setCurrentScore(prev => prev + newPoints);
+      const roundPoints = currentScore + add - score;
+      setKnownTaxa(newKnown);
+      setCurrentScore(p => p + add);
 
-      const isSpeciesGuessed = newKnownTaxa.species?.id === bonne_reponse.id;
-
-      // --- Logique fin de partie ---
-      if (isSpeciesGuessed) {
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: roundPoints,
-          guessesRemaining: newGuessesCount,
-          isCorrect: true
-        });
+      const guessedSpecies = newKnown.species?.id === bonne_reponse.id;
+      if (guessedSpecies) {
+        const { points, bonus } = computeScore({ mode: 'hard', basePoints: roundPoints, guessesRemaining: newGuessesCount, isCorrect: true });
         const streakBonus = 2 * (currentStreak + 1);
-        setScoreInfo({ points, bonus, streakBonus });
-        setRoundStatus('win');
-        return;
+        setScoreInfo({ points, bonus, streakBonus }); setRoundStatus('win'); return;
       }
 
       if (newGuessesCount <= 0) {
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: roundPoints,
-          guessesRemaining: newGuessesCount,
-          isCorrect: false
-        });
-        setScoreInfo({ points, bonus, streakBonus: 0 });
-        setRoundStatus('lose');
-        return;
+        const { points, bonus } = computeScore({ mode: 'hard', basePoints: roundPoints, guessesRemaining: newGuessesCount, isCorrect: false });
+        setScoreInfo({ points, bonus, streakBonus: 0 }); setRoundStatus('lose'); return;
       }
 
-      const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
-      if (newPoints > 0) {
-        showFeedback(`Bonne branche ! +${newPoints} points !`);
-      } else if (isSelectionCorrectAncestor) {
-        showFeedback("Correct, mais cette proposition n'a pas révélé de nouveau rang.");
-      } else {
-        showFeedback("Incorrect. Cette suggestion n'est pas dans la bonne lignée.");
-        setIncorrectGuessIds(prev => [...prev, selection.id]);
-      }
+      if (add > 0) showFeedback(`Bonne branche ! +${add} points !`);
+      else if (bonneSet.has(guessed.id)) showFeedback("Correct, mais pas de nouveau rang révélé.");
+      else { showFeedback("Incorrect : pas dans la bonne lignée."); setIncorrectGuessIds(prev => [...prev, selection.id]); }
 
-    } catch (error) {
-      console.error("Erreur de validation", error);
-      showFeedback("Une erreur est survenue lors de la vérification.");
-      if (newGuessesCount <= 0) {
-        const totalPoints = currentScore - score;
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: totalPoints,
-          guessesRemaining: newGuessesCount,
-          isCorrect: false
-        });
-        setScoreInfo({ points, bonus, streakBonus: 0 });
-        setRoundStatus('lose');
+    } catch (err) {
+      console.error("Erreur de validation", err);
+      showFeedback("Erreur lors de la vérification.");
+      if (guesses - 1 <= 0) {
+        const total = currentScore - score;
+        const { points, bonus } = computeScore({ mode: 'hard', basePoints: total, guessesRemaining: guesses - 1, isCorrect: false });
+        setScoreInfo({ points, bonus, streakBonus: 0 }); setRoundStatus('lose');
       }
     }
   };
-  
+
   const handleNext = () => {
     const result = {
       points: scoreInfo?.points || 0,
@@ -145,62 +99,30 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
   };
 
   const handleRevealNameHint = () => {
-    if (guesses < REVEAL_HINT_COST) {
-      showFeedback("Pas assez de chances pour cet indice !");
-      return;
-    }
+    if (guesses < REVEAL_HINT_COST) { showFeedback("Pas assez de chances pour cet indice !"); return; }
+    const firstUnknown = RANKS.find(r => !knownTaxa[r]);
+    if (!firstUnknown) return;
 
-    const firstUnknownRank = RANKS.find(rank => !knownTaxa[rank]);
-    if (firstUnknownRank) {
-      const newGuessesCount = guesses - REVEAL_HINT_COST;
-      setGuesses(newGuessesCount);
+    const newGuesses = guesses - REVEAL_HINT_COST; setGuesses(newGuesses);
+    const data = firstUnknown === 'species' ? question.bonne_reponse : question.bonne_reponse.ancestors.find(a => a.rank === firstUnknown);
+    if (!data) return;
 
-      showFeedback(`Indice utilisé ! Le rang '${firstUnknownRank}' a été révélé.`);
-      
-      const taxonData = firstUnknownRank === 'species' 
-        ? question.bonne_reponse 
-        : question.bonne_reponse.ancestors.find(a => a.rank === firstUnknownRank);
+    setKnownTaxa(prev => ({ ...prev, [firstUnknown]: { id: data.id, name: data.preferred_common_name ? `${data.preferred_common_name} (${data.name})` : data.name } }));
+    showFeedback(`Indice : ${firstUnknown} révélé.`);
 
-      if (taxonData) {
-        setKnownTaxa(prev => ({ 
-          ...prev, 
-          [firstUnknownRank]: { 
-            id: taxonData.id, 
-            name: taxonData.preferred_common_name ? `${taxonData.preferred_common_name} (${taxonData.name})` : taxonData.name
-          }
-        }));
-        
-        if (firstUnknownRank === 'species') {
-          const speciesPoints = SCORE_PER_RANK.species || 0;
-          const roundPoints = currentScore + speciesPoints - score;
-          setCurrentScore(prev => prev + speciesPoints);
-          const { points, bonus } = computeScore({
-            mode: 'hard',
-            basePoints: roundPoints,
-            guessesRemaining: newGuessesCount,
-            isCorrect: true
-          });
-          const streakBonus = 2 * (currentStreak + 1);
-          setScoreInfo({ points, bonus, streakBonus });
-          setRoundStatus('win');
-          return;
-        }
-
-        if (newGuessesCount <= 0) {
-          const roundPoints = currentScore - score;
-          const { points, bonus } = computeScore({
-            mode: 'hard',
-            basePoints: roundPoints,
-            guessesRemaining: newGuessesCount,
-            isCorrect: false
-          });
-          setScoreInfo({ points, bonus, streakBonus: 0 });
-          setRoundStatus('lose');
-        }
-      }
+    if (firstUnknown === 'species') {
+      const add = SCORE_PER_RANK.species || 0;
+      const roundPoints = currentScore + add - score; setCurrentScore(p => p + add);
+      const { points, bonus } = computeScore({ mode: 'hard', basePoints: roundPoints, guessesRemaining: newGuesses, isCorrect: true });
+      const streakBonus = 2 * (currentStreak + 1);
+      setScoreInfo({ points, bonus, streakBonus }); setRoundStatus('win');
+    } else if (newGuesses <= 0) {
+      const roundPoints = currentScore - score;
+      const { points, bonus } = computeScore({ mode: 'hard', basePoints: roundPoints, guessesRemaining: newGuesses, isCorrect: false });
+      setScoreInfo({ points, bonus, streakBonus: 0 }); setRoundStatus('lose');
     }
   };
-  
+
   const isGameOver = roundStatus !== 'playing';
   const canUseAnyHint = !!RANKS.find(r => !knownTaxa[r]);
 
@@ -212,7 +134,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
 
       <div className="hard-mode-container">
         <h2 className="main-hard-mode-title">Identifier l'espèce</h2>
-        
+
         <div className="proposition-panel">
           <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
             <div className="ranks-list">
@@ -225,7 +147,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
                     <AutocompleteInput
                       key={`${rank}-${Object.keys(knownTaxa).length}`}
                       onSelect={handleGuess}
-                      extraParams={{ rank: rank }}
+                      extraParams={{ rank }}
                       disabled={isGameOver}
                       placeholder={`Entrez un ${rank}...`}
                       incorrectAncestorIds={incorrectGuessIds}
@@ -246,18 +168,15 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
         </div>
 
         <div className="actions-panel">
-          {feedbackMessage && (
-            <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
-          )}
+          {feedbackMessage && <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>}
           <div className="hard-mode-stats">
             <span>Chances : {guesses} | Score : {currentScore}</span>
             <StreakBadge streak={currentStreak} />
           </div>
-          
           <div className="hard-mode-actions">
             <button onClick={onQuit} disabled={isGameOver} className="action-button quit">Abandonner</button>
-            <button 
-              onClick={handleRevealNameHint} 
+            <button
+              onClick={handleRevealNameHint}
               disabled={isGameOver || !canUseAnyHint || guesses < REVEAL_HINT_COST}
               className="action-button hint"
             >
