@@ -45,14 +45,6 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-.summary-modal h2 {
-  margin: 0;
-  /* MODIFIÉ: Taille de la police du titre réduite */
-  font-size: 1.6rem;
-}
-
-.win-title { color: var(--success-color); }
-.lose-title { color: var(--error-color); }
 
   .correct-answer-section {
     background-color: var(--bg-color);
