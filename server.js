@@ -15,7 +15,7 @@ app.use(helmet());
 app.use(compression());
 
 // Les packs sont maintenant partagés avec le client.
-const allowedOrigins = ['http://localhost:5173', 'https://inaturamouche.netlify.app'];
+const allowedOrigins = ['http://localhost:5173', 'https://inaturamouche.netlify.app', 'https://inaturaquizz.netlify.app'];
 
 app.use(
   cors({
