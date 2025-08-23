@@ -297,5 +297,32 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Le reste de votre CSS reste inchangé */
-/* ... */
+/* Tooltip style */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
+  z-index: 10;
+}
+
+.tooltip:hover::after,
+.tooltip:focus::after,
+.tooltip:focus-within::after {
+  opacity: 1;
+}
