@@ -1,5 +1,3 @@
-// src/components/RoundSummaryModal.jsx (version finale corrigée)
-
 import React, { useEffect, useRef } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
@@ -36,8 +34,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   const { bonne_reponse, inaturalist_url } = question;
   const isWin = status === 'win';
 
-  // --- LA SEULE LIGNE À CHANGER EST CI-DESSOUS ---
-  const commonName = bonne_reponse.common_name; // On lit `common_name` au lieu de `preferred_common_name`
+  const commonName = bonne_reponse.common_name;
 
   const scientificName = bonne_reponse.name;
   const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
