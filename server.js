@@ -54,6 +54,29 @@ app.use((req, res, next) => {
   next();
 });
 
+/* -------------------- Caches mémoire -------------------- */
+const QUESTION_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const AUTOCOMPLETE_CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+const MAX_CACHE_ENTRIES = 50;
+
+const questionCache = new Map();
+const autocompleteCache = new Map();
+
+function buildCacheKey(obj) {
+  return Object.keys(obj)
+    .sort()
+    .map((k) => `${k}=${Array.isArray(obj[k]) ? obj[k].join(",") : obj[k]}`)
+    .join("|");
+}
+
+function setWithLimit(map, key, value) {
+  if (map.size >= MAX_CACHE_ENTRIES) {
+    const firstKey = map.keys().next().value;
+    map.delete(firstKey);
+  }
+  map.set(key, value);
+}
+
 /* -------------------- Utils -------------------- */
 async function fetchJSON(url, params = {}) {
   const urlObj = new URL(url);
@@ -148,15 +171,44 @@ app.get("/api/quiz-question", async (req, res) => {
   if (d2) params.d2 = d2;
 
   try {
-    const obsResponse = await fetchJSON("https://api.inaturalist.org/v1/observations", params);
-    const results = Array.isArray(obsResponse.results) ? obsResponse.results : [];
-    if (results.length === 0) throw new Error("Aucune observation trouvée avec vos critères. Essayez d'élargir votre recherche.");
+    const now = Date.now();
+    const cacheKey = buildCacheKey(params);
+    let cacheEntry = questionCache.get(cacheKey);
 
-    const shuffledObs = results
-      .filter((o) => o.taxon && Array.isArray(o.photos) && o.photos.length > 0 && o.taxon.ancestor_ids)
-      .sort(() => 0.5 - Math.random());
+    if (!cacheEntry || cacheEntry.timestamp + QUESTION_CACHE_TTL < now || cacheEntry.observations.length < 4) {
+      const obsResponse = await fetchJSON("https://api.inaturalist.org/v1/observations", params);
+      const results = Array.isArray(obsResponse.results) ? obsResponse.results : [];
+      if (results.length === 0)
+        throw new Error("Aucune observation trouvée avec vos critères. Essayez d'élargir votre recherche.");
 
-    if (shuffledObs.length < 4) throw new Error("Pas assez d'espèces différentes trouvées pour créer un quiz.");
+      const uniqueObs = [];
+      const seenTaxa = new Set();
+      for (const o of results) {
+        if (
+          o.taxon &&
+          Array.isArray(o.photos) &&
+          o.photos.length > 0 &&
+          o.taxon.ancestor_ids &&
+          !seenTaxa.has(o.taxon.id)
+        ) {
+          uniqueObs.push(o);
+          seenTaxa.add(o.taxon.id);
+        }
+      }
+
+      if (uniqueObs.length < 4) throw new Error("Pas assez d'espèces différentes trouvées pour créer un quiz.");
+
+      cacheEntry = { timestamp: now, observations: uniqueObs, usedTaxa: new Set() };
+      setWithLimit(questionCache, cacheKey, cacheEntry);
+    }
+
+    let available = cacheEntry.observations.filter((o) => !cacheEntry.usedTaxa.has(o.taxon.id));
+    if (available.length < 4) {
+      cacheEntry.usedTaxa.clear();
+      available = cacheEntry.observations.slice();
+    }
+
+    const shuffledObs = available.sort(() => 0.5 - Math.random());
 
     const [targetObservation, ...candidateObs] = shuffledObs;
     const targetAncestorSet = new Set(targetObservation.taxon.ancestor_ids || []);
@@ -191,6 +243,9 @@ app.get("/api/quiz-question", async (req, res) => {
       ...lureObservations.map((o) => getTaxonName(details.get(o.taxon.id))),
     ].sort(() => Math.random() - 0.5);
 
+    cacheEntry.usedTaxa.add(targetObservation.taxon.id);
+    lureObservations.forEach((o) => cacheEntry.usedTaxa.add(o.taxon.id));
+
     res.json({
       image_urls: (targetObservation.photos || []).map((p) => p.url.replace("square", "large")),
       bonne_reponse: {
@@ -214,13 +269,23 @@ app.get("/api/taxa/autocomplete", async (req, res) => {
   const { q, rank, locale = "fr" } = req.query;
   if (!q || q.length < 2) return res.json([]);
 
+  const now = Date.now();
+  const cacheKey = buildCacheKey({ q, rank, locale });
+  const cached = autocompleteCache.get(cacheKey);
+  if (cached && cached.expires > now) {
+    return res.json(cached.data);
+  }
+
   try {
     const params = { q, is_active: true, per_page: 10, locale };
     if (rank) params.rank = rank;
 
     const response = await fetchJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params);
     const initial = Array.isArray(response.results) ? response.results : [];
-    if (initial.length === 0) return res.json([]);
+    if (initial.length === 0) {
+      setWithLimit(autocompleteCache, cacheKey, { data: [], expires: now + AUTOCOMPLETE_CACHE_TTL });
+      return res.json([]);
+    }
 
     const taxonIds = initial.map((t) => t.id);
     const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
@@ -236,6 +301,7 @@ app.get("/api/taxa/autocomplete", async (req, res) => {
       };
     });
 
+    setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL });
     res.json(out);
   } catch (err) {
     console.error("Erreur dans /api/taxa/autocomplete:", err.message);
