@@ -7,6 +7,7 @@ import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
+import StreakBadge from './components/StreakBadge';
 
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -253,7 +254,10 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
           {feedbackMessage && (
             <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
           )}
-          <div className="hard-mode-stats">Chances : {guesses} | Score : {currentScore}</div>
+          <div className="hard-mode-stats">
+            <span>Chances : {guesses} | Score : {currentScore}</span>
+            <StreakBadge streak={currentStreak} />
+          </div>
           
           {/* MODIFIÉ: Grille d'actions pour inclure les nouveaux indices */}
           <div className="hard-mode-actions">
