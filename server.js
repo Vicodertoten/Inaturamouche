@@ -134,19 +134,39 @@ app.get('/api/quiz-question', async (req, res) => {
             throw new Error("Aucune observation trouvée avec vos critères. Essayez d'élargir votre recherche.");
         }
 
-        const shuffledObs = obsResponse.results.filter(obs => obs.taxon && obs.photos.length > 0).sort(() => 0.5 - Math.random());
-        let uniqueTaxonObservations = [], seenTaxonIds = new Set();
-        for (const obs of shuffledObs) {
+        const shuffledObs = obsResponse.results
+            .filter(obs => obs.taxon && obs.photos.length > 0 && obs.taxon.ancestor_ids)
+            .sort(() => 0.5 - Math.random());
+
+        if (shuffledObs.length < 4) {
+            throw new Error("Pas assez d'espèces différentes trouvées pour créer un quiz.");
+        }
+
+        const [targetObservation, ...candidateObs] = shuffledObs;
+        const targetAncestorSet = new Set(targetObservation.taxon.ancestor_ids || []);
+
+        const scoredCandidates = candidateObs
+            .filter(obs => obs.taxon && obs.taxon.id !== targetObservation.taxon.id)
+            .map(obs => ({
+                obs,
+                score: (obs.taxon.ancestor_ids || []).filter(id => targetAncestorSet.has(id)).length
+            }))
+            .sort((a, b) => b.score - a.score);
+
+        const lureObservations = [];
+        const seenTaxonIds = new Set([targetObservation.taxon.id]);
+        for (const { obs } of scoredCandidates) {
             if (!seenTaxonIds.has(obs.taxon.id)) {
-                uniqueTaxonObservations.push(obs);
+                lureObservations.push(obs);
                 seenTaxonIds.add(obs.taxon.id);
             }
-            if (uniqueTaxonObservations.length >= 4) break;
+            if (lureObservations.length >= 3) break;
         }
-        
-        if (uniqueTaxonObservations.length < 4) throw new Error("Pas assez d'espèces différentes trouvées pour créer un quiz.");
 
-        const [targetObservation, ...lureObservations] = uniqueTaxonObservations;
+        if (lureObservations.length < 3) {
+            throw new Error("Pas assez d'espèces différentes trouvées pour créer un quiz.");
+        }
+
         const allTaxonIds = [targetObservation.taxon.id, ...lureObservations.map(obs => obs.taxon.id)];
         
         const allTaxaDetails = await getFullTaxaDetails(allTaxonIds, locale);
