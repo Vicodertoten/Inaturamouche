@@ -392,7 +392,7 @@ const handleProfileReset = () => {
                 <Configurator
                   onStartGame={() => startGame(false)}
                   onStartReview={() => startGame(true)}
-                  hasMissedSpecies={(playerProfile?.stats?.missedSpecies?.length || 0) > 0}
+                  canStartReview={(playerProfile?.stats?.missedSpecies?.length || 0) >= MAX_QUESTIONS_PER_GAME}
                   error={error}
                   setError={setError}
                   activePackId={activePackId}
