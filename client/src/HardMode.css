@@ -228,21 +228,23 @@
 }
 
   .feedback-bar {
-    width: 100%;
-    max-width: 400px;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
     border-radius: 8px;
     text-align: center;
     font-weight: 500;
     color: #fff;
     background-color: var(--primary-color);
-    margin-bottom: calc(var(--space-2) * -1); /* Se place joliment entre les stats et les boutons */
+    z-index: 1000;
     animation: fade-in-down 0.5s ease;
   }
 
 @keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 /* --- Amélioration Visuelle pour Taxon Connu --- */
