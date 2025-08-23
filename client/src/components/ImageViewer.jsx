@@ -8,8 +8,7 @@ const MAX_ZOOM = 2.5;
 function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   // --- États du composant ---
   const [currentIndex, setCurrentIndex] = useState(0); // Index de l'image affichée
-  const [rotation, setRotation] = useState(0);       // Angle de rotation de l'image
-  const [scale, setScale] = useState(1);     // Niveau de zoom courant
+  const [scale, setScale] = useState(1); // Niveau de zoom courant
   const [transform, setTransform] = useState({ x: 0, y: 0 }); // Position de l'image lors du déplacement (pan)
   const [isLoaded, setIsLoaded] = useState(true); // État de chargement de l'image
   const [aspectRatio, setAspectRatio] = useState(); // Ratio naturel de l'image
@@ -26,7 +25,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   // --- Effet pour réinitialiser l'état quand les images changent (nouvelle question) ---
   useEffect(() => {
     setCurrentIndex(0);
-    setRotation(0);
     setScale(1);
     setTransform({ x: 0, y: 0 });
     setIsLoaded(true);
@@ -52,7 +50,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
 
   // --- Fonctions pour les contrôles ---
   const resetViewState = () => {
-    setRotation(0);
     setScale(1);
     setTransform({ x: 0, y: 0 });
   };
@@ -65,10 +62,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const handlePrev = () => {
     setCurrentIndex((prevIndex) => (prevIndex - 1 + imageUrls.length) % imageUrls.length);
     resetViewState();
-  };
-
-  const handleRotate = () => {
-    setRotation((prevRotation) => (prevRotation + 90) % 360);
   };
 
   // --- Fonctions pour le Zoom et le Déplacement (Pan) ---
@@ -184,6 +177,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
       <div
         ref={containerRef}
         className="image-wrapper"
+        style={{ touchAction: scale > 1 ? 'none' : 'pan-y' }}
         onClick={handleImageClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -203,7 +197,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           style={{
             width: '100%',
             aspectRatio,
-            transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale}) rotate(${rotation}deg)`,
+            transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
             transition:
               isPanning.current || initialPinchDistance.current
                 ? 'none'
@@ -214,12 +208,41 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         {!isLoaded && currentIndex !== 0 && (
           <div className="image-placeholder" />
         )}
-      </div>
-      <div className="image-controls">
-        <button onClick={handlePrev} disabled={imageUrls.length <= 1}>‹</button>
-        <span>{currentIndex + 1} / {imageUrls.length}</span>
-        <button onClick={handleNext} disabled={imageUrls.length <= 1}>›</button>
-        <button onClick={handleRotate} className="rotate-btn" title="Pivoter l'image">↻</button>
+        {imageUrls.length > 1 && (
+          <div className="nav-overlay">
+            <button
+              className="nav-button prev"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrev();
+              }}
+            >
+              ‹
+            </button>
+            <button
+              className="nav-button next"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+            >
+              ›
+            </button>
+            <div className="dots">
+              {imageUrls.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`dot ${idx === currentIndex ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex(idx);
+                    resetViewState();
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
