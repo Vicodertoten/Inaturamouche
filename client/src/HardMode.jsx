@@ -1,7 +1,7 @@
 // src/HardMode.jsx (corrigé et amélioré)
 
 import React, { useState, useEffect } from 'react';
-import ImageViewer from './ImageViewer';
+import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './RoundSummaryModal';
 import './HardMode.css';
