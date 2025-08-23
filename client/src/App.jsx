@@ -375,15 +375,17 @@ const handleProfileReset = () => {
                       <h3>Choisir le mode :</h3>
                       <button
                         onClick={() => setGameMode('easy')}
-                        className={gameMode === 'easy' ? 'active' : ''}
-                        title="Mode facile : choix multiple"
+                        className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
+                        data-tooltip="Mode facile : quatre propositions et indice facultatif"
+                        onMouseLeave={e => e.currentTarget.blur()}
                       >
                         Facile
                       </button>
                       <button
                         onClick={() => setGameMode('hard')}
-                        className={gameMode === 'hard' ? 'active' : ''}
-                        title="Mode difficile : réponse libre"
+                        className={`tooltip ${gameMode === 'hard' ? 'active' : ''}`}
+                        data-tooltip="Mode difficile : devinez la taxonomie avec essais limités"
+                        onMouseLeave={e => e.currentTarget.blur()}
                       >
                         Difficile
                       </button>
