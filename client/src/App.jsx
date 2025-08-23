@@ -377,7 +377,7 @@ const handleProfileReset = () => {
                         onClick={() => setGameMode('easy')}
                         className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
                         data-tooltip="Mode facile : quatre propositions et indice facultatif"
-                        onMouseLeave={e => e.currentTarget.blur()}
+                        onPointerLeave={e => e.currentTarget.blur()}
                       >
                         Facile
                       </button>
@@ -385,7 +385,7 @@ const handleProfileReset = () => {
                         onClick={() => setGameMode('hard')}
                         className={`tooltip ${gameMode === 'hard' ? 'active' : ''}`}
                         data-tooltip="Mode difficile : devinez la taxonomie avec essais limités"
-                        onMouseLeave={e => e.currentTarget.blur()}
+                        onPointerLeave={e => e.currentTarget.blur()}
                       >
                         Difficile
                       </button>

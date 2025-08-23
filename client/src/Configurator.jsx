@@ -22,7 +22,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
         <div
           className="tooltip"
           data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
-          onMouseLeave={e => e.currentTarget.querySelector('select')?.blur()}
+          onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
         >
           <select
             id="pack-select"
