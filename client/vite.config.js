@@ -13,6 +13,7 @@ export default defineConfig({
         'apple-touch-icon.png',
         'assets/*.png',
         'offline.html',
+        'robots.txt',
         'packs/*.json'
       ],
       manifest: {
