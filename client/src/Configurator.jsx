@@ -2,6 +2,7 @@ import React from 'react';
 import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
+import './configurator.css';
 
 function Configurator({ onStartGame, onStartReview, canStartReview, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
 
