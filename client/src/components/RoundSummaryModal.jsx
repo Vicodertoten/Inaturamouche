@@ -88,7 +88,10 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
             {scoreInfo.bonus > 0 && (
               <p>Bonus : <span className="score-points">+{scoreInfo.bonus}</span></p>
             )}
-            <p>Total pour la manche : <span className="score-total">+{scoreInfo.points + (scoreInfo.bonus || 0)}</span></p>
+            {scoreInfo.streakBonus > 0 && (
+              <p>Bonus de série : <span className="score-points">+{scoreInfo.streakBonus}</span></p>
+            )}
+            <p>Total pour la manche : <span className="score-total">+{scoreInfo.points + (scoreInfo.bonus || 0) + (scoreInfo.streakBonus || 0)}</span></p>
           </div>
         )}
         
