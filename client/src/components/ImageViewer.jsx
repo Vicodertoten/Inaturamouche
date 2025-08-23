@@ -220,7 +220,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
             transition:
               isPanning.current || initialPinchDistance.current
                 ? 'none'
-                : 'transform 0.3s ease', // Désactive la transition pendant le déplacement ou le pinch
+                : 'transform 0.3s ease',
           }}
           draggable={false}
         />
