@@ -211,7 +211,9 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         {imageUrls.length > 1 && (
           <div className="nav-overlay">
             <button
+              type="button"
               className="nav-button prev"
+              aria-label="Image précédente"
               onClick={(e) => {
                 e.stopPropagation();
                 handlePrev();
@@ -220,7 +222,9 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               ‹
             </button>
             <button
+              type="button"
               className="nav-button next"
+              aria-label="Image suivante"
               onClick={(e) => {
                 e.stopPropagation();
                 handleNext();
@@ -232,6 +236,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               {imageUrls.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
+                  aria-label={`Aller à l'image ${idx + 1}`}
                   className={`dot ${idx === currentIndex ? 'active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
