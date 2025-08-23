@@ -95,7 +95,7 @@ function ProfileModal({ profile, onClose, onResetProfile }) {
   const hardAccuracy = ((profile.stats.accuracyHard || 0) * 100).toFixed(1);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-content profile-modal" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>
         <h2 className="modal-title">Profil du Joueur</h2>
