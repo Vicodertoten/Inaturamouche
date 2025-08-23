@@ -377,7 +377,6 @@ const handleProfileReset = () => {
                   ?
                 </button>
                 <div className="mode-selector">
-                      <h3>Choisir le mode :</h3>
                       <button
                         onClick={() => setGameMode('easy')}
                         className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
