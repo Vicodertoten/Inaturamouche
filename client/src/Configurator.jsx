@@ -3,7 +3,7 @@ import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 
-function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
+function Configurator({ onStartGame, onStartReview, canStartReview, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -52,7 +52,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, set
       </div>
 
       <button onClick={onStartGame} className="start-button">Lancer la partie !</button>
-      {hasMissedSpecies && (
+      {canStartReview && (
         <button onClick={onStartReview} className="start-button">Réviser mes erreurs</button>
       )}
     </div>
