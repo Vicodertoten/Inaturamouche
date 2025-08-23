@@ -170,68 +170,72 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         aria-roledescription="Visionneuse d'images"
         aria-label={alt}
       >
-        <img
-          src={getSizedImageUrl(imageUrls[currentIndex], 'large')}
-          srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w, ${getSizedImageUrl(imageUrls[currentIndex], 'large')} 1024w`}
-          sizes="(max-width: 600px) 100vw, 600px"
-          alt={alt}
-          loading="lazy"
-          decoding={currentIndex === 0 ? 'async' : undefined}
-          fetchPriority={currentIndex === 0 ? 'high' : undefined}
-          onLoad={handleImageLoad}
-          style={{
-            width: '100%',
-            aspectRatio,
-            transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
-            transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
-            position: 'relative',
-            zIndex: 0
-          }}
-          draggable={false}
-        />
+        {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
+        <div className="image-box">
+          <img
+            src={getSizedImageUrl(imageUrls[currentIndex], 'large')}
+            srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w, ${getSizedImageUrl(imageUrls[currentIndex], 'large')} 1024w`}
+            sizes="(max-width: 600px) 100vw, 600px"
+            alt={alt}
+            loading="lazy"
+            decoding={currentIndex === 0 ? 'async' : undefined}
+            fetchPriority={currentIndex === 0 ? 'high' : undefined}
+            onLoad={handleImageLoad}
+            style={{
+              width: '100%',
+              aspectRatio,
+              transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
+              transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
+              position: 'relative',
+              zIndex: 0,
+              display: 'block' // évite le whitespace inline
+            }}
+            draggable={false}
+          />
 
-        {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
+          {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
 
-        {imageUrls.length > 1 && (
-          <div className="nav-overlay" role="group" aria-label="Contrôles de navigation" style={Fallback.overlay}>
-            <button
-              type="button"
-              className="nav-button prev"
-              aria-label="Image précédente"
-              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-              style={Fallback.arrow}
-            >
-              ‹
-            </button>
+          {imageUrls.length > 1 && (
+            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation" style={Fallback.overlay}>
+              <button
+                type="button"
+                className="nav-button prev"
+                aria-label="Image précédente"
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                style={Fallback.arrow}
+              >
+                ‹
+              </button>
 
-            <div className="dots" role="tablist" aria-label="Choix de l'image" style={Fallback.dots}>
-              {imageUrls.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  aria-label={`Aller à l'image ${idx + 1}`}
-                  className={`dot ${idx === currentIndex ? 'active' : ''}`}
-                  aria-selected={idx === currentIndex}
-                  onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
-                  style={{
-                    ...Fallback.dot,
-                    ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
-                  }}
-                />
-              ))}
+              <div className="dots" role="tablist" aria-label="Choix de l'image" style={Fallback.dots}>
+                {imageUrls.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    aria-label={`Aller à l'image ${idx + 1}`}
+                    className={`dot ${idx === currentIndex ? 'active' : ''}`}
+                    aria-selected={idx === currentIndex}
+                    onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
+                    style={{
+                      ...Fallback.dot,
+                      ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
+                    }}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="nav-button next"
+                aria-label="Image suivante"
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                style={Fallback.arrow}
+              >
+                ›
+              </button>
             </div>
-
-            <button
-              type="button"
-              className="nav-button next"
-              aria-label="Image suivante"
-              onClick={(e) => { e.stopPropagation(); handleNext(); }}
-              style={Fallback.arrow}
-            >
-              ›
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
