@@ -12,6 +12,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const [scale, setScale] = useState(1);     // Niveau de zoom courant
   const [transform, setTransform] = useState({ x: 0, y: 0 }); // Position de l'image lors du déplacement (pan)
   const [isLoaded, setIsLoaded] = useState(true); // État de chargement de l'image
+  const [aspectRatio, setAspectRatio] = useState(); // Ratio naturel de l'image
 
   // --- Références pour la gestion du déplacement ---
   const containerRef = useRef(null); // Référence au conteneur pour gérer le style du curseur
@@ -165,6 +166,14 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     endPointer(e);
   };
 
+  const handleImageLoad = (e) => {
+    setIsLoaded(true);
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
+    }
+  };
+
   // Si pas d'images, on n'affiche rien.
   if (!imageUrls || imageUrls.length === 0) {
     return <div className="image-viewer-container">Chargement...</div>;
@@ -190,8 +199,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           loading="lazy"
           decoding={currentIndex === 0 ? 'async' : undefined}
           fetchpriority={currentIndex === 0 ? 'high' : undefined}
-          onLoad={() => setIsLoaded(true)}
+          onLoad={handleImageLoad}
           style={{
+            width: '100%',
+            aspectRatio,
             transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale}) rotate(${rotation}deg)`,
             transition:
               isPanning.current || initialPinchDistance.current
