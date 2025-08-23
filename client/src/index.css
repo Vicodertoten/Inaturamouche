@@ -21,22 +21,28 @@
   --space-3: 1rem;
   --space-4: 1.5rem;
   --space-5: 2rem;
+  --gap-sm: clamp(0.5rem, 1vw, 0.75rem);
+  --gap-md: clamp(1rem, 2vw, 1.5rem);
 }
 
 /* --- STYLE DE BASE --- */
 html, body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   font-family: var(--font-family-main);
   background-color: var(--bg-color);
   color: var(--text-color);
+  overflow-x: hidden;
 }
 
 body {
   /* On retire le display:flex ici, il n'est plus nécessaire */
-  padding-top: var(--space-2); /* On garde un peu d'espace en haut */
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top)); /* On garde un peu d'espace en haut */
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
 }
 
 /* --- CORRECTION : #root prend toute la largeur --- */
