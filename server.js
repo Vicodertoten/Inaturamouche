@@ -15,25 +15,19 @@ app.use(helmet());
 app.use(compression());
 
 // Les packs sont maintenant partagés avec le client.
+const allowedOrigins = ['http://localhost:5173', 'https://inaturamouche.netlify.app'];
 
-const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
-
-if (allowedOrigins.length > 0) {
-  const corsOptions = {
-    origin: function (origin, callback) {
-      // Permet les requêtes sans origine (ex: Postman, apps mobiles) ou si l'origine est dans la liste blanche
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
-      }
-    }
-  };
-  app.use(cors(corsOptions));
-} else {
-  // Autorise toutes les origines lorsque aucune liste blanche n'est spécifiée
-  app.use(cors());
-}
+app.use(
+  cors({
+    origin: (o, cb) =>
+      allowedOrigins.includes(o) || !o ? cb(null, true) : cb(new Error()),
+  })
+);
+app.options('*', cors());
+app.use((req, res, next) => {
+  res.header('Vary', 'Origin');
+  next();
+});
 
 // Gestion du cache pour toutes les réponses
 app.use((req, res, next) => {
