@@ -74,10 +74,11 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
           newPoints += SCORE_PER_RANK[taxon.rank] || 0;
         }
       }
-      
+
+      const roundPoints = currentScore + newPoints - score;
       setKnownTaxa(newKnownTaxa);
       setCurrentScore(prev => prev + newPoints);
-      
+
       const isSpeciesGuessed = newKnownTaxa.species?.id === bonne_reponse.id;
 
       // --- CORRECTION MAJEURE : Logique de fin de partie restructurée ---
@@ -86,7 +87,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
       if (isSpeciesGuessed) {
         const { points, bonus } = computeScore({
           mode: 'hard',
-          basePoints: newPoints,
+          basePoints: roundPoints,
           guessesRemaining: newGuessesCount,
           isCorrect: true
         });
@@ -100,7 +101,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
       if (newGuessesCount <= 0) {
         const { points, bonus } = computeScore({
           mode: 'hard',
-          basePoints: newPoints,
+          basePoints: roundPoints,
           guessesRemaining: newGuessesCount,
           isCorrect: false
         });
@@ -125,9 +126,10 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
       showFeedback("Une erreur est survenue lors de la vérification.");
       // Sécurité : si une erreur arrive au dernier essai, on termine la partie
       if (newGuessesCount <= 0) {
+        const totalPoints = currentScore - score;
         const { points, bonus } = computeScore({
           mode: 'hard',
-          basePoints: 0,
+          basePoints: totalPoints,
           guessesRemaining: newGuessesCount,
           isCorrect: false
         });
@@ -177,10 +179,11 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
         // D'abord, on vérifie si l'indice donne la victoire
         if (firstUnknownRank === 'species') {
           const speciesPoints = SCORE_PER_RANK.species || 0;
+          const roundPoints = currentScore + speciesPoints - score;
           setCurrentScore(prev => prev + speciesPoints);
           const { points, bonus } = computeScore({
             mode: 'hard',
-            basePoints: speciesPoints,
+            basePoints: roundPoints,
             guessesRemaining: newGuessesCount,
             isCorrect: true
           });
@@ -192,9 +195,10 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
 
         // NOUVEAU : Si ce n'est pas une victoire, on vérifie si l'indice a causé une défaite
         if (newGuessesCount <= 0) {
+          const roundPoints = currentScore - score;
           const { points, bonus } = computeScore({
             mode: 'hard',
-            basePoints: 0,
+            basePoints: roundPoints,
             guessesRemaining: newGuessesCount,
             isCorrect: false
           });
