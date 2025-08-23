@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
-import RoundSummaryModal from './RoundSummaryModal';
+import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
-import StreakBadge from './StreakBadge';
+import StreakBadge from './components/StreakBadge';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 6;
