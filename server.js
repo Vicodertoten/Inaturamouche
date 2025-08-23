@@ -16,6 +16,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://inaturamouche.netlify.app",
   "https://inaturaquizz.netlify.app",
+  "inaturaquizz.netlify.app",
 ];
 
 const corsOptions = {
