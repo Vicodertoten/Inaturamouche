@@ -6,45 +6,47 @@
   flex-direction: column;
 }
 
-/* Wrapper : MUST be relative + overflow hidden */
+/* Wrapper : base pour centrer la box, pas la cible de l'overlay */
 .image-viewer-container .image-wrapper {
   flex-grow: 1;
   width: 100%;
   background-color: var(--bg-color, #0b0b0b);
   border-radius: var(--border-radius, 12px);
   border: 2px solid var(--border-color, rgba(255,255,255,0.1));
-  overflow: hidden !important;            /* important */
-  position: relative !important;          /* base de l'overlay */
+  overflow: hidden !important;
+  position: relative !important;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  isolation: isolate;                      /* stacking context propre */
+  isolation: isolate;
   z-index: 0;
 }
 
-/* Boîte qui épouse exactement la photo */
+/* La boîte épouse la taille effective de la photo */
 .image-viewer-container .image-wrapper .image-box {
-  position: relative;
-  display: inline-block;   /* s'ajuste à la taille de l'image */
-  line-height: 0;          /* supprime l'espace inline sous l'image */
-  max-width: 100%;
+  position: relative !important;
+  display: inline-block !important; /* shrink-to-fit */
+  line-height: 0 !important;
+  max-width: 100% !important;       /* la photo ne dépasse pas le wrapper */
 }
 
-/* L'image ne doit pas couvrir les contrôles */
-.image-viewer-container .image-wrapper img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
+/* L'image ne doit pas étirer .image-box :
+   -> on retire width:100% et on met max-width:100% pour garder la taille intrinsèque,
+      limitée par le parent. */
+.image-viewer-container .image-wrapper .image-box > img {
+  max-width: 100% !important;
+  height: auto !important;
   user-select: none;
   -webkit-user-drag: none;
   position: relative;
-  z-index: 0 !important;                   /* sous l'overlay */
+  z-index: 0 !important;             /* sous l'overlay */
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  display: block;
+  display: block;                    /* pas d'espace inline */
+  /* object-fit n'a d'effet que si width & height sont imposés ; on le retire ici */
 }
 
-/* Overlay centré bas — désormais ANCRÉ à .image-box (donc à la photo) */
+/* Overlay centré en bas — ANCRÉ à .image-box (donc bien à la photo) */
 .image-viewer-container .image-wrapper .image-box .nav-overlay {
   position: absolute !important;
   left: 50% !important;
@@ -56,9 +58,9 @@
   padding: 6px 10px;
   background-color: rgba(0, 0, 0, 0.4);
   border-radius: 9999px;
-  z-index: 10 !important;                  /* au-dessus de l'image */
+  z-index: 10 !important;            /* au-dessus de l'image */
   backdrop-filter: blur(2px);
-  pointer-events: auto;                    /* cliquable */
+  pointer-events: auto;
 }
 
 /* Boutons de navigation */
