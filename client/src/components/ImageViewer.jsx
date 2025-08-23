@@ -15,10 +15,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
 
   // --- Références pour la gestion du déplacement ---
   const containerRef = useRef(null); // Référence au conteneur pour gérer le style du curseur
-  const isPanning = useRef(false);     // Vrai si l'utilisateur est en train de cliquer-glisser
-  const didPan = useRef(false);        // Vrai si un déplacement a eu lieu depuis le dernier clic
+  const isPanning = useRef(false); // Vrai si l'utilisateur est en train de cliquer-glisser
+  const didPan = useRef(false); // Vrai si un déplacement a eu lieu depuis le dernier clic
   const lastPos = useRef({ x: 0, y: 0 }); // Stocke la dernière position du pointeur
-  const pointers = useRef(new Map());  // Pointeurs actifs pour le pinch zoom
+  const pointers = useRef(new Map()); // Pointeurs actifs pour le pinch zoom
   const initialPinchDistance = useRef(null);
   const initialScale = useRef(1);
 
@@ -167,6 +167,20 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     }
   };
 
+  // Navigation clavier (accessibilité)
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      handleNext();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      handlePrev();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleImageClick();
+    }
+  };
+
   // Si pas d'images, on n'affiche rien.
   if (!imageUrls || imageUrls.length === 0) {
     return <div className="image-viewer-container">Chargement...</div>;
@@ -184,6 +198,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerLeave}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="group"
+        aria-roledescription="Visionneuse d'images"
+        aria-label={alt}
       >
         <img
           src={getSizedImageUrl(imageUrls[currentIndex], 'large')}
@@ -192,7 +211,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           alt={alt}
           loading="lazy"
           decoding={currentIndex === 0 ? 'async' : undefined}
-          fetchpriority={currentIndex === 0 ? 'high' : undefined}
+          fetchPriority={currentIndex === 0 ? 'high' : undefined}
           onLoad={handleImageLoad}
           style={{
             width: '100%',
@@ -203,15 +222,17 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                 ? 'none'
                 : 'transform 0.3s ease', // Désactive la transition pendant le déplacement ou le pinch
           }}
-          draggable="false"
+          draggable={false}
         />
         {!isLoaded && currentIndex !== 0 && (
           <div className="image-placeholder" />
         )}
         {imageUrls.length > 1 && (
-          <>
+          <div className="nav-overlay">
             <button
+              type="button"
               className="nav-button prev"
+              aria-label="Image précédente"
               onClick={(e) => {
                 e.stopPropagation();
                 handlePrev();
@@ -220,7 +241,9 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               ‹
             </button>
             <button
+              type="button"
               className="nav-button next"
+              aria-label="Image suivante"
               onClick={(e) => {
                 e.stopPropagation();
                 handleNext();
@@ -228,11 +251,14 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
             >
               ›
             </button>
-            <div className="dots">
+            <div className="dots" role="tablist" aria-label="Choix de l'image">
               {imageUrls.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
+                  aria-label={`Aller à l'image ${idx + 1}`}
                   className={`dot ${idx === currentIndex ? 'active' : ''}`}
+                  aria-selected={idx === currentIndex}
                   onClick={(e) => {
                     e.stopPropagation();
                     setCurrentIndex(idx);
@@ -241,7 +267,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                 />
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

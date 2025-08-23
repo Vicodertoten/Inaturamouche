@@ -28,6 +28,8 @@
   user-select: none; /* Empêche la sélection de l'image */
   -webkit-user-drag: none; /* Empêche le glisser-déposer natif */
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Animation douce */
+  position: relative;
+  z-index: 0;
 }
 
 /* Boutons de navigation placés au-dessus de l'image */
@@ -47,6 +49,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
 }
 
 .nav-button.prev {
@@ -70,6 +73,7 @@
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
+  z-index: 1;
 }
 
 .dot {
