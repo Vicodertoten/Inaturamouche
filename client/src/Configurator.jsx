@@ -1,8 +1,9 @@
 import React from 'react';
 import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
+import ErrorModal from './components/ErrorModal';
 
-function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, activePackId, setActivePackId, customFilters, dispatch }) {
+function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -14,20 +15,27 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
   return (
     <div>
       {error && (
-        <p className="error-message" aria-live="assertive">Erreur : {error}</p>
+        <ErrorModal message={error} onClose={() => setError(null)} />
       )}
       
       <div className="pack-selector">
+
         <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
         <div
           className="tooltip"
           data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
         >
+
+        {/* --- MODIFICATION ICI --- */}
+        {/* On remplace les boutons par un menu déroulant */}
+          <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
+
           <select
             id="pack-select"
             value={activePackId}
             onChange={handlePackChange}
             className="pack-select-dropdown"
+
           >
             {PACKS.map(pack => (
               <option key={pack.id} value={pack.id}>
@@ -36,6 +44,16 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
             ))}
           </select>
         </div>
+
+            title="Sélectionnez un pack thématique ou personnalisez votre partie"
+          >
+          {PACKS.map(pack => (
+            <option key={pack.id} value={pack.id}>
+              {pack.title}
+            </option>
+          ))}
+        </select>
+
       </div>
 
       <div className="pack-details">

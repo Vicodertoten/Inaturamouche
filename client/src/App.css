@@ -143,13 +143,13 @@ button:focus-visible {
 /* --- AUTRES STYLES (inchangés ou mineurs) --- */
 .game-screen .card { flex-grow: 1; }
 .game-header { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; flex-shrink: 0; }
+.score-container { display: flex; align-items: center; gap: 0.5rem; }
 .score { color: var(--accent-color); font-weight: 700; }
 .game-main { display: flex; flex-direction: column; gap: 1rem; width: 100%; flex-grow: 1; }
 .image-section { display: flex; flex-direction: column; gap: 0.75rem; }
 .choices { width: 100%; display: grid; grid-template-columns: 1fr; gap: 0.75rem; flex-shrink: 0; margin-top: auto; }
   .inat-link { display: inline-flex; align-self: center; gap: 8px; padding: var(--space-2) calc(var(--space-2) + var(--space-1)); background-color: rgba(0, 0, 0, 0.2); border-radius: 8px; color: var(--text-color-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
 .inat-link:hover { background-color: var(--primary-color); color: var(--text-color); }
-  .error-message { color: #fff; background-color: var(--error-color); padding: var(--space-3); border-radius: var(--border-radius); width: 100%; max-width: 800px; box-sizing: border-box; font-weight: 500; text-align: center; margin-bottom: var(--space-3); }
 .end-screen .card { text-align: center; }
 .end-screen .species-list {
   list-style: none;
@@ -213,38 +213,6 @@ button:focus-visible {
   background-color: var(--bg-color);
 }
 
-  .achievement-toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: var(--accent-color);
-      color: var(--bg-color);
-      padding: var(--space-3) var(--space-4);
-      border-radius: var(--border-radius);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-      z-index: 2000;
-      text-align: center;
-      font-weight: 600;
-      animation: toast-in 0.5s ease-out forwards;
-  }
-
-  .achievement-toast p {
-      margin: var(--space-1) 0 0 0;
-      font-size: 0.9rem;
-      font-weight: 500;
-  }
-
-@keyframes toast-in {
-    from {
-        bottom: -100px;
-        opacity: 0;
-    }
-    to {
-        bottom: 20px;
-        opacity: 1;
-    }
-}
 
   .hint-button-easy {
     padding: 6px calc(var(--space-2) + var(--space-1));
