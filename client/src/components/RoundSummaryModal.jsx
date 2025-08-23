@@ -35,6 +35,8 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
 
   const { bonne_reponse, inaturalist_url } = question;
 
+  const isWin = status === 'win';
+
   const commonName = bonne_reponse.common_name;
 
   const scientificName = bonne_reponse.name;
