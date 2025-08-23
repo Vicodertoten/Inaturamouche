@@ -45,8 +45,8 @@ const RoundSummaryModal = ({ question, scoreInfo, onNext }) => {
   const displayCommonName = commonName && commonName !== scientificName ? commonName : null;
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-content summary-modal" role="dialog" aria-modal="true">
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal-content summary-modal">
         <div className="correct-answer-section">
           <p>La réponse était :</p>
           <img
