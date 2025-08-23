@@ -112,14 +112,17 @@
   .hard-mode-stats {
     width: 100%;
     max-width: 400px;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--accent-color);
     padding: var(--space-3);
-  background-color: rgba(0,0,0,0.2);
-  border-radius: 8px;
-}
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+  }
 
 .hard-mode-actions {
   display: grid;

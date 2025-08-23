@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback, useReducer, lazy, Suspense } f
 import PACKS from '../../shared/packs.js';
 import { initialCustomFilters, customFilterReducer } from './state/filterReducer';
 import { loadProfileWithDefaults, saveProfile } from './services/PlayerProfile';
-import { checkNewAchievements, ACHIEVEMENTS } from './achievements';
+import { checkNewAchievements } from './achievements';
 import { fetchQuizQuestion } from './services/api'; // NOUVEL IMPORT
 
 
@@ -18,7 +18,7 @@ const EndScreen = lazy(() => import('./components/EndScreen'));
 import Spinner from './components/Spinner';
 import HelpModal from './components/HelpModal';
 import ProfileModal from './components/ProfileModal';
-import StreakBadge from './components/StreakBadge';
+import AchievementModal from './components/AchievementModal';
 import titleImage from './assets/inaturamouche-title.png';
 
 // --- STYLES ---
@@ -304,10 +304,10 @@ const handleProfileReset = () => {
       {isHelpVisible && <HelpModal onClose={handleCloseHelp} />}
       
       {newlyUnlocked.length > 0 && (
-        <div className="achievement-toast">
-          🏆 Succès Débloqué !
-          <p>{ACHIEVEMENTS[newlyUnlocked[0]].title}</p>
-        </div>
+        <AchievementModal
+          achievementId={newlyUnlocked[0]}
+          onClose={() => setNewlyUnlocked([])}
+        />
       )}
       <nav className="main-nav">
           <button onClick={() => {
@@ -316,7 +316,6 @@ const handleProfileReset = () => {
             Mon Profil
           </button>
       </nav>
-      {isGameActive && <StreakBadge streak={currentStreak} />}
       <header className="app-header">
        <img
           src={titleImage}
@@ -377,7 +376,9 @@ const handleProfileReset = () => {
                         onClick={() => setGameMode('easy')}
                         className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
                         data-tooltip="Mode facile : quatre propositions et indice facultatif"
+
                         onPointerLeave={e => e.currentTarget.blur()}
+                        title="Mode facile : quatre propositions et indice facultatif"
                       >
                         Facile
                       </button>
@@ -386,6 +387,7 @@ const handleProfileReset = () => {
                         className={`tooltip ${gameMode === 'hard' ? 'active' : ''}`}
                         data-tooltip="Mode difficile : devinez la taxonomie avec essais limités"
                         onPointerLeave={e => e.currentTarget.blur()}
+                        title="Mode difficile : devinez la taxonomie avec essais limités"
                       >
                         Difficile
                       </button>
@@ -393,8 +395,9 @@ const handleProfileReset = () => {
                 <Configurator
                   onStartGame={() => startGame(false)}
                   onStartReview={() => startGame(true)}
-                  hasMissedSpecies={(playerProfile?.stats?.missedSpecies?.length || 0) > 0}
+                  canStartReview={(playerProfile?.stats?.missedSpecies?.length || 0) >= MAX_QUESTIONS_PER_GAME}
                   error={error}
+                  setError={setError}
                   activePackId={activePackId}
                   setActivePackId={setActivePackId}
                   customFilters={customFilters}

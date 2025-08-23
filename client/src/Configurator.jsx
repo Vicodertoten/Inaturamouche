@@ -1,8 +1,9 @@
 import React from 'react';
 import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
+import ErrorModal from './components/ErrorModal';
 
-function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, activePackId, setActivePackId, customFilters, dispatch }) {
+function Configurator({ onStartGame, onStartReview, canStartReview, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -14,7 +15,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
   return (
     <div>
       {error && (
-        <p className="error-message" aria-live="assertive">Erreur : {error}</p>
+        <ErrorModal message={error} onClose={() => setError(null)} />
       )}
       
       <div className="pack-selector">
@@ -23,6 +24,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
           className="tooltip"
           data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
           onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
+          title="Sélectionnez un pack thématique ou personnalisez votre partie"
         >
           <select
             id="pack-select"
@@ -30,7 +32,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
             onChange={handlePackChange}
             className="pack-select-dropdown"
           >
-            {PACKS.map(pack => (
+            {PACKS.map((pack) => (
               <option key={pack.id} value={pack.id}>
                 {pack.title}
               </option>
@@ -51,7 +53,7 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
       </div>
 
       <button onClick={onStartGame} className="start-button">Lancer la partie !</button>
-      {hasMissedSpecies && (
+      {canStartReview && (
         <button onClick={onStartReview} className="start-button">Réviser mes erreurs</button>
       )}
     </div>
