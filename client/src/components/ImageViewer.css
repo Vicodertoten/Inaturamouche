@@ -32,24 +32,14 @@
   z-index: 0;
 }
 
-/* Overlay pour les contrôles de navigation */
-.nav-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  pointer-events: none; /* Laisse passer les interactions sauf sur les boutons */
-  z-index: 1;
-}
-
 /* Boutons de navigation placés au-dessus de l'image */
 .nav-button {
-  pointer-events: auto;
-  background-color: rgba(255, 255, 255, 0.3);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
   border: none;
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
@@ -59,6 +49,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
+}
+
+.nav-button.prev {
+  left: 10px;
+}
+
+.nav-button.next {
+  right: 10px;
 }
 
 .nav-button:disabled {
@@ -74,14 +73,14 @@
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
-  pointer-events: auto;
+  z-index: 1;
 }
 
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.5);
   border: none;
   cursor: pointer;
   padding: 0;
