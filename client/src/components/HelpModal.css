@@ -79,3 +79,17 @@
   border: none;
   color: #fff;
 }
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: var(--space-3);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 1.25rem;
+  }
+  .help-section h4 {
+    font-size: 1rem;
+  }
+}
