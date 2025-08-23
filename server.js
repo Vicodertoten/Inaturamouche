@@ -11,6 +11,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(cors(corsOptions));
+// ⚠️ Pas de route OPTIONS catch-all ici (Express 5 n’aime pas les wildcards mal nommés)
+// Le middleware cors() gère déjà les preflights pour toutes les routes.
+
 /* -------------------- CORS en premier -------------------- */
 const allowedOrigins = [
   "http://localhost:5173",
@@ -31,9 +35,6 @@ const corsOptions = {
   exposedHeaders: ["Content-Length", "Content-Type"],
 };
 
-app.use(cors(corsOptions));
-// ⚠️ Pas de route OPTIONS catch-all ici (Express 5 n’aime pas les wildcards mal nommés)
-// Le middleware cors() gère déjà les preflights pour toutes les routes.
 
 // Aide au cache des proxy/CDN
 app.use((req, res, next) => {
