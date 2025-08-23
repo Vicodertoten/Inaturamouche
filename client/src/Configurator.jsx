@@ -20,8 +20,14 @@ function Configurator({ onStartGame, onStartReview, hasMissedSpecies, error, act
       <div className="pack-selector">
         {/* --- MODIFICATION ICI --- */}
         {/* On remplace les boutons par un menu déroulant */}
-        <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
-        <select id="pack-select" value={activePackId} onChange={handlePackChange} className="pack-select-dropdown">
+          <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
+          <select
+            id="pack-select"
+            value={activePackId}
+            onChange={handlePackChange}
+            className="pack-select-dropdown tooltip"
+            data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
+          >
           {PACKS.map(pack => (
             <option key={pack.id} value={pack.id}>
               {pack.title}
