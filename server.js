@@ -1,19 +1,13 @@
-// server.js — Inaturamouche (durci + observabilité + validation)
+// server.js — Inaturamouche (optimisé + observabilité)
 // - Helmet avec CSP + Referrer-Policy
 // - Pino logs HTTP
 // - Rate-limit global + spécifique quiz (~1 req/s)
 // - Validation Zod (quiz, autocomplete, species_counts)
 // - Endpoint /api/observations/species_counts
-// - Healthcheck /healthz (warm-up Render)
+// - Healthcheck /healthz
 //
-// ABCD + améliorations :
-// A) Cooldown par observation (FIFO/Set)
-// B) Sélection aléatoire d’une observation dans un taxon (évite obs récentes)
-// C) Tirage SANS REMISE corrigé (ne consomme pas les inéligibles) + fallback relax pondéré ancienneté
-// D) Cooldown taxon CIBLE uniquement (fenêtre dynamique)
-//
-// Leurres “parfaits” : buckets near/mid/far via profondeur LCA + compléments robustes
-// MODE FACILE corrigé : labels strictement = getTaxonName, + ids et index correct
+// OPTI : on ne fetch les détails (ancestors/wiki) que pour le TAXON CIBLE
+// OBS : headers Server-Timing + X-Timing (JSON) + logs Pino par étape
 
 import express from "express";
 import cors from "cors";
@@ -24,13 +18,14 @@ import PACKS from "./shared/packs.js";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import { z } from "zod";
+import { performance } from "node:perf_hooks";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-/* -------------------- PROXY (Render/Cloudflare) -------------------- */
+/* -------------------- PROXY -------------------- */
 app.set("trust proxy", true);
 
 /* -------------------- CORS -------------------- */
@@ -57,7 +52,12 @@ const corsOptions = {
     "X-Selection-Mode",
     "X-Lures-Relaxed",
     "X-Lure-Buckets",
-    "X-Correct-Id"
+    "X-Correct-Id",
+    "X-Pool-Pages",
+    "X-Pool-Obs",
+    "X-Pool-Taxa",
+    "Server-Timing",
+    "X-Timing",
   ],
 };
 
@@ -424,7 +424,7 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
 
   const scored = candidates.map((tid) => {
     const list = cacheEntry.byTaxon.get(String(tid)) || [];
-    const rep = list[0] || null; // FIX: suppression de la ligne "theRep = ..." qui cassait
+    const rep = list[0] || null;
     const anc = Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : [];
     const depth = lcaDepth(targetAnc, anc);
     const closeness = depth / targetDepth; // 0..1
@@ -522,6 +522,33 @@ function validate(schema) {
   };
 }
 
+/* -------------------- Helper observabilité -------------------- */
+function setTimingHeaders(res, marks, extra = {}) {
+  const ms = (a, b) => Math.max(0, Math.round((marks[b] - marks[a]) || 0));
+  const total = Math.max(0, Math.round((marks.end - marks.start) || 0));
+  const timing = {
+    fetchObsMs: ms("start", "fetchedObs"),
+    buildIndexMs: ms("fetchedObs", "builtIndex"),
+    pickTargetMs: ms("builtIndex", "pickedTarget"),
+    buildLuresMs: ms("pickedTarget", "builtLures"),
+    taxaDetailsMs: ms("builtLures", "taxaFetched"),
+    labelsMs: ms("taxaFetched", "labelsMade"),
+    totalMs: total,
+    ...extra,
+  };
+  res.set("X-Timing", JSON.stringify(timing));
+  const serverTiming =
+    `fetchObs;dur=${timing.fetchObsMs}, ` +
+    `buildIndex;dur=${timing.buildIndexMs}, ` +
+    `pickTarget;dur=${timing.pickTargetMs}, ` +
+    `buildLures;dur=${timing.buildLuresMs}, ` +
+    `taxa;dur=${timing.taxaDetailsMs}, ` +
+    `labels;dur=${timing.labelsMs}, ` +
+    `total;dur=${timing.totalMs}`;
+  res.set("Server-Timing", serverTiming);
+  return timing;
+}
+
 /* -------------------- Routes -------------------- */
 
 app.get("/healthz", (req, res) => res.json({ ok: true }));
@@ -532,7 +559,10 @@ app.get(
   quizLimiter,
   validate(quizSchema),
   async (req, res) => {
+    const marks = {};
     try {
+      marks.start = performance.now();
+
       const {
         pack_id,
         taxon_ids,
@@ -577,6 +607,10 @@ app.get(
       const cacheKey = buildCacheKey(params);
       let cacheEntry = questionCache.get(cacheKey);
 
+      let pagesFetched = 0;
+      let poolObs = 0;
+      let poolTaxa = 0;
+
       // (Re)chargement du pool
       if (
         !cacheEntry ||
@@ -593,6 +627,7 @@ app.get(
           const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page });
           const batch = Array.isArray(resp.results) ? resp.results : [];
           results = results.concat(batch);
+          pagesFetched++;
 
           distinctTaxaSet = new Set(
             results
@@ -606,6 +641,14 @@ app.get(
         }
 
         if (results.length === 0) {
+          marks.fetchedObs = performance.now();
+          marks.builtIndex = marks.fetchedObs;
+          marks.pickedTarget = marks.builtIndex;
+          marks.builtLures = marks.pickedTarget;
+          marks.taxaFetched = marks.builtLures;
+          marks.labelsMade = marks.taxaFetched;
+          marks.end = performance.now();
+          setTimingHeaders(res, marks, { pagesFetched: 0, poolObs: 0, poolTaxa: 0 });
           return res
             .status(404)
             .json({ error: "Aucune observation trouvée avec vos critères. Élargissez la zone ou la période." });
@@ -623,6 +666,14 @@ app.get(
 
         const taxonList = Array.from(byTaxon.keys());
         if (taxonList.length < QUIZ_CHOICES) {
+          marks.fetchedObs = performance.now();
+          marks.builtIndex = marks.fetchedObs;
+          marks.pickedTarget = marks.builtIndex;
+          marks.builtLures = marks.pickedTarget;
+          marks.taxaFetched = marks.builtLures;
+          marks.labelsMade = marks.taxaFetched;
+          marks.end = performance.now();
+          setTimingHeaders(res, marks, { pagesFetched, poolObs: results.length, poolTaxa: taxonList.length });
           return res
             .status(404)
             .json({ error: "Pas assez d'espèces différentes pour créer un quiz avec ces critères." });
@@ -643,6 +694,18 @@ app.get(
           recentObsSet: new Set(),
         };
         setWithLimit(questionCache, cacheKey, cacheEntry);
+
+        poolObs = results.length;
+        poolTaxa = taxonList.length;
+        marks.fetchedObs = performance.now();
+        marks.builtIndex = marks.fetchedObs; // on a construit les index pendant la boucle
+      } else {
+        // Pool déjà en cache
+        pagesFetched = 0;
+        poolObs = Array.from(cacheEntry.byTaxon.values()).reduce((n, arr) => n + arr.length, 0);
+        poolTaxa = cacheEntry.taxonList.length;
+        marks.fetchedObs = performance.now();
+        marks.builtIndex = marks.fetchedObs;
       }
 
       // CIBLE
@@ -659,32 +722,60 @@ app.get(
         );
       }
       if (!targetTaxonId) {
+        marks.pickedTarget = performance.now();
+        marks.builtLures = marks.pickedTarget;
+        marks.taxaFetched = marks.builtLures;
+        marks.labelsMade = marks.taxaFetched;
+        marks.end = performance.now();
+        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
       }
 
       const targetObservation = pickObservationForTaxon(cacheEntry, targetTaxonId);
       if (!targetObservation) {
+        marks.pickedTarget = performance.now();
+        marks.builtLures = marks.pickedTarget;
+        marks.taxaFetched = marks.builtLures;
+        marks.labelsMade = marks.taxaFetched;
+        marks.end = performance.now();
+        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(503).json({ error: "Aucune observation exploitable trouvée pour le taxon cible." });
       }
-
       rememberObservation(cacheEntry, targetObservation.id);
+      marks.pickedTarget = performance.now();
 
-      // LEURRES par buckets near/mid/far
+      // LEURRES
       const { lures, buckets } = buildLures(cacheEntry, targetTaxonId, targetObservation, LURE_COUNT);
       if (!lures || lures.length < LURE_COUNT) {
+        marks.builtLures = performance.now();
+        marks.taxaFetched = marks.builtLures;
+        marks.labelsMade = marks.taxaFetched;
+        marks.end = performance.now();
+        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(404).json({ error: "Pas assez d'espèces différentes pour composer les choix." });
       }
+      marks.builtLures = performance.now();
 
-      // Détails localisés
-      const allTaxonIds = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
-      const detailsArr = await getFullTaxaDetails(allTaxonIds, locale);
-      const details = new Map(detailsArr.map((t) => [String(t.id), t]));
-      const correct = details.get(String(targetTaxonId));
+      // DÉTAILS localisés — OPTI : on ne fetch QUE pour la CIBLE
+      const [correctDetails] = await getFullTaxaDetails([String(targetTaxonId)], locale);
+      const correct = correctDetails || (targetObservation?.taxon ?? null);
       if (!correct) {
+        marks.taxaFetched = performance.now();
+        marks.labelsMade = marks.taxaFetched;
+        marks.end = performance.now();
+        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(502).json({ error: `Impossible de récupérer les détails du taxon ${targetTaxonId}` });
       }
 
-      // --------- CHOIX "RICHE" (non-facile) : inchangé ---------
+      // Construire une map “détails” compatible avec makeChoiceLabels
+      const details = new Map();
+      details.set(String(targetTaxonId), correct); // cible = détails riches
+      for (const l of lures) {
+        details.set(String(l.taxonId), l.obs?.taxon || {}); // leurres = obs.taxon déjà présent
+      }
+      marks.taxaFetched = performance.now();
+
+      // CHOIX "RICHE"
       const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
       const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
       const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
@@ -692,8 +783,7 @@ app.get(
       const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
       const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
 
-      // --------- MODE FACILE (corrigé) ---------
-      // Labels strictement = getTaxonName (identiques à bonne_reponse.common_name)
+      // MODE FACILE
       const facilePairs = choiceIdsInOrder.map((id) => ({
         taxon_id: id,
         label: getTaxonName(details.get(String(id))),
@@ -704,6 +794,7 @@ app.get(
       const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
         (id) => id === String(targetTaxonId)
       );
+      marks.labelsMade = performance.now();
 
       // Images
       const image_urls = (Array.isArray(targetObservation.photos) ? targetObservation.photos : [])
@@ -721,6 +812,27 @@ app.get(
       res.set("X-Lures-Relaxed", "0");
       res.set("X-Lure-Buckets", `${buckets.near}|${buckets.mid}|${buckets.far}`);
       res.set("X-Correct-Id", String(targetTaxonId));
+      res.set("X-Pool-Pages", String(pagesFetched));
+      res.set("X-Pool-Obs", String(poolObs));
+      res.set("X-Pool-Taxa", String(poolTaxa));
+
+      marks.end = performance.now();
+      const timing = setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
+
+      // Log structuré des timings
+      req.log?.info(
+        {
+          cacheKey,
+          selectionMode,
+          pagesFetched,
+          poolObs,
+          poolTaxa,
+          timings: timing,
+          targetTaxonId: String(targetTaxonId),
+          targetObsId: String(targetObservation.id),
+        },
+        "Quiz timings"
+      );
 
       // Réponse
       res.json({
@@ -729,7 +841,7 @@ app.get(
           id: correct.id,
           name: correct.name,
           common_name: getTaxonName(correct),
-          ancestors: correct.ancestors,
+          ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
           wikipedia_url: correct.wikipedia_url,
         },
 
@@ -738,7 +850,7 @@ app.get(
         correct_choice_index,
         correct_label,
 
-        // --- MODE FACILE (corrigé) ---
+        // --- MODE FACILE ---
         choix_mode_facile,                   // [label]
         choix_mode_facile_ids,              // [taxon_id] aligné aux labels
         choix_mode_facile_correct_index,    // index du bon choix
@@ -746,8 +858,23 @@ app.get(
         inaturalist_url: targetObservation.uri,
       });
     } catch (err) {
+      try {
+        // tenter d'envoyer des timings même en cas d'erreur tardive
+        if (!res.headersSent) {
+          const now = performance.now();
+          const safe = (k, def) => (typeof marks[k] === "number" ? marks[k] : def);
+          marks.fetchedObs = safe("fetchedObs", now);
+          marks.builtIndex = safe("builtIndex", marks.fetchedObs);
+          marks.pickedTarget = safe("pickedTarget", marks.builtIndex);
+          marks.builtLures = safe("builtLures", marks.pickedTarget);
+          marks.taxaFetched = safe("taxaFetched", marks.builtLures);
+          marks.labelsMade = safe("labelsMade", marks.taxaFetched);
+          marks.end = now;
+          setTimingHeaders(res, marks);
+        }
+      } catch (_) {}
       console.error("Unhandled route error:", err);
-      res.status(500).json({ error: "Erreur interne du serveur" });
+      if (!res.headersSent) res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }
 );
