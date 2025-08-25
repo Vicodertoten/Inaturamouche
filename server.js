@@ -7,15 +7,17 @@
 // - Endpoint /api/observations/species_counts
 // - Healthcheck /healthz (warm-up Render)
 //
-// Patch ABCD appliqué :
+// Patch ABCD appliqué et améliorations :
 // A) Cooldown par observation (file/Set des dernières obs utilisées)
 // B) Sélection aléatoire d’une observation au sein d’un taxon (en excluant les obs récentes si possible)
-// C) Tirage SANS REMISE pour la cible via une liste de taxons pré-mélangée + curseur par cycle de cache
-// D) Cooldown taxon relevé (>= 50) — ici réglé à 60
+// C) Tirage SANS REMISE corrigé (ne consomme pas les inéligibles) + fallback relax pondéré par ancienneté
+// D) Double cooldown taxon (cible vs leurres) avec fenêtre dynamique
 //
-// + Ajouts demandés :
-// - 2e passage "relaxed" pour compléter les leurres en ignorant recentSet/cooldown
-// - Extension du pool au refresh (jusqu’à 3 pages max) si trop peu d’espèces distinctes
+// + Ajouts :
+// - 2e passage "relaxed" pour compléter les leurres
+// - Extension du pool au refresh (jusqu’à 3 pages max)
+// - Leurre scoring via profondeur du LCA
+// - Labels de choix uniques
 
 import express from "express";
 import cors from "cors";
@@ -33,7 +35,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 /* -------------------- PROXY (Render/Cloudflare) -------------------- */
-// IMPORTANT: nécessaire pour que express-rate-limit identifie correctement les IP
 app.set("trust proxy", true);
 
 /* -------------------- CORS -------------------- */
@@ -51,7 +52,7 @@ const corsOptions = {
   credentials: false,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-  exposedHeaders: ["Content-Length", "Content-Type", "X-Quiz-Id", "X-Cache-Key", "X-Quiz-Obs-Id"],
+  exposedHeaders: ["Content-Length", "Content-Type", "X-Quiz-Id", "X-Cache-Key", "X-Quiz-Obs-Id", "X-Selection-Mode", "X-Lures-Relaxed"],
 };
 
 app.use(cors(corsOptions));
@@ -85,8 +86,8 @@ app.use(
     }
   })
 );
-app.disable("x-powered-by"); // durcissement
-app.set("etag", false);       // pas d'ETag global (on gère le cache ci-dessous)
+app.disable("x-powered-by");
+app.set("etag", false);
 
 app.use(compression());
 app.use(express.json({ limit: "1mb" }));
@@ -100,7 +101,6 @@ app.use(
 );
 
 /* -------------------- Rate-limit -------------------- */
-// Global pour /api : 300 req / 15 min / IP
 app.use(
   "/api",
   rateLimit({
@@ -111,7 +111,6 @@ app.use(
   })
 );
 
-// Spécifique quiz : ~1 req/s (60/min)
 const quizLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 60,
@@ -120,7 +119,6 @@ const quizLimiter = rateLimit({
 });
 
 /* -------------------- Politique de cache -------------------- */
-// IMPORTANT : pas de cache sur l'API (sinon "toujours la même question")
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -135,43 +133,50 @@ app.use((req, res, next) => {
 
 /* -------------------- Constantes & caches -------------------- */
 const REQUEST_TIMEOUT_MS = 8000;
-const MAX_RETRIES = 2; // total 3 tentatives
+const MAX_RETRIES = 2;
 const QUESTION_CACHE_TTL = 1000 * 60 * 5; // 5 min
 const AUTOCOMPLETE_CACHE_TTL = 1000 * 60 * 10; // 10 min
 const MAX_CACHE_ENTRIES = 50;
 const QUIZ_CHOICES = 4;
 const LURE_COUNT = QUIZ_CHOICES - 1;
 
-// Anti-répétitions (D) : on vise ≥ 50 — on met 60 par défaut
-const COOL_DOWN_N = 60;        // ne pas revoir une ESPÈCE dans les 60 prochaines questions
-const COOL_DOWN_MS = null;     // ex. 7 * 24 * 60 * 60 * 1000 ; laisser null si non utilisé
+// Double cooldown (en nombre de questions)
+const COOLDOWN_TARGET_N = 60; // cible
+const COOLDOWN_LURE_N = 24;   // leurres (plus court pour éviter la saturation)
 
-// (A) Anti-répétition par OBSERVATION (évite de revoir la même photo trop vite)
-const RECENT_OBS_MAX = 200; // taille mémoire des dernières observations utilisées (cible)
+// Variante TTL (ms) si souhaitée (null = désactivé)
+const COOLDOWN_TARGET_MS = null;
+const COOLDOWN_LURE_MS = null;
 
-// Extension du pool (refresh)
-const MAX_OBS_PAGES = 3;              // jusqu'à 3 pages max par refresh
-const DISTINCT_TAXA_TARGET = 120;     // seuil d'espèces distinctes pour arrêter tôt
+// Anti-répétition par OBSERVATION (pour la cible)
+const RECENT_OBS_MAX = 200;
+
+// Extension du pool
+const MAX_OBS_PAGES = 3;
+const DISTINCT_TAXA_TARGET = 120;
 
 const questionCache = new Map();
 /*
   key = buildCacheKey(params iNat)
   value = {
     timestamp: number,
-    // (C) Pool structuré par taxon pour tirage sans remise
-    byTaxon: Map<taxonId, Observation[]>, // observations (avec photos) groupées par taxon
-    taxonList: string[],                  // tous les taxonIds du pool
-    shuffledTaxonIds: string[],           // ordre pré-mélangé pour le cycle courant
-    cursor: number,                       // curseur "sans remise" pour la CIBLE
 
-    // (D) Cooldown d'espèces
-    recentTaxa: string[],                 // queue des derniers taxons vus (si COOL_DOWN_N)
-    recentSet: Set<string>,
-    cooldown: Map<string, number> | null, // taxonId -> expiresAt (si COOL_DOWN_MS)
+    byTaxon: Map<taxonId, Observation[]>,
+    taxonList: string[],
+    shuffledTaxonIds: string[],
+    cursor: number,
 
-    // (A) Cooldown d'observations (pour la CIBLE affichée)
-    recentObsQueue: string[],             // FIFO des dernières observation_id vues
-    recentObsSet: Set<string>,            // membership O(1)
+    // Cooldown taxon (séparé cible/leurres)
+    recentTargetTaxa: string[],  // FIFO
+    recentTargetSet: Set<string>,
+    recentLureTaxa: string[],    // FIFO
+    recentLureSet: Set<string>,
+    cooldownTarget: Map<string, number> | null, // TTL si *_MS utilisés
+    cooldownLure: Map<string, number> | null,
+
+    // Mémoire d'observations (cible)
+    recentObsQueue: string[],
+    recentObsSet: Set<string>,
   }
 */
 const autocompleteCache = new Map();
@@ -207,6 +212,12 @@ function isValidISODate(s) {
   return typeof s === "string" && !Number.isNaN(Date.parse(s));
 }
 
+// Cooldown dynamique : borne par la taille du pool
+function effectiveCooldownN(baseN, taxonListLen) {
+  const cap = Math.max(0, taxonListLen - QUIZ_CHOICES);
+  return Math.max(0, Math.min(baseN, cap));
+}
+
 /* ---- fetch JSON (timeout + retry 429/5xx + abort) ---- */
 async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, retries = MAX_RETRIES } = {}) {
   const urlObj = new URL(url);
@@ -224,7 +235,6 @@ async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, ret
         signal: controller.signal,
         headers: {
           Accept: "application/json",
-          // iNaturalist apprécie un User-Agent explicite
           "User-Agent": "Inaturamouche/1.0 (+contact: you@example.com)",
         }
       });
@@ -259,7 +269,6 @@ async function getFullTaxaDetails(taxonIds, locale = "fr") {
     const localizedResponse = await fetchJSON(path, { locale });
     const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
 
-    // Fallback si champs manquants
     if (!locale.startsWith("en")) {
       const defaultResponse = await fetchJSON(path);
       const defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
@@ -283,7 +292,7 @@ function getTaxonName(t) {
 
 /* -------------------- Helpers ABCD -------------------- */
 
-// (A) Mémoriser une observation vue (cible)
+// Observations vues (cible)
 function rememberObservation(cacheEntry, obsId) {
   const id = String(obsId);
   if (cacheEntry.recentObsSet.has(id)) return;
@@ -295,34 +304,101 @@ function rememberObservation(cacheEntry, obsId) {
   }
 }
 
-// (B) Choisir une observation aléatoire dans un taxon, en excluant si possible les obs récentes
+// Tirage d'une observation aléatoire dans un taxon (en excluant si possible les obs récentes)
 function pickObservationForTaxon(cacheEntry, taxonId) {
   const list = cacheEntry.byTaxon.get(String(taxonId)) || [];
   if (list.length === 0) return null;
+
+  // Heuristique simple : préférer les obs non vues récemment ; sinon fallback
   const pool = list.filter(o => !cacheEntry.recentObsSet.has(String(o.id)));
   const arr = pool.length ? pool : list;
+
+  // Tirage uniforme (tu peux pondérer par identifications/faves si tu veux affiner)
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// (C) Prochain taxon éligible selon le curseur "sans remise"
+// LCA depth (profondeur du dernier ancêtre commun) sur ancestor_ids ordonnés
+function lcaDepth(ancA = [], ancB = []) {
+  const len = Math.min(ancA.length, ancB.length);
+  let i = 0;
+  while (i < len && ancA[i] === ancB[i]) i++;
+  return i; // plus grand = plus proche
+}
+
+// Gestion du cooldown (MS ou N)
+function purgeTTLMap(ttlMap, now) {
+  if (!ttlMap) return;
+  for (const [k, exp] of ttlMap.entries()) {
+    if (exp <= now) ttlMap.delete(k);
+  }
+}
+function isBlockedByCooldown(cacheEntry, taxonId, now) {
+  const id = String(taxonId);
+  // TTL maps
+  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) purgeTTLMap(cacheEntry.cooldownTarget, now);
+  if (COOLDOWN_LURE_MS && cacheEntry.cooldownLure) purgeTTLMap(cacheEntry.cooldownLure, now);
+
+  const ttlBlock =
+    (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget?.has(id)) ||
+    (COOLDOWN_LURE_MS && cacheEntry.cooldownLure?.has(id));
+
+  const listBlock =
+    cacheEntry.recentTargetSet.has(id) ||
+    cacheEntry.recentLureSet.has(id);
+
+  return Boolean(ttlBlock || listBlock);
+}
+
+// Ajout au cooldown (cible vs leurre)
+function pushCooldown(cacheEntry, taxonIds, now, { as = "target" } = {}) {
+  const ids = taxonIds.map(String);
+  if (as === "target") {
+    if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
+      const exp = now + COOLDOWN_TARGET_MS;
+      for (const id of ids) cacheEntry.cooldownTarget.set(id, exp);
+    } else {
+      for (const id of ids) {
+        if (!cacheEntry.recentTargetSet.has(id)) {
+          cacheEntry.recentTargetTaxa.unshift(id);
+          cacheEntry.recentTargetSet.add(id);
+        }
+      }
+      const limit = effectiveCooldownN(COOLDOWN_TARGET_N, cacheEntry.taxonList.length);
+      while (cacheEntry.recentTargetTaxa.length > limit) {
+        const removed = cacheEntry.recentTargetTaxa.pop();
+        cacheEntry.recentTargetSet.delete(removed);
+      }
+    }
+  } else {
+    if (COOLDOWN_LURE_MS && cacheEntry.cooldownLure) {
+      const exp = now + COOLDOWN_LURE_MS;
+      for (const id of ids) cacheEntry.cooldownLure.set(id, exp);
+    } else {
+      for (const id of ids) {
+        if (!cacheEntry.recentLureSet.has(id)) {
+          cacheEntry.recentLureTaxa.unshift(id);
+          cacheEntry.recentLureSet.add(id);
+        }
+      }
+      const limit = effectiveCooldownN(COOLDOWN_LURE_N, cacheEntry.taxonList.length);
+      while (cacheEntry.recentLureTaxa.length > limit) {
+        const removed = cacheEntry.recentLureTaxa.pop();
+        cacheEntry.recentLureSet.delete(removed);
+      }
+    }
+  }
+}
+
+// Sans-remise : prochain taxon éligible (ne consomme pas le curseur si inéligible)
 function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
   const n = cacheEntry.shuffledTaxonIds.length;
   if (n === 0) return null;
 
-  // petite fonction utilitaire de test d'éligibilité
   const isEligible = (tid) => {
     const key = String(tid);
     if (excludeSet.has(key)) return false;
-    if (!cacheEntry.byTaxon.get(key)?.length) return false; // aucun média
-    if (COOL_DOWN_MS && cacheEntry.cooldown) {
-      // purge expirés
-      for (const [t, exp] of cacheEntry.cooldown.entries()) {
-        if (exp <= now) cacheEntry.cooldown.delete(t);
-      }
-      if (cacheEntry.cooldown.has(key)) return false;
-    } else {
-      if (cacheEntry.recentSet.has(key)) return false;
-    }
+    if (!cacheEntry.byTaxon.get(key)?.length) return false;
+    if (isBlockedByCooldown(cacheEntry, key, now)) return false;
     return true;
   };
 
@@ -332,16 +408,70 @@ function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
       cacheEntry.shuffledTaxonIds = shuffleFisherYates(cacheEntry.shuffledTaxonIds);
       cacheEntry.cursor = 0;
     }
-    const tid = cacheEntry.shuffledTaxonIds[cacheEntry.cursor++];
+    const tid = cacheEntry.shuffledTaxonIds[cacheEntry.cursor];
+    if (isEligible(tid)) {
+      cacheEntry.cursor++; // on ne consomme que si éligible
+      return String(tid);
+    }
+    // rotation en fin de liste sans consommer
+    cacheEntry.shuffledTaxonIds.push(cacheEntry.shuffledTaxonIds.splice(cacheEntry.cursor, 1)[0]);
     scanned++;
-    if (isEligible(tid)) return String(tid);
-  }
-
-  // Fallback : si tout est "bloqué", on retourne le premier avec contenu
-  for (const tid of cacheEntry.shuffledTaxonIds) {
-    if (cacheEntry.byTaxon.get(String(tid))?.length) return String(tid);
   }
   return null;
+}
+
+// Fallback relax : tirage pondéré par "ancienneté"
+function pickRelaxedTaxon(cacheEntry, excludeSet = new Set()) {
+  const all = cacheEntry.taxonList.filter(
+    (t) => !excludeSet.has(String(t)) && cacheEntry.byTaxon.get(String(t))?.length
+  );
+  if (all.length === 0) return null;
+
+  // Poids : jamais vu => 5 ; sinon plus l'espèce est "vieille" dans les files, plus le poids est grand
+  const weightFor = (id) => {
+    const s = String(id);
+    const idxT = cacheEntry.recentTargetTaxa.indexOf(s);
+    const idxL = cacheEntry.recentLureTaxa.indexOf(s);
+    const unseen = idxT === -1 && idxL === -1;
+    if (unseen) return 5;
+
+    const lenT = cacheEntry.recentTargetTaxa.length;
+    const lenL = cacheEntry.recentLureTaxa.length;
+    const ageT = idxT === -1 ? lenT : Math.max(1, lenT - idxT);
+    const ageL = idxL === -1 ? lenL : Math.max(1, lenL - idxL);
+    return ageT + ageL; // plus grand => plus ancien
+  };
+
+  const weights = all.map(weightFor);
+  const total = weights.reduce((a, b) => a + b, 0) || all.length;
+  let r = Math.random() * total;
+  for (let i = 0; i < all.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return String(all[i]);
+  }
+  return String(all[all.length - 1]);
+}
+
+// Libellé unique "Nom commun (Nom scientifique)" + désambiguïsation si collision
+function makeChoiceLabels(detailsMap, ids) {
+  const base = ids.map((id) => {
+    const d = detailsMap.get(String(id));
+    const common = getTaxonName(d);
+    const sci = d?.name || "sp.";
+    return `${common} (${sci})`;
+  });
+  const seen = new Map();
+  return base.map((label, i) => {
+    if (!seen.has(label)) {
+      seen.set(label, 1);
+      return label;
+    }
+    // collision -> suffixe avec #id
+    const id = String(ids[i]);
+    const newLabel = `${label} [#${id}]`;
+    seen.set(newLabel, 1);
+    return newLabel;
+  });
 }
 
 /* -------------------- Helper routes async -------------------- */
@@ -390,7 +520,6 @@ const speciesCountsSchema = z.object({
 });
 
 // ⚠️ Express 5: req.query est en lecture seule → on n'y écrit plus.
-// On pose la version validée sur req.valid et on l'utilise dans les routes.
 function validate(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse({ ...req.query, ...req.body });
@@ -402,10 +531,9 @@ function validate(schema) {
 
 /* -------------------- Routes -------------------- */
 
-// Santé/monitoring — warm-up Render
 app.get("/healthz", (req, res) => res.json({ ok: true }));
 
-// Génération d’une question (sélection robuste + anti-répétitions)
+// Génération d’une question
 app.get(
   "/api/quiz-question",
   quizLimiter,
@@ -422,9 +550,8 @@ app.get(
       d1,
       d2,
       locale = "fr",
-    } = req.valid; // ⬅️ lire depuis req.valid
+    } = req.valid;
 
-    // Paramètres iNat
     const params = {
       quality_grade: "research",
       photos: true,
@@ -456,7 +583,7 @@ app.get(
     const cacheKey = buildCacheKey(params);
     let cacheEntry = questionCache.get(cacheKey);
 
-    // (Re)charger le pool si périmé/insuffisant
+    // Recharge du pool si nécessaire
     if (
       !cacheEntry ||
       cacheEntry.timestamp + QUESTION_CACHE_TTL < now ||
@@ -464,7 +591,6 @@ app.get(
       !Array.isArray(cacheEntry.taxonList) ||
       cacheEntry.taxonList.length < QUIZ_CHOICES
     ) {
-      // --- Extension du pool : jusqu'à 3 pages max si distinct taxa faible ---
       let page = 1;
       let results = [];
       let distinctTaxaSet = new Set();
@@ -474,17 +600,14 @@ app.get(
         const batch = Array.isArray(resp.results) ? resp.results : [];
         results = results.concat(batch);
 
-        // calcule un set d'espèces distinctes avec photo
         distinctTaxaSet = new Set(
           results
             .filter(o => o?.taxon?.id && Array.isArray(o.photos) && o.photos.length > 0)
             .map(o => o.taxon.id)
         );
 
-        if (distinctTaxaSet.size >= DISTINCT_TAXA_TARGET) break; // on a un pool confortable
-        // si la page courante ne ramène rien, inutile d'insister
+        if (distinctTaxaSet.size >= DISTINCT_TAXA_TARGET) break;
         if (batch.length === 0) break;
-
         page++;
       }
 
@@ -494,8 +617,7 @@ app.get(
           .json({ error: "Aucune observation trouvée avec vos critères. Élargissez la zone ou la période." });
       }
 
-      // (B) & (C) — on regroupe toutes les observations par taxon (avec photos), sans dédupliquer à 1 seule
-      const byTaxon = new Map(); // taxonId -> Observation[]
+      const byTaxon = new Map();
       for (const o of results) {
         const tid = o?.taxon?.id;
         if (!tid) continue;
@@ -518,85 +640,90 @@ app.get(
         taxonList,
         shuffledTaxonIds: shuffleFisherYates(taxonList),
         cursor: 0,
-        recentTaxa: [],
-        recentSet: new Set(),
-        cooldown: COOL_DOWN_MS ? new Map() : null,
+
+        recentTargetTaxa: [],
+        recentTargetSet: new Set(),
+        recentLureTaxa: [],
+        recentLureSet: new Set(),
+
+        cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
+        cooldownLure: COOLDOWN_LURE_MS ? new Map() : null,
+
         recentObsQueue: [],
         recentObsSet: new Set(),
       };
       setWithLimit(questionCache, cacheKey, cacheEntry);
     }
 
-    // (C) Choisir la CIBLE par tirage sans remise via le curseur + exclusions
-    const excludeTaxaForTarget = new Set(); // au cas où on veut forcer des exclusions supplémentaires
+    // CIBLE : sans-remise + cooldowns
+    const excludeTaxaForTarget = new Set();
     let targetTaxonId = nextEligibleTaxonId(cacheEntry, now, excludeTaxaForTarget);
+
+    let selectionMode = "normal";
+    if (!targetTaxonId) {
+      // Fallback relax (pondéré ancienneté, ignore cooldown)
+      targetTaxonId = pickRelaxedTaxon(cacheEntry, excludeTaxaForTarget);
+      selectionMode = "fallback_relax";
+      req.log?.info(
+        { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length, recentL: cacheEntry.recentLureTaxa.length },
+        "Target fallback relax engaged"
+      );
+    }
     if (!targetTaxonId) {
       return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
     }
 
-    // (B) Observation aléatoire dans le taxon cible (en excluant si possible les obs récentes)
+    // Observation cible
     let targetObservation = pickObservationForTaxon(cacheEntry, targetTaxonId);
     if (!targetObservation) {
       return res.status(503).json({ error: "Aucune observation exploitable trouvée pour le taxon cible." });
     }
 
-    // (A) Mémoriser l’observation utilisée pour éviter sa réapparition trop tôt
     rememberObservation(cacheEntry, targetObservation.id);
 
     // --- Construction des leurres ---
-    // On privilégie les leurres proches taxonomiquement si possible.
-    // On constitue des candidats "hors cible" en tenant compte des cooldowns taxon
-    const isTaxonEligibleNow = (tid) => {
+    const isTaxonEligibleForLure = (tid) => {
       const key = String(tid);
       if (key === String(targetTaxonId)) return false;
       if (!cacheEntry.byTaxon.get(key)?.length) return false;
-      if (COOL_DOWN_MS && cacheEntry.cooldown) {
-        if (cacheEntry.cooldown.get(key) > now) return false;
-      } else if (cacheEntry.recentSet.has(key)) {
-        return false;
-      }
+      // pour les leurres stricts, on respecte le double cooldown (cible+leurres)
+      if (isBlockedByCooldown(cacheEntry, key, now)) return false;
       return true;
     };
 
-    const targetAncestors = new Set(
-      (Array.isArray(targetObservation?.taxon?.ancestor_ids) ? targetObservation.taxon.ancestor_ids : [])
-    );
+    const targetAncIds = Array.isArray(targetObservation?.taxon?.ancestor_ids)
+      ? targetObservation.taxon.ancestor_ids
+      : [];
 
-    // Liste des taxons candidats pour les leurres (strict = respecte cooldown/recentSet)
-    const lureCandidatesTaxa = cacheEntry.taxonList.filter(isTaxonEligibleNow);
-
-    // Représentant d’un taxon (on peut prendre la première obs dispo)
     const reprObsForTaxon = (tid) => {
       const list = cacheEntry.byTaxon.get(String(tid)) || [];
       return list[0] || null;
     };
 
-    // Score de proximité taxonomique
+    const lureCandidatesTaxa = cacheEntry.taxonList.filter(isTaxonEligibleForLure);
+
+    // Scoring proximité par profondeur du LCA
     const scored = lureCandidatesTaxa.map((tid) => {
       const rep = reprObsForTaxon(tid);
-      const anc = new Set(Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : []);
-      let overlap = 0;
-      for (const id of anc) if (targetAncestors.has(id)) overlap++;
-      return { tid: String(tid), rep, score: overlap };
-    });
-
-    scored.sort((a, b) => b.score - a.score);
+      const anc = Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : [];
+      const depth = lcaDepth(targetAncIds, anc);
+      return { tid: String(tid), rep, score: depth };
+    }).sort((a, b) => b.score - a.score);
 
     const lures = [];
     const seenTaxa = new Set([String(targetTaxonId)]);
+
     for (const { tid, rep } of scored) {
       if (lures.length >= LURE_COUNT) break;
-      if (!seenTaxa.has(tid)) {
-        // observation aléatoire pour ce taxon (variété d'images)
-        const obs = pickObservationForTaxon(cacheEntry, tid) || rep;
-        if (obs) {
-          lures.push({ taxonId: tid, obs });
-          seenTaxa.add(tid);
-        }
+      if (seenTaxa.has(tid)) continue;
+      const obs = pickObservationForTaxon(cacheEntry, tid) || rep;
+      if (obs) {
+        lures.push({ taxonId: tid, obs });
+        seenTaxa.add(tid);
       }
     }
 
-    // Si pas assez de leurres, on comble aléatoirement parmi les restants éligibles (toujours strict)
+    // Complément strict aléatoire si nécessaire
     if (lures.length < LURE_COUNT) {
       const fallbackPool = shuffleFisherYates(lureCandidatesTaxa);
       for (const tid of fallbackPool) {
@@ -610,11 +737,11 @@ app.get(
       }
     }
 
-    // --- 2e passage RELAXÉ : ignorer recentSet/cooldown pour compléter jusqu’à LURE_COUNT ---
+    // 2e passage RELAXÉ (ignore cooldown) pour compléter
+    let luresRelaxUsed = false;
     if (lures.length < LURE_COUNT) {
-      const relaxedTaxa = cacheEntry.taxonList.filter(tid =>
-        String(tid) !== String(targetTaxonId) &&
-        (cacheEntry.byTaxon.get(String(tid))?.length)
+      const relaxedTaxa = cacheEntry.taxonList.filter(
+        (tid) => String(tid) !== String(targetTaxonId) && cacheEntry.byTaxon.get(String(tid))?.length
       );
       for (const tid of shuffleFisherYates(relaxedTaxa)) {
         if (lures.length >= LURE_COUNT) break;
@@ -623,7 +750,11 @@ app.get(
         if (obs) {
           lures.push({ taxonId: String(tid), obs });
           seenTaxa.add(String(tid));
+          luresRelaxUsed = true;
         }
+      }
+      if (luresRelaxUsed) {
+        req.log?.info({ cacheKey, mode: "lures_relax", target: targetTaxonId }, "Lures relaxed fill used");
       }
     }
 
@@ -631,48 +762,34 @@ app.get(
       return res.status(404).json({ error: "Pas assez d'espèces différentes pour composer les choix." });
     }
 
-    // Détails localisés (noms/fr/wikipedia)
+    // Détails localisés (noms / wiki)
     const allTaxonIds = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
     const detailsArr = await getFullTaxaDetails(allTaxonIds, locale);
     const details = new Map(detailsArr.map((t) => [String(t.id), t]));
     const correct = details.get(String(targetTaxonId));
     if (!correct) {
-      return res
-        .status(502)
-        .json({ error: `Impossible de récupérer les détails du taxon ${targetTaxonId}` });
+      return res.status(502).json({ error: `Impossible de récupérer les détails du taxon ${targetTaxonId}` });
     }
 
-    const finalChoices = shuffleFisherYates([
-      getTaxonName(correct),
-      ...lures.map((l) => getTaxonName(details.get(String(l.taxonId)))),
-    ]);
+    // Libellés uniques + shuffle
+    const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
+    const labels = makeChoiceLabels(details, choiceIdsInOrder);
+    const finalChoices = shuffleFisherYates(labels);
 
     const image_urls = (Array.isArray(targetObservation.photos) ? targetObservation.photos : [])
       .map((p) => (p?.url ? p.url.replace("square", "large") : null))
       .filter(Boolean);
 
-    // (D) Mettre la cible + les leurres en cooldown taxon
-    const taxaToCooldown = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
-    if (COOL_DOWN_MS && cacheEntry.cooldown) {
-      const exp = now + COOL_DOWN_MS;
-      for (const tid of taxaToCooldown) cacheEntry.cooldown.set(tid, exp);
-    } else {
-      for (const tid of taxaToCooldown) {
-        if (!cacheEntry.recentSet.has(tid)) {
-          cacheEntry.recentTaxa.unshift(tid);
-          cacheEntry.recentSet.add(tid);
-        }
-      }
-      while (cacheEntry.recentTaxa.length > COOL_DOWN_N) {
-        const removed = cacheEntry.recentTaxa.pop();
-        cacheEntry.recentSet.delete(removed);
-      }
-    }
+    // Cooldown : cible vs leurres
+    pushCooldown(cacheEntry, [String(targetTaxonId)], now, { as: "target" });
+    pushCooldown(cacheEntry, lures.map((l) => String(l.taxonId)), now, { as: "lure" });
 
-    // Entêtes debug utiles pour vérifier les répétitions côté client
+    // Entêtes debug
     res.set("X-Quiz-Id", String(targetTaxonId));
     res.set("X-Quiz-Obs-Id", String(targetObservation.id));
     res.set("X-Cache-Key", cacheKey);
+    res.set("X-Selection-Mode", selectionMode);
+    res.set("X-Lures-Relaxed", luresRelaxUsed ? "1" : "0");
 
     res.json({
       image_urls,
@@ -694,7 +811,7 @@ app.get(
   "/api/taxa/autocomplete",
   validate(autocompleteSchema),
   asyncRoute(async (req, res) => {
-    const { q, rank, locale = "fr" } = req.valid; // ⬅️ lire depuis req.valid
+    const { q, rank, locale = "fr" } = req.valid;
     const now = Date.now();
     const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
 
@@ -762,7 +879,7 @@ app.get(
   })
 );
 
-// Species counts (équilibrage / filtres)
+// Species counts
 app.get(
   "/api/observations/species_counts",
   validate(speciesCountsSchema),
@@ -779,7 +896,7 @@ app.get(
       locale,
       per_page,
       page,
-    } = req.valid; // ⬅️ lire depuis req.valid
+    } = req.valid;
 
     const params = {
       locale,
@@ -789,9 +906,9 @@ app.get(
       quality_grade: "research",
     };
 
-    if (taxon_ids) params.taxon_id = taxon_ids;
-    if (include_taxa) params.taxon_id = include_taxa;
-    if (exclude_taxa) params.without_taxon_id = exclude_taxa;
+    if (taxon_ids) params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
+    if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
+    if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
     if (lat != null && lng != null && radius != null) Object.assign(params, { lat, lng, radius });
     if (d1) params.d1 = d1;
     if (d2) params.d2 = d2;
