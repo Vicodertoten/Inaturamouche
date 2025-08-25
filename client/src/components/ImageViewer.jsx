@@ -54,11 +54,15 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   useEffect(() => {
     if (!nextImageUrl) return;
     const link = document.createElement('link');
-    link.rel = 'preload';
+    // Use "prefetch" instead of "preload" to avoid browser warnings when the
+    // next image isn't displayed quickly enough.
+    link.rel = 'prefetch';
     link.as = 'image';
     link.href = getSizedImageUrl(nextImageUrl, 'medium');
     document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
+    return () => {
+      document.head.removeChild(link);
+    };
   }, [nextImageUrl]);
 
   const resetViewState = () => {
