@@ -70,7 +70,7 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
         />
       )}
 
-      <div className="screen game-screen">
+      <div className="screen game-screen easy-mode">
         <div className="card">
           <header className="game-header">
             <div className="header-left">
