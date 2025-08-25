@@ -12,6 +12,10 @@
 // B) Sélection aléatoire d’une observation au sein d’un taxon (en excluant les obs récentes si possible)
 // C) Tirage SANS REMISE pour la cible via une liste de taxons pré-mélangée + curseur par cycle de cache
 // D) Cooldown taxon relevé (>= 50) — ici réglé à 60
+//
+// + Ajouts demandés :
+// - 2e passage "relaxed" pour compléter les leurres en ignorant recentSet/cooldown
+// - Extension du pool au refresh (jusqu’à 3 pages max) si trop peu d’espèces distinctes
 
 import express from "express";
 import cors from "cors";
@@ -144,6 +148,10 @@ const COOL_DOWN_MS = null;     // ex. 7 * 24 * 60 * 60 * 1000 ; laisser null si 
 
 // (A) Anti-répétition par OBSERVATION (évite de revoir la même photo trop vite)
 const RECENT_OBS_MAX = 200; // taille mémoire des dernières observations utilisées (cible)
+
+// Extension du pool (refresh)
+const MAX_OBS_PAGES = 3;              // jusqu'à 3 pages max par refresh
+const DISTINCT_TAXA_TARGET = 120;     // seuil d'espèces distinctes pour arrêter tôt
 
 const questionCache = new Map();
 /*
@@ -456,8 +464,29 @@ app.get(
       !Array.isArray(cacheEntry.taxonList) ||
       cacheEntry.taxonList.length < QUIZ_CHOICES
     ) {
-      const obsResponse = await fetchJSON("https://api.inaturalist.org/v1/observations", params);
-      const results = Array.isArray(obsResponse.results) ? obsResponse.results : [];
+      // --- Extension du pool : jusqu'à 3 pages max si distinct taxa faible ---
+      let page = 1;
+      let results = [];
+      let distinctTaxaSet = new Set();
+
+      while (page <= MAX_OBS_PAGES) {
+        const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page });
+        const batch = Array.isArray(resp.results) ? resp.results : [];
+        results = results.concat(batch);
+
+        // calcule un set d'espèces distinctes avec photo
+        distinctTaxaSet = new Set(
+          results
+            .filter(o => o?.taxon?.id && Array.isArray(o.photos) && o.photos.length > 0)
+            .map(o => o.taxon.id)
+        );
+
+        if (distinctTaxaSet.size >= DISTINCT_TAXA_TARGET) break; // on a un pool confortable
+        // si la page courante ne ramène rien, inutile d'insister
+        if (batch.length === 0) break;
+
+        page++;
+      }
 
       if (results.length === 0) {
         return res
@@ -533,7 +562,7 @@ app.get(
       (Array.isArray(targetObservation?.taxon?.ancestor_ids) ? targetObservation.taxon.ancestor_ids : [])
     );
 
-    // Liste des taxons candidats pour les leurres
+    // Liste des taxons candidats pour les leurres (strict = respecte cooldown/recentSet)
     const lureCandidatesTaxa = cacheEntry.taxonList.filter(isTaxonEligibleNow);
 
     // Représentant d’un taxon (on peut prendre la première obs dispo)
@@ -558,7 +587,7 @@ app.get(
     for (const { tid, rep } of scored) {
       if (lures.length >= LURE_COUNT) break;
       if (!seenTaxa.has(tid)) {
-        // on choisit une observation aléatoire pour ce taxon (pour la variété des images si jamais affichées ailleurs)
+        // observation aléatoire pour ce taxon (variété d'images)
         const obs = pickObservationForTaxon(cacheEntry, tid) || rep;
         if (obs) {
           lures.push({ taxonId: tid, obs });
@@ -567,10 +596,27 @@ app.get(
       }
     }
 
-    // Si pas assez de leurres, on comble aléatoirement parmi les restants éligibles
+    // Si pas assez de leurres, on comble aléatoirement parmi les restants éligibles (toujours strict)
     if (lures.length < LURE_COUNT) {
       const fallbackPool = shuffleFisherYates(lureCandidatesTaxa);
       for (const tid of fallbackPool) {
+        if (lures.length >= LURE_COUNT) break;
+        if (seenTaxa.has(String(tid))) continue;
+        const obs = pickObservationForTaxon(cacheEntry, tid) || reprObsForTaxon(tid);
+        if (obs) {
+          lures.push({ taxonId: String(tid), obs });
+          seenTaxa.add(String(tid));
+        }
+      }
+    }
+
+    // --- 2e passage RELAXÉ : ignorer recentSet/cooldown pour compléter jusqu’à LURE_COUNT ---
+    if (lures.length < LURE_COUNT) {
+      const relaxedTaxa = cacheEntry.taxonList.filter(tid =>
+        String(tid) !== String(targetTaxonId) &&
+        (cacheEntry.byTaxon.get(String(tid))?.length)
+      );
+      for (const tid of shuffleFisherYates(relaxedTaxa)) {
         if (lures.length >= LURE_COUNT) break;
         if (seenTaxa.has(String(tid))) continue;
         const obs = pickObservationForTaxon(cacheEntry, tid) || reprObsForTaxon(tid);
