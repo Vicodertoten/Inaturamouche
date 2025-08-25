@@ -1,4 +1,10 @@
-// vite.config.ts — Inaturamouche (PWA : API en NetworkOnly)
+// vite.config.js — Inaturamouche (PWA : règles séparées pour quiz vs meta-API)
+// Basé sur ton fichier : manifeste conservé, SW en generateSW, proxy dev.
+// Changements clés PWA :
+//  - /api/quiz-question => NetworkOnly (toujours frais, anti-répétitions)
+//  - /api/taxa/autocomplete & /api/observations/species_counts => StaleWhileRevalidate
+//  - images iNaturalist => CacheFirst (TTL 7 jours)
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -30,7 +36,26 @@ export default defineConfig({
         // Ne jamais faire tomber /api/ dans la navigation fallback SPA
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
-          // 1) API : NE PAS CACHER (source du bug côté SW)
+          // 1) META-API en SWR (autocomplete + species_counts)
+          {
+            urlPattern: ({ url }) =>
+              /^\/api\/(taxa\/autocomplete|observations\/species_counts)/.test(url.pathname),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "api-meta-swr",
+              expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 }, // 1h
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          // 2) QUIZ en NetworkOnly (évite de resservir la même question)
+          {
+            urlPattern: ({ url }) => url.pathname === "/api/quiz-question",
+            handler: "NetworkOnly",
+            options: {
+              cacheName: "api-quiz-no-cache",
+            },
+          },
+          // 3) Catch-all API : NetworkOnly (sécurité)
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkOnly",
@@ -38,23 +63,19 @@ export default defineConfig({
               cacheName: "api-no-cache",
             },
           },
-          // 2) Images iNaturalist : cache raisonnable en SWR
+          // 4) Images iNaturalist : CacheFirst avec TTL
           {
             urlPattern: /^https:\/\/static\.inaturalist\.org\/photos\//,
-            handler: "StaleWhileRevalidate",
+            handler: "CacheFirst",
             options: {
               cacheName: "inat-photos",
               cacheableResponse: { statuses: [200] },
-              expiration: {
-                maxEntries: 400,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 jours
-              },
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
-          // (optionnel) anciens domaines d'images iNat
           {
             urlPattern: /^https:\/\/inaturalist-open-data\.s3\.amazonaws\.com\//,
-            handler: "StaleWhileRevalidate",
+            handler: "CacheFirst",
             options: {
               cacheName: "inat-photos-legacy",
               cacheableResponse: { statuses: [200] },
