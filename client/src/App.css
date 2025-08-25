@@ -160,6 +160,8 @@ button:focus-visible {
 
 /* --- AUTRES STYLES (inchangés ou mineurs) --- */
 .game-screen .card { flex-grow: 1; }
+.game-screen.easy-mode .card { flex-grow: 0; }
+.game-screen.easy-mode .game-main { flex-grow: 0; }
 .game-header { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; flex-shrink: 0; }
 .score-container { display: flex; align-items: center; gap: 0.5rem; }
 .score { color: var(--accent-color); font-weight: 700; }
