@@ -26,6 +26,11 @@
   z-index: 0;
 }
 
+/* Limite la hauteur des images verticales pour une meilleure UX */
+.image-viewer-container .image-wrapper.portrait {
+  max-height: 60vh;
+}
+
 /* La boîte épouse la taille effective de la photo */
 .image-viewer-container .image-wrapper .image-box {
   position: relative !important;
