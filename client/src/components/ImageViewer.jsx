@@ -22,7 +22,11 @@ const Fallback = {
   arrow: {
     width: '36px', height: '36px', borderRadius: '999px', border: 'none',
     background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: '20px',
-    lineHeight: 1, display: 'grid', placeItems: 'center', cursor: 'pointer'
+    lineHeight: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
   },
   dots: { display: 'flex', alignItems: 'center', gap: '8px' },
   dot: {
