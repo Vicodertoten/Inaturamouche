@@ -69,7 +69,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
             className="answer-image"
             {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
             decoding={imageUrl ? 'async' : undefined}
-            fetchpriority={imageUrl ? 'high' : undefined}
+            fetchPriority={imageUrl ? 'high' : undefined}
           />
           
           {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}
