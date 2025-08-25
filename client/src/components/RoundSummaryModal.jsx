@@ -56,15 +56,14 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
         <div className="correct-answer-section">
           <p>La réponse était :</p>
           <img
-            src={getSizedImageUrl(imageUrl, 'large')}
-            srcSet={`${getSizedImageUrl(imageUrl, 'small')} 300w, ${getSizedImageUrl(imageUrl, 'medium')} 600w, ${getSizedImageUrl(imageUrl, 'large')} 1024w`}
+            src={getSizedImageUrl(imageUrl, 'medium')}
+            srcSet={`${getSizedImageUrl(imageUrl, 'small')} 300w, ${getSizedImageUrl(imageUrl, 'medium')} 600w`}
             sizes="(max-width: 600px) 100vw, 400px"
             alt={commonName || scientificName}
             className="answer-image"
             loading="lazy"
             decoding={imageUrl ? 'async' : undefined}
             fetchpriority={imageUrl ? 'high' : undefined}
-            style={{ width: '100%', aspectRatio: '4 / 3' }}
           />
           
           {/* On affiche le nom commun que s'il existe ET est différent du nom scientifique */}

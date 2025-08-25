@@ -10,7 +10,8 @@ const Fallback = {
     position: 'absolute', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
     display: 'flex', alignItems: 'center', gap: '8px',
     padding: '6px 10px', background: 'rgba(0,0,0,0.4)', borderRadius: '9999px',
-    zIndex: 10, backdropFilter: 'blur(2px)'
+    zIndex: 10, backdropFilter: 'blur(2px)',
+    maxWidth: '100%', boxSizing: 'border-box'
   },
   arrow: {
     width: '36px', height: '36px', borderRadius: '999px', border: 'none',
@@ -55,7 +56,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.as = 'image';
-    link.href = getSizedImageUrl(nextImageUrl, 'large');
+    link.href = getSizedImageUrl(nextImageUrl, 'medium');
     document.head.appendChild(link);
     return () => { document.head.removeChild(link); };
   }, [nextImageUrl]);
@@ -173,8 +174,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
         <div className="image-box" style={{ position: 'relative' }}>
           <img
-            src={getSizedImageUrl(imageUrls[currentIndex], 'large')}
-            srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w, ${getSizedImageUrl(imageUrls[currentIndex], 'large')} 1024w`}
+            src={getSizedImageUrl(imageUrls[currentIndex], 'medium')}
+            srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
             sizes="(max-width: 600px) 100vw, 600px"
             alt={alt}
             loading="lazy"
@@ -183,6 +184,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
             onLoad={handleImageLoad}
             style={{
               width: '100%',
+              maxHeight: '100%',
               aspectRatio,
               transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
               transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
