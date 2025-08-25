@@ -62,7 +62,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use((req, res, next) => {
+app.use((_, res, next) => {
   res.header("Vary", "Origin");
   next();
 });
@@ -424,8 +424,7 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
 
   const scored = candidates.map((tid) => {
     const list = cacheEntry.byTaxon.get(String(tid)) || [];
-    theRep = list[0] || null;
-    const rep = list[0] || null;
+    const rep = list[0] || null; // FIX: suppression de la ligne "theRep = ..." qui cassait
     const anc = Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : [];
     const depth = lcaDepth(targetAnc, anc);
     const closeness = depth / targetDepth; // 0..1
@@ -734,15 +733,15 @@ app.get(
           wikipedia_url: correct.wikipedia_url,
         },
 
-        // --- Choix "riches" (inchangés pour ne pas impacter le front existant)
+        // --- Choix "riches"
         choices: shuffledChoices, // [{ taxon_id, label }]
         correct_choice_index,
         correct_label,
 
         // --- MODE FACILE (corrigé) ---
-        choix_mode_facile,                   // [label] (identiques à bonne_reponse.common_name)
+        choix_mode_facile,                   // [label]
         choix_mode_facile_ids,              // [taxon_id] aligné aux labels
-        choix_mode_facile_correct_index,    // index du bon choix dans choix_mode_facile
+        choix_mode_facile_correct_index,    // index du bon choix
 
         inaturalist_url: targetObservation.uri,
       });
@@ -886,7 +885,7 @@ app.get(
 );
 
 /* -------------------- 404 JSON propre -------------------- */
-app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+app.use((_, res) => res.status(404).json({ error: "Not Found" }));
 
 /* -------------------- Démarrage -------------------- */
 app.listen(PORT, () => {
