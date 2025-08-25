@@ -264,11 +264,13 @@ function asyncRoute(handler) {
 }
 
 /* -------------------- Validation (Zod) -------------------- */
+const stringOrArray = z.union([z.string(), z.array(z.string())]);
+
 const quizSchema = z.object({
   pack_id: z.string().optional(),
-  taxon_ids: z.string().optional(),
-  include_taxa: z.string().optional(),
-  exclude_taxa: z.string().optional(),
+  taxon_ids: stringOrArray.optional(),
+  include_taxa: stringOrArray.optional(),
+  exclude_taxa: stringOrArray.optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   radius: z.coerce.number().min(1).max(200).optional(),
@@ -284,9 +286,9 @@ const autocompleteSchema = z.object({
 });
 
 const speciesCountsSchema = z.object({
-  taxon_ids: z.string().optional(),
-  include_taxa: z.string().optional(),
-  exclude_taxa: z.string().optional(),
+  taxon_ids: stringOrArray.optional(),
+  include_taxa: stringOrArray.optional(),
+  exclude_taxa: stringOrArray.optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   radius: z.coerce.number().min(1).max(200).optional(),
