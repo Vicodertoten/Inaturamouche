@@ -1,68 +1,39 @@
-# netlify.toml — Inaturamouche
-# UI servie par Netlify (client React/Vite), API hébergée sur Render.
-
-########################################
-# Build du client (Vite) depuis /client
-########################################
 [build]
   base    = "client"
   command = "npm ci && npm run build"
   publish = "dist"
 
-########################################
-# Redirects
-########################################
+[build.environment]
+  NODE_VERSION = "22"
+  VITE_API_BASE_URL = "/api"   # le front appellera /api
 
-# Proxy API -> Render (remplace par ton URL Render)
+# Proxy des appels API vers Render
 [[redirects]]
   from = "/api/*"
-  to   = "https://inaturamouche.onrender.com/:splat"
+  to = "https://inaturamouche.onrender.com/:splat"
   status = 200
-  force  = true
+  force = true
 
-# SPA fallback pour le routage client
+# SPA fallback (Vite/React)
 [[redirects]]
   from = "/*"
-  to   = "/index.html"
+  to = "/index.html"
   status = 200
 
-########################################
-# Headers — Cache & Sécurité
-########################################
-
-# Cache long et immuable pour les assets fingerprintés de Vite (/assets/*)
+# Cache long pour assets fingerprintés Vite
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Pas de cache pour l'HTML (permet les updates immédiates)
+# Pas de cache sur le HTML
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-store"
 
-# Service Worker et bundles Workbox : éviter un cache long
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-[[headers]]
-  for = "/workbox-*.js"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-# Sécurité côté statique (complément à Helmet côté API)
-# ⚠️ Si tu ajoutes des domaines externes (fonts, maps…), étends la CSP ci-dessous.
+# (Optionnel) Sécurité de base côté statique
 [[headers]]
   for = "/*"
   [headers.values]
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Content-Security-Policy pour le front statique servi par Netlify
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.inaturalist.org; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https: data:"
-    # (Optionnel) Autres en-têtes de durcissement
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
-    Cross-Origin-Resource-Policy = "cross-origin"
