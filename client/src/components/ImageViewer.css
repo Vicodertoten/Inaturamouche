@@ -28,7 +28,7 @@
 
 /* Limite la hauteur des images verticales pour une meilleure UX */
 .image-viewer-container .image-wrapper.portrait {
-  max-height: 60vh;
+  max-height: 55vh;
 }
 
 /* La boîte épouse la taille effective de la photo */
