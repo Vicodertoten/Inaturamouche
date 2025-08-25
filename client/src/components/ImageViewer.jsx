@@ -192,18 +192,18 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
 
           {imageUrls.length > 1 && (
-            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation" style={Fallback.overlay}>
+            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation"
               <button
                 type="button"
                 className="nav-button prev"
                 aria-label="Image précédente"
                 onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                style={Fallback.arrow}
+             
               >
                 ‹
               </button>
 
-              <div className="dots" role="tablist" aria-label="Choix de l'image" style={Fallback.dots}>
+              <div className="dots" role="tablist" aria-label="Choix de l'image" 
                 {imageUrls.map((_, idx) => (
                   <button
                     key={idx}
@@ -212,9 +212,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
                     aria-selected={idx === currentIndex}
                     onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
-                    style={{
-                      ...Fallback.dot,
-                      ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
+                    
                     }}
                   />
                 ))}
@@ -225,7 +223,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                 className="nav-button next"
                 aria-label="Image suivante"
                 onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                style={Fallback.arrow}
+        
               >
                 ›
               </button>
