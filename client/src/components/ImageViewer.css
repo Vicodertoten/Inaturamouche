@@ -84,6 +84,7 @@
   display: grid;
   place-items: center;
   transition: background .2s ease, transform .1s ease;
+  line-height: 0;
 }
 .image-viewer-container .image-wrapper .nav-button:hover { background-color: rgba(255,255,255,0.22); }
 .image-viewer-container .image-wrapper .nav-button:active { transform: scale(0.96); }
