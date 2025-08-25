@@ -166,6 +166,22 @@ button:focus-visible {
 .game-main { display: flex; flex-direction: column; gap: 1rem; width: 100%; flex-grow: 1; }
 .image-section { display: flex; flex-direction: column; gap: 0.75rem; }
 .choices { width: 100%; display: grid; grid-template-columns: 1fr; gap: 0.75rem; flex-shrink: 0; margin-top: auto; }
+
+@media (min-width: 768px) {
+  .game-main {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+  }
+
+  .choices {
+    width: 40%;
+    margin-top: 0;
+  }
+
+  .image-section {
+    width: 60%;
+  }
+}
   .inat-link { display: inline-flex; align-self: center; gap: 8px; padding: var(--space-2) calc(var(--space-2) + var(--space-1)); background-color: rgba(0, 0, 0, 0.2); border-radius: 8px; color: var(--text-color-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
 .inat-link:hover { background-color: var(--primary-color); color: var(--text-color); }
 .end-screen .card { text-align: center; }
