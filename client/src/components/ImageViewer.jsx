@@ -4,10 +4,36 @@ import { getSizedImageUrl } from '../utils/imageUtils';
 
 // Detect native support for the `loading="lazy"` attribute.
 // Fallback: when unsupported (e.g. Safari), the image loads immediately.
+// An IntersectionObserver could be used here instead to emulate lazy loading.
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 
 const MAX_ZOOM = 2.5;
+
+// Fallback inline styles (au cas où le CSS ne serait pas appliqué)
+const Fallback = {
+  overlay: {
+    position: 'absolute', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
+    display: 'flex', alignItems: 'center', gap: '8px',
+    padding: '6px 10px', background: 'rgba(0,0,0,0.4)', borderRadius: '9999px',
+    zIndex: 10, backdropFilter: 'blur(2px)',
+    maxWidth: '100%', boxSizing: 'border-box'
+  },
+  arrow: {
+    width: '36px', height: '36px', borderRadius: '999px', border: 'none',
+    background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: '20px',
+    lineHeight: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  dots: { display: 'flex', alignItems: 'center', gap: '8px' },
+  dot: {
+    width: '10px', height: '10px', borderRadius: '999px',
+    background: 'rgba(255,255,255,0.55)', border: 'none', padding: 0, cursor: 'pointer'
+  }
+};
 
 function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -25,7 +51,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const initialPinchDistance = useRef(null);
   const initialScale = useRef(1);
 
-  // Reset quand la liste change
   useEffect(() => {
     setCurrentIndex(0);
     setScale(1);
@@ -34,16 +59,17 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     setIsPortrait(false);
   }, [imageUrls]);
 
-  // Placeholder pendant le chargement des images > 0
   useEffect(() => {
     setIsLoaded(currentIndex === 0);
   }, [currentIndex]);
 
-  // Prefetch de la prochaine image si fourni
   useEffect(() => {
     if (!nextImageUrl) return;
     const link = document.createElement('link');
+    // Use "prefetch" instead of "preload" to avoid browser warnings when the
+    // next image isn't displayed quickly enough.
     link.rel = 'prefetch';
+    link.as = 'image';
     link.href = getSizedImageUrl(nextImageUrl, 'medium');
     document.head.appendChild(link);
     return () => {
@@ -57,13 +83,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   };
 
   const handleNext = () => {
-    if (!imageUrls?.length) return;
     setCurrentIndex((prev) => (prev + 1) % imageUrls.length);
     resetViewState();
   };
-
   const handlePrev = () => {
-    if (!imageUrls?.length) return;
     setCurrentIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
     resetViewState();
   };
@@ -80,8 +103,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
 
   const handlePointerDown = (e) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // Panning si zoomé
     if (pointers.current.size === 1 && scale > 1) {
       e.preventDefault();
       isPanning.current = true;
@@ -89,8 +110,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
       lastPos.current = { x: e.clientX, y: e.clientY };
       if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
     }
-
-    // Pinch zoom
     if (pointers.current.size === 2) {
       const [p1, p2] = Array.from(pointers.current.values());
       initialPinchDistance.current = Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -104,19 +123,14 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // Pinch
     if (pointers.current.size === 2 && initialPinchDistance.current) {
       const [p1, p2] = Array.from(pointers.current.values());
       const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const newScale = Math.min(
-        MAX_ZOOM,
-        Math.max(1, (initialScale.current * distance) / initialPinchDistance.current)
-      );
+      const newScale = Math.min(MAX_ZOOM, Math.max(1, (initialScale.current * distance) / initialPinchDistance.current));
       setScale(newScale);
       return;
     }
 
-    // Pan
     if (isPanning.current) {
       didPan.current = true;
       const dx = e.clientX - lastPos.current.x;
@@ -158,14 +172,12 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     return <div className="image-viewer-container">Chargement...</div>;
   }
 
-  const currentUrl = imageUrls[currentIndex];
-
   return (
     <div className="image-viewer-container">
       <div
         ref={containerRef}
         className={`image-wrapper ${isPortrait ? 'portrait' : ''}`}
-        style={{ touchAction: scale > 1 ? 'none' : 'pan-y', cursor: 'pointer' }}
+        style={{ touchAction: scale > 1 ? 'none' : 'pan-y' }}
         onClick={handleImageClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -178,10 +190,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         aria-roledescription="Visionneuse d'images"
         aria-label={alt}
       >
+        {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
         <div className="image-box" style={{ position: 'relative' }}>
           <img
-            src={getSizedImageUrl(currentUrl, 'medium')}
-            srcSet={`${getSizedImageUrl(currentUrl, 'small')} 300w, ${getSizedImageUrl(currentUrl, 'medium')} 600w`}
+            src={getSizedImageUrl(imageUrls[currentIndex], 'medium')}
+            srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
             sizes="(max-width: 600px) 100vw, 600px"
             alt={alt}
             {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
@@ -192,44 +205,53 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               width: '100%',
               maxHeight: '50vh',
               aspectRatio,
-              transform: `translate(${transform.x}px, ${transform.y}px) scale(${scale})`,
+              transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
               transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
-              display: 'block',
-              userSelect: 'none'
+              display: 'block' // évite le whitespace inline
             }}
             draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
           />
 
-          {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" aria-hidden="true" />}
+          {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
 
           {imageUrls.length > 1 && (
-            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation">
+            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation" style={Fallback.overlay}>
               <button
                 type="button"
                 className="nav-button prev"
                 aria-label="Image précédente"
                 onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-              />
-              <div className="dots" role="tablist" aria-label="Choix de l'image">
+                style={Fallback.arrow}
+              >
+                ‹
+              </button>
+
+              <div className="dots" role="tablist" aria-label="Choix de l'image" style={Fallback.dots}>
                 {imageUrls.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    role="tab"
                     aria-label={`Aller à l'image ${idx + 1}`}
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
                     aria-selected={idx === currentIndex}
                     onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
+                    style={{
+                      ...Fallback.dot,
+                      ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
+                    }}
                   />
                 ))}
               </div>
+
               <button
                 type="button"
                 className="nav-button next"
                 aria-label="Image suivante"
                 onClick={(e) => { e.stopPropagation(); handleNext(); }}
-              />
+                style={Fallback.arrow}
+              >
+                ›
+              </button>
             </div>
           )}
         </div>
