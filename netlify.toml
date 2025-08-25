@@ -1,36 +1,47 @@
 # netlify.toml — Inaturamouche (front sur Netlify, API sur Render)
 
+########################################
+# Build du client (Vite) depuis /client
+########################################
 [build]
   base    = "client"
   command = "npm ci && npm run build"
   publish = "dist"
 
-# Proxy API -> Render (remplace par ton URL exacte si besoin)
+########################################
+# Redirects
+########################################
+
+# Proxy API -> Render (utile si tu veux aussi consommer /api en relatif)
 [[redirects]]
   from = "/api/*"
   to   = "https://inaturamouche.onrender.com/:splat"
   status = 200
   force  = true
 
-# SPA fallback
+# SPA fallback pour le routage client
 [[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200
 
-# Cache long pour assets fingerprintés
+########################################
+# Headers — Cache & Sécurité
+########################################
+
+# Cache long et immuable pour les assets fingerprintés de Vite (/assets/*)
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Pas de cache pour le HTML
+# Pas de cache pour l'HTML (permet les updates immédiates)
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-store"
 
-# Service worker et bundles workbox : pas de cache persistant
+# Service Worker et bundles Workbox : éviter un cache long
 [[headers]]
   for = "/sw.js"
   [headers.values]
@@ -41,13 +52,13 @@
   [headers.values]
     Cache-Control = "no-cache"
 
-# Sécurité (CSP élargie pour Google Fonts ; connect-src n'a pas besoin de Render si on utilise /api relatif)
+# Sécurité (CSP élargie pour Google Fonts ET Render en connect-src)
 [[headers]]
   for = "/*"
   [headers.values]
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Autorise Google Fonts (styles + fichiers) et iNaturalist (images)
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.inaturalist.org; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https: data: https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
+    # NOTE: on autorise explicitement https://inaturamouche.onrender.com dans connect-src
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.inaturalist.org https://inaturamouche.onrender.com; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https: data: https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
