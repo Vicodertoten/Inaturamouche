@@ -202,7 +202,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
             fetchPriority={currentIndex === 0 ? 'high' : undefined}
             onLoad={handleImageLoad}
             style={{
-              width: 'auto',
+              width: '100%',
               maxHeight: '50vh',
               aspectRatio,
               transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
