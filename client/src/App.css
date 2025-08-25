@@ -159,7 +159,7 @@ button:focus-visible {
 @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* --- AUTRES STYLES (inchangés ou mineurs) --- */
-.game-screen .card { flex-grow: 1; }
+.game-screen .card { flex-grow: 0; }
 .game-screen.easy-mode .card { flex-grow: 0; }
 .game-screen.easy-mode .game-main { flex-grow: 0; }
 .game-header { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; flex-shrink: 0; }
