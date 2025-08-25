@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
@@ -7,57 +7,81 @@ import StreakBadge from './StreakBadge';
 const MAX_QUESTIONS_PER_GAME = 5;
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
-// MODIFIÉ: Ajout de onUpdateScore pour la pénalité de l'indice
-// et currentStreak pour calculer le bonus de série
+/**
+ * EasyMode corrigé :
+ * - Affiche les labels de question.choix_mode_facile
+ * - Utilise question.choix_mode_facile_ids (aligné index ↔ label) pour la sélection
+ * - Vérifie la bonne réponse via question.choix_mode_facile_correct_index
+ * - L’indice retire des choix en se basant sur les IDs (pas les labels)
+ */
 const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl, currentStreak }) => {
-  const [answerStatus, setAnswerStatus] = useState({ answered: false, correctAnswer: '', selectedAnswer: '' });
+  // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
+  const easyPairs = useMemo(() => {
+    const labels = Array.isArray(question?.choix_mode_facile) ? question.choix_mode_facile : [];
+    const ids = Array.isArray(question?.choix_mode_facile_ids) ? question.choix_mode_facile_ids : labels;
+    return labels.map((label, i) => ({ id: ids[i] ?? label, label }));
+  }, [question]);
+
+  const correctIndexFromServer = Number.isInteger(question?.choix_mode_facile_correct_index)
+    ? question.choix_mode_facile_correct_index
+    : Math.max(0, easyPairs.findIndex(p => p.label === question?.bonne_reponse?.common_name)); // fallback robuste
+
+  const [answered, setAnswered] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [showSummary, setShowSummary] = useState(false);
-  
-  // NOUVEAU: États pour l'indice
-  const [removedChoices, setRemovedChoices] = useState([]);
+
+  // Indice (ids supprimés)
+  const [removedIds, setRemovedIds] = useState(new Set());
   const [hintUsed, setHintUsed] = useState(false);
 
   useEffect(() => {
-    setAnswerStatus({ answered: false, correctAnswer: '', selectedAnswer: '' });
+    setAnswered(false);
+    setSelectedIndex(null);
     setShowSummary(false);
-    // NOUVEAU: Réinitialiser l'indice
-    setRemovedChoices([]);
+    setRemovedIds(new Set());
     setHintUsed(false);
   }, [question]);
 
-  const handleSelectAnswer = (selectedChoice) => {
-    if (answerStatus.answered) return;
-    const correctAnswer = question.bonne_reponse.common_name;
-    setAnswerStatus({ answered: true, correctAnswer, selectedAnswer: selectedChoice });
-    
-    // MODIFIÉ: On attend une seconde pour que le joueur voie la correction, PUIS on affiche le modal
-    setTimeout(() => {
-      setShowSummary(true);
-    }, 1200); 
+  const remainingPairs = easyPairs.filter(p => !removedIds.has(String(p.id)));
+  const correctPair = easyPairs[correctIndexFromServer];
+
+  const isCorrectAnswer = answered && selectedIndex !== null
+    ? (remainingPairs[selectedIndex]?.id?.toString() === correctPair?.id?.toString())
+    : false;
+
+  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
+  const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
+
+  const handleSelectAnswer = (idx) => {
+    if (answered) return;
+    setSelectedIndex(idx);
+    setAnswered(true);
+    setTimeout(() => setShowSummary(true), 1200);
   };
-  
+
   const handleNext = () => {
     onAnswer({ ...scoreInfo, isCorrect: isCorrectAnswer });
   };
 
   const handleHint = () => {
-    if (hintUsed || answerStatus.answered) return;
+    if (hintUsed || answered) return;
 
-    const incorrectChoices = question.choix_mode_facile.filter(
-      choix => choix !== question.bonne_reponse.common_name && !removedChoices.includes(choix)
-    );
-
-    if (incorrectChoices.length > 1) { // On s'assure de ne pas enlever le dernier leurre
-      const choiceToRemove = incorrectChoices[Math.floor(Math.random() * incorrectChoices.length)];
-      setRemovedChoices([...removedChoices, choiceToRemove]);
-      setHintUsed(true);
-      onUpdateScore(-HINT_COST_EASY); // Appliquer la pénalité
-    }
+    // On choisit au hasard un leurre restant (≠ correct) parmi les non-supprimés
+    const incorrectRemaining = remainingPairs.filter(p => p.id.toString() !== correctPair.id.toString());
+    if (incorrectRemaining.length <= 1) return; // garder au moins 1 leurre
+    const toRemove = incorrectRemaining[Math.floor(Math.random() * incorrectRemaining.length)];
+    const newSet = new Set(removedIds);
+    newSet.add(String(toRemove.id));
+    setRemovedIds(newSet);
+    setHintUsed(true);
+    onUpdateScore(-HINT_COST_EASY);
   };
 
-  const isCorrectAnswer = answerStatus.selectedAnswer === answerStatus.correctAnswer;
-  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
-  const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
+  // Pour déterminer les classes d'état, on compare via IDs
+  const isIndexCorrect = (idx) => {
+    const pair = remainingPairs[idx];
+    return pair && correctPair && pair.id.toString() === correctPair.id.toString();
+  };
 
   return (
     <>
@@ -75,11 +99,14 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
           <header className="game-header">
             <div className="header-left">
               <h2>Question {questionCount}/{MAX_QUESTIONS_PER_GAME}</h2>
-              {/* NOUVEAU: Bouton d'indice */}
-              <button 
-                className="hint-button-easy" 
-                onClick={handleHint} 
-                disabled={hintUsed || answerStatus.answered || (question.choix_mode_facile.length - removedChoices.length <= 2)}
+              <button
+                className="hint-button-easy"
+                onClick={handleHint}
+                disabled={
+                  hintUsed ||
+                  answered ||
+                  remainingPairs.length <= 2 // ne retire pas si déjà 2 choix (bon + 1 leurre)
+                }
               >
                 Indice (-{HINT_COST_EASY} pts)
               </button>
@@ -89,6 +116,7 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
               <StreakBadge streak={currentStreak} />
             </div>
           </header>
+
           <main className="game-main">
             <div className="image-section">
               <ImageViewer
@@ -97,27 +125,23 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
                 nextImageUrl={nextImageUrl}
               />
             </div>
+
             <div className="choices">
-              {question.choix_mode_facile.map((choix) => {
+              {remainingPairs.map((p, idx) => {
                 let buttonClass = '';
-                if (answerStatus.answered) {
-                  if (choix === answerStatus.correctAnswer) buttonClass = 'correct';
-                  else if (choix === answerStatus.selectedAnswer) buttonClass = 'incorrect';
+                if (answered) {
+                  if (isIndexCorrect(idx)) buttonClass = 'correct';
+                  else if (idx === selectedIndex) buttonClass = 'incorrect';
                   else buttonClass = 'disabled';
                 }
-                // NOUVEAU: Logique pour griser le choix enlevé par l'indice
-                if (removedChoices.includes(choix)) {
-                  buttonClass = 'removed';
-                }
-
                 return (
-                  <button 
-                    key={choix} 
-                    className={buttonClass} 
-                    onClick={() => handleSelectAnswer(choix)} 
-                    disabled={answerStatus.answered || removedChoices.includes(choix)}
+                  <button
+                    key={p.id ?? p.label}
+                    className={buttonClass}
+                    onClick={() => handleSelectAnswer(idx)}
+                    disabled={answered}
                   >
-                    {choix}
+                    {p.label}
                   </button>
                 );
               })}
