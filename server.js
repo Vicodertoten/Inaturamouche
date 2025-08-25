@@ -13,7 +13,7 @@
 // D) Cooldown taxon CIBLE uniquement (fenêtre dynamique)
 //
 // Leurres “parfaits” : buckets near/mid/far via profondeur LCA + compléments robustes
-// Mode facile réparé : renvoie choices[] = {taxon_id, label}, correct_choice_index, correct_label, compat `choix_mode_facile`
+// MODE FACILE corrigé : labels strictement = getTaxonName, + ids et index correct
 
 import express from "express";
 import cors from "cors";
@@ -163,24 +163,6 @@ const LURE_NEAR_THRESHOLD = 0.85;
 const LURE_MID_THRESHOLD = 0.65;
 
 const questionCache = new Map();
-/*
-  value = {
-    timestamp,
-    byTaxon: Map<taxonId, Observation[]>,
-    taxonList: string[],
-    shuffledTaxonIds: string[],
-    cursor: number,
-
-    // Cooldown cible
-    recentTargetTaxa: string[],  // FIFO
-    recentTargetSet: Set<string>,
-    cooldownTarget: Map<string, number> | null, // si *_MS utilisés
-
-    // Mémoire d'observations (cible)
-    recentObsQueue: string[],
-    recentObsSet: Set<string>,
-  }
-*/
 const autocompleteCache = new Map();
 
 /* -------------------- Utils -------------------- */
@@ -218,7 +200,7 @@ function effectiveCooldownN(baseN, taxonListLen) {
   return Math.max(0, Math.min(baseN, cap));
 }
 
-/* ---- fetch JSON (timeout + retry 429/5xx + abort) ---- */
+/* ---- fetch JSON ---- */
 async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, retries = MAX_RETRIES } = {}) {
   const urlObj = new URL(url);
   for (const [key, value] of Object.entries(params)) {
@@ -312,7 +294,7 @@ function lcaDepth(ancA = [], ancB = []) {
   const len = Math.min(ancA.length, ancB.length);
   let i = 0;
   while (i < len && ancA[i] === ancB[i]) i++;
-  return i; // plus grand = plus proche
+  return i;
 }
 
 // Cooldown cible
@@ -375,7 +357,6 @@ function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
       cacheEntry.cursor++; // ne consomme que si éligible
       return String(tid);
     }
-    // rotation en fin de liste sans consommer
     cacheEntry.shuffledTaxonIds.push(cacheEntry.shuffledTaxonIds.splice(cacheEntry.cursor, 1)[0]);
     scanned++;
   }
@@ -407,7 +388,7 @@ function pickRelaxedTaxon(cacheEntry, excludeSet = new Set()) {
   return String(all[all.length - 1]);
 }
 
-// Labels uniques "Nom commun (Nom scientifique)" + désambiguïsation
+// Labels uniques pour le mode "choices" (non-facile)
 function makeChoiceLabels(detailsMap, ids) {
   const base = ids.map((id) => {
     const d = detailsMap.get(String(id));
@@ -443,6 +424,7 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
 
   const scored = candidates.map((tid) => {
     const list = cacheEntry.byTaxon.get(String(tid)) || [];
+    theRep = list[0] || null;
     const rep = list[0] || null;
     const anc = Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : [];
     const depth = lcaDepth(targetAnc, anc);
@@ -474,15 +456,12 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
     }
   };
 
-  // 1er tour équilibré
   if (out.length < lureCount && near.length) pickFromArr([near[0]]);
   if (out.length < lureCount && mid.length) pickFromArr([mid[0]]);
   if (out.length < lureCount && far.length) pickFromArr([far[0]]);
-  // Compléter near -> mid -> far
   if (out.length < lureCount) pickFromArr(near);
   if (out.length < lureCount) pickFromArr(mid);
   if (out.length < lureCount) pickFromArr(far);
-  // Dernier filet : random global
   if (out.length < lureCount) {
     const rest = shuffleFisherYates(scored);
     pickFromArr(rest);
@@ -706,20 +685,26 @@ app.get(
         return res.status(502).json({ error: `Impossible de récupérer les détails du taxon ${targetTaxonId}` });
       }
 
-      // Labels + mapping choices (répare le MODE FACILE)
+      // --------- CHOIX "RICHE" (non-facile) : inchangé ---------
       const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
       const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
-
-      // On convertit en objets {taxon_id, label} puis on mélange
       const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
       const shuffledChoices = shuffleFisherYates(choiceObjects);
-
-      // Index de la bonne réponse dans le tableau mélangé
       const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
       const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
 
-      // Compat legacy: tableau de labels simple
-      const finalChoicesLegacy = shuffledChoices.map((c) => c.label);
+      // --------- MODE FACILE (corrigé) ---------
+      // Labels strictement = getTaxonName (identiques à bonne_reponse.common_name)
+      const facilePairs = choiceIdsInOrder.map((id) => ({
+        taxon_id: id,
+        label: getTaxonName(details.get(String(id))),
+      }));
+      const facileShuffled = shuffleFisherYates(facilePairs);
+      const choix_mode_facile = facileShuffled.map((p) => p.label);
+      const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
+      const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
+        (id) => id === String(targetTaxonId)
+      );
 
       // Images
       const image_urls = (Array.isArray(targetObservation.photos) ? targetObservation.photos : [])
@@ -734,7 +719,7 @@ app.get(
       res.set("X-Quiz-Obs-Id", String(targetObservation.id));
       res.set("X-Cache-Key", cacheKey);
       res.set("X-Selection-Mode", selectionMode);
-      res.set("X-Lures-Relaxed", "0"); // on a un système robuste, pas besoin de relax additionnel ici
+      res.set("X-Lures-Relaxed", "0");
       res.set("X-Lure-Buckets", `${buckets.near}|${buckets.mid}|${buckets.far}`);
       res.set("X-Correct-Id", String(targetTaxonId));
 
@@ -748,16 +733,16 @@ app.get(
           ancestors: correct.ancestors,
           wikipedia_url: correct.wikipedia_url,
         },
-        // MODE FACILE RÉPARÉ :
-        // - choices : mapping explicite id/label pour vérifier côté client
-        // - correct_choice_index : index du bon label dans `choices`
-        // - correct_label : libellé exact gagnant
+
+        // --- Choix "riches" (inchangés pour ne pas impacter le front existant)
         choices: shuffledChoices, // [{ taxon_id, label }]
         correct_choice_index,
         correct_label,
 
-        // Compat legacy (fronts existants) :
-        choix_mode_facile: finalChoicesLegacy,
+        // --- MODE FACILE (corrigé) ---
+        choix_mode_facile,                   // [label] (identiques à bonne_reponse.common_name)
+        choix_mode_facile_ids,              // [taxon_id] aligné aux labels
+        choix_mode_facile_correct_index,    // index du bon choix dans choix_mode_facile
 
         inaturalist_url: targetObservation.uri,
       });
