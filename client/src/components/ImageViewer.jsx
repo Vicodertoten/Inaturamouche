@@ -37,6 +37,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const [transform, setTransform] = useState({ x: 0, y: 0 });
   const [isLoaded, setIsLoaded] = useState(true);
   const [aspectRatio, setAspectRatio] = useState();
+  const [isPortrait, setIsPortrait] = useState(false);
 
   const containerRef = useRef(null);
   const isPanning = useRef(false);
@@ -51,6 +52,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     setScale(1);
     setTransform({ x: 0, y: 0 });
     setIsLoaded(true);
+    setIsPortrait(false);
   }, [imageUrls]);
 
   useEffect(() => {
@@ -150,7 +152,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const handleImageLoad = (e) => {
     setIsLoaded(true);
     const { naturalWidth, naturalHeight } = e.target;
-    if (naturalWidth && naturalHeight) setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
+    if (naturalWidth && naturalHeight) {
+      setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
+      setIsPortrait(naturalHeight > naturalWidth);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -167,7 +172,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     <div className="image-viewer-container">
       <div
         ref={containerRef}
-        className="image-wrapper"
+        className={`image-wrapper ${isPortrait ? 'portrait' : ''}`}
         style={{ touchAction: scale > 1 ? 'none' : 'pan-y' }}
         onClick={handleImageClick}
         onPointerDown={handlePointerDown}
