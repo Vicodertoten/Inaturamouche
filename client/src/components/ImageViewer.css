@@ -1,15 +1,18 @@
 /* Conteneur global */
 .image-viewer-container {
   width: 100%;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 /* Wrapper : base pour centrer la box, pas la cible de l'overlay */
 .image-viewer-container .image-wrapper {
-  flex-grow: 1;
+  flex-grow: 0;
   width: 100%;
+  max-width: 600px;
+  max-height: 75vh;
   background-color: var(--bg-color, #0b0b0b);
   border-radius: var(--border-radius, 12px);
   border: 2px solid var(--border-color, rgba(255,255,255,0.1));
@@ -29,6 +32,7 @@
   display: inline-block !important; /* shrink-to-fit */
   line-height: 0 !important;
   max-width: 100% !important;       /* la photo ne dépasse pas le wrapper */
+  max-height: 100% !important;
 }
 
 /* L'image ne doit pas étirer .image-box :
@@ -36,6 +40,7 @@
       limitée par le parent. */
 .image-viewer-container .image-wrapper .image-box > img {
   max-width: 100% !important;
+  max-height: 100% !important;
   height: auto !important;
   user-select: none;
   -webkit-user-drag: none;
@@ -61,6 +66,8 @@
   z-index: 10 !important;            /* au-dessus de l'image */
   backdrop-filter: blur(2px);
   pointer-events: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Boutons de navigation */
