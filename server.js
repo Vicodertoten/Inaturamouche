@@ -11,7 +11,7 @@
 // A) Cooldown par observation (file/Set des dernières obs utilisées)
 // B) Sélection aléatoire d’une observation au sein d’un taxon (en excluant les obs récentes si possible)
 // C) Tirage SANS REMISE corrigé (ne consomme pas les inéligibles) + fallback relax pondéré par ancienneté
-// D) Double cooldown taxon (cible vs leurres) avec fenêtre dynamique
+// D) Cooldown taxon (cible uniquement) avec fenêtre dynamique
 //
 // + Ajouts :
 // - 2e passage "relaxed" pour compléter les leurres
@@ -140,13 +140,10 @@ const MAX_CACHE_ENTRIES = 50;
 const QUIZ_CHOICES = 4;
 const LURE_COUNT = QUIZ_CHOICES - 1;
 
-// Double cooldown (en nombre de questions)
-const COOLDOWN_TARGET_N = 60; // cible
-const COOLDOWN_LURE_N = 24;   // leurres (plus court pour éviter la saturation)
-
-// Variante TTL (ms) si souhaitée (null = désactivé)
+// Cooldown (en nombre de questions) — CIBLE UNIQUEMENT
+const COOLDOWN_TARGET_N = 60;
+// Variante TTL (ms) si souhaitée (null = désactivé) — CIBLE UNIQUEMENT
 const COOLDOWN_TARGET_MS = null;
-const COOLDOWN_LURE_MS = null;
 
 // Anti-répétition par OBSERVATION (pour la cible)
 const RECENT_OBS_MAX = 200;
@@ -166,13 +163,10 @@ const questionCache = new Map();
     shuffledTaxonIds: string[],
     cursor: number,
 
-    // Cooldown taxon (séparé cible/leurres)
+    // Cooldown taxon (cible uniquement)
     recentTargetTaxa: string[],  // FIFO
     recentTargetSet: Set<string>,
-    recentLureTaxa: string[],    // FIFO
-    recentLureSet: Set<string>,
     cooldownTarget: Map<string, number> | null, // TTL si *_MS utilisés
-    cooldownLure: Map<string, number> | null,
 
     // Mémoire d'observations (cible)
     recentObsQueue: string[],
@@ -212,7 +206,7 @@ function isValidISODate(s) {
   return typeof s === "string" && !Number.isNaN(Date.parse(s));
 }
 
-// Cooldown dynamique : borne par la taille du pool
+// Cooldown dynamique : borne par la taille du pool (cible)
 function effectiveCooldownN(baseN, taxonListLen) {
   const cap = Math.max(0, taxonListLen - QUIZ_CHOICES);
   return Math.max(0, Math.min(baseN, cap));
@@ -309,11 +303,9 @@ function pickObservationForTaxon(cacheEntry, taxonId) {
   const list = cacheEntry.byTaxon.get(String(taxonId)) || [];
   if (list.length === 0) return null;
 
-  // Heuristique simple : préférer les obs non vues récemment ; sinon fallback
   const pool = list.filter(o => !cacheEntry.recentObsSet.has(String(o.id)));
   const arr = pool.length ? pool : list;
 
-  // Tirage uniforme (tu peux pondérer par identifications/faves si tu veux affiner)
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
@@ -325,66 +317,40 @@ function lcaDepth(ancA = [], ancB = []) {
   return i; // plus grand = plus proche
 }
 
-// Gestion du cooldown (MS ou N)
+// Cooldown cible (TTL ou fenêtre en N)
 function purgeTTLMap(ttlMap, now) {
   if (!ttlMap) return;
   for (const [k, exp] of ttlMap.entries()) {
     if (exp <= now) ttlMap.delete(k);
   }
 }
-function isBlockedByCooldown(cacheEntry, taxonId, now) {
+function isBlockedByTargetCooldown(cacheEntry, taxonId, now) {
   const id = String(taxonId);
-  // TTL maps
-  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) purgeTTLMap(cacheEntry.cooldownTarget, now);
-  if (COOLDOWN_LURE_MS && cacheEntry.cooldownLure) purgeTTLMap(cacheEntry.cooldownLure, now);
-
-  const ttlBlock =
-    (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget?.has(id)) ||
-    (COOLDOWN_LURE_MS && cacheEntry.cooldownLure?.has(id));
-
-  const listBlock =
-    cacheEntry.recentTargetSet.has(id) ||
-    cacheEntry.recentLureSet.has(id);
-
-  return Boolean(ttlBlock || listBlock);
+  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
+    purgeTTLMap(cacheEntry.cooldownTarget, now);
+    if (cacheEntry.cooldownTarget.has(id)) return true;
+  }
+  if (cacheEntry.recentTargetSet.has(id)) return true;
+  return false;
 }
 
-// Ajout au cooldown (cible vs leurre)
-function pushCooldown(cacheEntry, taxonIds, now, { as = "target" } = {}) {
+// Ajout au cooldown (cible uniquement)
+function pushTargetCooldown(cacheEntry, taxonIds, now) {
   const ids = taxonIds.map(String);
-  if (as === "target") {
-    if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
-      const exp = now + COOLDOWN_TARGET_MS;
-      for (const id of ids) cacheEntry.cooldownTarget.set(id, exp);
-    } else {
-      for (const id of ids) {
-        if (!cacheEntry.recentTargetSet.has(id)) {
-          cacheEntry.recentTargetTaxa.unshift(id);
-          cacheEntry.recentTargetSet.add(id);
-        }
-      }
-      const limit = effectiveCooldownN(COOLDOWN_TARGET_N, cacheEntry.taxonList.length);
-      while (cacheEntry.recentTargetTaxa.length > limit) {
-        const removed = cacheEntry.recentTargetTaxa.pop();
-        cacheEntry.recentTargetSet.delete(removed);
+  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
+    const exp = now + COOLDOWN_TARGET_MS;
+    for (const id of ids) cacheEntry.cooldownTarget.set(id, exp);
+  } else {
+    for (const id of ids) {
+      if (!cacheEntry.recentTargetSet.has(id)) {
+        cacheEntry.recentTargetTaxa.unshift(id);
+        cacheEntry.recentTargetSet.add(id);
       }
     }
-  } else {
-    if (COOLDOWN_LURE_MS && cacheEntry.cooldownLure) {
-      const exp = now + COOLDOWN_LURE_MS;
-      for (const id of ids) cacheEntry.cooldownLure.set(id, exp);
-    } else {
-      for (const id of ids) {
-        if (!cacheEntry.recentLureSet.has(id)) {
-          cacheEntry.recentLureTaxa.unshift(id);
-          cacheEntry.recentLureSet.add(id);
-        }
-      }
-      const limit = effectiveCooldownN(COOLDOWN_LURE_N, cacheEntry.taxonList.length);
-      while (cacheEntry.recentLureTaxa.length > limit) {
-        const removed = cacheEntry.recentLureTaxa.pop();
-        cacheEntry.recentLureSet.delete(removed);
-      }
+    const limit = effectiveCooldownN(COOLDOWN_TARGET_N, cacheEntry.taxonList.length);
+    while (cacheEntry.recentTargetTaxa.length > limit) {
+      const removed = cacheEntry.recentTargetTaxa.pop();
+      cacheEntry.recentTargetSet.delete(removed);
     }
   }
 }
@@ -398,7 +364,7 @@ function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
     const key = String(tid);
     if (excludeSet.has(key)) return false;
     if (!cacheEntry.byTaxon.get(key)?.length) return false;
-    if (isBlockedByCooldown(cacheEntry, key, now)) return false;
+    if (isBlockedByTargetCooldown(cacheEntry, key, now)) return false;
     return true;
   };
 
@@ -420,26 +386,20 @@ function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
   return null;
 }
 
-// Fallback relax : tirage pondéré par "ancienneté"
+// Fallback relax : tirage pondéré par "ancienneté" (cible uniquement)
 function pickRelaxedTaxon(cacheEntry, excludeSet = new Set()) {
   const all = cacheEntry.taxonList.filter(
     (t) => !excludeSet.has(String(t)) && cacheEntry.byTaxon.get(String(t))?.length
   );
   if (all.length === 0) return null;
 
-  // Poids : jamais vu => 5 ; sinon plus l'espèce est "vieille" dans les files, plus le poids est grand
+  // Poids : jamais choisi en cible => 5 ; sinon plus "ancien" en cible => poids plus élevé
   const weightFor = (id) => {
     const s = String(id);
     const idxT = cacheEntry.recentTargetTaxa.indexOf(s);
-    const idxL = cacheEntry.recentLureTaxa.indexOf(s);
-    const unseen = idxT === -1 && idxL === -1;
-    if (unseen) return 5;
-
+    if (idxT === -1) return 5;
     const lenT = cacheEntry.recentTargetTaxa.length;
-    const lenL = cacheEntry.recentLureTaxa.length;
-    const ageT = idxT === -1 ? lenT : Math.max(1, lenT - idxT);
-    const ageL = idxL === -1 ? lenL : Math.max(1, lenL - idxL);
-    return ageT + ageL; // plus grand => plus ancien
+    return Math.max(1, lenT - idxT);
   };
 
   const weights = all.map(weightFor);
@@ -643,11 +603,7 @@ app.get(
 
         recentTargetTaxa: [],
         recentTargetSet: new Set(),
-        recentLureTaxa: [],
-        recentLureSet: new Set(),
-
         cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
-        cooldownLure: COOLDOWN_LURE_MS ? new Map() : null,
 
         recentObsQueue: [],
         recentObsSet: new Set(),
@@ -655,7 +611,7 @@ app.get(
       setWithLimit(questionCache, cacheKey, cacheEntry);
     }
 
-    // CIBLE : sans-remise + cooldowns
+    // CIBLE : sans-remise + cooldown
     const excludeTaxaForTarget = new Set();
     let targetTaxonId = nextEligibleTaxonId(cacheEntry, now, excludeTaxaForTarget);
 
@@ -665,7 +621,7 @@ app.get(
       targetTaxonId = pickRelaxedTaxon(cacheEntry, excludeTaxaForTarget);
       selectionMode = "fallback_relax";
       req.log?.info(
-        { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length, recentL: cacheEntry.recentLureTaxa.length },
+        { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
         "Target fallback relax engaged"
       );
     }
@@ -682,12 +638,11 @@ app.get(
     rememberObservation(cacheEntry, targetObservation.id);
 
     // --- Construction des leurres ---
+    // ⚠️ Pas de cooldown pour les leurres (seulement éviter la cible et exiger du contenu)
     const isTaxonEligibleForLure = (tid) => {
       const key = String(tid);
       if (key === String(targetTaxonId)) return false;
       if (!cacheEntry.byTaxon.get(key)?.length) return false;
-      // pour les leurres stricts, on respecte le double cooldown (cible+leurres)
-      if (isBlockedByCooldown(cacheEntry, key, now)) return false;
       return true;
     };
 
@@ -737,7 +692,7 @@ app.get(
       }
     }
 
-    // 2e passage RELAXÉ (ignore cooldown) pour compléter
+    // 2e passage RELAXÉ (ignore tout sauf ≠ cible) pour compléter
     let luresRelaxUsed = false;
     if (lures.length < LURE_COUNT) {
       const relaxedTaxa = cacheEntry.taxonList.filter(
@@ -780,9 +735,8 @@ app.get(
       .map((p) => (p?.url ? p.url.replace("square", "large") : null))
       .filter(Boolean);
 
-    // Cooldown : cible vs leurres
-    pushCooldown(cacheEntry, [String(targetTaxonId)], now, { as: "target" });
-    pushCooldown(cacheEntry, lures.map((l) => String(l.taxonId)), now, { as: "lure" });
+    // Cooldown : CIBLE UNIQUEMENT
+    pushTargetCooldown(cacheEntry, [String(targetTaxonId)], now);
 
     // Entêtes debug
     res.set("X-Quiz-Id", String(targetTaxonId));
