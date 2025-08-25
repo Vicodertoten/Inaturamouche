@@ -2,6 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import './ImageViewer.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
+// Detect native support for the `loading="lazy"` attribute.
+// Fallback: when unsupported (e.g. Safari), the image loads immediately.
+// An IntersectionObserver could be used here instead to emulate lazy loading.
+const supportsLazyLoading =
+  typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
+
 const MAX_ZOOM = 2.5;
 
 // Fallback inline styles (au cas où le CSS ne serait pas appliqué)
@@ -182,7 +188,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
             srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
             sizes="(max-width: 600px) 100vw, 600px"
             alt={alt}
-            loading="lazy"
+            {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
             decoding={currentIndex === 0 ? 'async' : undefined}
             fetchPriority={currentIndex === 0 ? 'high' : undefined}
             onLoad={handleImageLoad}
