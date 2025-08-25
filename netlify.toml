@@ -19,3 +19,21 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Cache long pour assets fingerprintés Vite
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Pas de cache sur le HTML
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-store"
+
+# (Optionnel) Sécurité de base côté statique
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Referrer-Policy = "strict-origin-when-cross-origin"
