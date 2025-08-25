@@ -2,6 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 
+// Detect support for native lazy-loading on images.
+// Fallback: without support (e.g. Safari), images load immediately.
+// An IntersectionObserver could be used here to manually defer loading.
+const supportsLazyLoading =
+  typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
+
 
 // Affiche le récapitulatif d'une manche avec le résultat (victoire/défaite)
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
@@ -61,7 +67,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
             sizes="(max-width: 600px) 100vw, 400px"
             alt={commonName || scientificName}
             className="answer-image"
-            loading="lazy"
+            {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
             decoding={imageUrl ? 'async' : undefined}
             fetchpriority={imageUrl ? 'high' : undefined}
           />
