@@ -1,4 +1,12 @@
-// server.js — Inaturamouche (robuste, anti-cache API, anti-répétitions)
+// server.js — Inaturamouche (durci + observabilité + validation)
+// Basé sur ta version existante avec logique quiz/caches/anti-répétitions, enrichi :
+// - Helmet avec CSP + Referrer-Policy
+// - Pino logs HTTP
+// - Rate-limit global + spécifique quiz (~1 req/s)
+// - Validation Zod (quiz, autocomplete, species_counts)
+// - Endpoint /api/observations/species_counts
+// - Healthcheck /healthz (warm-up Render)
+
 import express from "express";
 import cors from "cors";
 import compression from "compression";
@@ -63,8 +71,39 @@ app.use(
     }
   })
 );
+app.disable("x-powered-by"); // durcissement
+app.set("etag", false);       // pas d'ETag global (on gère le cache ci-dessous)
+
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+
+/* -------------------- Logs HTTP structurés (Pino) -------------------- */
+app.use(
+  pinoHttp({
+    redact: ["req.headers.authorization", "req.headers.cookie"],
+    autoLogging: true,
+  })
+);
+
+/* -------------------- Rate-limit -------------------- */
+// Global pour /api : 300 req / 15 min / IP
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  })
+);
+
+// Spécifique quiz : ~1 req/s (60/min)
+const quizLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
 
 /* -------------------- Politique de cache -------------------- */
 // IMPORTANT : pas de cache sur l'API (sinon "toujours la même question")
@@ -73,8 +112,6 @@ app.use((req, res, next) => {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.set("Pragma", "no-cache");
     res.set("Expires", "0");
-    res.removeHeader("ETag");
-    // bonne pratique : varier aussi sur la langue
     res.set("Vary", "Origin, Accept-Language");
   } else {
     res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
@@ -93,7 +130,7 @@ const LURE_COUNT = QUIZ_CHOICES - 1;
 
 // Anti-répétitions : ACTIVER L’UN DES DEUX
 const COOL_DOWN_N = 50;        // ne pas revoir une espèce dans les 50 prochaines questions
-const COOL_DOWN_MS = null;     // ex. 7 * 24 * 60 * 60 * 1000 pour 7 jours ; laisser null si non utilisé
+const COOL_DOWN_MS = null;     // ex. 7 * 24 * 60 * 60 * 1000 ; laisser null si non utilisé
 
 const questionCache = new Map();
 /*
@@ -184,7 +221,7 @@ async function getFullTaxaDetails(taxonIds, locale = "fr") {
     const localizedResponse = await fetchJSON(path, { locale });
     const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
 
-    // Fallback en si champs manquants
+    // Fallback si champs manquants
     if (!locale.startsWith("en")) {
       const defaultResponse = await fetchJSON(path);
       const defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
@@ -215,14 +252,59 @@ function asyncRoute(handler) {
     });
 }
 
+/* -------------------- Validation (Zod) -------------------- */
+const quizSchema = z.object({
+  pack_id: z.string().optional(),
+  taxon_ids: z.string().optional(),
+  include_taxa: z.string().optional(),
+  exclude_taxa: z.string().optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radius: z.coerce.number().min(1).max(200).optional(),
+  d1: z.string().optional(),
+  d2: z.string().optional(),
+  locale: z.string().default("fr"),
+});
+
+const autocompleteSchema = z.object({
+  q: z.string().min(2),
+  rank: z.string().optional(),
+  locale: z.string().default("fr"),
+});
+
+const speciesCountsSchema = z.object({
+  taxon_ids: z.string().optional(),
+  include_taxa: z.string().optional(),
+  exclude_taxa: z.string().optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radius: z.coerce.number().min(1).max(200).optional(),
+  d1: z.string().optional(),
+  d2: z.string().optional(),
+  locale: z.string().default("fr"),
+  per_page: z.coerce.number().min(1).max(200).default(100),
+  page: z.coerce.number().min(1).max(500).default(1),
+});
+
+function validate(schema) {
+  return (req, res, next) => {
+    const parsed = schema.safeParse({ ...req.query, ...req.body });
+    if (!parsed.success) return res.status(400).json({ error: "Bad request", issues: parsed.error.issues });
+    req.query = parsed.data; // on normalise pour la suite (routes existantes lisent req.query)
+    next();
+  };
+}
+
 /* -------------------- Routes -------------------- */
 
-// Santé/monitoring
+// Santé/monitoring — warm-up Render
 app.get("/healthz", (req, res) => res.json({ ok: true }));
 
 // Génération d’une question (sélection robuste + anti-répétitions)
 app.get(
   "/api/quiz-question",
+  quizLimiter,
+  validate(quizSchema),
   asyncRoute(async (req, res) => {
     const {
       pack_id,
@@ -422,12 +504,12 @@ app.get(
 // Autocomplete taxons
 app.get(
   "/api/taxa/autocomplete",
+  validate(autocompleteSchema),
   asyncRoute(async (req, res) => {
     const { q, rank, locale = "fr" } = req.query;
-    if (!q || String(q).trim().length < 2) return res.json([]);
-
     const now = Date.now();
     const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
+
     const cached = autocompleteCache.get(cacheKey);
     if (cached && cached.expires > now) {
       return res.json(cached.data);
@@ -489,6 +571,45 @@ app.get(
 
     const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
     res.json(taxaDetails);
+  })
+);
+
+// Species counts (équilibrage / filtres)
+app.get(
+  "/api/observations/species_counts",
+  validate(speciesCountsSchema),
+  asyncRoute(async (req, res) => {
+    const {
+      taxon_ids,
+      include_taxa,
+      exclude_taxa,
+      lat,
+      lng,
+      radius,
+      d1,
+      d2,
+      locale,
+      per_page,
+      page,
+    } = req.query;
+
+    const params = {
+      locale,
+      per_page,
+      page,
+      verifiable: true,
+      quality_grade: "research",
+    };
+
+    if (taxon_ids) params.taxon_id = taxon_ids;
+    if (include_taxa) params.taxon_id = include_taxa;
+    if (exclude_taxa) params.without_taxon_id = exclude_taxa;
+    if (lat != null && lng != null && radius != null) Object.assign(params, { lat, lng, radius });
+    if (d1) params.d1 = d1;
+    if (d2) params.d2 = d2;
+
+    const data = await fetchJSON("https://api.inaturalist.org/v1/observations/species_counts", params);
+    res.json(data);
   })
 );
 
