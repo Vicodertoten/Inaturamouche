@@ -7,6 +7,11 @@
   margin-right: auto;
 }
 
+/* Limite la hauteur des images verticales en mode difficile */
+.hard-mode-container .image-wrapper.portrait {
+  max-height: 55vh;
+}
+
 /* --- Styles pour les écrans larges (ordinateurs) --- */
 @media (min-width: 992px) {
   .hard-mode-container {
