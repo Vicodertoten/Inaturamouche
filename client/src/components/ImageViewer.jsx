@@ -172,7 +172,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         aria-label={alt}
       >
         {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
-        <div className="image-box">
+        <div className="image-box" style={{ position: 'relative' }}>
           <img
             src={getSizedImageUrl(imageUrls[currentIndex], 'medium')}
             srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
@@ -188,8 +188,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               aspectRatio,
               transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
               transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
-              position: 'relative',
-              zIndex: 0,
               display: 'block' // évite le whitespace inline
             }}
             draggable={false}
