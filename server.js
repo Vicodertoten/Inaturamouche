@@ -27,7 +27,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4173",
   "https://inaturamouche.onrender.com",
-  "https://inaturamouche.vercel.app",
+  "https://inaturaquizz.onrender.app",
 ];
 const corsOptions = {
   origin: function (origin, callback) {
