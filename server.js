@@ -43,6 +43,24 @@ app.use(
   helmet({
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "connect-src": ["'self'", "https://api.inaturalist.org"],
+        "img-src": [
+          "'self'",
+          "data:",
+          "https:",
+          "https://static.inaturalist.org",
+          "https://inaturalist-open-data.s3.amazonaws.com"
+        ],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "font-src": ["'self'", "https:", "data:"],
+        "script-src": ["'self'"]
+      }
+    }
   })
 );
 app.use(compression());
