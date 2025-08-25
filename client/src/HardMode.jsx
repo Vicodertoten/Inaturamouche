@@ -210,8 +210,9 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
         <RoundSummaryModal status={roundStatus} question={question} scoreInfo={scoreInfo} onNext={handleNext} />
       )}
 
-      <div className="hard-mode-container">
-        <h2 className="main-hard-mode-title">Identifier l'espèce</h2>
+      <div className="screen game-screen hard-mode">
+        <div className="hard-mode-container">
+          <h2 className="main-hard-mode-title">Identifier l'espèce</h2>
         
         <div className="proposition-panel">
           <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
@@ -264,6 +265,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
               Révéler (-{REVEAL_HINT_COST} chances)
             </button>
           </div>
+        </div>
         </div>
       </div>
     </>
