@@ -155,8 +155,8 @@ const COOLDOWN_TARGET_MS = null;
 const RECENT_OBS_MAX = 200;
 
 // Extension du pool
-const MAX_OBS_PAGES = 2;
-const DISTINCT_TAXA_TARGET = 60;
+const MAX_OBS_PAGES = 3;
+const DISTINCT_TAXA_TARGET = 40;
 
 // Seuils proximité des leurres (profondeur LCA normalisée par profondeur cible)
 const LURE_NEAR_THRESHOLD = 0.85;
@@ -550,7 +550,7 @@ app.get(
         quality_grade: "research",
         photos: true,
         rank: "species",
-        per_page: 80,
+        per_page: 50,
         locale,
       };
 
