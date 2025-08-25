@@ -22,6 +22,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+/* -------------------- PROXY (Render/Cloudflare) -------------------- */
+// IMPORTANT: nécessaire pour que express-rate-limit identifie correctement les IP
+app.set("trust proxy", true);
+
 /* -------------------- CORS -------------------- */
 const allowedOrigins = [
   "http://localhost:5173",
@@ -189,7 +193,14 @@ async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, ret
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(urlObj, { signal: controller.signal, headers: { Accept: "application/json" } });
+      const response = await fetch(urlObj, {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          // iNaturalist apprécie un User-Agent explicite
+          "User-Agent": "Inaturamouche/1.0 (+contact: you@example.com)",
+        }
+      });
       clearTimeout(timer);
       if (!response.ok) {
         if ((response.status >= 500 || response.status === 429) && attempt < retries) {
@@ -286,11 +297,13 @@ const speciesCountsSchema = z.object({
   page: z.coerce.number().min(1).max(500).default(1),
 });
 
+// ⚠️ Express 5: req.query est en lecture seule → on n'y écrit plus.
+// On pose la version validée sur req.valid et on l'utilise dans les routes.
 function validate(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse({ ...req.query, ...req.body });
     if (!parsed.success) return res.status(400).json({ error: "Bad request", issues: parsed.error.issues });
-    req.query = parsed.data; // on normalise pour la suite (routes existantes lisent req.query)
+    req.valid = parsed.data;
     next();
   };
 }
@@ -317,7 +330,7 @@ app.get(
       d1,
       d2,
       locale = "fr",
-    } = req.query;
+    } = req.valid; // ⬅️ lire depuis req.valid
 
     // Paramètres iNat
     const params = {
@@ -506,7 +519,7 @@ app.get(
   "/api/taxa/autocomplete",
   validate(autocompleteSchema),
   asyncRoute(async (req, res) => {
-    const { q, rank, locale = "fr" } = req.query;
+    const { q, rank, locale = "fr" } = req.valid; // ⬅️ lire depuis req.valid
     const now = Date.now();
     const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
 
@@ -591,7 +604,7 @@ app.get(
       locale,
       per_page,
       page,
-    } = req.query;
+    } = req.valid; // ⬅️ lire depuis req.valid
 
     const params = {
       locale,
