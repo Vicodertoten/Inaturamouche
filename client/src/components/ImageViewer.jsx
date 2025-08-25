@@ -11,29 +11,6 @@ const supportsLazyLoading =
 const MAX_ZOOM = 2.5;
 
 // Fallback inline styles (au cas où le CSS ne serait pas appliqué)
-const Fallback = {
-  overlay: {
-    position: 'absolute', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
-    display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '6px 10px', background: 'rgba(0,0,0,0.4)', borderRadius: '9999px',
-    zIndex: 10, backdropFilter: 'blur(2px)',
-    maxWidth: '100%', boxSizing: 'border-box'
-  },
-  arrow: {
-    width: '36px', height: '36px', borderRadius: '999px', border: 'none',
-    background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: '20px',
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer'
-  },
-  dots: { display: 'flex', alignItems: 'center', gap: '8px' },
-  dot: {
-    width: '10px', height: '10px', borderRadius: '999px',
-    background: 'rgba(255,255,255,0.55)', border: 'none', padding: 0, cursor: 'pointer'
-  }
-};
 
 function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const [currentIndex, setCurrentIndex] = useState(0);
