@@ -16,8 +16,8 @@
   background-color: var(--bg-color, #0b0b0b);
   border-radius: var(--border-radius, 12px);
   border: 2px solid var(--border-color, rgba(255,255,255,0.1));
-  overflow: hidden !important;
-  position: relative !important;
+  overflow: hidden;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,19 +45,19 @@
   user-select: none;
   -webkit-user-drag: none;
   position: relative;
-  z-index: 0 !important;             /* sous l'overlay */
+  z-index: 0;             /* sous l'overlay */
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: block;                    /* pas d'espace inline */
   /* object-fit n'a d'effet que si width & height sont imposés ; on le retire ici */
 }
 
 /* Overlay centré en bas — ANCRÉ à .image-box (donc bien à la photo) */
-.image-viewer-container .image-wrapper .image-box .nav-overlay {
+.nav-overlay {
   position: absolute !important;
   left: 50% !important;
   bottom: 12px !important;
   transform: translateX(-50%) !important;
-  display: flex !important;
+  display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
@@ -131,7 +131,7 @@
 
 /* Mobile */
 @media (max-width: 480px) {
-  .image-viewer-container .image-wrapper .image-box .nav-overlay { bottom: 8px !important; padding: 6px 8px; gap: 8px; }
+  .nav-overlay { bottom: 8px !important; padding: 6px 8px; gap: 8px; }
   .image-viewer-container .image-wrapper .nav-button { width: 32px; height: 32px; font-size: 18px; }
   .image-viewer-container .image-wrapper .dot { width: 8px; height: 8px; }
 }
