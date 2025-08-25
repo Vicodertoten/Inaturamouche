@@ -1,39 +1,52 @@
+# netlify.toml — Inaturamouche
 [build]
   base    = "client"
   command = "npm ci && npm run build"
   publish = "dist"
 
-[build.environment]
-  NODE_VERSION = "22"
-  VITE_API_BASE_URL = "/api"   # le front appellera /api
-
-# Proxy des appels API vers Render
+# Proxy API -> Render (laisse ce bloc même si tu appelles en absolu, ça sert pour dev/évolutions)
 [[redirects]]
   from = "/api/*"
-  to = "https://inaturamouche.onrender.com/:splat"
+  to   = "https://inaturamouche.onrender.com/:splat"
   status = 200
-  force = true
+  force  = true
 
-# SPA fallback (Vite/React)
+# SPA fallback
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
   status = 200
 
-# Cache long pour assets fingerprintés Vite
+# Cache long pour assets
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Pas de cache sur le HTML
+# Pas de cache pour l'HTML
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-store"
 
-# (Optionnel) Sécurité de base côté statique
+# SW & workbox
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/workbox-*.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Sécurité (CSP élargie pour autoriser Render)
 [[headers]]
   for = "/*"
   [headers.values]
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://api.inaturalist.org https://inaturamouche.onrender.com; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https: data:"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Resource-Policy = "cross-origin"
