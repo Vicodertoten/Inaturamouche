@@ -19,6 +19,12 @@
   status = 200
   force  = true
 
+# Exclude assets from SPA fallback
+[[redirects]]
+  from = "/assets/*"
+  to   = "/assets/:splat"
+  status = 200
+
 # SPA fallback pour le routage client
 [[redirects]]
   from = "/*"
