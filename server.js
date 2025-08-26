@@ -486,7 +486,8 @@ const quizSchema = z.object({
   exclude_taxa: stringOrArray.optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
-  radius: z.coerce.number().min(1).max(200).optional(),
+  // Allow large radius values but we'll clamp to the iNaturalist API limit later.
+  radius: z.coerce.number().min(1).max(1000).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
   locale: z.string().default("fr"),
@@ -504,7 +505,8 @@ const speciesCountsSchema = z.object({
   exclude_taxa: stringOrArray.optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
-  radius: z.coerce.number().min(1).max(200).optional(),
+  // Accept large radius values; they are clamped before querying iNaturalist.
+  radius: z.coerce.number().min(1).max(1000).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
   locale: z.string().default("fr"),
