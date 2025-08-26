@@ -362,7 +362,7 @@ const handleProfileReset = () => {
               sessionCorrectSpecies={sessionCorrectSpecies}
               sessionSpeciesData={sessionSpeciesData}
               newlyUnlocked={newlyUnlocked}
-              onRestart={startGame}
+              onRestart={() => startGame(false)}
               onReturnHome={returnToConfig}
             />
           ) : (
