@@ -336,14 +336,14 @@ export default function GeoFilter({
           onClick={() => setTab("place")}
           className={tab === "place" ? "active" : ""}
         >
-          Lieu (place_id)
+          Lieu
         </button>
         <button
           type="button"
           onClick={() => setTab("map")}
           className={tab === "map" ? "active" : ""}
         >
-          Carte (rectangle)
+          Carte
         </button>
       </div>
 
@@ -366,7 +366,7 @@ export default function GeoFilter({
           </div>
 
           <input
-            placeholder="Cherche un pays, une région, un parc… (Enter pour ajouter)"
+            placeholder="Cherche un pays, une région, un parc…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onEnter}
