@@ -137,14 +137,8 @@ function BBoxSelector({ value, onChange }) {
       let nne = L.latLng(ne.lat, ne.lng);
       if (which === "sw") nsw = p;
       if (which === "ne") nne = p;
-      if (which === "nw") {
-        nsw = L.latLng(p.lat, sw.lng);
-        nne = L.latLng(ne.lat, p.lng);
-      }
-      if (which === "se") {
-        nsw = L.latLng(sw.lat, p.lng);
-        nne = L.latLng(p.lat, ne.lng);
-      }
+      if (which === "nw") { nsw = L.latLng(sw.lat, p.lng); nne = L.latLng(p.lat, ne.lng); }
+      if (which === "se") { nsw = L.latLng(p.lat, sw.lng); nne = L.latLng(ne.lat, p.lng); }
       setBounds(toBounds(nsw, nne));
     };
 
