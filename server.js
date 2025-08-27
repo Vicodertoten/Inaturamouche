@@ -202,7 +202,11 @@ function effectiveCooldownN(baseN, taxonListLen) {
 
 function geoParams(q) {
   const p = {};
-  if (q.place_id) return { p: { place_id: q.place_id }, mode: "place_id" };
+  if (q.place_id) {
+   const raw = Array.isArray(q.place_id) ? q.place_id.join(",") : String(q.place_id);
+   const list = raw.split(",").map(s => s.trim()).filter(Boolean);
+   if (list.length) return { p: { place_id: list.join(",") }, mode: "place_id" };
+ }
   const hasBbox = [q.nelat, q.nelng, q.swlat, q.swlng].every((v) => v != null);
   if (hasBbox)
     return {
@@ -496,7 +500,7 @@ const quizSchema = z.object({
   taxon_ids: stringOrArray.optional(),
   include_taxa: stringOrArray.optional(),
   exclude_taxa: stringOrArray.optional(),
-  place_id: z.string().optional(),
+  place_id: z.union([z.string(), z.array(z.string())]).optional(),
   nelat: z.coerce.number().min(-90).max(90).optional(),
   nelng: z.coerce.number().min(-180).max(180).optional(),
   swlat: z.coerce.number().min(-90).max(90).optional(),
