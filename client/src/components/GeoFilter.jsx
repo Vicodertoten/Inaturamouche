@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { MapContainer, TileLayer, Rectangle, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Rectangle, useMapEvents, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { autocompletePlaces } from "../services/api";
@@ -10,6 +10,7 @@ function BBoxSelector({ value, onChange }) {
   const [start, setStart] = useState(null);
   const map = useMapEvents({
     mousedown(e) {
+      if (e.originalEvent.target.closest(".bbox-handle")) return;
       setStart(e.latlng);
       setBounds([e.latlng, e.latlng]);
       map.dragging.disable();
@@ -34,6 +35,21 @@ function BBoxSelector({ value, onChange }) {
     },
   });
 
+  // Default rectangle when switching to map mode
+  useEffect(() => {
+    if (!value || value.mode !== "map") {
+      const c = map.getCenter();
+      const sw = L.latLng(c.lat - 1, c.lng - 1);
+      const ne = L.latLng(c.lat + 1, c.lng + 1);
+      setBounds([sw, ne]);
+      onChange({
+        mode: "map",
+        nelat: +ne.lat.toFixed(6), nelng: +ne.lng.toFixed(6),
+        swlat: +sw.lat.toFixed(6), swlng: +sw.lng.toFixed(6),
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (value?.mode === "map") {
       const b = L.latLngBounds(
@@ -41,12 +57,95 @@ function BBoxSelector({ value, onChange }) {
         L.latLng(value.nelat, value.nelng)
       );
       setBounds([b.getSouthWest(), b.getNorthEast()]);
-    } else {
-      setBounds(null);
     }
   }, [value]);
 
-  return bounds ? <Rectangle bounds={bounds} pathOptions={{ color: "red" }} /> : null;
+  function update(sw, ne) {
+    setBounds([sw, ne]);
+    onChange({
+      mode: "map",
+      nelat: +ne.lat.toFixed(6), nelng: +ne.lng.toFixed(6),
+      swlat: +sw.lat.toFixed(6), swlng: +sw.lng.toFixed(6),
+    });
+  }
+
+  if (!bounds) return null;
+
+  const sw = bounds[0];
+  const ne = bounds[1];
+  const nw = L.latLng(ne.lat, sw.lng);
+  const se = L.latLng(sw.lat, ne.lng);
+  const nMid = L.latLng(ne.lat, (sw.lng + ne.lng) / 2);
+  const sMid = L.latLng(sw.lat, (sw.lng + ne.lng) / 2);
+  const eMid = L.latLng((sw.lat + ne.lat) / 2, ne.lng);
+  const wMid = L.latLng((sw.lat + ne.lat) / 2, sw.lng);
+
+  const handleIcon = L.divIcon({
+    className: "",
+    html: '<div class="bbox-handle" style="width:8px;height:8px;background:red;border:2px solid #fff"></div>',
+  });
+
+  function dragCorner(which) {
+    return e => {
+      const p = e.target.getLatLng();
+      let newSw = L.latLng(sw.lat, sw.lng);
+      let newNe = L.latLng(ne.lat, ne.lng);
+      if (which === "sw") {
+        newSw = p;
+      } else if (which === "nw") {
+        newSw = L.latLng(p.lat, sw.lng);
+        newNe = L.latLng(ne.lat, p.lng);
+      } else if (which === "ne") {
+        newNe = p;
+      } else if (which === "se") {
+        newSw = L.latLng(sw.lat, p.lng);
+        newNe = L.latLng(p.lat, ne.lng);
+      }
+      update(newSw, newNe);
+    };
+  }
+
+  function dragEdge(which) {
+    return e => {
+      const p = e.target.getLatLng();
+      let newSw = L.latLng(sw.lat, sw.lng);
+      let newNe = L.latLng(ne.lat, ne.lng);
+      if (which === "n") {
+        newNe = L.latLng(p.lat, ne.lng);
+      } else if (which === "s") {
+        newSw = L.latLng(p.lat, sw.lng);
+      } else if (which === "e") {
+        newNe = L.latLng(ne.lat, p.lng);
+      } else if (which === "w") {
+        newSw = L.latLng(sw.lat, p.lng);
+      }
+      update(newSw, newNe);
+    };
+  }
+
+  return (
+    <>
+      <Rectangle bounds={bounds} pathOptions={{ color: "red" }} />
+      {[sw, nw, ne, se].map((p, i) => (
+        <Marker
+          key={i}
+          position={p}
+          icon={handleIcon}
+          draggable
+          eventHandlers={{ drag: dragCorner(["sw", "nw", "ne", "se"][i]) }}
+        />
+      ))}
+      {[nMid, sMid, eMid, wMid].map((p, i) => (
+        <Marker
+          key={`e${i}`}
+          position={p}
+          icon={handleIcon}
+          draggable
+          eventHandlers={{ drag: dragEdge(["n", "s", "e", "w"][i]) }}
+        />
+      ))}
+    </>
+  );
 }
 
 export default function GeoFilter({ value, onChange, initialCenter = [48.85, 2.35], initialZoom = 5 }) {
