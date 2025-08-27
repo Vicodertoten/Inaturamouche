@@ -2,7 +2,7 @@ export const initialCustomFilters = {
   includedTaxa: [],
   excludedTaxa: [],
   place_enabled: false,
-  lat: 46.6, lng: 1.88, radius: 100,
+  geo: { mode: 'place' },
   date_enabled: false, d1: '', d2: ''
 };
 
@@ -22,9 +22,9 @@ export function customFilterReducer(state, action) {
       return { ...state, place_enabled: !state.place_enabled };
     case 'TOGGLE_DATE':
       return { ...state, date_enabled: !state.date_enabled };
-    case 'SET_AREA':
-      return { ...state, lat: action.payload.lat, lng: action.payload.lng, radius: action.payload.radius };
-    case 'SET_FILTER': 
+    case 'SET_GEO':
+      return { ...state, geo: action.payload };
+    case 'SET_FILTER':
       return { ...state, [action.payload.name]: action.payload.value };
     default:
       return state;

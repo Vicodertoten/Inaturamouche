@@ -1,6 +1,6 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import AutocompleteInput from './AutocompleteInput';
-const MapFilter = lazy(() => import('./MapFilter'));
+import GeoFilter from './components/GeoFilter.jsx';
 
 const TaxonPill = React.memo(({ taxon, onRemove }) => (
   <div className="taxon-pill">
@@ -67,9 +67,7 @@ function CustomFilter({ filters, dispatch }) {
           </label>
         </legend>
         {filters.place_enabled && (
-          <Suspense fallback={<div>Chargement de la carte...</div>}>
-            <MapFilter filters={filters} dispatch={dispatch} />
-          </Suspense>
+          <GeoFilter value={filters.geo} onChange={(v) => dispatch({ type: 'SET_GEO', payload: v })} />
         )}
       </fieldset>
 
