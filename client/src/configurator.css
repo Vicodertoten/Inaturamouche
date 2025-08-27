@@ -206,3 +206,24 @@
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
+
+/* --- Tabs for place/map selection in GeoFilter --- */
+.geo-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.geo-tabs button.active {
+  border-color: var(--accent-color);
+  background-color: var(--accent-color);
+  color: var(--bg-color);
+}
+
+/* --- Autocomplete list styling for places --- */
+.suggestions-list li.place-suggestion {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
