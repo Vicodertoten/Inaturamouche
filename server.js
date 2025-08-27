@@ -925,6 +925,29 @@ app.get("/api/places", async (req, res) => {
   }
 });
 
+app.get("/api/places/by-id", async (req, res) => {
+  try {
+    const ids = String(req.query.ids || "")
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .join(",");
+    if (!ids) return res.json([]);
+    const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${ids}`);
+    const arr = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
+    const out = arr.map(p => ({
+      id: p.id,
+      name: p.display_name || p.name,
+      type: p.place_type_name,
+      admin_level: p.admin_level,
+      area_km2: p.bounding_box_area,
+    }));
+    res.json(out);
+  } catch (e) {
+    res.status(500).json([]);
+  }
+});
+
 // Autocomplete taxons
 app.get(
   "/api/taxa/autocomplete",
