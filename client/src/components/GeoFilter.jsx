@@ -330,7 +330,7 @@ export default function GeoFilter({
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div className="geo-tabs">
         <button
           type="button"
           onClick={() => setTab("place")}
@@ -365,45 +365,32 @@ export default function GeoFilter({
             ))}
           </div>
 
-          <input
-            placeholder="Cherche un pays, une région, un parc…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onEnter}
-          />
-          {loading && <div>Recherche…</div>}
+          <div className="autocomplete-container">
+            <input
+              placeholder="Cherche un pays, une région, un parc…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onEnter}
+            />
+            {loading && <div className="spinner-autocomplete"></div>}
 
-          {!!suggestions.length && (
-            <ul
-              style={{
-                border: "1px solid #ccc",
-                borderRadius: 8,
-                maxHeight: 220,
-                overflow: "auto",
-                margin: 0,
-                padding: 8,
-              }}
-            >
-              {suggestions.map((p) => (
-                <li
-                  key={p.id}
-                  style={{
-                    padding: "6px 4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 8,
-                  }}
-                  onClick={() => addPlace(p)}
-                >
-                  <span>
-                    <strong>{p.name}</strong> <small>— {p.type || "place"}</small>
-                  </span>
-                  <button type="button">Ajouter</button>
-                </li>
-              ))}
-            </ul>
-          )}
+            {!!suggestions.length && (
+              <ul className="suggestions-list">
+                {suggestions.map((p) => (
+                  <li
+                    key={p.id}
+                    className="place-suggestion"
+                    onClick={() => addPlace(p)}
+                  >
+                    <span>
+                      <strong>{p.name}</strong> <small>— {p.type || "place"}</small>
+                    </span>
+                    <button type="button">Ajouter</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
