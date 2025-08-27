@@ -200,6 +200,18 @@ function effectiveCooldownN(baseN, taxonListLen) {
   return Math.max(0, Math.min(baseN, cap));
 }
 
+function geoParams(q) {
+  const p = {};
+  if (q.place_id) return { p: { place_id: q.place_id }, mode: "place_id" };
+  const hasBbox = [q.nelat, q.nelng, q.swlat, q.swlng].every((v) => v != null);
+  if (hasBbox)
+    return {
+      p: { nelat: q.nelat, nelng: q.nelng, swlat: q.swlat, swlng: q.swlng },
+      mode: "bbox",
+    };
+  return { p: {}, mode: "global" };
+}
+
 /* ---- fetch JSON ---- */
 async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, retries = MAX_RETRIES } = {}) {
   const urlObj = new URL(url);
@@ -484,10 +496,11 @@ const quizSchema = z.object({
   taxon_ids: stringOrArray.optional(),
   include_taxa: stringOrArray.optional(),
   exclude_taxa: stringOrArray.optional(),
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-  // Allow large radius values but we'll clamp to the iNaturalist API limit later.
-  radius: z.coerce.number().min(1).max(1000).optional(),
+  place_id: z.string().optional(),
+  nelat: z.coerce.number().min(-90).max(90).optional(),
+  nelng: z.coerce.number().min(-180).max(180).optional(),
+  swlat: z.coerce.number().min(-90).max(90).optional(),
+  swlng: z.coerce.number().min(-180).max(180).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
   locale: z.string().default("fr"),
@@ -503,10 +516,11 @@ const speciesCountsSchema = z.object({
   taxon_ids: stringOrArray.optional(),
   include_taxa: stringOrArray.optional(),
   exclude_taxa: stringOrArray.optional(),
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-  // Accept large radius values; they are clamped before querying iNaturalist.
-  radius: z.coerce.number().min(1).max(1000).optional(),
+  place_id: z.string().optional(),
+  nelat: z.coerce.number().min(-90).max(90).optional(),
+  nelng: z.coerce.number().min(-180).max(180).optional(),
+  swlat: z.coerce.number().min(-90).max(90).optional(),
+  swlng: z.coerce.number().min(-180).max(180).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
   locale: z.string().default("fr"),
@@ -570,20 +584,24 @@ app.get(
         taxon_ids,
         include_taxa,
         exclude_taxa,
-        lat,
-        lng,
-        radius,
+        place_id,
+        nelat,
+        nelng,
+        swlat,
+        swlng,
         d1,
         d2,
         locale = "fr",
       } = req.valid;
 
+      const geo = geoParams({ place_id, nelat, nelng, swlat, swlng });
       const params = {
         quality_grade: "research",
         photos: true,
         rank: "species",
         per_page: 80,
         locale,
+        ...geo.p,
       };
 
       if (pack_id) {
@@ -596,12 +614,6 @@ app.get(
         if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
       }
 
-      const latNum = clampNumber(lat, -90, 90);
-      const lngNum = clampNumber(lng, -180, 180);
-      const radiusNum = clampNumber(radius, 0, 200);
-      if (latNum !== null && lngNum !== null && radiusNum !== null) {
-        Object.assign(params, { lat: latNum, lng: lngNum, radius: radiusNum });
-      }
       if (d1 && isValidISODate(d1)) params.d1 = d1;
       if (d2 && isValidISODate(d2)) params.d2 = d2;
 
@@ -732,6 +744,7 @@ app.get(
         setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
       }
+      res.set("X-Selection-Geo", geo.mode);
 
       const targetObservation = pickObservationForTaxon(cacheEntry, targetTaxonId);
       if (!targetObservation) {
@@ -881,6 +894,33 @@ app.get(
   }
 );
 
+// --- AUTOCOMPLETE PLACES ---
+app.get("/api/places", async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim();
+    const per_page = Math.min(25, Number(req.query.per_page || 15));
+    if (q.length < 2) return res.json([]);
+
+    const cacheKey = buildCacheKey({ places: q, per_page });
+    const now = Date.now();
+    const cached = autocompleteCache.get(cacheKey);
+    if (cached && cached.expires > now) return res.json(cached.data);
+
+    const data = await fetchJSON("https://api.inaturalist.org/v1/places/autocomplete", { q, per_page });
+    const out = (data.results || []).map((p) => ({
+      id: p.id,
+      name: p.display_name || p.name,
+      type: p.place_type_name,
+      admin_level: p.admin_level,
+      area_km2: p.bounding_box_area,
+    }));
+    setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL });
+    res.json(out);
+  } catch (e) {
+    res.status(500).json([]);
+  }
+});
+
 // Autocomplete taxons
 app.get(
   "/api/taxa/autocomplete",
@@ -979,9 +1019,11 @@ app.get(
         taxon_ids,
         include_taxa,
         exclude_taxa,
-        lat,
-        lng,
-        radius,
+        place_id,
+        nelat,
+        nelng,
+        swlat,
+        swlng,
         d1,
         d2,
         locale,
@@ -989,18 +1031,19 @@ app.get(
         page,
       } = req.valid;
 
+      const geo = geoParams({ place_id, nelat, nelng, swlat, swlng });
       const params = {
         locale,
         per_page,
         page,
         verifiable: true,
         quality_grade: "research",
+        ...geo.p,
       };
 
       if (taxon_ids) params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
       if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
       if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
-      if (lat != null && lng != null && radius != null) Object.assign(params, { lat, lng, radius });
       if (d1) params.d1 = d1;
       if (d2) params.d2 = d2;
 
