@@ -1,14 +1,58 @@
 import { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, Rectangle, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+function BBoxSelector({ value, onChange }) {
+  const [bounds, setBounds] = useState(null);
+  const [start, setStart] = useState(null);
+  const map = useMapEvents({
+    mousedown(e) {
+      setStart(e.latlng);
+      setBounds([e.latlng, e.latlng]);
+      map.dragging.disable();
+    },
+    mousemove(e) {
+      if (!start) return;
+      setBounds([start, e.latlng]);
+    },
+    mouseup(e) {
+      if (!start) return;
+      map.dragging.enable();
+      const b = L.latLngBounds(start, e.latlng);
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      setBounds([sw, ne]);
+      setStart(null);
+      onChange({
+        mode: "map",
+        nelat: +ne.lat.toFixed(6), nelng: +ne.lng.toFixed(6),
+        swlat: +sw.lat.toFixed(6), swlng: +sw.lng.toFixed(6),
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (value?.mode === "map") {
+      const b = L.latLngBounds(
+        L.latLng(value.swlat, value.swlng),
+        L.latLng(value.nelat, value.nelng)
+      );
+      setBounds([b.getSouthWest(), b.getNorthEast()]);
+    } else {
+      setBounds(null);
+    }
+  }, [value]);
+
+  return bounds ? <Rectangle bounds={bounds} pathOptions={{ color: "red" }} /> : null;
+}
 
 export default function GeoFilter({ value, onChange, initialCenter = [48.85, 2.35], initialZoom = 5 }) {
   const [tab, setTab] = useState(value?.mode || "place");
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [map, setMap] = useState(null);
 
   useEffect(() => {
     if (tab !== "place") return;
@@ -33,15 +77,6 @@ export default function GeoFilter({ value, onChange, initialCenter = [48.85, 2.3
   }, [value, suggestions]);
 
   function pickPlace(p) { onChange({ mode: "place", place_id: String(p.id) }); }
-  function useCurrentBounds() {
-    if (!map) return;
-    const b = map.getBounds(); const sw = b.getSouthWest(); const ne = b.getNorthEast();
-    onChange({
-      mode: "map",
-      nelat: +ne.lat.toFixed(6), nelng: +ne.lng.toFixed(6),
-      swlat: +sw.lat.toFixed(6), swlng: +sw.lng.toFixed(6)
-    });
-  }
 
   return (
     <div style={{ display:"grid", gap:12 }}>
@@ -69,10 +104,10 @@ export default function GeoFilter({ value, onChange, initialCenter = [48.85, 2.3
 
       {tab==="map" && (
         <div style={{ display:"grid", gap:8 }}>
-          <MapContainer whenCreated={setMap} center={initialCenter} zoom={initialZoom} style={{ height:300, width:"100%", borderRadius:12 }}>
+          <MapContainer center={initialCenter} zoom={initialZoom} style={{ height:300, width:"100%", borderRadius:12 }}>
             <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <BBoxSelector value={value} onChange={onChange} />
           </MapContainer>
-          <button type="button" onClick={useCurrentBounds}>Utiliser le cadre actuel</button>
           {value?.mode==="map" && (
             <div style={{ opacity:0.8 }}>
               BBox : NE({value.nelat}, {value.nelng}) — SW({value.swlat}, {value.swlng})

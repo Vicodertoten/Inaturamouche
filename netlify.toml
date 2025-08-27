@@ -15,7 +15,7 @@
 # Proxy API -> Render (utile si tu veux aussi consommer /api en relatif)
 [[redirects]]
   from = "/api/*"
-  to   = "https://inaturamouche.onrender.com/:splat"
+  to   = "https://inaturamouche.onrender.com/api/:splat"
   status = 200
   force  = true
 
