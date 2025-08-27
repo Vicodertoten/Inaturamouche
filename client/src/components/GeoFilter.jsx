@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -349,34 +349,19 @@ export default function GeoFilter({
 
       {tab === "place" && (
         <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="pills-container place-pills">
             {selected.map((p) => (
-              <span
-                key={p.id}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "4px 8px",
-                  border: "1px solid #ccc",
-                  borderRadius: 999,
-                }}
-              >
+              <div key={p.id} className="taxon-pill">
                 <span>{p.name}</span>
                 <button
                   type="button"
                   aria-label={`Retirer ${p.name}`}
+                  className="remove-btn"
                   onClick={() => removePlace(p.id)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
                 >
                   ×
                 </button>
-              </span>
+              </div>
             ))}
           </div>
 

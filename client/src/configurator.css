@@ -150,6 +150,7 @@
 }
 .include-pills .taxon-pill { background-color: #2a4b37; }
 .exclude-pills .taxon-pill { background-color: #581e1e; }
+.place-pills .taxon-pill { background-color: #2a4b37; }
 .taxon-pill .remove-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
