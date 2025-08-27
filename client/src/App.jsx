@@ -94,9 +94,15 @@ const handleProfileReset = () => {
           customFilters.includedTaxa.forEach(t => queryParams.append('include_taxa', t.id));
           customFilters.excludedTaxa.forEach(t => queryParams.append('exclude_taxa', t.id));
           if (customFilters.place_enabled) {
-            queryParams.set('lat', customFilters.lat);
-            queryParams.set('lng', customFilters.lng);
-            queryParams.set('radius', customFilters.radius);
+            const g = customFilters.geo;
+            if (g.mode === 'place' && g.place_id) {
+              queryParams.set('place_id', g.place_id);
+            } else if (g.mode === 'map' && [g.nelat, g.nelng, g.swlat, g.swlng].every(v => v != null)) {
+              queryParams.set('nelat', g.nelat);
+              queryParams.set('nelng', g.nelng);
+              queryParams.set('swlat', g.swlat);
+              queryParams.set('swlng', g.swlng);
+            }
           }
           if (customFilters.date_enabled) {
             if(customFilters.d1) queryParams.set('d1', customFilters.d1);
