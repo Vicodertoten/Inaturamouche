@@ -133,8 +133,13 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
       }
     }
   };
-  
+
   const handleNext = () => {
+    // Réinitialise immédiatement l'état de fin de manche pour éviter
+    // l'affichage furtif du résultat lors du chargement de la prochaine question.
+    setRoundStatus('playing');
+    setScoreInfo(null);
+
     const result = {
       points: scoreInfo?.points || 0,
       bonus: scoreInfo?.bonus || 0,
