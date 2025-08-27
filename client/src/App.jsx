@@ -334,7 +334,7 @@ const handleProfileReset = () => {
           onClick={isGameActive || isGameOver ? returnToConfig : undefined}
           title={isGameActive || isGameOver ? 'Retour au menu principal' : ''}
           decoding="async"
-          fetchpriority="high"
+          fetchPriority="high"
         />
       </header>
       
