@@ -49,6 +49,15 @@ export const autocompleteTaxa = (query, extraParams = {}, locale = 'fr') => {
 };
 
 /**
+ * Récupère une liste de lieux pour l'autocomplétion.
+ * @param {string} query - Le terme de recherche.
+ * @param {number} perPage - Nombre maximum de résultats.
+ * @returns {Promise<Array>} Une liste de lieux.
+ */
+export const autocompletePlaces = (query, perPage = 15) =>
+  apiGet('/api/places', { q: query, per_page: perPage });
+
+/**
  * Récupère les détails pour plusieurs taxons en un seul appel.
  * @param {Array<string|number>} ids - Un tableau d'IDs de taxons.
  * @param {string} locale - La langue souhaitée.

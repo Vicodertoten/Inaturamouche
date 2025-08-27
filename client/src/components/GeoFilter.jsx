@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { MapContainer, TileLayer, Rectangle, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { autocompletePlaces } from "../services/api";
 
 function BBoxSelector({ value, onChange }) {
   const [bounds, setBounds] = useState(null);
@@ -60,8 +61,8 @@ export default function GeoFilter({ value, onChange, initialCenter = [48.85, 2.3
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&per_page=15`);
-        setSuggestions(await r.json());
+        const results = await autocompletePlaces(query, 15);
+        setSuggestions(results);
       } catch (_) {
         /* ignore network errors */
       }
