@@ -1,19 +1,44 @@
 // src/services/api.js
 
+// Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV
-    ? 'http://localhost:3001'
-    : 'https://inaturamouche.onrender.com');
+    ? "http://localhost:3001"
+    : "https://inaturamouche.onrender.com");
+
+/** Construit des URLSearchParams à partir d'un objet.
+ *  - Ignore undefined/null/""
+ *  - Les arrays sont joints par des virgules (ex: ["1","2"] -> "1,2")
+ */
+function buildSearchParams(params = {}) {
+  if (params instanceof URLSearchParams) return params;
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    if (Array.isArray(v)) {
+      const joined = v.map(x => String(x).trim()).filter(Boolean).join(",");
+      if (joined) sp.set(k, joined);
+    } else {
+      sp.set(k, String(v));
+    }
+  }
+  return sp;
+}
 
 async function apiGet(path, params = {}) {
   const url = new URL(path, API_BASE_URL);
-  const searchParams = params instanceof URLSearchParams ? params : new URLSearchParams(params);
-  url.search = searchParams.toString();
+  url.search = buildSearchParams(params).toString();
+
   const res = await fetch(url);
-  const data = await res.json().catch(() => ({}));
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (_) {
+    // Pas de JSON → laisser data = {}
+  }
   if (!res.ok) {
-    const error = new Error(data.error || 'Erreur réseau');
+    const error = new Error(data.error || "Erreur réseau");
     error.status = res.status;
     throw error;
   }
@@ -21,50 +46,49 @@ async function apiGet(path, params = {}) {
 }
 
 /**
- * Récupère une question de quiz en fonction des paramètres de filtres.
- * @param {URLSearchParams|Object} params - Les paramètres de la requête.
- * @returns {Promise<Object>} La question du quiz.
+ * Récupère une question de quiz en fonction des filtres.
+ * Accepte objets ou URLSearchParams. Les arrays deviennent "a,b,c".
  */
-export const fetchQuizQuestion = (params) => apiGet('/api/quiz-question', params);
+export const fetchQuizQuestion = (params) => apiGet("/api/quiz-question", params);
 
 /**
- * Récupère les détails complets pour un seul taxon.
- * @param {string|number} id - L'ID du taxon.
- * @param {string} locale - La langue souhaitée.
- * @returns {Promise<Object>} Les détails du taxon.
+ * Détails complets pour un taxon.
  */
-export const getTaxonDetails = (id, locale = 'fr') =>
+export const getTaxonDetails = (id, locale = "fr") =>
   apiGet(`/api/taxon/${id}`, { locale });
 
 /**
- * Récupère une liste de suggestions pour l'autocomplétion.
- * @param {string} query - Le terme de recherche.
- * @param {Object} extraParams - Paramètres supplémentaires (ex: { rank: 'species' }).
- * @param {string} locale - La langue souhaitée.
- * @returns {Promise<Array>} Une liste de suggestions.
+ * Autocomplétion des taxons (même API que chez toi).
  */
-export const autocompleteTaxa = (query, extraParams = {}, locale = 'fr') => {
+export const autocompleteTaxa = (query, extraParams = {}, locale = "fr") => {
   const params = { q: query, locale, ...extraParams };
-  return apiGet('/api/taxa/autocomplete', params);
+  return apiGet("/api/taxa/autocomplete", params);
 };
 
 /**
- * Récupère une liste de lieux pour l'autocomplétion.
- * @param {string} query - Le terme de recherche.
- * @param {number} perPage - Nombre maximum de résultats.
- * @returns {Promise<Array>} Une liste de lieux.
+ * Autocomplétion des lieux (place_id).
  */
 export const autocompletePlaces = (query, perPage = 15) =>
-  apiGet('/api/places', { q: query, per_page: perPage });
+  apiGet("/api/places", { q: query, per_page: perPage });
 
 /**
- * Récupère les détails pour plusieurs taxons en un seul appel.
- * @param {Array<string|number>} ids - Un tableau d'IDs de taxons.
- * @param {string} locale - La langue souhaitée.
- * @returns {Promise<Array>} Un tableau de détails de taxons.
+ * Hydrate plusieurs lieux par IDs : utile pour afficher les chips
+ * après rechargement (ex: "6744,7034" -> noms & types).
  */
-export const getTaxaByIds = (ids, locale = 'fr') => {
-  if (!ids || ids.length === 0) return Promise.resolve([]);
-  return apiGet('/api/taxa', { ids: ids.join(','), locale });
+export const getPlacesByIds = (ids = []) => {
+  const list = Array.isArray(ids)
+    ? ids
+    : String(ids).split(",").map(s => s.trim());
+  const idsParam = list.filter(Boolean).join(",");
+  if (!idsParam) return Promise.resolve([]);
+  return apiGet("/api/places/by-id", { ids: idsParam });
 };
 
+/**
+ * Détails pour plusieurs taxons, en un seul call.
+ */
+export const getTaxaByIds = (ids, locale = "fr") => {
+  if (!ids || ids.length === 0) return Promise.resolve([]);
+  const list = Array.isArray(ids) ? ids : String(ids).split(",");
+  return apiGet("/api/taxa", { ids: list.join(","), locale });
+};
