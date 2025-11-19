@@ -47,7 +47,7 @@ const AppLayout = () => {
 
       <nav className="main-nav">
         <button
-          className="action-button profile-button"
+          className="profile-button nav-pill"
           onClick={showProfile}
           aria-label={t('nav.profile_label')}
           title={t('nav.profile_label')}

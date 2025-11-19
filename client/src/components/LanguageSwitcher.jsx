@@ -17,6 +17,7 @@ function LanguageSwitcher() {
         {t('common.language_switcher_label')}
       </label>
       <select
+        className="nav-pill"
         id={selectId}
         value={language}
         onChange={(event) => setLanguage(event.target.value)}
