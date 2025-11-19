@@ -130,8 +130,8 @@ const en = {
     viewer_label: 'Image viewer',
   },
   summary: {
-    win_title: '🎉 Species found!',
-    lose_title: '😟 Too bad!',
+    win_title: 'Species found!',
+    lose_title: 'Too bad!',
     answer_intro: 'The answer was:',
     points: 'Points earned:',
     bonus: 'Bonus:',

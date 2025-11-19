@@ -23,14 +23,14 @@
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   width: 90%;
-  max-width: 420px;
+  max-width: 460px;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-3);
   border: 1px solid var(--border-color);
   animation: slide-up 0.4s ease-out;
-  max-height: 90vh;
+  max-height: min(85vh, 640px);
   overflow-y: auto;
 }
 
@@ -39,19 +39,20 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-.summary-modal h2 {
+.summary-title {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
+  border-radius: var(--border-radius);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-
-.win-title { color: var(--success-color); }
-.lose-title { color: var(--error-color); }
 
 
 .correct-answer-section {
-  background-color: var(--bg-color);
-  padding: calc(var(--space-2) + var(--space-1));
-  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: var(--space-3);
+  border-radius: var(--border-radius);
 }
 
 
@@ -59,11 +60,10 @@
     width: 100%;
     aspect-ratio: 4 / 3;
     height: auto;
-    max-height: 300px;
+    max-height: 220px;
     object-fit: cover;
-    border-radius: 8px;
-    margin: var(--space-2) 0;
-  border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
   }
 
 .answer-name {
@@ -79,13 +79,34 @@
 }
 
 .score-section {
-  font-size: 1rem;
-  margin-top: calc(var(--space-1) * -1);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: var(--border-radius);
+  font-size: 0.95rem;
 }
 
-.score-points, .score-total {
-  font-weight: 700;
+.score-label {
+  color: var(--text-color-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.score-value {
   color: var(--accent-color);
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
+.score-divider {
+  color: var(--text-color-muted);
+  margin: 0 var(--space-1);
+  font-weight: 700;
 }
 
 .modal-links {

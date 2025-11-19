@@ -161,8 +161,8 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              <div className="profile-section">
-                <button className="reset-profile-button" onClick={handleResetProfile}>
+              <div className="profile-section profile-reset-section">
+                <button className="action-button reset-profile-button" onClick={handleResetProfile}>
                   {t('profile.reset_button')}
                 </button>
               </div>

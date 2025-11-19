@@ -58,6 +58,22 @@
   gap: 1.5rem;
 }
 
+.proposition-panel {
+  position: relative;
+}
+
+.proposition-panel.panel-shake {
+  animation: panel-shake 0.5s ease;
+}
+
+@keyframes panel-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
 .media-panel {
   align-items: center;
   gap: 0;
@@ -220,11 +236,30 @@
   padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
   border-radius: 8px;
   text-align: center;
-  font-weight: 500;
-  color: #fff;
-  background-color: var(--primary-color);
+  font-weight: 600;
+  color: var(--text-color);
+  background-color: var(--surface-color);
+  border: 1px solid rgba(0, 0, 0, 0.3);
   z-index: 1000;
-  animation: fade-in-down 0.5s ease;
+  animation: fade-in-down 0.3s ease;
+}
+
+.feedback-bar.success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: #fff;
+}
+
+.feedback-bar.info {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-color);
+}
+
+.feedback-bar.error {
+  background-color: var(--error-color);
+  border-color: var(--error-color);
+  color: #fff;
 }
 
 @keyframes fade-in-down {
@@ -242,7 +277,9 @@
 /* --- Amélioration Visuelle pour Taxon Connu --- */
 .known-taxon {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
   background-color: var(--bg-color);
@@ -254,11 +291,13 @@
 }
 
 .known-taxon-secondary {
-  display: block;
+  display: inline-flex;
+  align-items: baseline;
   font-size: 0.9rem;
   font-style: italic;
   color: var(--text-color-muted);
-  opacity: 0.8;
+  opacity: 0.7;
+  margin-left: var(--space-1);
 }
 
 @keyframes pop-in {
@@ -273,30 +312,4 @@
   100% {
     transform: scale(1);
   }
-}
-
-.action-button {
-  padding: calc(var(--space-2) + var(--space-1)) var(--space-3);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background-color: var(--surface-color);
-  color: var(--text-color);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.action-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  background-color: var(--bg-color);
-}
-.action-button:not(:disabled):hover {
-  transform: translateY(-2px);
-  border-color: var(--primary-color);
-}
-.action-button.quit:not(:disabled):hover {
-  border-color: var(--error-color);
-  background-color: var(--error-color);
-  color: #fff;
 }
