@@ -6,7 +6,7 @@ import './configurator.css';
 import { useGame } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 
-function Configurator({ onStartGame, onStartReview }) {
+function Configurator({ onStartGame, onStartReview, onShowHelp }) {
   const {
     activePackId,
     setActivePackId,
@@ -28,7 +28,19 @@ function Configurator({ onStartGame, onStartReview }) {
   };
 
   return (
-    <div>
+    <div className="configurator-panel">
+      {onShowHelp && (
+        <button
+          type="button"
+          className="help-button config-help-button"
+          onClick={onShowHelp}
+          aria-label={t('nav.help_label')}
+          title={t('nav.help_label')}
+        >
+          ?
+        </button>
+      )}
+
       {error && <ErrorModal message={error} onClose={clearError} />}
       
       <div className="pack-selector">

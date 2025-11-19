@@ -222,8 +222,7 @@ function HardMode() {
 
       <div className="screen game-screen hard-mode">
         <div className="hard-mode-container">
-          <h2 className="main-hard-mode-title">{t('hard.title')}</h2>
-        
+
         <div className="proposition-panel">
           <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
             <div className="ranks-list">
@@ -264,17 +263,16 @@ function HardMode() {
             alt={t('hard.image_alt')}
             nextImageUrl={nextImageUrl}
           />
+          <div className="hard-mode-stats">
+            <span>{t('hard.stats_line', { guesses, score: currentScore })}</span>
+            <StreakBadge streak={currentStreak} />
+          </div>
         </div>
 
         <div className="actions-panel">
           {feedbackMessage && (
             <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
           )}
-          <div className="hard-mode-stats">
-            <span>{t('hard.stats_line', { guesses, score: currentScore })}</span>
-            <StreakBadge streak={currentStreak} />
-          </div>
-          
           <div className="hard-mode-actions">
             <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">{t('common.quit')}</button>
             <button 

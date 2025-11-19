@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import Configurator from '../Configurator';
 import { useGame } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -8,6 +8,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { gameMode, setGameMode, startGame } = useGame();
   const { t } = useLanguage();
+  const { showHelp } = useOutletContext() || {};
 
   const handleStart = useCallback(
     (review = false) => {
@@ -41,7 +42,11 @@ const HomePage = () => {
           </button>
         </div>
 
-        <Configurator onStartGame={() => handleStart(false)} onStartReview={() => handleStart(true)} />
+        <Configurator
+          onStartGame={() => handleStart(false)}
+          onStartReview={() => handleStart(true)}
+          onShowHelp={showHelp}
+        />
       </div>
     </div>
   );

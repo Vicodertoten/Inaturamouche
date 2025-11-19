@@ -1,4 +1,15 @@
 /* --- Styles du conteneur principal --- */
+.configurator-panel {
+  position: relative;
+}
+
+.config-help-button {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+}
+
   .pack-selector {
     margin-bottom: var(--space-5);
   display: flex;
