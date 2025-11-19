@@ -130,8 +130,8 @@ const nl = {
     viewer_label: 'Afbeeldingsviewer',
   },
   summary: {
-    win_title: '🎉 Soort gevonden!',
-    lose_title: '😟 Jammer!',
+    win_title: 'Soort gevonden!',
+    lose_title: 'Jammer!',
     answer_intro: 'Het antwoord was:',
     points: 'Behaalde punten:',
     bonus: 'Bonus:',

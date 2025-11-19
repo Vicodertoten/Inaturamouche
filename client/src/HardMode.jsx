@@ -1,6 +1,6 @@
 // src/HardMode.jsx (corrigé et amélioré)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
@@ -33,9 +33,12 @@ function HardMode() {
   const [incorrectGuessIds, setIncorrectGuessIds] = useState([]);
   
   const [roundStatus, setRoundStatus] = useState('playing');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedback, setFeedback] = useState(null);
   const [scoreInfo, setScoreInfo] = useState(null);
+  const [panelEffect, setPanelEffect] = useState('');
   const { t, language, getTaxonDisplayNames } = useLanguage();
+  const feedbackTimeoutRef = useRef(null);
+  const panelTimeoutRef = useRef(null);
 
   useEffect(() => {
     setKnownTaxa({});
@@ -43,13 +46,36 @@ function HardMode() {
     setGuesses(INITIAL_GUESSES);
     setCurrentScore(score);
     setRoundStatus('playing');
-    setFeedbackMessage('');
+    setFeedback(null);
     setScoreInfo(null);
+    setPanelEffect('');
   }, [question, score]);
   
-  const showFeedback = (message) => {
-    setFeedbackMessage(message);
-    setTimeout(() => setFeedbackMessage(''), 3000);
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+      if (panelTimeoutRef.current) {
+        clearTimeout(panelTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showFeedback = (message, type = 'info') => {
+    setFeedback({ message, type });
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), 3200);
+  };
+
+  const triggerPanelShake = () => {
+    setPanelEffect('shake');
+    if (panelTimeoutRef.current) {
+      clearTimeout(panelTimeoutRef.current);
+    }
+    panelTimeoutRef.current = setTimeout(() => setPanelEffect(''), 600);
   };
 
   const handleGuess = async (selection) => {
@@ -113,17 +139,19 @@ function HardMode() {
 
       const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
       if (newPoints > 0) {
-        showFeedback(t('hard.feedback.branch', { points: newPoints }));
+        showFeedback(t('hard.feedback.branch', { points: newPoints }), 'success');
       } else if (isSelectionCorrectAncestor) {
-        showFeedback(t('hard.feedback.redundant'));
+        showFeedback(t('hard.feedback.redundant'), 'info');
       } else {
-        showFeedback(t('hard.feedback.wrong_branch'));
+        showFeedback(t('hard.feedback.wrong_branch'), 'error');
         setIncorrectGuessIds(prev => [...prev, selection.id]);
+        triggerPanelShake();
       }
 
     } catch (error) {
       console.error("Erreur de validation", error);
-      showFeedback(t('hard.feedback.error'));
+      showFeedback(t('hard.feedback.error'), 'error');
+      triggerPanelShake();
       if (newGuessesCount <= 0) {
         const totalPoints = currentScore - score;
         const { points, bonus } = computeScore({
@@ -155,7 +183,8 @@ function HardMode() {
 
   const handleRevealNameHint = () => {
     if (guesses < REVEAL_HINT_COST) {
-      showFeedback(t('hard.feedback.not_enough_guesses'));
+      showFeedback(t('hard.feedback.not_enough_guesses'), 'error');
+      triggerPanelShake();
       return;
     }
 
@@ -165,7 +194,7 @@ function HardMode() {
       setGuesses(newGuessesCount);
 
       const rankLabel = t(`ranks.${firstUnknownRank}`);
-      showFeedback(t('hard.feedback.hint_used', { rank: rankLabel }));
+      showFeedback(t('hard.feedback.hint_used', { rank: rankLabel }), 'info');
       
       const taxonData = firstUnknownRank === 'species' 
         ? question.bonne_reponse 
@@ -223,7 +252,7 @@ function HardMode() {
       <div className="screen game-screen hard-mode">
         <div className="hard-mode-container">
 
-        <div className="proposition-panel">
+        <div className={`proposition-panel ${panelEffect ? `panel-${panelEffect}` : ''}`}>
           <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
             <div className="ranks-list">
               {RANKS.map((rank) => (
@@ -270,8 +299,10 @@ function HardMode() {
         </div>
 
         <div className="actions-panel">
-          {feedbackMessage && (
-            <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
+          {feedback?.message && (
+            <div className={`feedback-bar ${feedback.type}`} aria-live="polite">
+              {feedback.message}
+            </div>
           )}
           <div className="hard-mode-actions">
             <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">{t('common.quit')}</button>

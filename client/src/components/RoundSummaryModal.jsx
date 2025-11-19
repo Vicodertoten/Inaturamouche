@@ -44,20 +44,29 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   const { bonne_reponse, inaturalist_url } = question;
 
   const isWin = status === 'win';
+  const removeEmojis = (text = '') => text.replace(/[🎉😟]/g, '').trim();
 
   const { primary: primaryName, secondary: secondaryName } = getTaxonDisplayNames(bonne_reponse);
   const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
   const wikipediaUrl = bonne_reponse.wikipedia_url;
+  const summaryTitle = removeEmojis(isWin ? t('summary.win_title') : t('summary.lose_title'));
+  const combinedBonus = scoreInfo ? (scoreInfo.bonus || 0) + (scoreInfo.streakBonus || 0) : 0;
+  const scoreSegments = scoreInfo
+    ? [
+        { id: 'points', label: t('summary.points'), value: `+${scoreInfo.points}` },
+        { id: 'bonus', label: t('summary.bonus'), value: `+${combinedBonus}` },
+        { id: 'total', label: t('summary.total'), value: `+${scoreInfo.points + combinedBonus}` },
+      ]
+    : [];
 
   return (
     <div className="modal-backdrop">
       <div className="modal-content summary-modal" role="dialog" aria-modal="true">
-        <h2 className={isWin ? 'win-title' : 'lose-title'}>
-          {isWin ? t('summary.win_title') : t('summary.lose_title')}
+        <h2 className={`summary-title ${isWin ? 'win' : 'lose'}`}>
+          {summaryTitle}
         </h2>
 
         <div className="correct-answer-section">
-          <p>{t('summary.answer_intro')}</p>
           <img
             src={getSizedImageUrl(imageUrl, 'medium')}
             srcSet={`${getSizedImageUrl(imageUrl, 'small')} 300w, ${getSizedImageUrl(imageUrl, 'medium')} 600w`}
@@ -87,15 +96,16 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
         </div>
 
         {scoreInfo && (
-          <div className="score-section">
-            <p>{t('summary.points')} <span className="score-points">+{scoreInfo.points}</span></p>
-            {scoreInfo.bonus > 0 && (
-              <p>{t('summary.bonus')} <span className="score-points">+{scoreInfo.bonus}</span></p>
-            )}
-            {scoreInfo.streakBonus > 0 && (
-              <p>{t('summary.streak_bonus')} <span className="score-points">+{scoreInfo.streakBonus}</span></p>
-            )}
-            <p>{t('summary.total')} <span className="score-total">+{scoreInfo.points + (scoreInfo.bonus || 0) + (scoreInfo.streakBonus || 0)}</span></p>
+          <div className="score-section" aria-live="polite">
+            {scoreSegments.map((segment, index) => (
+              <React.Fragment key={segment.id}>
+                <span className="score-label">{segment.label}</span>
+                <span className="score-value">{segment.value}</span>
+                {index < scoreSegments.length - 1 && (
+                  <span className="score-divider" aria-hidden="true">•</span>
+                )}
+              </React.Fragment>
+            ))}
           </div>
         )}
         

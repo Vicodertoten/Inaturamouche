@@ -130,8 +130,8 @@ const fr = {
     viewer_label: "Visionneuse d'images",
   },
   summary: {
-    win_title: '🎉 Espèce trouvée !',
-    lose_title: '😟 Dommage !',
+    win_title: 'Espèce trouvée !',
+    lose_title: 'Dommage !',
     answer_intro: 'La réponse était :',
     points: 'Points gagnés :',
     bonus: 'Bonus :',
