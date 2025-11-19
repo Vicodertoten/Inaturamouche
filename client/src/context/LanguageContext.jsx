@@ -106,7 +106,15 @@ export function LanguageProvider({ children }) {
       formatTaxonName,
       getTaxonDisplayNames,
     }),
-    [formatTaxonName, getTaxonDisplayNames, language, t, useScientificName, setLanguage]
+    [
+      formatTaxonName,
+      getTaxonDisplayNames,
+      language,
+      setLanguage,
+      setUseScientificName,
+      t,
+      useScientificName,
+    ]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

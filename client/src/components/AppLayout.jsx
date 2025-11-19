@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AchievementModal from './AchievementModal';
 import HelpModal from './HelpModal';
 import LanguageSwitcher from './LanguageSwitcher';
 import titleImage from '../assets/inaturamouche-title.png';
+import logoImage from '../assets/inaturamouche-logo.png';
 import { useGame } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -35,6 +36,7 @@ const AppLayout = () => {
   }, [location.pathname, navigate]);
 
   const isTitleInteractive = isGameActive || isGameOver;
+  const outletContext = useMemo(() => ({ showHelp }), [showHelp]);
 
   return (
     <div className="App">
@@ -44,14 +46,6 @@ const AppLayout = () => {
       )}
 
       <nav className="main-nav">
-        <button
-          className="help-button"
-          onClick={showHelp}
-          aria-label={t('nav.help_label')}
-          title={t('nav.help_label')}
-        >
-          ?
-        </button>
         <button
           className="profile-button"
           onClick={showProfile}
@@ -70,7 +64,16 @@ const AppLayout = () => {
         <img
           src={titleImage}
           alt={t('nav.title_alt')}
-          className={`app-title-image ${isTitleInteractive ? 'clickable' : ''}`}
+          className={`app-title-image app-title-wide ${isTitleInteractive ? 'clickable' : ''}`}
+          onClick={isTitleInteractive ? handleTitleClick : undefined}
+          title={isTitleInteractive ? t('nav.title_tooltip') : ''}
+          decoding="async"
+          fetchpriority="high"
+        />
+        <img
+          src={logoImage}
+          alt={t('nav.title_alt')}
+          className={`app-title-image app-title-compact ${isTitleInteractive ? 'clickable' : ''}`}
           onClick={isTitleInteractive ? handleTitleClick : undefined}
           title={isTitleInteractive ? t('nav.title_tooltip') : ''}
           decoding="async"
@@ -79,7 +82,7 @@ const AppLayout = () => {
       </header>
 
       <main className="screen-container">
-        <Outlet />
+        <Outlet context={outletContext} />
       </main>
     </div>
   );
