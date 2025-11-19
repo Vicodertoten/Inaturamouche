@@ -12,23 +12,6 @@
   align-items: center;
 }
 
-.main-nav .profile-button {
-  padding: var(--space-2) var(--space-3);
-  width: auto;
-  background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--text-color);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.main-nav .profile-button:hover {
-  background-color: var(--accent-color);
-  border-color: var(--accent-color);
-  color: var(--bg-color);
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -48,33 +31,56 @@
 }
 
 .language-switcher::after {
-  content: '▾';
-  position: absolute;
-  right: 0.65rem;
-  color: var(--text-color-muted);
-  font-size: 0.75rem;
-  pointer-events: none;
+  bottom: 1px;
+    content: '▾';
+    position: absolute;
+    right: 0.65rem;
+    color: var(--text-color-muted);
+    font-size: 1.6rem;
+    pointer-events: none;
 }
 
 .language-switcher select {
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.15);
-  color: var(--text-color);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.35rem 1.75rem 0.35rem 0.85rem;
-  cursor: pointer;
-  min-width: 72px;
+  padding-right: calc(var(--space-3) + 1rem);
 }
 
 .language-switcher select:focus {
   outline: none;
   border-color: var(--accent-color);
   box-shadow: 0 0 0 2px var(--accent-color-transparent);
+}
+
+.nav-pill {
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.25);
+  color: var(--text-color);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+select.nav-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 0.9rem;
+  min-width: 78px;
+  padding-right: calc(var(--space-3) + 1.5rem);
+  padding-left: var(--space-3);
+}
+
+.nav-pill:hover,
+.nav-pill:focus-visible {
+  border-color: var(--accent-color);
+  background-color: rgba(0, 0, 0, 0.35);
+  color: var(--text-color);
 }
 
 /* Texte/icone du bouton profil */
@@ -86,8 +92,8 @@
   .main-nav .profile-text {
     display: none;
   }
-  .main-nav .profile-button {
-    padding: 0.25rem;
+  .main-nav .nav-pill {
+    padding: var(--space-2);
   }
   .main-nav .profile-icon {
     display: inline;
@@ -281,6 +287,23 @@ button:focus-visible {
 .choices button.correct, .choices button.correct:hover { background-color: var(--success-color); border-color: var(--success-color); color: #fff; }
 .choices button.incorrect, .choices button.incorrect:hover { background-color: var(--error-color); border-color: var(--error-color); color: #fff; }
 .choices button.disabled, .choices button.disabled:hover { opacity: 0.6; cursor: not-allowed; }
+.choice-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+}
+.choice-primary {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.choice-secondary {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-color-muted);
+  opacity: 0.75;
+}
 
 /* --- SPINNER DE CHARGEMENT CENTRÉ --- */
 .spinner-container {

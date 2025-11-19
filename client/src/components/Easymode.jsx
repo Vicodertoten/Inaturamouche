@@ -169,8 +169,8 @@ const EasyMode = () => {
                       const { primary, secondary } = getTaxonDisplayNames(p.detail, p.label);
                       return (
                         <span className="choice-label">
-                          {primary}
-                          {secondary && <small className="choice-secondary">{secondary}</small>}
+                          <span className="choice-primary">{primary}</span>
+                          {secondary && <span className="choice-secondary">{secondary}</span>}
                         </span>
                       );
                     })()}
