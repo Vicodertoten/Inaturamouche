@@ -8,6 +8,7 @@ import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
 import StreakBadge from './components/StreakBadge';
+import { useGame } from './context/GameContext';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 6;
@@ -23,7 +24,8 @@ const SCORE_PER_RANK = {
   species: 40,
 };
 
-function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, currentStreak }) {
+function HardMode() {
+  const { question, score, nextImageUrl, currentStreak, completeRound, resetToLobby } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
@@ -146,7 +148,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
       streakBonus: scoreInfo?.streakBonus || 0,
       isCorrect: roundStatus === 'win'
     };
-    onNextQuestion(result);
+    completeRound(result);
   };
 
   const handleRevealNameHint = () => {
@@ -261,7 +263,7 @@ function HardMode({ question, score, onNextQuestion, onQuit, nextImageUrl, curre
           </div>
           
           <div className="hard-mode-actions">
-            <button onClick={onQuit} disabled={isGameOver} className="action-button quit">Abandonner</button>
+            <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">Abandonner</button>
             <button 
               onClick={handleRevealNameHint} 
               disabled={isGameOver || !canUseAnyHint || guesses < REVEAL_HINT_COST}

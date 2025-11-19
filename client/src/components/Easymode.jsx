@@ -3,8 +3,7 @@ import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
 import StreakBadge from './StreakBadge';
-
-const MAX_QUESTIONS_PER_GAME = 5;
+import { MAX_QUESTIONS_PER_GAME, useGame } from '../context/GameContext';
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 /**
@@ -14,7 +13,16 @@ const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
  * - Vérifie la bonne réponse via question.choix_mode_facile_correct_index
  * - L’indice retire des choix en se basant sur les IDs (pas les labels)
  */
-const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nextImageUrl, currentStreak }) => {
+const EasyMode = () => {
+  const {
+    question,
+    score,
+    questionCount,
+    currentStreak,
+    nextImageUrl,
+    completeRound,
+    updateScore,
+  } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const easyPairs = useMemo(() => {
     const labels = Array.isArray(question?.choix_mode_facile) ? question.choix_mode_facile : [];
@@ -60,7 +68,7 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
   };
 
   const handleNext = () => {
-    onAnswer({ ...scoreInfo, isCorrect: isCorrectAnswer });
+    completeRound({ ...scoreInfo, isCorrect: isCorrectAnswer });
   };
 
   const handleHint = () => {
@@ -74,7 +82,7 @@ const EasyMode = ({ question, score, questionCount, onAnswer, onUpdateScore, nex
     newSet.add(String(toRemove.id));
     setRemovedIds(newSet);
     setHintUsed(true);
-    onUpdateScore(-HINT_COST_EASY);
+    updateScore(-HINT_COST_EASY);
   };
 
   // Pour déterminer les classes d'état, on compare via IDs
