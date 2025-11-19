@@ -15,6 +15,13 @@ import compression from "compression";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import PACKS from "./shared/packs.js";
+import {
+  buildCacheKey,
+  effectiveCooldownN,
+  lcaDepth,
+  setWithLimit,
+  shuffleFisherYates,
+} from "./lib/quiz-utils.js";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import { z } from "zod";
@@ -24,9 +31,23 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const TRUST_PROXY_LIST = process.env.TRUST_PROXY_LIST || "loopback,uniquelocal";
+const trustedProxyEntries = TRUST_PROXY_LIST.split(",").map((entry) => entry.trim()).filter(Boolean);
 
 /* -------------------- PROXY -------------------- */
-app.set("trust proxy", true);
+if (trustedProxyEntries.length > 0) {
+  app.set("trust proxy", trustedProxyEntries);
+}
+
+function getClientIp(req) {
+  return (
+    req.headers["cf-connecting-ip"] ||
+    req.headers["x-real-ip"] ||
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    ""
+  );
+}
 
 /* -------------------- CORS -------------------- */
 const allowedOrigins = [
@@ -110,6 +131,7 @@ app.use(
     limit: 300,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    keyGenerator: getClientIp,
   })
 );
 
@@ -118,6 +140,15 @@ const quizLimiter = rateLimit({
   limit: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  keyGenerator: getClientIp,
+});
+
+const proxyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: getClientIp,
 });
 
 /* -------------------- Politique de cache -------------------- */
@@ -160,6 +191,9 @@ const LURE_MID_THRESHOLD = 0.65;
 
 const questionCache = new Map();
 const autocompleteCache = new Map();
+const selectionStateCache = new Map();
+const SELECTION_STATE_TTL = 1000 * 60 * 10;
+const MAX_SELECTION_STATES = 200;
 
 function purgeCache(map, shouldDelete) {
   if (!map || map.size === 0) return;
@@ -175,40 +209,53 @@ function purgeQuestionCache(now = Date.now()) {
 function purgeAutocompleteCache(now = Date.now()) {
   purgeCache(autocompleteCache, (entry) => !entry || (entry.expires && entry.expires <= now));
 }
+function purgeSelectionStateCache(now = Date.now()) {
+  purgeCache(selectionStateCache, (entry) => !entry || entry.expires <= now);
+}
+
+function createSelectionState(pool) {
+  return {
+    recentTargetTaxa: [],
+    recentTargetSet: new Set(),
+    cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
+    recentObsQueue: [],
+    recentObsSet: new Set(),
+    shuffledTaxonIds: shuffleFisherYates(pool.taxonList),
+    cursor: 0,
+    version: pool.version,
+    expires: Date.now() + SELECTION_STATE_TTL,
+  };
+}
+
+function getSelectionStateForClient(cacheKey, clientId, pool, now) {
+  const key = `${cacheKey}|${clientId || "anon"}`;
+  let state = selectionStateCache.get(key);
+  if (
+    !state ||
+    !Array.isArray(state.shuffledTaxonIds) ||
+    state.version !== pool.version ||
+    state.expires <= now
+  ) {
+    state = createSelectionState(pool);
+  } else if (state.shuffledTaxonIds.length === 0) {
+    state.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
+    state.cursor = 0;
+  }
+  state.expires = now + SELECTION_STATE_TTL;
+  state.version = pool.version;
+
+  selectionStateCache.delete(key);
+  selectionStateCache.set(key, state);
+  if (selectionStateCache.size > MAX_SELECTION_STATES) {
+    const oldestKey = selectionStateCache.keys().next().value;
+    selectionStateCache.delete(oldestKey);
+  }
+  return { key, state };
+}
 
 /* -------------------- Utils -------------------- */
-function buildCacheKey(obj) {
-  return Object.keys(obj)
-    .sort()
-    .map((k) => `${k}=${Array.isArray(obj[k]) ? obj[k].join(",") : obj[k]}`)
-    .join("|");
-}
-function setWithLimit(map, key, value) {
-  if (map.size >= MAX_CACHE_ENTRIES) {
-    const firstKey = map.keys().next().value;
-    map.delete(firstKey);
-  }
-  map.set(key, value);
-}
-function shuffleFisherYates(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function clampNumber(n, min, max) {
-  if (n == null || Number.isNaN(+n)) return null;
-  const x = +n;
-  return Math.max(min, Math.min(max, x));
-}
 function isValidISODate(s) {
   return typeof s === "string" && !Number.isNaN(Date.parse(s));
-}
-function effectiveCooldownN(baseN, taxonListLen) {
-  const cap = Math.max(0, taxonListLen - QUIZ_CHOICES);
-  return Math.max(0, Math.min(baseN, cap));
 }
 
 function geoParams(q) {
@@ -300,28 +347,22 @@ function getTaxonName(t) {
 }
 
 /* -------------------- Helpers ABCD -------------------- */
-function rememberObservation(cacheEntry, obsId) {
+function rememberObservation(selectionState, obsId) {
   const id = String(obsId);
-  if (cacheEntry.recentObsSet.has(id)) return;
-  cacheEntry.recentObsQueue.push(id);
-  cacheEntry.recentObsSet.add(id);
-  while (cacheEntry.recentObsQueue.length > RECENT_OBS_MAX) {
-    const old = cacheEntry.recentObsQueue.shift();
-    cacheEntry.recentObsSet.delete(old);
+  if (selectionState.recentObsSet.has(id)) return;
+  selectionState.recentObsQueue.push(id);
+  selectionState.recentObsSet.add(id);
+  while (selectionState.recentObsQueue.length > RECENT_OBS_MAX) {
+    const old = selectionState.recentObsQueue.shift();
+    selectionState.recentObsSet.delete(old);
   }
 }
-function pickObservationForTaxon(cacheEntry, taxonId) {
-  const list = cacheEntry.byTaxon.get(String(taxonId)) || [];
+function pickObservationForTaxon(pool, selectionState, taxonId) {
+  const list = pool.byTaxon.get(String(taxonId)) || [];
   if (list.length === 0) return null;
-  const pool = list.filter((o) => !cacheEntry.recentObsSet.has(String(o.id)));
-  const arr = pool.length ? pool : list;
+  const filtered = list.filter((o) => !selectionState.recentObsSet.has(String(o.id)));
+  const arr = filtered.length ? filtered : list;
   return arr[Math.floor(Math.random() * arr.length)];
-}
-function lcaDepth(ancA = [], ancB = []) {
-  const len = Math.min(ancA.length, ancB.length);
-  let i = 0;
-  while (i < len && ancA[i] === ancB[i]) i++;
-  return i;
 }
 
 // Cooldown cible
@@ -331,77 +372,81 @@ function purgeTTLMap(ttlMap, now) {
     if (exp <= now) ttlMap.delete(k);
   }
 }
-function isBlockedByTargetCooldown(cacheEntry, taxonId, now) {
+function isBlockedByTargetCooldown(selectionState, taxonId, now) {
   const id = String(taxonId);
-  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
-    purgeTTLMap(cacheEntry.cooldownTarget, now);
-    if (cacheEntry.cooldownTarget.has(id)) return true;
+  if (COOLDOWN_TARGET_MS && selectionState.cooldownTarget) {
+    purgeTTLMap(selectionState.cooldownTarget, now);
+    if (selectionState.cooldownTarget.has(id)) return true;
   }
-  if (cacheEntry.recentTargetSet.has(id)) return true;
+  if (selectionState.recentTargetSet.has(id)) return true;
   return false;
 }
-function pushTargetCooldown(cacheEntry, taxonIds, now) {
+function pushTargetCooldown(pool, selectionState, taxonIds, now) {
   const ids = taxonIds.map(String);
-  if (COOLDOWN_TARGET_MS && cacheEntry.cooldownTarget) {
+  if (COOLDOWN_TARGET_MS && selectionState.cooldownTarget) {
     const exp = now + COOLDOWN_TARGET_MS;
-    for (const id of ids) cacheEntry.cooldownTarget.set(id, exp);
+    for (const id of ids) selectionState.cooldownTarget.set(id, exp);
   } else {
     for (const id of ids) {
-      if (!cacheEntry.recentTargetSet.has(id)) {
-        cacheEntry.recentTargetTaxa.unshift(id);
-        cacheEntry.recentTargetSet.add(id);
+      if (!selectionState.recentTargetSet.has(id)) {
+        selectionState.recentTargetTaxa.unshift(id);
+        selectionState.recentTargetSet.add(id);
       }
     }
-    const limit = effectiveCooldownN(COOLDOWN_TARGET_N, cacheEntry.taxonList.length);
-    while (cacheEntry.recentTargetTaxa.length > limit) {
-      const removed = cacheEntry.recentTargetTaxa.pop();
-      cacheEntry.recentTargetSet.delete(removed);
+    const limit = effectiveCooldownN(COOLDOWN_TARGET_N, pool.taxonList.length, QUIZ_CHOICES);
+    while (selectionState.recentTargetTaxa.length > limit) {
+      const removed = selectionState.recentTargetTaxa.pop();
+      selectionState.recentTargetSet.delete(removed);
     }
   }
 }
 
 // Sans-remise corrigé
-function nextEligibleTaxonId(cacheEntry, now, excludeSet = new Set()) {
-  const n = cacheEntry.shuffledTaxonIds.length;
+function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) {
+  if (!Array.isArray(selectionState.shuffledTaxonIds) || selectionState.shuffledTaxonIds.length === 0) {
+    selectionState.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
+    selectionState.cursor = 0;
+  }
+  const n = selectionState.shuffledTaxonIds.length;
   if (n === 0) return null;
 
   const isEligible = (tid) => {
     const key = String(tid);
     if (excludeSet.has(key)) return false;
-    if (!cacheEntry.byTaxon.get(key)?.length) return false;
-    if (isBlockedByTargetCooldown(cacheEntry, key, now)) return false;
+    if (!pool.byTaxon.get(key)?.length) return false;
+    if (isBlockedByTargetCooldown(selectionState, key, now)) return false;
     return true;
   };
 
   let scanned = 0;
   while (scanned < n) {
-    if (cacheEntry.cursor >= n) {
-      cacheEntry.shuffledTaxonIds = shuffleFisherYates(cacheEntry.shuffledTaxonIds);
-      cacheEntry.cursor = 0;
+    if (selectionState.cursor >= n) {
+      selectionState.shuffledTaxonIds = shuffleFisherYates(selectionState.shuffledTaxonIds);
+      selectionState.cursor = 0;
     }
-    const tid = cacheEntry.shuffledTaxonIds[cacheEntry.cursor];
+    const tid = selectionState.shuffledTaxonIds[selectionState.cursor];
     if (isEligible(tid)) {
-      cacheEntry.cursor++; // ne consomme que si éligible
+      selectionState.cursor++; // ne consomme que si éligible
       return String(tid);
     }
-    cacheEntry.shuffledTaxonIds.push(cacheEntry.shuffledTaxonIds.splice(cacheEntry.cursor, 1)[0]);
+    selectionState.shuffledTaxonIds.push(selectionState.shuffledTaxonIds.splice(selectionState.cursor, 1)[0]);
     scanned++;
   }
   return null;
 }
 
 // Fallback relax (pondéré par ancienneté) — cible
-function pickRelaxedTaxon(cacheEntry, excludeSet = new Set()) {
-  const all = cacheEntry.taxonList.filter(
-    (t) => !excludeSet.has(String(t)) && cacheEntry.byTaxon.get(String(t))?.length
+function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set()) {
+  const all = pool.taxonList.filter(
+    (t) => !excludeSet.has(String(t)) && pool.byTaxon.get(String(t))?.length
   );
   if (all.length === 0) return null;
 
   const weightFor = (id) => {
     const s = String(id);
-    const idxT = cacheEntry.recentTargetTaxa.indexOf(s);
+    const idxT = selectionState.recentTargetTaxa.indexOf(s);
     if (idxT === -1) return 5;
-    const lenT = cacheEntry.recentTargetTaxa.length;
+    const lenT = selectionState.recentTargetTaxa.length;
     return Math.max(1, lenT - idxT);
   };
 
@@ -437,7 +482,7 @@ function makeChoiceLabels(detailsMap, ids) {
 }
 
 /* ---------- Leurres équilibrés par LCA (near/mid/far) ---------- */
-function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LURE_COUNT) {
+function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT) {
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
 
@@ -446,11 +491,11 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
     : [];
   const targetDepth = Math.max(targetAnc.length, 1);
 
-  const candidates = cacheEntry.taxonList
-    .filter((tid) => String(tid) !== targetId && cacheEntry.byTaxon.get(String(tid))?.length);
+  const candidates = pool.taxonList
+    .filter((tid) => String(tid) !== targetId && pool.byTaxon.get(String(tid))?.length);
 
   const scored = candidates.map((tid) => {
-    const list = cacheEntry.byTaxon.get(String(tid)) || [];
+    const list = pool.byTaxon.get(String(tid)) || [];
     const rep = list[0] || null;
     const anc = Array.isArray(rep?.taxon?.ancestor_ids) ? rep.taxon.ancestor_ids : [];
     const depth = lcaDepth(targetAnc, anc);
@@ -474,7 +519,7 @@ function buildLures(cacheEntry, targetTaxonId, targetObservation, lureCount = LU
     for (const s of arr) {
       if (out.length >= lureCount) return;
       if (seenTaxa.has(s.tid)) continue;
-      const obs = pickObservationForTaxon(cacheEntry, s.tid) || s.rep;
+      const obs = pickObservationForTaxon(pool, selectionState, s.tid) || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs });
         seenTaxa.add(s.tid);
@@ -541,6 +586,35 @@ const speciesCountsSchema = z.object({
   locale: z.string().default("fr"),
   per_page: z.coerce.number().min(1).max(200).default(100),
   page: z.coerce.number().min(1).max(500).default(1),
+});
+
+const placesSchema = z.object({
+  q: z.string().trim().min(2).max(80),
+  per_page: z.coerce.number().min(1).max(25).default(15),
+});
+
+const csvIds = (maxItems) =>
+  z
+    .string()
+    .min(1)
+    .max(500)
+    .transform((value) =>
+      String(value)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+    .refine((list) => list.length > 0 && list.length <= maxItems, {
+      message: `Entre 1 et ${maxItems} identifiants sont requis`,
+    });
+
+const placesByIdSchema = z.object({
+  ids: csvIds(25),
+});
+
+const taxaBatchSchema = z.object({
+  ids: csvIds(50),
+  locale: z.string().default("fr"),
 });
 
 // ⚠️ Express 5: req.query est en lecture seule
@@ -634,8 +708,12 @@ app.get(
 
       const now = Date.now();
       purgeQuestionCache(now);
+      purgeSelectionStateCache(now);
       const cacheKey = buildCacheKey(params);
       let cacheEntry = questionCache.get(cacheKey);
+      if (cacheEntry && !cacheEntry.version) {
+        cacheEntry.version = cacheEntry.timestamp || now;
+      }
 
       let pagesFetched = 0;
       let poolObs = 0;
@@ -711,19 +789,11 @@ app.get(
 
         cacheEntry = {
           timestamp: now,
+          version: now,
           byTaxon,
           taxonList,
-          shuffledTaxonIds: shuffleFisherYates(taxonList),
-          cursor: 0,
-
-          recentTargetTaxa: [],
-          recentTargetSet: new Set(),
-          cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
-
-          recentObsQueue: [],
-          recentObsSet: new Set(),
         };
-        setWithLimit(questionCache, cacheKey, cacheEntry);
+        setWithLimit(questionCache, cacheKey, cacheEntry, MAX_CACHE_ENTRIES);
 
         poolObs = results.length;
         poolTaxa = taxonList.length;
@@ -739,12 +809,14 @@ app.get(
       }
 
       // CIBLE
+      const clientIp = getClientIp(req);
+      const { state: selectionState } = getSelectionStateForClient(cacheKey, clientIp, cacheEntry, now);
       const excludeTaxaForTarget = new Set();
-      let targetTaxonId = nextEligibleTaxonId(cacheEntry, now, excludeTaxaForTarget);
+      let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget);
 
       let selectionMode = "normal";
       if (!targetTaxonId) {
-        targetTaxonId = pickRelaxedTaxon(cacheEntry, excludeTaxaForTarget);
+        targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget);
         selectionMode = "fallback_relax";
         req.log?.info(
           { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
@@ -762,7 +834,7 @@ app.get(
       }
       res.set("X-Selection-Geo", geo.mode);
 
-      const targetObservation = pickObservationForTaxon(cacheEntry, targetTaxonId);
+      const targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId);
       if (!targetObservation) {
         marks.pickedTarget = performance.now();
         marks.builtLures = marks.pickedTarget;
@@ -772,11 +844,11 @@ app.get(
         setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
         return res.status(503).json({ error: "Aucune observation exploitable trouvée pour le taxon cible." });
       }
-      rememberObservation(cacheEntry, targetObservation.id);
+      rememberObservation(selectionState, targetObservation.id);
       marks.pickedTarget = performance.now();
 
       // LEURRES
-      const { lures, buckets } = buildLures(cacheEntry, targetTaxonId, targetObservation, LURE_COUNT);
+      const { lures, buckets } = buildLures(cacheEntry, selectionState, targetTaxonId, targetObservation, LURE_COUNT);
       if (!lures || lures.length < LURE_COUNT) {
         marks.builtLures = performance.now();
         marks.taxaFetched = marks.builtLures;
@@ -854,7 +926,7 @@ app.get(
         .filter(Boolean);
 
       // Cooldown cible
-      pushTargetCooldown(cacheEntry, [String(targetTaxonId)], now);
+      pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], now);
 
       // Entêtes debug/observabilité
       res.set("X-Cache-Key", cacheKey);
@@ -930,55 +1002,63 @@ app.get(
 );
 
 // --- AUTOCOMPLETE PLACES ---
-app.get("/api/places", async (req, res) => {
-  try {
-    const q = String(req.query.q || "").trim();
-    const per_page = Math.min(25, Number(req.query.per_page || 15));
-    if (q.length < 2) return res.json([]);
+app.get(
+  "/api/places",
+  proxyLimiter,
+  validate(placesSchema),
+  async (req, res) => {
+    try {
+      const { q, per_page } = req.valid;
+      const cacheKey = buildCacheKey({ places: q, per_page });
+      const now = Date.now();
+      purgeAutocompleteCache(now);
+      const cached = autocompleteCache.get(cacheKey);
+      if (cached && cached.expires > now) return res.json(cached.data);
 
-    const cacheKey = buildCacheKey({ places: q, per_page });
-    const now = Date.now();
-    purgeAutocompleteCache(now);
-    const cached = autocompleteCache.get(cacheKey);
-    if (cached && cached.expires > now) return res.json(cached.data);
-
-    const data = await fetchJSON("https://api.inaturalist.org/v1/places/autocomplete", { q, per_page });
-    const out = (data.results || []).map((p) => ({
-      id: p.id,
-      name: p.display_name || p.name,
-      type: p.place_type_name,
-      admin_level: p.admin_level,
-      area_km2: p.bounding_box_area,
-    }));
-    setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL });
-    res.json(out);
-  } catch (e) {
-    res.status(500).json([]);
+      const data = await fetchJSON("https://api.inaturalist.org/v1/places/autocomplete", { q, per_page });
+      const out = (data.results || []).map((p) => ({
+        id: p.id,
+        name: p.display_name || p.name,
+        type: p.place_type_name,
+        admin_level: p.admin_level,
+        area_km2: p.bounding_box_area,
+      }));
+      setWithLimit(
+        autocompleteCache,
+        cacheKey,
+        { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL },
+        MAX_CACHE_ENTRIES
+      );
+      res.json(out);
+    } catch (e) {
+      res.status(500).json([]);
+    }
   }
-});
+);
 
-app.get("/api/places/by-id", async (req, res) => {
-  try {
-    const ids = String(req.query.ids || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean)
-      .join(",");
-    if (!ids) return res.json([]);
-    const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${ids}`);
-    const arr = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
-    const out = arr.map(p => ({
-      id: p.id,
-      name: p.display_name || p.name,
-      type: p.place_type_name,
-      admin_level: p.admin_level,
-      area_km2: p.bounding_box_area,
-    }));
-    res.json(out);
-  } catch (e) {
-    res.status(500).json([]);
+app.get(
+  "/api/places/by-id",
+  proxyLimiter,
+  validate(placesByIdSchema),
+  async (req, res) => {
+    try {
+      const idsParam = req.valid.ids.join(",");
+      if (!idsParam) return res.json([]);
+      const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${idsParam}`);
+      const arr = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
+      const out = arr.map((p) => ({
+        id: p.id,
+        name: p.display_name || p.name,
+        type: p.place_type_name,
+        admin_level: p.admin_level,
+        area_km2: p.bounding_box_area,
+      }));
+      res.json(out);
+    } catch (e) {
+      res.status(500).json([]);
+    }
   }
-});
+);
 
 // Autocomplete taxons
 app.get(
@@ -1002,7 +1082,7 @@ app.get(
       const response = await fetchJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params);
       const initial = Array.isArray(response.results) ? response.results : [];
       if (initial.length === 0) {
-        setWithLimit(autocompleteCache, cacheKey, { data: [], expires: now + AUTOCOMPLETE_CACHE_TTL });
+        setWithLimit(autocompleteCache, cacheKey, { data: [], expires: now + AUTOCOMPLETE_CACHE_TTL }, MAX_CACHE_ENTRIES);
         return res.json([]);
       }
 
@@ -1020,7 +1100,7 @@ app.get(
         };
       });
 
-      setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL });
+      setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL }, MAX_CACHE_ENTRIES);
       res.json(out);
     } catch (err) {
       console.error("Unhandled autocomplete error:", err);
@@ -1032,10 +1112,19 @@ app.get(
 // Détail d’un taxon
 app.get(
   "/api/taxon/:id",
+  proxyLimiter,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const { locale = "fr" } = req.query;
+      const parsed = z
+        .object({
+          id: z.coerce.number().int().positive(),
+          locale: z.string().default("fr"),
+        })
+        .safeParse({ id: req.params.id, locale: req.query.locale });
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Paramètres invalides", issues: parsed.error.issues });
+      }
+      const { id, locale } = parsed.data;
       const response = await fetchJSON(`https://api.inaturalist.org/v1/taxa/${id}`, { locale });
       const result = Array.isArray(response.results) ? response.results[0] : undefined;
       if (!result) return res.status(404).json({ error: "Taxon non trouvé." });
@@ -1050,17 +1139,12 @@ app.get(
 // Batch de taxons
 app.get(
   "/api/taxa",
+  proxyLimiter,
+  validate(taxaBatchSchema),
   async (req, res) => {
     try {
-      const { ids, locale = "fr" } = req.query;
-      if (!ids) return res.status(400).json({ error: "Le paramètre 'ids' est requis." });
-
-      const taxonIds = String(ids)
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-
-      const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
+      const { ids, locale } = req.valid;
+      const taxaDetails = await getFullTaxaDetails(ids, locale);
       res.json(taxaDetails);
     } catch (err) {
       console.error("Unhandled taxa error:", err);
@@ -1072,6 +1156,7 @@ app.get(
 // Species counts
 app.get(
   "/api/observations/species_counts",
+  proxyLimiter,
   validate(speciesCountsSchema),
   async (req, res) => {
     try {

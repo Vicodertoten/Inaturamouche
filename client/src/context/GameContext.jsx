@@ -44,10 +44,14 @@ export function GameProvider({ children }) {
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
 
   const achievementsTimerRef = useRef(null);
+  const activeRequestController = useRef(null);
+  const prefetchRequestController = useRef(null);
 
   useEffect(() => {
     return () => {
       if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+      activeRequestController.current?.abort();
+      prefetchRequestController.current?.abort();
     };
   }, []);
 
@@ -55,6 +59,20 @@ export function GameProvider({ children }) {
     if (achievementsTimerRef.current) {
       clearTimeout(achievementsTimerRef.current);
       achievementsTimerRef.current = null;
+    }
+  }, []);
+
+  const abortActiveFetch = useCallback(() => {
+    if (activeRequestController.current) {
+      activeRequestController.current.abort();
+      activeRequestController.current = null;
+    }
+  }, []);
+
+  const abortPrefetchFetch = useCallback(() => {
+    if (prefetchRequestController.current) {
+      prefetchRequestController.current.abort();
+      prefetchRequestController.current = null;
     }
   }, []);
 
@@ -71,6 +89,8 @@ export function GameProvider({ children }) {
 
   const resetToLobby = useCallback(
     (clearSession = true) => {
+      abortActiveFetch();
+      abortPrefetchFetch();
       setIsGameActive(false);
       setIsGameOver(false);
       setQuestionCount(0);
@@ -80,7 +100,7 @@ export function GameProvider({ children }) {
       setIsReviewMode(false);
       if (clearSession) resetSessionState();
     },
-    [resetSessionState]
+    [abortActiveFetch, abortPrefetchFetch, resetSessionState]
   );
 
   const clearError = useCallback(() => setError(null), []);
@@ -132,14 +152,24 @@ export function GameProvider({ children }) {
 
   const fetchQuestion = useCallback(
     async (prefetchOnly = false) => {
-      if (!prefetchOnly) {
+      if (prefetchOnly) {
+        abortPrefetchFetch();
+      } else {
+        abortActiveFetch();
         setLoading(true);
         setError(null);
       }
 
+      const controller = new AbortController();
+      if (prefetchOnly) {
+        prefetchRequestController.current = controller;
+      } else {
+        activeRequestController.current = controller;
+      }
+
       try {
         const params = buildQuizParams();
-        const questionData = await fetchQuizQuestion(params);
+        const questionData = await fetchQuizQuestion(params, { signal: controller.signal });
 
         if (prefetchOnly) {
           setNextQuestion(questionData);
@@ -148,20 +178,27 @@ export function GameProvider({ children }) {
           fetchQuestion(true);
         }
       } catch (err) {
+        if (controller.signal.aborted) return;
         if (!prefetchOnly) {
-          const message = err.status === 404 || err.status === 500
-            ? t('errors.quiz_no_results')
-            : err.message || t('errors.generic');
+          const message =
+            err.status === 404 || err.status === 500 ? t('errors.quiz_no_results') : err.message || t('errors.generic');
           setError(message);
           setIsGameActive(false);
           setIsGameOver(false);
           setQuestionCount(0);
         }
       } finally {
-        if (!prefetchOnly) setLoading(false);
+        if (!prefetchOnly) {
+          setLoading(false);
+          if (activeRequestController.current === controller) {
+            activeRequestController.current = null;
+          }
+        } else if (prefetchRequestController.current === controller) {
+          prefetchRequestController.current = null;
+        }
       }
     },
-    [buildQuizParams, t]
+    [abortActiveFetch, abortPrefetchFetch, buildQuizParams, t]
   );
 
   useEffect(() => {
