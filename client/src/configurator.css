@@ -1,56 +1,104 @@
 /* --- Styles du conteneur principal --- */
 .configurator-panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--text-color);
+}
+
+.configurator-screen .card {
+  position: relative;
+  padding-top: calc(var(--space-5) + 1.25rem);
 }
 
 .config-help-button {
   position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  z-index: 2;
+  top: -17px;
+  right: -17px;
+  z-index: 5;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(6px);
 }
 
-  .pack-selector {
-    margin-bottom: var(--space-5);
+.configurator-panel .pack-selector,
+.configurator-panel .pack-details,
+.configurator-panel .scientific-toggle {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--space-4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.pack-selector {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-3);
 }
 
-  .pack-selector label {
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: var(--space-2);
-    color: var(--text-color);
-  }
+.pack-selector label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-color-muted);
+}
 
-  .pack-details {
-    padding: var(--space-4);
-    padding-top: 0rem;
-  background-color: rgba(0,0,0,0.1);
+.pack-selector .tooltip {
+  display: block;
+}
+
+.pack-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pack-details h4 {
+  margin: 0 0 var(--space-2) 0;
+}
+
+.pack-description {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-color-muted);
+}
+
+.pack-description strong {
+  color: var(--text-color);
+}
+
+.custom-filter-container fieldset {
+  margin-top: var(--space-3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
+  padding: var(--space-3);
+  background-color: rgba(0, 0, 0, 0.15);
 }
-.pack-details h4 { margin: 0 0 var(--space-2) 0; }
-.pack-details p { color: var(--text-color-muted); }
 
+.custom-filter-container legend {
+  font-weight: 600;
+  padding: 0 var(--space-2);
+}
 
-  .custom-filter-container fieldset {
-    margin-top: var(--space-3);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--space-3);
-  }
-  .custom-filter-container legend {
-    font-weight: 600;
-    padding: 0 var(--space-2);
-  }
-  .custom-filter-description {
-    font-size: 0.9rem;
-    margin-top: 0rem;
-    margin-bottom: var(--space-3);
-    color: var(--text-color-muted);
-  }
+.custom-filter-description {
+  font-size: 0.95rem;
+  margin: 0 0 var(--space-3);
+  color: var(--text-color-muted);
+}
+
+.scientific-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.preference-toggle {
+  color: var(--text-color);
+}
 
 
 /* --- NOUVEAU : STYLES GÉNÉRAUX POUR LES CHAMPS DE FORMULAIRE --- */
@@ -89,12 +137,23 @@
 
 /* --- NOUVEAU : STYLES POUR LES CASES À COCHER PERSONNALISÉES --- */
 .checkbox-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
   user-select: none;
   width: fit-content;
+  flex-wrap: wrap;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.checkbox-text {
+  line-height: 1.3;
+}
+
+.checkbox-label:hover .checkbox-text {
+  color: var(--accent-color);
 }
 /* On cache la case à cocher par défaut */
 .checkbox-label input[type="checkbox"] {
