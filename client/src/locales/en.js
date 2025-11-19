@@ -142,6 +142,7 @@ const en = {
     choose_image: 'Image selector',
     go_to_image: 'Go to image {index}',
     viewer_label: 'Image viewer',
+    meta_unknown: 'Photo via iNaturalist',
   },
   summary: {
     win_title: 'Species found!',

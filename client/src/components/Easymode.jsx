@@ -145,6 +145,7 @@ const EasyMode = () => {
             <div className="image-section">
               <ImageViewer
                 imageUrls={question.image_urls || [question.image_url]}
+                photoMeta={question.image_meta}
                 alt={t('easy.image_alt')}
                 nextImageUrl={nextImageUrl}
               />

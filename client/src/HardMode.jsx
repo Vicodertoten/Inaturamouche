@@ -289,6 +289,7 @@ function HardMode() {
         <div className="media-panel">
           <ImageViewer
             imageUrls={question.image_urls || [question.image_url]}
+            photoMeta={question.image_meta}
             alt={t('hard.image_alt')}
             nextImageUrl={nextImageUrl}
           />

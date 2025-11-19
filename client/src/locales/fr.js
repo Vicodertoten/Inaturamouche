@@ -142,6 +142,7 @@ const fr = {
     choose_image: "Choix de l'image",
     go_to_image: "Aller à l'image {index}",
     viewer_label: "Visionneuse d'images",
+    meta_unknown: 'Photo via iNaturalist',
   },
   summary: {
     win_title: 'Espèce trouvée !',
