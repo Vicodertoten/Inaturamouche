@@ -46,13 +46,9 @@ const corsOptions = {
   exposedHeaders: [
     "Content-Length",
     "Content-Type",
-    "X-Quiz-Id",
     "X-Cache-Key",
-    "X-Quiz-Obs-Id",
-    "X-Selection-Mode",
     "X-Lures-Relaxed",
     "X-Lure-Buckets",
-    "X-Correct-Id",
     "X-Pool-Pages",
     "X-Pool-Obs",
     "X-Pool-Taxa",
@@ -164,6 +160,21 @@ const LURE_MID_THRESHOLD = 0.65;
 
 const questionCache = new Map();
 const autocompleteCache = new Map();
+
+function purgeCache(map, shouldDelete) {
+  if (!map || map.size === 0) return;
+  for (const [key, value] of map.entries()) {
+    if (shouldDelete(value, key)) map.delete(key);
+  }
+}
+
+function purgeQuestionCache(now = Date.now()) {
+  purgeCache(questionCache, (entry) => !entry || entry.timestamp + QUESTION_CACHE_TTL < now);
+}
+
+function purgeAutocompleteCache(now = Date.now()) {
+  purgeCache(autocompleteCache, (entry) => !entry || (entry.expires && entry.expires <= now));
+}
 
 /* -------------------- Utils -------------------- */
 function buildCacheKey(obj) {
@@ -622,6 +633,7 @@ app.get(
       if (d2 && isValidISODate(d2)) params.d2 = d2;
 
       const now = Date.now();
+      purgeQuestionCache(now);
       const cacheKey = buildCacheKey(params);
       let cacheEntry = questionCache.get(cacheKey);
 
@@ -824,13 +836,9 @@ app.get(
       pushTargetCooldown(cacheEntry, [String(targetTaxonId)], now);
 
       // Entêtes debug/observabilité
-      res.set("X-Quiz-Id", String(targetTaxonId));
-      res.set("X-Quiz-Obs-Id", String(targetObservation.id));
       res.set("X-Cache-Key", cacheKey);
-      res.set("X-Selection-Mode", selectionMode);
       res.set("X-Lures-Relaxed", "0");
       res.set("X-Lure-Buckets", `${buckets.near}|${buckets.mid}|${buckets.far}`);
-      res.set("X-Correct-Id", String(targetTaxonId));
       res.set("X-Pool-Pages", String(pagesFetched));
       res.set("X-Pool-Obs", String(poolObs));
       res.set("X-Pool-Taxa", String(poolTaxa));
@@ -907,6 +915,7 @@ app.get("/api/places", async (req, res) => {
 
     const cacheKey = buildCacheKey({ places: q, per_page });
     const now = Date.now();
+    purgeAutocompleteCache(now);
     const cached = autocompleteCache.get(cacheKey);
     if (cached && cached.expires > now) return res.json(cached.data);
 
@@ -956,6 +965,7 @@ app.get(
     try {
       const { q, rank, locale = "fr" } = req.valid;
       const now = Date.now();
+      purgeAutocompleteCache(now);
       const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
 
       const cached = autocompleteCache.get(cacheKey);

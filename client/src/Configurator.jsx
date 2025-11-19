@@ -3,8 +3,18 @@ import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
+import { useGame } from './context/GameContext';
 
-function Configurator({ onStartGame, onStartReview, canStartReview, error, setError, activePackId, setActivePackId, customFilters, dispatch }) {
+function Configurator({ onStartGame, onStartReview }) {
+  const {
+    activePackId,
+    setActivePackId,
+    customFilters,
+    dispatchCustomFilters,
+    error,
+    clearError,
+    canStartReview,
+  } = useGame();
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -15,9 +25,7 @@ function Configurator({ onStartGame, onStartReview, canStartReview, error, setEr
 
   return (
     <div>
-      {error && (
-        <ErrorModal message={error} onClose={() => setError(null)} />
-      )}
+      {error && <ErrorModal message={error} onClose={clearError} />}
       
       <div className="pack-selector">
         <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
@@ -48,7 +56,7 @@ function Configurator({ onStartGame, onStartReview, canStartReview, error, setEr
         {activePackId === 'custom' && (
           <CustomFilter 
             filters={customFilters}
-            dispatch={dispatch}
+            dispatch={dispatchCustomFilters}
           />
         )}
       </div>

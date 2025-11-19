@@ -1,66 +1,39 @@
-/* Le fond assombri qui prend tout l'écran */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  min-height: var(--full-height);
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-  animation: fadeIn 0.3s ease-out;
+/* Mise en page de la page Profil */
+.profile-screen {
+  justify-content: flex-start;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Le contenu de la fiche au centre */
-.modal-content {
+.profile-page-card {
+  width: 100%;
+  max-width: 900px;
   background-color: var(--surface-color);
-    padding: var(--space-5) calc(var(--space-5) + var(--space-2));
   border-radius: var(--border-radius);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--primary-color);
-  width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  padding: var(--space-5) calc(var(--space-5) + var(--space-2));
   position: relative;
-  animation: slideInUp 0.4s ease-out;
 }
 
-@keyframes slideInUp {
-  from { transform: translateY(50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.modal-title {
+.profile-page-card .modal-title {
   text-align: center;
-  margin-top: 0;
-    margin-bottom: var(--space-5);
+  margin: 0 0 var(--space-5) 0;
   font-size: 1.8rem;
   color: var(--accent-color);
 }
 
-.close-button {
-  position: absolute;
-  top: 15px;
-  right: 15px;
+.back-button {
   background: none;
-  border: none;
-  font-size: 2.5rem;
-  color: var(--text-color-muted);
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-}
-.close-button:hover {
+  border: 1px solid var(--border-color);
   color: var(--text-color);
+  font-size: 0.9rem;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-3);
+  align-self: flex-start;
+}
+.back-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
   .profile-section {
@@ -205,9 +178,8 @@
 .achievement-item.unlocked .achievement-title { color: var(--accent-color); }
 .achievement-description { margin: 0; font-size: 0.9rem; color: var(--text-color-muted); }
 @media (max-width: 480px) {
-  .modal-content.profile-modal {
-    width: 90%;
+  .profile-page-card {
+    width: 100%;
     padding: var(--space-3);
-    max-height: 80vh;
   }
 }
