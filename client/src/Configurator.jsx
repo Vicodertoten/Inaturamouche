@@ -1,4 +1,4 @@
-import React, { useMemo, useId } from 'react';
+import React, { useEffect, useMemo, useState, useId } from 'react';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
@@ -6,7 +6,7 @@ import { useGame } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { usePacks } from './context/PacksContext.jsx';
 
-function Configurator({ onStartGame, onStartReview, onShowHelp }) {
+function Configurator({ onStartGame }) {
   const {
     activePackId,
     setActivePackId,
@@ -14,13 +14,28 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
     dispatchCustomFilters,
     error,
     clearError,
-    canStartReview,
   } = useGame();
   const { packs, loading: packsLoading, error: packsError } = usePacks();
   const { t, useScientificName, setUseScientificName } = useLanguage();
   const preferenceHintId = useId();
 
   const activePack = useMemo(() => packs.find((pack) => pack.id === activePackId), [packs, activePackId]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const recommendedPack = useMemo(() => {
+    const eligible = packs.filter((pack) => pack.id !== 'custom');
+    if (!eligible.length) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const hash = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return eligible[hash % eligible.length];
+  }, [packs]);
+
+  useEffect(() => {
+    if (activePackId !== 'custom' && showAdvancedFilters) {
+      setShowAdvancedFilters(false);
+    }
+  }, [activePackId, showAdvancedFilters]);
+
   const scientificPreferenceHint = t('common.scientific_preference_help');
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
@@ -32,21 +47,31 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
 
   return (
     <>
-      {onShowHelp && (
-        <button
-          type="button"
-          className="help-button config-help-button"
-          onClick={onShowHelp}
-          aria-label={t('nav.help_label')}
-          title={t('nav.help_label')}
-        >
-          ?
-        </button>
-      )}
-
       <div className="configurator-panel">
         {(error || packsError) && (
           <ErrorModal message={error || packsError} onClose={error ? clearError : undefined} />
+        )}
+
+        {recommendedPack && (
+          <div className="recommended-pack">
+            <p className="eyebrow">{t('home.recommended_pack_label')}</p>
+            <h3>{recommendedPack.titleKey ? t(recommendedPack.titleKey) : recommendedPack.id}</h3>
+            {recommendedPack.descriptionKey && (
+              <p className="recommended-pack-description">
+                {t(recommendedPack.descriptionKey)}
+              </p>
+            )}
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setActivePackId(recommendedPack.id)}
+              disabled={packsLoading || recommendedPack.id === activePackId}
+            >
+              {recommendedPack.id === activePackId
+                ? t('home.recommended_pack_active')
+                : t('home.recommended_pack_cta')}
+            </button>
+          </div>
         )}
         
         <div className="pack-selector">
@@ -82,12 +107,28 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
               <strong>{t('common.pack_description_label')}:</strong> {t(activePack.descriptionKey)}
             </p>
           )}
-          {/* Si le pack "Personnalisé" est actif, on affiche son interface de filtres */}
           {activePackId === 'custom' && (
-            <CustomFilter 
-              filters={customFilters}
-              dispatch={dispatchCustomFilters}
-            />
+            <div className={`advanced-filters ${showAdvancedFilters ? 'open' : ''}`}>
+              <div className="advanced-filters-header">
+                <p>{t('configurator.advanced_filters_title')}</p>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                >
+                  {showAdvancedFilters
+                    ? t('configurator.hide_advanced_filters')
+                    : t('configurator.show_advanced_filters')}
+                </button>
+              </div>
+              <p className="advanced-filters-helper">{t('configurator.advanced_filters_helper')}</p>
+              {showAdvancedFilters && (
+                <CustomFilter
+                  filters={customFilters}
+                  dispatch={dispatchCustomFilters}
+                />
+              )}
+            </div>
           )}
         </div>
 
@@ -114,11 +155,6 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
         <button onClick={onStartGame} className="start-button" disabled={packsLoading}>
           {t('common.start_game')}
         </button>
-        {canStartReview && (
-          <button onClick={onStartReview} className="start-button" disabled={packsLoading}>
-            {t('common.review_mistakes')}
-          </button>
-        )}
       </div>
     </>
   );

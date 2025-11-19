@@ -7,21 +7,6 @@
   color: var(--text-color);
 }
 
-.configurator-screen .card {
-  position: relative;
-  padding-top: calc(var(--space-5) + 1.25rem);
-}
-
-.config-help-button {
-  position: absolute;
-  top: -17px;
-  right: -17px;
-  z-index: 5;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(6px);
-}
-
 .configurator-panel .pack-selector,
 .configurator-panel .pack-details,
 .configurator-panel .scientific-toggle {
@@ -98,6 +83,32 @@
 
 .preference-toggle {
   color: var(--text-color);
+}
+
+/* Recommended pack highlight */
+.recommended-pack {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.recommended-pack .secondary-button {
+  align-self: flex-start;
+}
+.recommended-pack-description {
+  margin: 0;
+  color: var(--text-color-muted);
+  line-height: 1.5;
+}
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--accent-color);
+  margin: 0;
 }
 
 
@@ -198,6 +209,32 @@
 /* On affiche la coche quand la case est cochée */
 .checkbox-label input:checked + .custom-checkbox::after {
   display: block;
+}
+
+.advanced-filters {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.advanced-filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.advanced-filters-header p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-color);
+}
+.advanced-filters-helper {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-color-muted);
+  line-height: 1.4;
 }
 
 
