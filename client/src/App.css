@@ -198,7 +198,6 @@ button:focus-visible {
   background-color: var(--primary-color);
   border-color: var(--primary-color);
   font-size: 1.2rem;
-    margin-top: var(--space-4);
   width: 100%;
 
 }
@@ -327,7 +326,7 @@ button:focus-visible {
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
-  .mode-selector { display: flex; align-items: center; gap: 1rem; margin-bottom: var(--space-5); padding: var(--space-3); background-color: rgba(0,0,0,0.1); border-radius: var(--border-radius); justify-content: center; }
+  .mode-selector { display: flex; align-items: center; gap: 1rem; margin-bottom: var(--space-4); padding: var(--space-3); background-color: rgba(0,0,0,0.1); border-radius: var(--border-radius); justify-content: center; }
 .mode-selector h3 { margin: 0; font-size: 1rem; font-weight: 500; }
 .mode-selector button.active { border-color: var(--accent-color); background-color: var(--accent-color); color: var(--bg-color); }
 
