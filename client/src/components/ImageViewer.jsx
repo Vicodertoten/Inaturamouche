@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ImageViewer.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 // Detect native support for the `loading="lazy"` attribute.
 // Fallback: when unsupported (e.g. Safari), the image loads immediately.
@@ -50,6 +51,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   const pointers = useRef(new Map());
   const initialPinchDistance = useRef(null);
   const initialScale = useRef(1);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -169,7 +171,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   };
 
   if (!imageUrls || imageUrls.length === 0) {
-    return <div className="image-viewer-container">Chargement...</div>;
+    return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
   }
 
   return (
@@ -187,7 +189,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         onKeyDown={handleKeyDown}
         tabIndex={0}
         role="group"
-        aria-roledescription="Visionneuse d'images"
+        aria-roledescription={t('imageViewer.viewer_label')}
         aria-label={alt}
       >
         {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
@@ -215,23 +217,28 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
 
           {imageUrls.length > 1 && (
-            <div className="nav-overlay" role="group" aria-label="Contrôles de navigation" style={Fallback.overlay}>
+            <div
+              className="nav-overlay"
+              role="group"
+              aria-label={t('imageViewer.nav_label')}
+              style={Fallback.overlay}
+            >
               <button
                 type="button"
                 className="nav-button prev"
-                aria-label="Image précédente"
+                aria-label={t('imageViewer.previous')}
                 onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                 style={Fallback.arrow}
               >
                 ‹
               </button>
 
-              <div className="dots" role="tablist" aria-label="Choix de l'image" style={Fallback.dots}>
+              <div className="dots" role="tablist" aria-label={t('imageViewer.choose_image')} style={Fallback.dots}>
                 {imageUrls.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    aria-label={`Aller à l'image ${idx + 1}`}
+                    aria-label={t('imageViewer.go_to_image', { index: idx + 1 })}
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
                     aria-selected={idx === currentIndex}
                     onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
@@ -246,7 +253,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
               <button
                 type="button"
                 className="nav-button next"
-                aria-label="Image suivante"
+                aria-label={t('imageViewer.next')}
                 onClick={(e) => { e.stopPropagation(); handleNext(); }}
                 style={Fallback.arrow}
               >

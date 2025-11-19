@@ -1,16 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import { loadProfileWithDefaults, saveProfile } from '../services/PlayerProfile';
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => loadProfileWithDefaults());
-  const [language, setLanguage] = useState(() => localStorage.getItem('inaturamouche_lang') || 'fr');
   const [achievementQueue, setAchievementQueue] = useState([]);
-
-  useEffect(() => {
-    localStorage.setItem('inaturamouche_lang', language);
-  }, [language]);
 
   const refreshProfile = useCallback(() => {
     setProfile(loadProfileWithDefaults());
@@ -38,8 +33,6 @@ export function UserProvider({ children }) {
     profile,
     updateProfile,
     refreshProfile,
-    language,
-    setLanguage,
     achievementQueue,
     queueAchievements,
     popAchievement,
@@ -53,4 +46,3 @@ export function useUser() {
   if (!context) throw new Error('useUser must be used within a UserProvider');
   return context;
 }
-

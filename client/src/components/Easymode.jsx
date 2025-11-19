@@ -4,6 +4,7 @@ import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
 import StreakBadge from './StreakBadge';
 import { MAX_QUESTIONS_PER_GAME, useGame } from '../context/GameContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 /**
@@ -24,15 +25,30 @@ const EasyMode = () => {
     updateScore,
   } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
+  const { t, getTaxonDisplayNames } = useLanguage();
+
+  const choiceDetailMap = useMemo(() => {
+    const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
+    return new Map(details.map((detail) => [String(detail.taxon_id), detail]));
+  }, [question?.choice_taxa_details]);
+
   const easyPairs = useMemo(() => {
     const labels = Array.isArray(question?.choix_mode_facile) ? question.choix_mode_facile : [];
     const ids = Array.isArray(question?.choix_mode_facile_ids) ? question.choix_mode_facile_ids : labels;
-    return labels.map((label, i) => ({ id: ids[i] ?? label, label }));
-  }, [question]);
+    return labels.map((label, i) => {
+      const id = ids[i] ?? label;
+      return {
+        id,
+        label,
+        detail: choiceDetailMap.get(String(id)),
+      };
+    });
+  }, [choiceDetailMap, question]);
 
+  const fallbackLabel = question?.bonne_reponse?.preferred_common_name || question?.bonne_reponse?.common_name;
   const correctIndexFromServer = Number.isInteger(question?.choix_mode_facile_correct_index)
     ? question.choix_mode_facile_correct_index
-    : Math.max(0, easyPairs.findIndex(p => p.label === question?.bonne_reponse?.common_name)); // fallback robuste
+    : Math.max(0, easyPairs.findIndex(p => p.label === fallbackLabel)); // fallback robuste
 
   const [answered, setAnswered] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -106,7 +122,7 @@ const EasyMode = () => {
         <div className="card">
           <header className="game-header">
             <div className="header-left">
-              <h2>Question {questionCount}/{MAX_QUESTIONS_PER_GAME}</h2>
+              <h2>{t('easy.question_counter', { current: questionCount, total: MAX_QUESTIONS_PER_GAME })}</h2>
               <button
                 className="hint-button-easy"
                 onClick={handleHint}
@@ -116,11 +132,11 @@ const EasyMode = () => {
                   remainingPairs.length <= 2 // ne retire pas si déjà 2 choix (bon + 1 leurre)
                 }
               >
-                Indice (-{HINT_COST_EASY} pts)
+                {t('easy.hint_button', { cost: HINT_COST_EASY })}
               </button>
             </div>
             <div className="score-container">
-              <h2 className="score">Score: {score}</h2>
+              <h2 className="score">{t('easy.score_label', { score })}</h2>
               <StreakBadge streak={currentStreak} />
             </div>
           </header>
@@ -129,7 +145,7 @@ const EasyMode = () => {
             <div className="image-section">
               <ImageViewer
                 imageUrls={question.image_urls || [question.image_url]}
-                alt="Quelle est cette espèce ?"
+                alt={t('easy.image_alt')}
                 nextImageUrl={nextImageUrl}
               />
             </div>
@@ -149,7 +165,15 @@ const EasyMode = () => {
                     onClick={() => handleSelectAnswer(idx)}
                     disabled={answered}
                   >
-                    {p.label}
+                    {(() => {
+                      const { primary, secondary } = getTaxonDisplayNames(p.detail, p.label);
+                      return (
+                        <span className="choice-label">
+                          {primary}
+                          {secondary && <small className="choice-secondary">{secondary}</small>}
+                        </span>
+                      );
+                    })()}
                   </button>
                 );
               })}

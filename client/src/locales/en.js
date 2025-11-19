@@ -1,0 +1,262 @@
+const en = {
+  languageNames: {
+    fr: 'French',
+    en: 'English',
+    nl: 'Dutch',
+  },
+  common: {
+    close: 'Close',
+    loading: 'Loading...',
+    start_game: 'Start game!',
+    review_mistakes: 'Review my mistakes',
+    help: 'Help',
+    profile: 'My Profile',
+    home: 'Home',
+    replay: 'Play again',
+    score: 'Score',
+    next_question: 'Next question',
+    quit: 'Quit',
+    hint: 'Hint',
+    language_switcher_label: 'Change language',
+    scientific_preference_label: 'Prioritize scientific name',
+    scientific_preference_help: 'Use the Latin name whenever possible.',
+    pack_description_label: 'About this pack',
+  },
+  nav: {
+    help_label: 'Help & information',
+    profile_label: 'My Profile',
+    title_alt: 'Inaturamouche title',
+    title_tooltip: 'Back to the main menu',
+  },
+  home: {
+    easy_mode: 'Easy',
+    easy_mode_description: 'Easy mode: four answers and an optional hint.',
+    hard_mode: 'Hard',
+    hard_mode_description: 'Hard mode: guess the taxonomy with limited tries.',
+  },
+  configurator: {
+    pack_label: 'Choose a game pack:',
+    pack_hint: 'Select a themed pack or customize your run.',
+    pack_description_label: 'About this pack',
+  },
+  packs: {
+    custom: {
+      title: 'Custom filter',
+      description: 'Build your own quiz by including or excluding taxa, a place, and dates.',
+    },
+    european_mushrooms: {
+      title: 'Common edible mushrooms in Europe',
+      description: 'A selection of the mushrooms most often observed across Europe.',
+    },
+    european_trees: {
+      title: 'Common trees in Europe',
+      description: 'A selection of the most common trees in Europe.',
+    },
+    world_birds: {
+      title: 'Birds of the world',
+      description: 'The 100 most observed bird species on iNaturalist.',
+    },
+    france_mammals: {
+      title: 'Mammals of France',
+      description: 'All mammal observations from mainland France.',
+    },
+    belgium_herps: {
+      title: 'Belgian reptiles & amphibians',
+      description: 'Discover the snakes, lizards, frogs, and salamanders of Belgium.',
+    },
+    amazing_insects: {
+      title: 'Insects of the world',
+      description: 'Explore dazzling insect diversity, from butterflies to strange beetles.',
+    },
+    mediterranean_flora: {
+      title: 'Mediterranean flora',
+      description: 'Plants, trees, and flowers typical of the Mediterranean basin.',
+    },
+    great_barrier_reef_life: {
+      title: 'Great Barrier Reef wildlife',
+      description: 'Fish, corals, and mollusks from the world’s largest reef.',
+    },
+  },
+  customFilter: {
+    include_title: 'Taxa to INCLUDE',
+    include_description: 'Add the groups you want to see in the quiz.',
+    exclude_title: 'Taxa to EXCLUDE',
+    exclude_description: 'Add the groups you want to remove from the quiz.',
+    placeholder: '(e.g. birds, deer, fungi, passerines...)',
+    remove_taxon: 'Remove this taxon',
+    filter_by_place: 'Filter by location',
+    filter_by_date: 'Filter by date',
+    date_from: 'From',
+    date_to: 'To',
+  },
+  geo: {
+    tab_place: 'Place',
+    tab_map: 'Map',
+    place_placeholder: 'Search for a country, region, park…',
+    remove_place: 'Remove {name}',
+    add_place: 'Add',
+    bbox_label: 'BBox: NE({nelat}, {nelng}) — SW({swlat}, {swlng})',
+    map_hint:
+      'Tips: drag the corners or edges, move the center square to shift the area, Shift + drag to draw a new rectangle.',
+  },
+  easy: {
+    question_counter: 'Question {current}/{total}',
+    hint_button: 'Hint (-{cost} pts)',
+    image_alt: 'Which species is this?',
+    score_label: 'Score: {score}',
+  },
+  hard: {
+    title: 'Identify the species',
+    stats_line: 'Chances: {guesses} | Score: {score}',
+    reveal_button: 'Reveal (-{cost} chances)',
+    image_alt: 'Species to identify',
+    rank_placeholder: 'Enter a {rank}...',
+    feedback: {
+      branch: 'Great branch! +{points} points!',
+      redundant: 'Correct, but this guess did not reveal a new rank.',
+      wrong_branch: 'Incorrect. This suggestion is not on the right lineage.',
+      error: 'An error occurred while checking.',
+      not_enough_guesses: 'Not enough chances for that hint!',
+      hint_used: 'Hint used! The "{rank}" rank has been revealed.',
+    },
+  },
+  imageViewer: {
+    loading: 'Loading...',
+    nav_label: 'Navigation controls',
+    previous: 'Previous image',
+    next: 'Next image',
+    choose_image: 'Image selector',
+    go_to_image: 'Go to image {index}',
+    viewer_label: 'Image viewer',
+  },
+  summary: {
+    win_title: '🎉 Species found!',
+    lose_title: '😟 Too bad!',
+    answer_intro: 'The answer was:',
+    points: 'Points earned:',
+    bonus: 'Bonus:',
+    streak_bonus: 'Streak bonus:',
+    total: 'Round total:',
+    links: {
+      inaturalist: 'View on iNaturalist',
+      wikipedia: 'Wikipedia page',
+    },
+  },
+  end: {
+    final_score: 'Final score:',
+    correct_count: '{correct} / {total} correct',
+    accuracy: 'Accuracy {value}%',
+    species_seen: 'Species encountered',
+    achievements: 'Unlocked achievements',
+    status: {
+      correct: 'Correct',
+      incorrect: 'Incorrect',
+    },
+    links: {
+      inaturalist: 'iNaturalist',
+      wikipedia: 'Wikipedia',
+    },
+  },
+  achievements: {
+    modal_title: 'Achievement unlocked!',
+    list: {
+      first_game: {
+        title: 'First Steps',
+        description: 'Finish your very first game.',
+      },
+      ten_games: {
+        title: 'Regular',
+        description: 'Finish 10 games.',
+      },
+      high_score_10k: {
+        title: 'Seasoned Naturalist',
+        description: 'Reach a total of 10,000 XP.',
+      },
+      globetrotter: {
+        title: 'Globetrotter',
+        description: 'Play 3 different packs.',
+      },
+      LEVEL_5: {
+        title: 'Apprentice Naturalist',
+        description: 'Reach level 5.',
+      },
+      LEVEL_10: {
+        title: 'Pro Naturalist',
+        description: 'Reach level 10.',
+      },
+      ACCURACY_HARD_75: {
+        title: 'Field Expert',
+        description: 'Reach 75% accuracy in Hard mode (min. 25 questions).',
+      },
+      MASTER_5_SPECIES: {
+        title: 'Specialist',
+        description: 'Master 5 different species (3 correct answers each).',
+      },
+    },
+  },
+  help: {
+    title: 'Welcome to Inaturamouche!',
+    gameplay_title: 'Game concept',
+    gameplay_body:
+      'Identify animals, plants, or fungi from photos. The game relies on real observations from iNaturalist.',
+    modes_title: 'Game modes',
+    modes_easy: 'Easy: a multiple-choice quiz, perfect for relaxed discovery.',
+    modes_hard:
+      'Hard: rebuild the full taxonomy (kingdom, class, etc.). Every correct guess reveals a new rank.',
+    packs_title: 'Game packs',
+    packs_body: 'Pick a themed pack (world birds, French mammals...) or craft your own custom run!',
+    confirm: 'Got it!',
+  },
+  errors: {
+    title: 'Error',
+    quiz_no_results: 'No species found, broaden your search.',
+    generic: 'Something went wrong. Please try again later.',
+  },
+  profile: {
+    back: '← Back',
+    title: 'Player profile',
+    tabs: {
+      summary: 'Overview',
+      stats: 'Stats',
+      achievements: 'Achievements',
+    },
+    level: 'Level {level}',
+    xp_counter: '{current} / {total} XP',
+    summary_title: 'Key stats',
+    stats_labels: {
+      xp: 'Total XP',
+      games: 'Games played',
+      accuracy: 'Overall accuracy',
+    },
+    reset_button: 'Reset profile',
+    reset_confirm: 'Do you really want to reset your profile?',
+    accuracy_title: 'Accuracy by mode',
+    modes: {
+      easy: 'Easy mode',
+      hard: 'Hard mode',
+    },
+    pack_stats_title: 'Pack stats',
+    pack_accuracy: '{correct}/{answered} ({accuracy}%)',
+    no_pack_stats: 'No pack played yet.',
+    mastery_title: 'Mastery (Top 5)',
+    mastery_loading: 'Loading...',
+    mastery_empty: 'No mastered species yet.',
+    mastery_count: 'Mastered {count} times',
+    achievements_title: 'Achievements ({count} / {total})',
+    loading: 'Loading profile…',
+  },
+  ranks: {
+    kingdom: 'Kingdom',
+    phylum: 'Phylum',
+    class: 'Class',
+    order: 'Order',
+    family: 'Family',
+    genus: 'Genus',
+    species: 'Species',
+  },
+  streak: {
+    aria_label: 'Streak of {count} correct answers',
+  },
+};
+
+export default en;

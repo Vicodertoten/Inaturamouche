@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { autocompletePlaces, getPlacesByIds } from "../services/api";
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /* ===== BBoxSelector optimisé (Leaflet impératif, pas de re-render pendant drag) ===== */
 function BBoxSelector({ value, onChange }) {
@@ -259,6 +260,7 @@ export default function GeoFilter({
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState([]);
+  const { t } = useLanguage();
 
   // Hydrate places déjà choisis (ex: retour page)
   useEffect(() => {
@@ -336,14 +338,14 @@ export default function GeoFilter({
           onClick={() => setTab("place")}
           className={tab === "place" ? "active" : ""}
         >
-          Lieu
+          {t('geo.tab_place')}
         </button>
         <button
           type="button"
           onClick={() => setTab("map")}
           className={tab === "map" ? "active" : ""}
         >
-          Carte
+          {t('geo.tab_map')}
         </button>
       </div>
 
@@ -355,7 +357,7 @@ export default function GeoFilter({
                 <span>{p.name}</span>
                 <button
                   type="button"
-                  aria-label={`Retirer ${p.name}`}
+                  aria-label={t('geo.remove_place', { name: p.name })}
                   className="remove-btn"
                   onClick={() => removePlace(p.id)}
                 >
@@ -367,7 +369,7 @@ export default function GeoFilter({
 
           <div className="autocomplete-container">
             <input
-              placeholder="Cherche un pays, une région, un parc…"
+              placeholder={t('geo.place_placeholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onEnter}
@@ -383,9 +385,9 @@ export default function GeoFilter({
                     onClick={() => addPlace(p)}
                   >
                     <span>
-                      <strong>{p.name}</strong> <small>— {p.type || "place"}</small>
+                      <strong>{p.name}</strong> <small>— {p.type || t('geo.tab_place')}</small>
                     </span>
-                    <button type="button">Ajouter</button>
+                    <button type="button">{t('geo.add_place')}</button>
                   </li>
                 ))}
               </ul>
@@ -409,10 +411,14 @@ export default function GeoFilter({
           </MapContainer>
           {value?.mode === "map" && (
             <div style={{ opacity: 0.8 }}>
-              BBox : NE({value.nelat}, {value.nelng}) — SW({value.swlat}, {value.swlng})
+              {t('geo.bbox_label', {
+                nelat: value.nelat,
+                nelng: value.nelng,
+                swlat: value.swlat,
+                swlng: value.swlng,
+              })}
               <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                Astuces : drag <b>les coins</b> / <b>bords</b>, drag le carré <b>central</b> pour déplacer,
-                <b> Shift + glisser</b> pour dessiner un nouveau rectangle.
+                {t('geo.map_hint')}
               </div>
             </div>
           )}

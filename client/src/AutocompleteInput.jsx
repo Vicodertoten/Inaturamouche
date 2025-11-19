@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { autocompleteTaxa } from './services/api'; // NOUVEL IMPORT
+import { useLanguage } from './context/LanguageContext.jsx';
 
 
 function useDebounce(value, delay) {
@@ -18,6 +19,7 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
   const [activeIndex, setActiveIndex] = useState(-1); 
   const debouncedSearchTerm = useDebounce(inputValue, 400);
   const containerRef = useRef(null);
+  const { language } = useLanguage();
 
   const fetchSuggestions = useCallback(async (searchTerm) => {
     if (searchTerm.length < 2) {
@@ -26,14 +28,14 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
     }
     setIsLoading(true);
     try {
-      const data = await autocompleteTaxa(searchTerm, extraParams);
+      const data = await autocompleteTaxa(searchTerm, extraParams, language);
       setSuggestions(data);
     } catch (error) {
       console.error(`Erreur de recherche pour l'autocomplétion`, error);
       setSuggestions([]);
     }
     setIsLoading(false);
-  }, [extraParams]);
+  }, [extraParams, language]);
 
   useEffect(() => {
     if (debouncedSearchTerm && !disabled) {

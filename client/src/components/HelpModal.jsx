@@ -2,8 +2,10 @@
 
 import React, { useEffect } from 'react';
 import './HelpModal.css'; // Nous allons créer ce fichier CSS juste après
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 function HelpModal({ onClose }) {
+  const { t } = useLanguage();
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -26,36 +28,31 @@ function HelpModal({ onClose }) {
       <div className="modal-content help-modal" tabIndex="-1" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="close-button" title="Fermer" aria-label="Fermer">×</button>
         
-        <h2 className="modal-title">Bienvenue sur Inaturaquizz !</h2>
-        
+        <h2 className="modal-title">{t('help.title')}</h2>
+
         <div className="help-section">
-          <h4>Principe du jeu</h4>
-          <p>
-            Le but est d'identifier des espèces (animaux, plantes, champignons...) à partir d'une photo. 
-            Le jeu utilise les données réelles de la plateforme de science participative iNaturalist.
-          </p>
+          <h4>{t('help.gameplay_title')}</h4>
+          <p>{t('help.gameplay_body')}</p>
         </div>
 
         <div className="help-section">
-          <h4>Modes de jeu</h4>
+          <h4>{t('help.modes_title')}</h4>
           <ul>
             <li>
-              <strong>Facile :</strong> Un quiz à choix multiples. Idéal pour découvrir de nouvelles espèces de manière détendue.
+              <strong>{t('home.easy_mode')} :</strong> {t('help.modes_easy')}
             </li>
             <li>
-              <strong>Difficile :</strong> Le vrai défi ! Vous devez retrouver la classification taxonomique complète de l'espèce (règne, embranchement, classe, etc.). Chaque bonne proposition vous rapproche de la solution.
+              <strong>{t('home.hard_mode')} :</strong> {t('help.modes_hard')}
             </li>
           </ul>
         </div>
         
         <div className="help-section">
-          <h4>Packs de jeu</h4>
-          <p>
-            Choisissez un pack thématique (oiseaux du monde, mammifères de France...) pour concentrer le jeu sur un groupe d'espèces ou une région, ou créez votre propre partie personnalisée !
-          </p>
+          <h4>{t('help.packs_title')}</h4>
+          <p>{t('help.packs_body')}</p>
         </div>
 
-        <button onClick={onClose} className="start-button-modal">Compris !</button>
+        <button onClick={onClose} className="start-button-modal">{t('help.confirm')}</button>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
 import { useGame } from './context/GameContext';
+import { useLanguage } from './context/LanguageContext.jsx';
 
 function Configurator({ onStartGame, onStartReview }) {
   const {
@@ -15,6 +16,9 @@ function Configurator({ onStartGame, onStartReview }) {
     clearError,
     canStartReview,
   } = useGame();
+  const { t, useScientificName, setUseScientificName } = useLanguage();
+
+  const activePack = useMemo(() => PACKS.find((pack) => pack.id === activePackId), [activePackId]);
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
 
@@ -28,12 +32,12 @@ function Configurator({ onStartGame, onStartReview }) {
       {error && <ErrorModal message={error} onClose={clearError} />}
       
       <div className="pack-selector">
-        <label htmlFor="pack-select">Choisissez un pack de jeu :</label>
+        <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
         <div
           className="tooltip"
-          data-tooltip="Sélectionnez un pack thématique ou personnalisez votre partie"
+          data-tooltip={t('configurator.pack_hint')}
           onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
-          title="Sélectionnez un pack thématique ou personnalisez votre partie"
+          title={t('configurator.pack_hint')}
         >
           <select
             id="pack-select"
@@ -43,7 +47,7 @@ function Configurator({ onStartGame, onStartReview }) {
           >
             {PACKS.map((pack) => (
               <option key={pack.id} value={pack.id}>
-                {pack.title}
+                {pack.titleKey ? t(pack.titleKey) : pack.id}
               </option>
             ))}
           </select>
@@ -51,7 +55,11 @@ function Configurator({ onStartGame, onStartReview }) {
       </div>
 
       <div className="pack-details">
-  
+        {activePack?.descriptionKey && (
+          <p className="pack-description">
+            <strong>{t('common.pack_description_label')}:</strong> {t(activePack.descriptionKey)}
+          </p>
+        )}
         {/* Si le pack "Personnalisé" est actif, on affiche son interface de filtres */}
         {activePackId === 'custom' && (
           <CustomFilter 
@@ -61,9 +69,22 @@ function Configurator({ onStartGame, onStartReview }) {
         )}
       </div>
 
-      <button onClick={onStartGame} className="start-button">Lancer la partie !</button>
+      <div className="scientific-toggle">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={useScientificName}
+            onChange={(e) => setUseScientificName(e.target.checked)}
+          />
+          <span className="custom-checkbox"></span>
+          {t('common.scientific_preference_label')}
+        </label>
+        <p className="preference-hint">{t('common.scientific_preference_help')}</p>
+      </div>
+
+      <button onClick={onStartGame} className="start-button">{t('common.start_game')}</button>
       {canStartReview && (
-        <button onClick={onStartReview} className="start-button">Réviser mes erreurs</button>
+        <button onClick={onStartReview} className="start-button">{t('common.review_mistakes')}</button>
       )}
     </div>
   );
