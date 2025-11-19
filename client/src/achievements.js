@@ -33,6 +33,18 @@ export const ACHIEVEMENTS = {
     titleKey: 'achievements.list.MASTER_5_SPECIES.title',
     descriptionKey: 'achievements.list.MASTER_5_SPECIES.description',
   },
+  GENUS_NO_HINTS_3: {
+    titleKey: 'achievements.list.GENUS_NO_HINTS_3.title',
+    descriptionKey: 'achievements.list.GENUS_NO_HINTS_3.description',
+  },
+  BIOME_MASTER_TUNDRA: {
+    titleKey: 'achievements.list.BIOME_MASTER_TUNDRA.title',
+    descriptionKey: 'achievements.list.BIOME_MASTER_TUNDRA.description',
+  },
+  SKILL_SPEEDRUN: {
+    titleKey: 'achievements.list.SKILL_SPEEDRUN.title',
+    descriptionKey: 'achievements.list.SKILL_SPEEDRUN.description',
+  },
 };
 
 // Fonction qui vérifie si de nouveaux succès sont débloqués
@@ -64,4 +76,60 @@ export const checkNewAchievements = (profile) => {
     }
 
     return unlocked; // Retourne un tableau des IDs des nouveaux succès
+};
+
+const SPEEDRUN_THRESHOLD_MS = 8000;
+const HINTLESS_WINDOW = 3;
+const TARGET_BIOME = 'tundra';
+
+export const evaluateMicroChallenges = (snapshot = {}, alreadyUnlocked = []) => {
+  const unlocked = [];
+  const owned = new Set(alreadyUnlocked || []);
+  const sessionSpeciesData = snapshot.sessionSpeciesData || [];
+  const roundMeta = snapshot.roundMeta || {};
+  const currentStreak = snapshot.currentStreak || 0;
+
+  if (!owned.has('GENUS_NO_HINTS_3')) {
+    const recentWindow = sessionSpeciesData.slice(-HINTLESS_WINDOW);
+    if (recentWindow.length === HINTLESS_WINDOW) {
+      const allWithoutHints = recentWindow.every(
+        (entry) => entry.wasCorrect && !entry.hintsUsed
+      );
+      if (allWithoutHints) {
+        const uniqueGenera = new Set(
+          recentWindow
+            .map((entry) => entry.genusId)
+            .filter(Boolean)
+        );
+        if (uniqueGenera.size >= HINTLESS_WINDOW) {
+          unlocked.push('GENUS_NO_HINTS_3');
+        }
+      }
+    }
+  }
+
+  if (!owned.has('BIOME_MASTER_TUNDRA')) {
+    const streakWindow =
+      currentStreak > 0 ? sessionSpeciesData.slice(-currentStreak) : [];
+    const biomePerfectRun = streakWindow.filter(
+      (entry) =>
+        entry.wasCorrect &&
+        Array.isArray(entry.biomes) &&
+        entry.biomes.includes(TARGET_BIOME)
+    ).length;
+    if (biomePerfectRun >= 3) {
+      unlocked.push('BIOME_MASTER_TUNDRA');
+    }
+  }
+
+  if (
+    !owned.has('SKILL_SPEEDRUN') &&
+    roundMeta.wasCorrect &&
+    typeof roundMeta.responseTimeMs === 'number' &&
+    roundMeta.responseTimeMs <= SPEEDRUN_THRESHOLD_MS
+  ) {
+    unlocked.push('SKILL_SPEEDRUN');
+  }
+
+  return unlocked;
 };
