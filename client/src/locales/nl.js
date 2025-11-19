@@ -1,0 +1,262 @@
+const nl = {
+  languageNames: {
+    fr: 'Frans',
+    en: 'Engels',
+    nl: 'Nederlands',
+  },
+  common: {
+    close: 'Sluiten',
+    loading: 'Laden...',
+    start_game: 'Spel starten!',
+    review_mistakes: 'Fouten herzien',
+    help: 'Help',
+    profile: 'Mijn profiel',
+    home: 'Start',
+    replay: 'Opnieuw spelen',
+    score: 'Score',
+    next_question: 'Volgende vraag',
+    quit: 'Stoppen',
+    hint: 'Hint',
+    language_switcher_label: 'Taal wijzigen',
+    scientific_preference_label: 'Wetenschappelijke naam voorrang geven',
+    scientific_preference_help: 'Gebruik de Latijnse naam wanneer mogelijk.',
+    pack_description_label: 'Over dit pack',
+  },
+  nav: {
+    help_label: 'Help en informatie',
+    profile_label: 'Mijn profiel',
+    title_alt: 'Inaturamouche-logo',
+    title_tooltip: 'Terug naar het hoofdmenu',
+  },
+  home: {
+    easy_mode: 'Makkelijk',
+    easy_mode_description: 'Makkelijke modus: vier keuzes en een optionele hint.',
+    hard_mode: 'Moeilijk',
+    hard_mode_description: 'Moeilijke modus: raad de taxonomie met beperkte pogingen.',
+  },
+  configurator: {
+    pack_label: 'Kies een spelpack:',
+    pack_hint: 'Selecteer een themapack of stel je eigen sessie samen.',
+    pack_description_label: 'Over dit pack',
+  },
+  packs: {
+    custom: {
+      title: 'Aangepast filter',
+      description: 'Stel je eigen quiz samen door taxa, locatie en datums te kiezen of uit te sluiten.',
+    },
+    european_mushrooms: {
+      title: 'Eetbare paddenstoelen van Europa',
+      description: 'Een selectie van de meest geziene paddenstoelen in Europa.',
+    },
+    european_trees: {
+      title: 'Veelvoorkomende bomen in Europa',
+      description: 'Een selectie van de meest voorkomende bomen in Europa.',
+    },
+    world_birds: {
+      title: 'Vogels van de wereld',
+      description: 'De 100 meest waargenomen vogelsoorten op iNaturalist.',
+    },
+    france_mammals: {
+      title: 'Zoogdieren van Frankrijk',
+      description: 'Alle zoogdierwaarnemingen uit vasteland-Frankrijk.',
+    },
+    belgium_herps: {
+      title: 'Reptielen & amfibieën van België',
+      description: 'Ontdek de slangen, hagedissen, kikkers en salamanders van België.',
+    },
+    amazing_insects: {
+      title: 'Insecten van de wereld',
+      description: 'Ontdek de ongelooflijke diversiteit van insecten, van vlinders tot wonderlijke kevers.',
+    },
+    mediterranean_flora: {
+      title: 'Middellandse Zee-flora',
+      description: 'Planten, bomen en bloemen van het Middellandse Zeegebied.',
+    },
+    great_barrier_reef_life: {
+      title: 'Leven van het Great Barrier Reef',
+      description: 'Vissen, koralen en weekdieren van het grootste rif ter wereld.',
+    },
+  },
+  customFilter: {
+    include_title: 'In te sluiten taxa',
+    include_description: 'Voeg groepen toe die je in de quiz wilt zien.',
+    exclude_title: 'Uit te sluiten taxa',
+    exclude_description: 'Voeg groepen toe die je uit de quiz wilt verwijderen.',
+    placeholder: '(bv. vogels, herten, paddenstoelen, zangvogels...)',
+    remove_taxon: 'Taxon verwijderen',
+    filter_by_place: 'Filteren op locatie',
+    filter_by_date: 'Filteren op datum',
+    date_from: 'Van',
+    date_to: 'Tot',
+  },
+  geo: {
+    tab_place: 'Locatie',
+    tab_map: 'Kaart',
+    place_placeholder: 'Zoek naar een land, regio, park…',
+    remove_place: 'Verwijder {name}',
+    add_place: 'Toevoegen',
+    bbox_label: 'BBox: NO({nelat}, {nelng}) — ZW({swlat}, {swlng})',
+    map_hint:
+      'Tips: sleep de hoeken of randen, verplaats het middelpunt om het gebied te verschuiven, Shift + slepen om een nieuw vak te tekenen.',
+  },
+  easy: {
+    question_counter: 'Vraag {current}/{total}',
+    hint_button: 'Hint (-{cost} ptn)',
+    image_alt: 'Welke soort is dit?',
+    score_label: 'Score: {score}',
+  },
+  hard: {
+    title: 'Identificeer de soort',
+    stats_line: 'Kansen: {guesses} | Score: {score}',
+    reveal_button: 'Onthul (-{cost} kansen)',
+    image_alt: 'Soort om te identificeren',
+    rank_placeholder: 'Voer een {rank} in...',
+    feedback: {
+      branch: 'Goede tak! +{points} punten!',
+      redundant: 'Correct, maar deze gok onthulde geen nieuwe rang.',
+      wrong_branch: 'Onjuist. Deze suggestie hoort niet bij de juiste lijn.',
+      error: 'Er is een fout opgetreden tijdens het controleren.',
+      not_enough_guesses: 'Niet genoeg kansen voor die hint!',
+      hint_used: 'Hint gebruikt! De rang "{rank}" is onthuld.',
+    },
+  },
+  imageViewer: {
+    loading: 'Laden...',
+    nav_label: 'Navigatiebediening',
+    previous: 'Vorige afbeelding',
+    next: 'Volgende afbeelding',
+    choose_image: 'Afbeelding kiezen',
+    go_to_image: 'Ga naar afbeelding {index}',
+    viewer_label: 'Afbeeldingsviewer',
+  },
+  summary: {
+    win_title: '🎉 Soort gevonden!',
+    lose_title: '😟 Jammer!',
+    answer_intro: 'Het antwoord was:',
+    points: 'Behaalde punten:',
+    bonus: 'Bonus:',
+    streak_bonus: 'Reeksbonus:',
+    total: 'Totaal voor de ronde:',
+    links: {
+      inaturalist: 'Bekijk op iNaturalist',
+      wikipedia: 'Wikipedia-pagina',
+    },
+  },
+  end: {
+    final_score: 'Eindscore:',
+    correct_count: '{correct} / {total} juist',
+    accuracy: 'Nauwkeurigheid {value}%',
+    species_seen: 'Waargenomen soorten',
+    achievements: 'Vrijgespeelde prestaties',
+    status: {
+      correct: 'Juist',
+      incorrect: 'Onjuist',
+    },
+    links: {
+      inaturalist: 'iNaturalist',
+      wikipedia: 'Wikipedia',
+    },
+  },
+  achievements: {
+    modal_title: 'Prestatie vrijgespeeld!',
+    list: {
+      first_game: {
+        title: 'Eerste stappen',
+        description: 'Speel je allereerste spel uit.',
+      },
+      ten_games: {
+        title: 'Gewoontedier',
+        description: 'Speel 10 spellen uit.',
+      },
+      high_score_10k: {
+        title: 'Doorgewinterde naturalist',
+        description: 'Bereik in totaal 10.000 XP.',
+      },
+      globetrotter: {
+        title: 'Wereldreiziger',
+        description: 'Speel 3 verschillende packs.',
+      },
+      LEVEL_5: {
+        title: 'Leerling-naturalist',
+        description: 'Bereik niveau 5.',
+      },
+      LEVEL_10: {
+        title: 'Ervaren naturalist',
+        description: 'Bereik niveau 10.',
+      },
+      ACCURACY_HARD_75: {
+        title: 'Velddeskundige',
+        description: 'Behaal 75% nauwkeurigheid in Moeilijk (min. 25 vragen).',
+      },
+      MASTER_5_SPECIES: {
+        title: 'Specialist',
+        description: 'Beheers 5 verschillende soorten (3 goede antwoorden per soort).',
+      },
+    },
+  },
+  help: {
+    title: 'Welkom bij Inaturamouche!',
+    gameplay_title: 'Doel van het spel',
+    gameplay_body:
+      'Identificeer dieren, planten of schimmels aan de hand van foto’s. Het spel gebruikt echte waarnemingen van iNaturalist.',
+    modes_title: 'Spelmodi',
+    modes_easy: 'Makkelijk: een meerkeuzequiz, ideaal om rustig soorten te ontdekken.',
+    modes_hard:
+      'Moeilijk: reconstrueer de volledige taxonomie (rijk, klasse, enz.). Elke goede gok onthult een nieuw niveau.',
+    packs_title: 'Packs',
+    packs_body: 'Kies een themapack (wereldvogels, Franse zoogdieren...) of bouw je eigen sessie!',
+    confirm: 'Begrepen!',
+  },
+  errors: {
+    title: 'Fout',
+    quiz_no_results: 'Geen soort gevonden, verruim je zoekopdracht.',
+    generic: 'Er ging iets mis. Probeer het later opnieuw.',
+  },
+  profile: {
+    back: '← Terug',
+    title: 'Spelersprofiel',
+    tabs: {
+      summary: 'Overzicht',
+      stats: 'Statistieken',
+      achievements: 'Prestaties',
+    },
+    level: 'Niveau {level}',
+    xp_counter: '{current} / {total} XP',
+    summary_title: 'Belangrijkste statistieken',
+    stats_labels: {
+      xp: 'Totale XP',
+      games: 'Gespeelde spellen',
+      accuracy: 'Algemene nauwkeurigheid',
+    },
+    reset_button: 'Profiel resetten',
+    reset_confirm: 'Weet je zeker dat je je profiel wilt resetten?',
+    accuracy_title: 'Nauwkeurigheid per modus',
+    modes: {
+      easy: 'Makkelijke modus',
+      hard: 'Moeilijke modus',
+    },
+    pack_stats_title: 'Pack-statistieken',
+    pack_accuracy: '{correct}/{answered} ({accuracy}%)',
+    no_pack_stats: 'Nog geen pack gespeeld.',
+    mastery_title: 'Meesterschap (Top 5)',
+    mastery_loading: 'Laden...',
+    mastery_empty: 'Nog geen soorten meester.',
+    mastery_count: '{count} keer beheerst',
+    achievements_title: 'Prestaties ({count} / {total})',
+    loading: 'Profiel laden…',
+  },
+  ranks: {
+    kingdom: 'Rijk',
+    phylum: 'Stam',
+    class: 'Klasse',
+    order: 'Orde',
+    family: 'Familie',
+    genus: 'Geslacht',
+    species: 'Soort',
+  },
+  streak: {
+    aria_label: 'Reeks van {count} goede antwoorden',
+  },
+};
+
+export default nl;

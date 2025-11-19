@@ -787,9 +787,26 @@ app.get(
       }
       marks.builtLures = performance.now();
 
-      // DÉTAILS localisés — OPTI : on ne fetch QUE pour la CIBLE
-      const [correctDetails] = await getFullTaxaDetails([String(targetTaxonId)], locale);
-      const correct = correctDetails || (targetObservation?.taxon ?? null);
+      const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
+
+      const fallbackDetails = new Map();
+      fallbackDetails.set(String(targetTaxonId), targetObservation?.taxon || {});
+      for (const lure of lures) {
+        fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
+      }
+
+      const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale);
+      const details = new Map();
+      for (const taxon of choiceTaxaDetails) {
+        details.set(String(taxon.id), taxon);
+      }
+      for (const id of choiceIdsInOrder) {
+        const key = String(id);
+        if (!details.has(key)) {
+          details.set(key, fallbackDetails.get(key) || {});
+        }
+      }
+      const correct = details.get(String(targetTaxonId));
       if (!correct) {
         marks.taxaFetched = performance.now();
         marks.labelsMade = marks.taxaFetched;
@@ -799,15 +816,19 @@ app.get(
       }
 
       // Construire une map “détails” compatible avec makeChoiceLabels
-      const details = new Map();
-      details.set(String(targetTaxonId), correct); // cible = détails riches
-      for (const l of lures) {
-        details.set(String(l.taxonId), l.obs?.taxon || {}); // leurres = obs.taxon déjà présent
-      }
       marks.taxaFetched = performance.now();
 
+      const choiceTaxaInfo = choiceIdsInOrder.map((id) => {
+        const info = details.get(String(id)) || {};
+        return {
+          taxon_id: String(id),
+          name: info.name || info.taxon?.name,
+          preferred_common_name: info.preferred_common_name || info.common_name || null,
+          rank: info.rank,
+        };
+      });
+
       // CHOIX "RICHE"
-      const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
       const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
       const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
       const shuffledChoices = shuffleFisherYates(choiceObjects);
@@ -867,6 +888,7 @@ app.get(
         bonne_reponse: {
           id: correct.id,
           name: correct.name,
+          preferred_common_name: correct.preferred_common_name || correct.common_name || null,
           common_name: getTaxonName(correct),
           ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
           wikipedia_url: correct.wikipedia_url,
@@ -876,6 +898,7 @@ app.get(
         choices: shuffledChoices, // [{ taxon_id, label }]
         correct_choice_index,
         correct_label,
+        choice_taxa_details: choiceTaxaInfo,
 
         // --- MODE FACILE ---
         choix_mode_facile,                   // [label]

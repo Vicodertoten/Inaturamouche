@@ -6,17 +6,21 @@ import { getTaxaByIds } from '../services/api';
 import PACKS from '../../../shared/packs.js';
 import { resetProfile } from '../services/PlayerProfile';
 import '../components/ProfileModal.css';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
 const getXpForLevel = (level) => Math.pow((level - 1) * 10, 2);
 
-const MasteryItem = ({ taxon, count }) => {
+const MasteryItem = ({ taxon, count, getDisplayNames, t }) => {
   if (!taxon) return null;
-  const taxonName = taxon.preferred_common_name || taxon.name;
+  const { primary, secondary } = getDisplayNames(taxon);
   return (
     <li className="mastery-item">
-      <span className="mastery-name">{taxonName}</span>
-      <span className="mastery-count">Maîtrisé {count} fois</span>
+      <span className="mastery-name">
+        {primary}
+        {secondary && <small className="mastery-secondary">{secondary}</small>}
+      </span>
+      <span className="mastery-count">{t('profile.mastery_count', { count })}</span>
     </li>
   );
 };
@@ -24,6 +28,7 @@ const MasteryItem = ({ taxon, count }) => {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { profile, refreshProfile } = useUser();
+  const { t, getTaxonDisplayNames, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
@@ -44,7 +49,7 @@ const ProfilePage = () => {
       setIsLoadingMastery(true);
       try {
         const idsToFetch = sortedMastery.map(([id]) => id);
-        const taxaData = await getTaxaByIds(idsToFetch);
+        const taxaData = await getTaxaByIds(idsToFetch, language);
         const detailsWithCount = sortedMastery.map(([id, count]) => {
           const taxonDetail = taxaData.find((t) => t.id == id);
           return { id, taxon: taxonDetail, count };
@@ -57,14 +62,14 @@ const ProfilePage = () => {
     };
 
     loadMastery();
-  }, [activeTab, masteryDetails.length, profile, sortedMastery]);
+  }, [activeTab, language, masteryDetails.length, profile, sortedMastery]);
 
   const handleResetProfile = useCallback(() => {
-    if (window.confirm('Voulez-vous vraiment réinitialiser votre profil ?')) {
+    if (window.confirm(t('profile.reset_confirm'))) {
       resetProfile();
       refreshProfile();
     }
-  }, [refreshProfile]);
+  }, [refreshProfile, t]);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
@@ -75,7 +80,7 @@ const ProfilePage = () => {
     return (
       <div className="screen profile-screen">
         <div className="card">
-          <p>Chargement du profil…</p>
+          <p>{t('profile.loading')}</p>
         </div>
       </div>
     );
@@ -100,28 +105,28 @@ const ProfilePage = () => {
     <div className="screen profile-screen">
       <div className="profile-modal profile-page-card">
         <button className="back-button" onClick={handleBack}>
-          ← Retour
+          {t('profile.back')}
         </button>
-        <h2 className="modal-title">Profil du Joueur</h2>
+        <h2 className="modal-title">{t('profile.title')}</h2>
 
         <div className="tabs-container">
           <button
             className={`tab-button ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => setActiveTab('summary')}
           >
-            Résumé
+            {t('profile.tabs.summary')}
           </button>
           <button
             className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveTab('stats')}
           >
-            Statistiques
+            {t('profile.tabs.stats')}
           </button>
           <button
             className={`tab-button ${activeTab === 'achievements' ? 'active' : ''}`}
             onClick={() => setActiveTab('achievements')}
           >
-            Succès
+            {t('profile.tabs.achievements')}
           </button>
         </div>
 
@@ -129,38 +134,36 @@ const ProfilePage = () => {
           {activeTab === 'summary' && (
             <div className="fade-in">
               <div className="profile-section level-section">
-                <h3>Niveau {level}</h3>
+                <h3>{t('profile.level', { level })}</h3>
                 <div className="xp-bar-container">
                   <div className="xp-bar" style={{ width: `${progressPercentage}%` }}></div>
                 </div>
                 <div className="xp-label">
-                  <span>
-                    {xpProgress.toLocaleString()} / {xpNeededForLevel.toLocaleString()} XP
-                  </span>
+                  <span>{t('profile.xp_counter', { current: xpProgress.toLocaleString(), total: xpNeededForLevel.toLocaleString() })}</span>
                 </div>
               </div>
 
               <div className="profile-section">
-                <h3>Statistiques Clés</h3>
+                <h3>{t('profile.summary_title')}</h3>
                 <div className="stats-grid summary-grid">
                   <div className="stat-item">
                     <span className="stat-value">{profile.xp.toLocaleString()}</span>
-                    <span className="stat-label">XP Total</span>
+                    <span className="stat-label">{t('profile.stats_labels.xp')}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-value">{profile.stats.gamesPlayed || 0}</span>
-                    <span className="stat-label">Parties Jouées</span>
+                    <span className="stat-label">{t('profile.stats_labels.games')}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-value">{overallAccuracy}%</span>
-                    <span className="stat-label">Précision Globale</span>
+                    <span className="stat-label">{t('profile.stats_labels.accuracy')}</span>
                   </div>
                 </div>
               </div>
 
               <div className="profile-section">
                 <button className="reset-profile-button" onClick={handleResetProfile}>
-                  Réinitialiser le profil
+                  {t('profile.reset_button')}
                 </button>
               </div>
             </div>
@@ -169,48 +172,54 @@ const ProfilePage = () => {
           {activeTab === 'stats' && (
             <div className="fade-in">
               <div className="profile-section">
-                <h3>Précision par mode</h3>
+                <h3>{t('profile.accuracy_title')}</h3>
                 <div className="stats-grid">
                   <div className="stat-item">
                     <span className="stat-value">{easyAccuracy}%</span>
-                    <span className="stat-label">Mode Facile</span>
+                    <span className="stat-label">{t('profile.modes.easy')}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-value">{hardAccuracy}%</span>
-                    <span className="stat-label">Mode Difficile</span>
+                    <span className="stat-label">{t('profile.modes.hard')}</span>
                   </div>
                 </div>
               </div>
 
               <div className="profile-section">
-                <h3>Statistiques par Pack</h3>
+                <h3>{t('profile.pack_stats_title')}</h3>
                 <ul className="pack-stats-list">
                   {Object.entries(profile.stats.packsPlayed || {}).map(([packId, { correct, answered }]) => {
                     const pack = PACKS.find((p) => p.id === packId);
                     const accuracy = answered > 0 ? ((correct / answered) * 100).toFixed(1) : '0.0';
                     return (
                       <li key={packId} className="pack-stat-item">
-                        <span className="pack-name">{pack ? pack.title : packId}</span>
-                        <span className="pack-count">{correct}/{answered} ({accuracy}%)</span>
+                        <span className="pack-name">{pack?.titleKey ? t(pack.titleKey) : packId}</span>
+                        <span className="pack-count">{t('profile.pack_accuracy', { correct, answered, accuracy })}</span>
                       </li>
                     );
                   })}
                   {Object.keys(profile.stats.packsPlayed || {}).length === 0 && (
-                    <p className="empty-state">Aucun pack joué.</p>
+                    <p className="empty-state">{t('profile.no_pack_stats')}</p>
                   )}
                 </ul>
               </div>
 
               <div className="profile-section">
-                <h3>Maîtrise (Top 5)</h3>
+                <h3>{t('profile.mastery_title')}</h3>
                 {isLoadingMastery ? (
-                  <p>Chargement...</p>
+                  <p>{t('profile.mastery_loading')}</p>
                 ) : (
                   <ul className="mastery-list">
                     {masteryDetails.map(({ id, taxon, count }) => (
-                      <MasteryItem key={id} taxon={taxon} count={count} />
+                      <MasteryItem
+                        key={id}
+                        taxon={taxon}
+                        count={count}
+                        getDisplayNames={getTaxonDisplayNames}
+                        t={t}
+                      />
                     ))}
-                    {sortedMastery.length === 0 && <p className="empty-state">Aucune espèce maîtrisée.</p>}
+                    {sortedMastery.length === 0 && <p className="empty-state">{t('profile.mastery_empty')}</p>}
                   </ul>
                 )}
               </div>
@@ -219,7 +228,12 @@ const ProfilePage = () => {
 
           {activeTab === 'achievements' && (
             <div className="profile-section fade-in">
-              <h3>Succès ({unlockedAchievements.length} / {Object.keys(ACHIEVEMENTS).length})</h3>
+              <h3>
+                {t('profile.achievements_title', {
+                  count: unlockedAchievements.length,
+                  total: Object.keys(ACHIEVEMENTS).length,
+                })}
+              </h3>
               <ul className="achievements-list">
                 {Object.entries(ACHIEVEMENTS).map(([id, achievement]) => {
                   const unlocked = unlockedAchievements.includes(id);
@@ -232,8 +246,12 @@ const ProfilePage = () => {
                         {achievement.icon}
                       </div>
                       <div className="achievement-details">
-                        <h4 className="achievement-title">{achievement.title}</h4>
-                        <p className="achievement-description">{achievement.description}</p>
+                        <h4 className="achievement-title">
+                          {achievement.titleKey ? t(achievement.titleKey) : id}
+                        </h4>
+                        {achievement.descriptionKey && (
+                          <p className="achievement-description">{t(achievement.descriptionKey)}</p>
+                        )}
                       </div>
                     </li>
                   );

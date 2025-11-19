@@ -14,13 +14,15 @@ import { initialCustomFilters, customFilterReducer } from '../state/filterReduce
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
 import { useUser } from './UserContext';
+import { useLanguage } from './LanguageContext.jsx';
 
 export const MAX_QUESTIONS_PER_GAME = 5;
 
 const GameContext = createContext(null);
 
 export function GameProvider({ children }) {
-  const { profile, updateProfile, language, queueAchievements } = useUser();
+  const { profile, updateProfile, queueAchievements } = useUser();
+  const { language, t } = useLanguage();
 
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatchCustomFilters] = useReducer(customFilterReducer, initialCustomFilters);
@@ -148,8 +150,8 @@ export function GameProvider({ children }) {
       } catch (err) {
         if (!prefetchOnly) {
           const message = err.status === 404 || err.status === 500
-            ? 'Aucune espèce trouvée, élargissez la recherche'
-            : err.message;
+            ? t('errors.quiz_no_results')
+            : err.message || t('errors.generic');
           setError(message);
           setIsGameActive(false);
           setIsGameOver(false);
@@ -159,7 +161,7 @@ export function GameProvider({ children }) {
         if (!prefetchOnly) setLoading(false);
       }
     },
-    [buildQuizParams]
+    [buildQuizParams, t]
   );
 
   useEffect(() => {
@@ -282,7 +284,8 @@ export function GameProvider({ children }) {
       const speciesEntry = {
         id: currentQuestionId,
         name: question.bonne_reponse.name,
-        common_name: question.bonne_reponse.common_name,
+        preferred_common_name: question.bonne_reponse.preferred_common_name,
+        common_name: question.bonne_reponse.preferred_common_name || question.bonne_reponse.common_name,
         wikipedia_url: question.bonne_reponse.wikipedia_url,
         inaturalist_url: question.inaturalist_url,
         bonus: totalBonus,

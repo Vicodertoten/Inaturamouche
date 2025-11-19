@@ -6,12 +6,14 @@ import LanguageSwitcher from './LanguageSwitcher';
 import titleImage from '../assets/inaturamouche-title.png';
 import { useGame } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isGameActive, isGameOver, resetToLobby } = useGame();
-  const { achievementQueue, popAchievement, language, setLanguage } = useUser();
+  const { achievementQueue, popAchievement } = useUser();
+  const { t } = useLanguage();
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
 
   const closeHelp = useCallback(() => {
@@ -42,25 +44,35 @@ const AppLayout = () => {
       )}
 
       <nav className="main-nav">
-        <button className="help-button" onClick={showHelp} aria-label="Aide et informations">
+        <button
+          className="help-button"
+          onClick={showHelp}
+          aria-label={t('nav.help_label')}
+          title={t('nav.help_label')}
+        >
           ?
         </button>
-        <button className="profile-button" onClick={showProfile} aria-label="Mon Profil">
-          <span className="profile-text">Mon Profil</span>
+        <button
+          className="profile-button"
+          onClick={showProfile}
+          aria-label={t('nav.profile_label')}
+          title={t('nav.profile_label')}
+        >
+          <span className="profile-text">{t('common.profile')}</span>
           <span className="profile-icon" aria-hidden="true">
             👤
           </span>
         </button>
-        <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+        <LanguageSwitcher />
       </nav>
 
       <header className="app-header">
         <img
           src={titleImage}
-          alt="Titre Inaturamouche"
+          alt={t('nav.title_alt')}
           className={`app-title-image ${isTitleInteractive ? 'clickable' : ''}`}
           onClick={isTitleInteractive ? handleTitleClick : undefined}
-          title={isTitleInteractive ? 'Retour au menu principal' : ''}
+          title={isTitleInteractive ? t('nav.title_tooltip') : ''}
           decoding="async"
           fetchpriority="high"
         />
@@ -74,4 +86,3 @@ const AppLayout = () => {
 };
 
 export default AppLayout;
-

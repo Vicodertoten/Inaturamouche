@@ -9,6 +9,7 @@ import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
 import StreakBadge from './components/StreakBadge';
 import { useGame } from './context/GameContext';
+import { useLanguage } from './context/LanguageContext.jsx';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 6;
@@ -34,6 +35,7 @@ function HardMode() {
   const [roundStatus, setRoundStatus] = useState('playing');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [scoreInfo, setScoreInfo] = useState(null);
+  const { t, language, getTaxonDisplayNames } = useLanguage();
 
   useEffect(() => {
     setKnownTaxa({});
@@ -57,7 +59,7 @@ function HardMode() {
     setGuesses(newGuessesCount);
 
     try {
-      const guessedTaxonHierarchy = await getTaxonDetails(selection.id);
+      const guessedTaxonHierarchy = await getTaxonDetails(selection.id, language);
       if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
 
       const { bonne_reponse } = question;
@@ -71,7 +73,7 @@ function HardMode() {
         if (bonneReponseAncestorIds.has(taxon.id) && RANKS.includes(taxon.rank) && !newKnownTaxa[taxon.rank]) {
           newKnownTaxa[taxon.rank] = {
             id: taxon.id,
-            name: taxon.preferred_common_name || taxon.name
+            taxon,
           };
           newPoints += SCORE_PER_RANK[taxon.rank] || 0;
         }
@@ -111,17 +113,17 @@ function HardMode() {
 
       const isSelectionCorrectAncestor = bonneReponseAncestorIds.has(guessedTaxonHierarchy.id);
       if (newPoints > 0) {
-        showFeedback(`Bonne branche ! +${newPoints} points !`);
+        showFeedback(t('hard.feedback.branch', { points: newPoints }));
       } else if (isSelectionCorrectAncestor) {
-        showFeedback("Correct, mais cette proposition n'a pas révélé de nouveau rang.");
+        showFeedback(t('hard.feedback.redundant'));
       } else {
-        showFeedback("Incorrect. Cette suggestion n'est pas dans la bonne lignée.");
+        showFeedback(t('hard.feedback.wrong_branch'));
         setIncorrectGuessIds(prev => [...prev, selection.id]);
       }
 
     } catch (error) {
       console.error("Erreur de validation", error);
-      showFeedback("Une erreur est survenue lors de la vérification.");
+      showFeedback(t('hard.feedback.error'));
       if (newGuessesCount <= 0) {
         const totalPoints = currentScore - score;
         const { points, bonus } = computeScore({
@@ -153,7 +155,7 @@ function HardMode() {
 
   const handleRevealNameHint = () => {
     if (guesses < REVEAL_HINT_COST) {
-      showFeedback("Pas assez de chances pour cet indice !");
+      showFeedback(t('hard.feedback.not_enough_guesses'));
       return;
     }
 
@@ -162,7 +164,8 @@ function HardMode() {
       const newGuessesCount = guesses - REVEAL_HINT_COST;
       setGuesses(newGuessesCount);
 
-      showFeedback(`Indice utilisé ! Le rang '${firstUnknownRank}' a été révélé.`);
+      const rankLabel = t(`ranks.${firstUnknownRank}`);
+      showFeedback(t('hard.feedback.hint_used', { rank: rankLabel }));
       
       const taxonData = firstUnknownRank === 'species' 
         ? question.bonne_reponse 
@@ -173,7 +176,7 @@ function HardMode() {
           ...prev, 
           [firstUnknownRank]: { 
             id: taxonData.id, 
-            name: taxonData.preferred_common_name ? `${taxonData.preferred_common_name} (${taxonData.name})` : taxonData.name
+            taxon: taxonData
           }
         }));
         
@@ -219,23 +222,33 @@ function HardMode() {
 
       <div className="screen game-screen hard-mode">
         <div className="hard-mode-container">
-          <h2 className="main-hard-mode-title">Identifier l'espèce</h2>
+          <h2 className="main-hard-mode-title">{t('hard.title')}</h2>
         
         <div className="proposition-panel">
           <form onSubmit={(e) => e.preventDefault()} className="ranks-form">
             <div className="ranks-list">
               {RANKS.map((rank) => (
                 <div className="rank-item" key={rank}>
-                  <label>{rank.charAt(0).toUpperCase() + rank.slice(1)}</label>
+                  <label>{t(`ranks.${rank}`)}</label>
                   {knownTaxa[rank] ? (
-                    <div className="known-taxon">{knownTaxa[rank].name}</div>
+                    <div className="known-taxon">
+                      {(() => {
+                        const { primary, secondary } = getTaxonDisplayNames(knownTaxa[rank].taxon);
+                        return (
+                          <>
+                            {primary}
+                            {secondary && <small className="known-taxon-secondary">{secondary}</small>}
+                          </>
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <AutocompleteInput
                       key={`${rank}-${Object.keys(knownTaxa).length}`}
                       onSelect={handleGuess}
                       extraParams={{ rank: rank }}
                       disabled={isGameOver}
-                      placeholder={`Entrez un ${rank}...`}
+                      placeholder={t('hard.rank_placeholder', { rank: t(`ranks.${rank}`) })}
                       incorrectAncestorIds={incorrectGuessIds}
                     />
                   )}
@@ -248,7 +261,7 @@ function HardMode() {
         <div className="media-panel">
           <ImageViewer
             imageUrls={question.image_urls || [question.image_url]}
-            alt="Espèce à identifier"
+            alt={t('hard.image_alt')}
             nextImageUrl={nextImageUrl}
           />
         </div>
@@ -258,18 +271,18 @@ function HardMode() {
             <div className="feedback-bar" aria-live="polite">{feedbackMessage}</div>
           )}
           <div className="hard-mode-stats">
-            <span>Chances : {guesses} | Score : {currentScore}</span>
+            <span>{t('hard.stats_line', { guesses, score: currentScore })}</span>
             <StreakBadge streak={currentStreak} />
           </div>
           
           <div className="hard-mode-actions">
-            <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">Abandonner</button>
+            <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">{t('common.quit')}</button>
             <button 
               onClick={handleRevealNameHint} 
               disabled={isGameOver || !canUseAnyHint || guesses < REVEAL_HINT_COST}
               className="action-button hint"
             >
-              Révéler (-{REVEAL_HINT_COST} chances)
+              {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
             </button>
           </div>
         </div>

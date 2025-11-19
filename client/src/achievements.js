@@ -1,17 +1,38 @@
 // src/achievements.js
 
 export const ACHIEVEMENTS = {
-  // --- Succès existants ---
-  'first_game': { title: 'Premier Pas', description: 'Terminer votre toute première partie.' },
-  'ten_games': { title: 'Habitué', description: 'Terminer 10 parties.' },
-  'high_score_10k': { title: 'Naturaliste Aguerri', description: 'Atteindre un score total de 10 000 XP.' },
-  'globetrotter': { title: 'Globe-trotter', description: 'Jouer à 3 packs de jeu différents.' },
-  
-  // --- NOUVEAUX SUCCÈS ---
-  'LEVEL_5': { title: "Apprenti Naturaliste", description: "Atteindre le niveau 5." },
-  'LEVEL_10': { title: "Naturaliste Confirmé", description: "Atteindre le niveau 10." },
-  'ACCURACY_HARD_75': { title: "Expert du Terrain", description: "Atteindre 75% de précision en mode Difficile (min. 25 questions)." },
-  'MASTER_5_SPECIES': { title: "Spécialiste", description: "Maîtriser 5 espèces différentes (3 bonnes réponses pour chacune)." }
+  first_game: {
+    titleKey: 'achievements.list.first_game.title',
+    descriptionKey: 'achievements.list.first_game.description',
+  },
+  ten_games: {
+    titleKey: 'achievements.list.ten_games.title',
+    descriptionKey: 'achievements.list.ten_games.description',
+  },
+  high_score_10k: {
+    titleKey: 'achievements.list.high_score_10k.title',
+    descriptionKey: 'achievements.list.high_score_10k.description',
+  },
+  globetrotter: {
+    titleKey: 'achievements.list.globetrotter.title',
+    descriptionKey: 'achievements.list.globetrotter.description',
+  },
+  LEVEL_5: {
+    titleKey: 'achievements.list.LEVEL_5.title',
+    descriptionKey: 'achievements.list.LEVEL_5.description',
+  },
+  LEVEL_10: {
+    titleKey: 'achievements.list.LEVEL_10.title',
+    descriptionKey: 'achievements.list.LEVEL_10.description',
+  },
+  ACCURACY_HARD_75: {
+    titleKey: 'achievements.list.ACCURACY_HARD_75.title',
+    descriptionKey: 'achievements.list.ACCURACY_HARD_75.description',
+  },
+  MASTER_5_SPECIES: {
+    titleKey: 'achievements.list.MASTER_5_SPECIES.title',
+    descriptionKey: 'achievements.list.MASTER_5_SPECIES.description',
+  },
 };
 
 // Fonction qui vérifie si de nouveaux succès sont débloqués

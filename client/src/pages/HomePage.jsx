@@ -2,10 +2,12 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Configurator from '../Configurator';
 import { useGame } from '../context/GameContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const { gameMode, setGameMode, startGame } = useGame();
+  const { t } = useLanguage();
 
   const handleStart = useCallback(
     (review = false) => {
@@ -22,20 +24,20 @@ const HomePage = () => {
           <button
             onClick={() => setGameMode('easy')}
             className={`tooltip ${gameMode === 'easy' ? 'active' : ''}`}
-            data-tooltip="Mode facile : quatre propositions et indice facultatif"
+            data-tooltip={t('home.easy_mode_description')}
             onPointerLeave={(event) => event.currentTarget.blur()}
-            title="Mode facile : quatre propositions et indice facultatif"
+            title={t('home.easy_mode_description')}
           >
-            Facile
+            {t('home.easy_mode')}
           </button>
           <button
             onClick={() => setGameMode('hard')}
             className={`tooltip ${gameMode === 'hard' ? 'active' : ''}`}
-            data-tooltip="Mode difficile : devinez la taxonomie avec essais limités"
+            data-tooltip={t('home.hard_mode_description')}
             onPointerLeave={(event) => event.currentTarget.blur()}
-            title="Mode difficile : devinez la taxonomie avec essais limités"
+            title={t('home.hard_mode_description')}
           >
-            Difficile
+            {t('home.hard_mode')}
           </button>
         </div>
 
@@ -46,4 +48,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-
