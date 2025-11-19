@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: var(--space-2);
 }
 
 /* Wrapper : base pour centrer la box, pas la cible de l'overlay */
@@ -135,6 +136,23 @@
   0% { opacity: 1; }
   50% { opacity: 0.4; }
   100% { opacity: 1; }
+}
+
+.photo-meta {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-color-muted);
+  text-align: center;
+}
+.photo-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Mobile */

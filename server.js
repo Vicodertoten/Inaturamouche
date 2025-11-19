@@ -262,6 +262,8 @@ function sanitizeObservation(obs) {
           id: p.id,
           attribution: p.attribution,
           url: p.url,
+          license_code: p.license_code,
+          original_dimensions: p.original_dimensions,
         }))
     : [];
 
@@ -966,9 +968,17 @@ app.get(
       marks.labelsMade = performance.now();
 
       // Images
-      const image_urls = (Array.isArray(targetObservation.photos) ? targetObservation.photos : [])
+      const observationPhotos = Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
+      const image_urls = observationPhotos
         .map((p) => (p?.url ? p.url.replace("square", "large") : null))
         .filter(Boolean);
+      const image_meta = observationPhotos.map((p, idx) => ({
+        id: p.id ?? idx,
+        attribution: p.attribution,
+        license_code: p.license_code,
+        url: p.url,
+        original_dimensions: p.original_dimensions,
+      }));
 
       // Cooldown cible
       pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], now);
@@ -1002,6 +1012,7 @@ app.get(
       // Réponse
       res.json({
         image_urls,
+        image_meta,
         bonne_reponse: {
           id: correct.id,
           name: correct.name,

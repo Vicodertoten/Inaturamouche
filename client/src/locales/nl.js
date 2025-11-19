@@ -142,6 +142,7 @@ const nl = {
     choose_image: 'Afbeelding kiezen',
     go_to_image: 'Ga naar afbeelding {index}',
     viewer_label: 'Afbeeldingsviewer',
+    meta_unknown: 'Foto via iNaturalist',
   },
   summary: {
     win_title: 'Soort gevonden!',

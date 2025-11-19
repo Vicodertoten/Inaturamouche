@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './ImageViewer.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -9,7 +9,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 
-const MAX_ZOOM = 2.5;
+const BASE_MAX_ZOOM = 2.5;
 
 // Fallback inline styles (au cas où le CSS ne serait pas appliqué)
 const Fallback = {
@@ -36,15 +36,16 @@ const Fallback = {
   }
 };
 
-function ImageViewer({ imageUrls, alt, nextImageUrl }) {
+function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scale, setScale] = useState(1);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
   const [isLoaded, setIsLoaded] = useState(true);
   const [aspectRatio, setAspectRatio] = useState();
   const [isPortrait, setIsPortrait] = useState(false);
-
+  const [maxZoom, setMaxZoom] = useState(BASE_MAX_ZOOM);
   const containerRef = useRef(null);
+  const imageBoxRef = useRef(null);
   const isPanning = useRef(false);
   const didPan = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
@@ -59,6 +60,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     setTransform({ x: 0, y: 0 });
     setIsLoaded(true);
     setIsPortrait(false);
+    setMaxZoom(BASE_MAX_ZOOM);
   }, [imageUrls]);
 
   useEffect(() => {
@@ -79,18 +81,13 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     };
   }, [nextImageUrl]);
 
-  const resetViewState = () => {
-    setScale(1);
-    setTransform({ x: 0, y: 0 });
-  };
-
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % imageUrls.length);
-    resetViewState();
+    setTransform({ x: 0, y: 0 });
   };
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
-    resetViewState();
+    setTransform({ x: 0, y: 0 });
   };
 
   const handleImageClick = () => {
@@ -99,7 +96,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
       setTransform({ x: 0, y: 0 });
       setScale(1);
     } else {
-      setScale(MAX_ZOOM);
+      setScale(maxZoom);
     }
   };
 
@@ -128,7 +125,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     if (pointers.current.size === 2 && initialPinchDistance.current) {
       const [p1, p2] = Array.from(pointers.current.values());
       const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      const newScale = Math.min(MAX_ZOOM, Math.max(1, (initialScale.current * distance) / initialPinchDistance.current));
+      const newScale = Math.min(maxZoom, Math.max(1, (initialScale.current * distance) / initialPinchDistance.current));
       setScale(newScale);
       return;
     }
@@ -161,6 +158,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
     if (naturalWidth && naturalHeight) {
       setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
       setIsPortrait(naturalHeight > naturalWidth);
+      const containerWidth = containerRef.current?.clientWidth || naturalWidth;
+      const zoomRatio = naturalWidth / containerWidth;
+      const computedMax = Math.min(6, Math.max(BASE_MAX_ZOOM, zoomRatio));
+      setMaxZoom(computedMax);
     }
   };
 
@@ -173,6 +174,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
   if (!imageUrls || imageUrls.length === 0) {
     return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
   }
+
+  const currentMeta = useMemo(() => {
+    if (!photoMeta || !photoMeta.length) return null;
+    return photoMeta[currentIndex] || null;
+  }, [photoMeta, currentIndex]);
 
   return (
     <div className="image-viewer-container">
@@ -193,7 +199,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
         aria-label={alt}
       >
         {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
-        <div className="image-box" style={{ position: 'relative' }}>
+        <div className="image-box" style={{ position: 'relative' }} ref={imageBoxRef}>
           <img
             src={getSizedImageUrl(imageUrls[currentIndex], 'medium')}
             srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
@@ -241,7 +247,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
                     aria-label={t('imageViewer.go_to_image', { index: idx + 1 })}
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
                     aria-selected={idx === currentIndex}
-                    onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetViewState(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentIndex(idx);
+                      setTransform({ x: 0, y: 0 });
+                    }}
                     style={{
                       ...Fallback.dot,
                       ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
@@ -263,6 +273,13 @@ function ImageViewer({ imageUrls, alt, nextImageUrl }) {
           )}
         </div>
       </div>
+      {currentMeta && (
+        <div className="photo-meta">
+          <span className="photo-meta-credit">
+            {currentMeta.attribution || t('imageViewer.meta_unknown')}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
