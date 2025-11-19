@@ -207,6 +207,18 @@ const nl = {
         title: 'Specialist',
         description: 'Beheers 5 verschillende soorten (3 goede antwoorden per soort).',
       },
+      GENUS_NO_HINTS_3: {
+        title: 'Geslachtsprint',
+        description: 'Identificeer 3 geslachten op rij zonder hints te gebruiken.',
+      },
+      BIOME_MASTER_TUNDRA: {
+        title: 'Toendrafluisteraar',
+        description: 'Hou een reeks van 3 perfecte toendra-antwoorden vol.',
+      },
+      SKILL_SPEEDRUN: {
+        title: 'Snelstarter',
+        description: 'Beantwoord correct in minder dan 8 seconden.',
+      },
     },
   },
   help: {

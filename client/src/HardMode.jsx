@@ -26,7 +26,16 @@ const SCORE_PER_RANK = {
 };
 
 function HardMode() {
-  const { question, score, nextImageUrl, currentStreak, completeRound, resetToLobby } = useGame();
+  const {
+    question,
+    score,
+    nextImageUrl,
+    currentStreak,
+    completeRound,
+    resetToLobby,
+    availableLifelines,
+    useLifeline,
+  } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
   const [currentScore, setCurrentScore] = useState(score);
@@ -36,6 +45,13 @@ function HardMode() {
   const [feedback, setFeedback] = useState(null);
   const [scoreInfo, setScoreInfo] = useState(null);
   const [panelEffect, setPanelEffect] = useState('');
+  const [roundMeta, setRoundMeta] = useState({
+    mode: 'hard',
+    hintsUsed: false,
+    hintCount: 0,
+    lifelineUsed: false,
+    perksUsed: [],
+  });
   const { t, language, getTaxonDisplayNames } = useLanguage();
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
@@ -49,6 +65,13 @@ function HardMode() {
     setFeedback(null);
     setScoreInfo(null);
     setPanelEffect('');
+    setRoundMeta({
+      mode: 'hard',
+      hintsUsed: false,
+      hintCount: 0,
+      lifelineUsed: false,
+      perksUsed: [],
+    });
   }, [question, score]);
   
   useEffect(() => {
@@ -178,11 +201,18 @@ function HardMode() {
       streakBonus: scoreInfo?.streakBonus || 0,
       isCorrect: roundStatus === 'win'
     };
-    completeRound(result);
+    completeRound({
+      ...result,
+      roundMeta: { ...roundMeta, wasCorrect: roundStatus === 'win' },
+    });
   };
 
   const handleRevealNameHint = () => {
-    if (guesses < REVEAL_HINT_COST) {
+    let lifelineConsumed = false;
+    if (availableLifelines > 0) {
+      lifelineConsumed = useLifeline();
+    }
+    if (!lifelineConsumed && guesses < REVEAL_HINT_COST) {
       showFeedback(t('hard.feedback.not_enough_guesses'), 'error');
       triggerPanelShake();
       return;
@@ -190,7 +220,7 @@ function HardMode() {
 
     const firstUnknownRank = RANKS.find(rank => !knownTaxa[rank]);
     if (firstUnknownRank) {
-      const newGuessesCount = guesses - REVEAL_HINT_COST;
+      const newGuessesCount = lifelineConsumed ? guesses : guesses - REVEAL_HINT_COST;
       setGuesses(newGuessesCount);
 
       const rankLabel = t(`ranks.${firstUnknownRank}`);
@@ -225,7 +255,7 @@ function HardMode() {
           return;
         }
 
-        if (newGuessesCount <= 0) {
+        if (newGuessesCount <= 0 && !lifelineConsumed) {
           const roundPoints = currentScore - score;
           const { points, bonus } = computeScore({
             mode: 'hard',
@@ -237,6 +267,18 @@ function HardMode() {
           setRoundStatus('lose');
         }
       }
+      setRoundMeta((prev) => {
+        const perksUsed = lifelineConsumed
+          ? Array.from(new Set([...(prev.perksUsed || []), 'lifeline']))
+          : prev.perksUsed || [];
+        return {
+          ...prev,
+          hintsUsed: true,
+          hintCount: (prev.hintCount || 0) + 1,
+          lifelineUsed: prev.lifelineUsed || lifelineConsumed,
+          perksUsed,
+        };
+      });
     }
   };
   
@@ -309,11 +351,18 @@ function HardMode() {
             <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">{t('common.quit')}</button>
             <button 
               onClick={handleRevealNameHint} 
-              disabled={isGameOver || !canUseAnyHint || guesses < REVEAL_HINT_COST}
+              disabled={
+                isGameOver ||
+                !canUseAnyHint ||
+                (guesses < REVEAL_HINT_COST && availableLifelines === 0)
+              }
               className="action-button hint"
             >
               {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
             </button>
+            <span className="lifeline-counter" aria-live="polite">
+              ⚡ {availableLifelines}
+            </span>
           </div>
         </div>
         </div>

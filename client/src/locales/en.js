@@ -207,6 +207,18 @@ const en = {
         title: 'Specialist',
         description: 'Master 5 different species (3 correct answers each).',
       },
+      GENUS_NO_HINTS_3: {
+        title: 'Genus Sprint',
+        description: 'Identify 3 consecutive genera without using hints.',
+      },
+      BIOME_MASTER_TUNDRA: {
+        title: 'Tundra Whisperer',
+        description: 'Maintain a 3-question streak in tundra biomes.',
+      },
+      SKILL_SPEEDRUN: {
+        title: 'Speedrunner',
+        description: 'Answer correctly in under 8 seconds.',
+      },
     },
   },
   help: {

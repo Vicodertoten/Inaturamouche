@@ -207,6 +207,18 @@ const fr = {
         title: 'Spécialiste',
         description: 'Maîtriser 5 espèces différentes (3 bonnes réponses pour chacune).',
       },
+      GENUS_NO_HINTS_3: {
+        title: 'Sprint de genres',
+        description: 'Identifier 3 genres d’affilée sans utiliser d’indice.',
+      },
+      BIOME_MASTER_TUNDRA: {
+        title: 'Spécialiste de la toundra',
+        description: 'Conserver une série de 3 réponses parfaites dans la toundra.',
+      },
+      SKILL_SPEEDRUN: {
+        title: 'Réflexe éclair',
+        description: 'Répondre correctement en moins de 8 secondes.',
+      },
     },
   },
   help: {
