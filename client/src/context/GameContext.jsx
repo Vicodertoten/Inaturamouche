@@ -8,13 +8,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import PACKS from '../../../shared/packs.js';
 import { checkNewAchievements } from '../achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
+import { usePacks } from './PacksContext.jsx';
 
 export const MAX_QUESTIONS_PER_GAME = 5;
 
@@ -23,6 +23,7 @@ const GameContext = createContext(null);
 export function GameProvider({ children }) {
   const { profile, updateProfile, queueAchievements } = useUser();
   const { language, t } = useLanguage();
+  const { packs, loading: packsLoading } = usePacks();
 
   const [activePackId, setActivePackId] = useState('custom');
   const [customFilters, dispatchCustomFilters] = useReducer(customFilterReducer, initialCustomFilters);
@@ -42,6 +43,16 @@ export function GameProvider({ children }) {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
+  const activePack = useMemo(
+    () => packs.find((pack) => pack.id === activePackId),
+    [packs, activePackId]
+  );
+
+  useEffect(() => {
+    if (!packsLoading && activePackId !== 'custom' && !activePack) {
+      setActivePackId('custom');
+    }
+  }, [activePack, activePackId, packsLoading]);
 
   const achievementsTimerRef = useRef(null);
   const activeRequestController = useRef(null);
@@ -118,9 +129,8 @@ export function GameProvider({ children }) {
       return params;
     }
 
-    const activePack = PACKS.find((p) => p.id === activePackId);
     if (activePack?.type === 'list') {
-      activePack.taxa_ids.forEach((id) => params.append('taxon_ids', id));
+      params.set('pack_id', activePack.id);
     } else if (activePack?.type === 'dynamic') {
       params.set('pack_id', activePack.id);
     } else {
@@ -148,7 +158,7 @@ export function GameProvider({ children }) {
       }
     }
     return params;
-  }, [activePackId, customFilters, isReviewMode, language, profile?.stats?.missedSpecies]);
+  }, [activePack, activePackId, customFilters, isReviewMode, language, profile?.stats?.missedSpecies]);
 
   const fetchQuestion = useCallback(
     async (prefetchOnly = false) => {

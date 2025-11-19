@@ -1,3 +1,4 @@
+/// <reference path="./types/inaturalist.d.ts" />
 // server.js — Inaturamouche (optimisé + observabilité)
 // - Helmet avec CSP + Referrer-Policy
 // - Pino logs HTTP
@@ -14,14 +15,14 @@ import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import PACKS from "./shared/packs.js";
+import { findPackById, listPublicPacks } from "./server/packs/index.js";
 import {
   buildCacheKey,
   effectiveCooldownN,
   lcaDepth,
-  setWithLimit,
   shuffleFisherYates,
 } from "./lib/quiz-utils.js";
+import { SimpleLRUCache } from "./lib/simple-lru.js";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import { z } from "zod";
@@ -189,29 +190,11 @@ const DISTINCT_TAXA_TARGET = 30;
 const LURE_NEAR_THRESHOLD = 0.85;
 const LURE_MID_THRESHOLD = 0.65;
 
-const questionCache = new Map();
-const autocompleteCache = new Map();
-const selectionStateCache = new Map();
+const questionCache = new SimpleLRUCache({ max: MAX_CACHE_ENTRIES, ttl: QUESTION_CACHE_TTL });
+const autocompleteCache = new SimpleLRUCache({ max: MAX_CACHE_ENTRIES, ttl: AUTOCOMPLETE_CACHE_TTL });
 const SELECTION_STATE_TTL = 1000 * 60 * 10;
 const MAX_SELECTION_STATES = 200;
-
-function purgeCache(map, shouldDelete) {
-  if (!map || map.size === 0) return;
-  for (const [key, value] of map.entries()) {
-    if (shouldDelete(value, key)) map.delete(key);
-  }
-}
-
-function purgeQuestionCache(now = Date.now()) {
-  purgeCache(questionCache, (entry) => !entry || entry.timestamp + QUESTION_CACHE_TTL < now);
-}
-
-function purgeAutocompleteCache(now = Date.now()) {
-  purgeCache(autocompleteCache, (entry) => !entry || (entry.expires && entry.expires <= now));
-}
-function purgeSelectionStateCache(now = Date.now()) {
-  purgeCache(selectionStateCache, (entry) => !entry || entry.expires <= now);
-}
+const selectionStateCache = new SimpleLRUCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
 
 function createSelectionState(pool) {
   return {
@@ -223,7 +206,6 @@ function createSelectionState(pool) {
     shuffledTaxonIds: shuffleFisherYates(pool.taxonList),
     cursor: 0,
     version: pool.version,
-    expires: Date.now() + SELECTION_STATE_TTL,
   };
 }
 
@@ -241,15 +223,9 @@ function getSelectionStateForClient(cacheKey, clientId, pool, now) {
     state.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
     state.cursor = 0;
   }
-  state.expires = now + SELECTION_STATE_TTL;
   state.version = pool.version;
 
-  selectionStateCache.delete(key);
   selectionStateCache.set(key, state);
-  if (selectionStateCache.size > MAX_SELECTION_STATES) {
-    const oldestKey = selectionStateCache.keys().next().value;
-    selectionStateCache.delete(oldestKey);
-  }
   return { key, state };
 }
 
@@ -274,8 +250,42 @@ function geoParams(q) {
   return { p: {}, mode: "global" };
 }
 
+/**
+ * @param {Partial<import("./types/inaturalist").InatObservation>} obs
+ */
+function sanitizeObservation(obs) {
+  if (!obs?.taxon?.id) return null;
+  const photos = Array.isArray(obs.photos)
+    ? obs.photos
+        .filter((p) => p?.url)
+        .map((p) => ({
+          id: p.id,
+          attribution: p.attribution,
+          url: p.url,
+        }))
+    : [];
+
+  const taxon = obs.taxon || {};
+  return {
+    id: obs.id,
+    uri: obs.uri,
+    photos,
+    taxon: {
+      id: taxon.id,
+      name: taxon.name,
+      preferred_common_name: taxon.preferred_common_name,
+      ancestor_ids: Array.isArray(taxon.ancestor_ids) ? taxon.ancestor_ids : [],
+      rank: taxon.rank,
+    },
+  };
+}
+
 /* ---- fetch JSON ---- */
-async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, retries = MAX_RETRIES } = {}) {
+async function fetchJSON(
+  url,
+  params = {},
+  { timeoutMs = REQUEST_TIMEOUT_MS, retries = MAX_RETRIES, logger, requestId, label = "inat" } = {}
+) {
   const urlObj = new URL(url);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {
@@ -286,6 +296,13 @@ async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, ret
   while (true) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const startedAt = Date.now();
+    const requestMeta = {
+      requestId,
+      label,
+      url: urlObj.toString(),
+      attempt,
+    };
     try {
       const response = await fetch(urlObj, {
         signal: controller.signal,
@@ -302,31 +319,39 @@ async function fetchJSON(url, params = {}, { timeoutMs = REQUEST_TIMEOUT_MS, ret
           continue;
         }
         const text = await response.text().catch(() => "");
-        throw new Error(`HTTP ${response.status} ${response.statusText} — ${text.slice(0, 200)}`);
+        const errorMessage = `HTTP ${response.status} ${response.statusText} — ${text.slice(0, 200)}`;
+        logger?.warn(
+          { ...requestMeta, status: response.status, durationMs: Date.now() - startedAt },
+          "iNat fetch failed"
+        );
+        throw new Error(errorMessage);
       }
+      logger?.debug({ ...requestMeta, durationMs: Date.now() - startedAt }, "iNat fetch success");
       return await response.json();
     } catch (err) {
       clearTimeout(timer);
       if (attempt < retries) {
         attempt++;
+        logger?.warn({ ...requestMeta, error: err.message }, "Retrying iNat fetch");
         await new Promise((r) => setTimeout(r, 300 * Math.pow(2, attempt)));
         continue;
       }
+      logger?.error({ ...requestMeta, error: err.message }, "iNat fetch exhausted retries");
       throw err;
     }
   }
 }
 
 /* -------------------- iNat helpers -------------------- */
-async function getFullTaxaDetails(taxonIds, locale = "fr") {
+async function getFullTaxaDetails(taxonIds, locale = "fr", { logger, requestId } = {}) {
   if (!taxonIds || taxonIds.length === 0) return [];
   try {
     const path = `https://api.inaturalist.org/v1/taxa/${taxonIds.join(",")}`;
-    const localizedResponse = await fetchJSON(path, { locale });
+    const localizedResponse = await fetchJSON(path, { locale }, { logger, requestId, label: "taxa-localized" });
     const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
 
     if (!locale.startsWith("en")) {
-      const defaultResponse = await fetchJSON(path);
+      const defaultResponse = await fetchJSON(path, {}, { logger, requestId, label: "taxa-default" });
       const defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
       const byId = new Map(defaultResults.map((t) => [t.id, t]));
       return localizedResults.map((loc) => {
@@ -338,7 +363,11 @@ async function getFullTaxaDetails(taxonIds, locale = "fr") {
     }
     return localizedResults;
   } catch (err) {
-    console.error("Erreur getFullTaxaDetails:", err.message);
+    if (logger) {
+      logger.error({ requestId, error: err.message }, "Erreur getFullTaxaDetails");
+    } else {
+      console.error("Erreur getFullTaxaDetails:", err.message);
+    }
     return [];
   }
 }
@@ -658,6 +687,10 @@ function setTimingHeaders(res, marks, extra = {}) {
 
 app.get("/healthz", (req, res) => res.json({ ok: true }));
 
+app.get("/api/packs", (req, res) => {
+  res.json(listPublicPacks());
+});
+
 // Génération d’une question
 app.get(
   "/api/quiz-question",
@@ -694,8 +727,15 @@ app.get(
       };
 
       if (pack_id) {
-        const selectedPack = PACKS.find((p) => p.id === pack_id);
-        if (selectedPack?.api_params) Object.assign(params, selectedPack.api_params);
+        const selectedPack = findPackById(pack_id);
+        if (!selectedPack) {
+          return res.status(400).json({ error: "Pack inconnu" });
+        }
+        if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
+          params.taxon_id = selectedPack.taxa_ids.join(",");
+        } else if (selectedPack.api_params) {
+          Object.assign(params, selectedPack.api_params);
+        }
       } else if (taxon_ids) {
         params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
       } else if (include_taxa || exclude_taxa) {
@@ -707,8 +747,8 @@ app.get(
       if (d2 && isValidISODate(d2)) params.d2 = d2;
 
       const now = Date.now();
-      purgeQuestionCache(now);
-      purgeSelectionStateCache(now);
+      questionCache.prune();
+      selectionStateCache.prune();
       const cacheKey = buildCacheKey(params);
       let cacheEntry = questionCache.get(cacheKey);
       if (cacheEntry && !cacheEntry.version) {
@@ -732,8 +772,10 @@ app.get(
         let distinctTaxaSet = new Set();
 
         while (page <= MAX_OBS_PAGES) {
-          const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page });
-          const batch = Array.isArray(resp.results) ? resp.results : [];
+          const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page }, { logger: req.log, requestId: req.id });
+          const batch = (Array.isArray(resp.results) ? resp.results : [])
+            .map((item) => sanitizeObservation(item))
+            .filter(Boolean);
           results = results.concat(batch);
           pagesFetched++;
 
@@ -793,7 +835,7 @@ app.get(
           byTaxon,
           taxonList,
         };
-        setWithLimit(questionCache, cacheKey, cacheEntry, MAX_CACHE_ENTRIES);
+        questionCache.set(cacheKey, cacheEntry);
 
         poolObs = results.length;
         poolTaxa = taxonList.length;
@@ -867,7 +909,10 @@ app.get(
         fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
       }
 
-      const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale);
+      const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale, {
+        logger: req.log,
+        requestId: req.id,
+      });
       const details = new Map();
       for (const taxon of choiceTaxaDetails) {
         details.set(String(taxon.id), taxon);
@@ -995,7 +1040,7 @@ app.get(
           setTimingHeaders(res, marks);
         }
       } catch (_) {}
-      console.error("Unhandled route error:", err);
+      req.log?.error({ err, requestId: req.id }, "Unhandled quiz route error");
       if (!res.headersSent) res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }
@@ -1011,11 +1056,15 @@ app.get(
       const { q, per_page } = req.valid;
       const cacheKey = buildCacheKey({ places: q, per_page });
       const now = Date.now();
-      purgeAutocompleteCache(now);
+      autocompleteCache.prune();
       const cached = autocompleteCache.get(cacheKey);
       if (cached && cached.expires > now) return res.json(cached.data);
 
-      const data = await fetchJSON("https://api.inaturalist.org/v1/places/autocomplete", { q, per_page });
+      const data = await fetchJSON(
+        "https://api.inaturalist.org/v1/places/autocomplete",
+        { q, per_page },
+        { logger: req.log, requestId: req.id, label: "places-autocomplete" }
+      );
       const out = (data.results || []).map((p) => ({
         id: p.id,
         name: p.display_name || p.name,
@@ -1023,14 +1072,10 @@ app.get(
         admin_level: p.admin_level,
         area_km2: p.bounding_box_area,
       }));
-      setWithLimit(
-        autocompleteCache,
-        cacheKey,
-        { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL },
-        MAX_CACHE_ENTRIES
-      );
+      autocompleteCache.set(cacheKey, { data: out });
       res.json(out);
     } catch (e) {
+      req.log?.error({ err: e, requestId: req.id }, "Unhandled places autocomplete error");
       res.status(500).json([]);
     }
   }
@@ -1044,7 +1089,11 @@ app.get(
     try {
       const idsParam = req.valid.ids.join(",");
       if (!idsParam) return res.json([]);
-      const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${idsParam}`);
+      const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${idsParam}`, {}, {
+        logger: req.log,
+        requestId: req.id,
+        label: "places-by-id",
+      });
       const arr = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
       const out = arr.map((p) => ({
         id: p.id,
@@ -1055,6 +1104,7 @@ app.get(
       }));
       res.json(out);
     } catch (e) {
+      req.log?.error({ err: e, requestId: req.id }, "Unhandled places by id error");
       res.status(500).json([]);
     }
   }
@@ -1068,7 +1118,7 @@ app.get(
     try {
       const { q, rank, locale = "fr" } = req.valid;
       const now = Date.now();
-      purgeAutocompleteCache(now);
+      autocompleteCache.prune();
       const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
 
       const cached = autocompleteCache.get(cacheKey);
@@ -1079,15 +1129,19 @@ app.get(
       const params = { q: String(q).trim(), is_active: true, per_page: 10, locale };
       if (rank) params.rank = rank;
 
-      const response = await fetchJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params);
+      const response = await fetchJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params, {
+        logger: req.log,
+        requestId: req.id,
+        label: "taxa-autocomplete",
+      });
       const initial = Array.isArray(response.results) ? response.results : [];
       if (initial.length === 0) {
-        setWithLimit(autocompleteCache, cacheKey, { data: [], expires: now + AUTOCOMPLETE_CACHE_TTL }, MAX_CACHE_ENTRIES);
+        autocompleteCache.set(cacheKey, { data: [] });
         return res.json([]);
       }
 
       const taxonIds = initial.map((t) => t.id);
-      const taxaDetails = await getFullTaxaDetails(taxonIds, locale);
+      const taxaDetails = await getFullTaxaDetails(taxonIds, locale, { logger: req.log, requestId: req.id });
       const byId = new Map(taxaDetails.map((t) => [t.id, t]));
 
       const out = initial.map((t) => {
@@ -1100,10 +1154,10 @@ app.get(
         };
       });
 
-      setWithLimit(autocompleteCache, cacheKey, { data: out, expires: now + AUTOCOMPLETE_CACHE_TTL }, MAX_CACHE_ENTRIES);
+      autocompleteCache.set(cacheKey, { data: out });
       res.json(out);
     } catch (err) {
-      console.error("Unhandled autocomplete error:", err);
+      req.log?.error({ err, requestId: req.id }, "Unhandled autocomplete error");
       res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }
@@ -1125,12 +1179,16 @@ app.get(
         return res.status(400).json({ error: "Paramètres invalides", issues: parsed.error.issues });
       }
       const { id, locale } = parsed.data;
-      const response = await fetchJSON(`https://api.inaturalist.org/v1/taxa/${id}`, { locale });
+      const response = await fetchJSON(
+        `https://api.inaturalist.org/v1/taxa/${id}`,
+        { locale },
+        { logger: req.log, requestId: req.id, label: "taxon-detail" }
+      );
       const result = Array.isArray(response.results) ? response.results[0] : undefined;
       if (!result) return res.status(404).json({ error: "Taxon non trouvé." });
       res.json(result);
     } catch (err) {
-      console.error("Unhandled taxon error:", err);
+      req.log?.error({ err, requestId: req.id }, "Unhandled taxon error");
       res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }
@@ -1144,10 +1202,10 @@ app.get(
   async (req, res) => {
     try {
       const { ids, locale } = req.valid;
-      const taxaDetails = await getFullTaxaDetails(ids, locale);
+      const taxaDetails = await getFullTaxaDetails(ids, locale, { logger: req.log, requestId: req.id });
       res.json(taxaDetails);
     } catch (err) {
-      console.error("Unhandled taxa error:", err);
+      req.log?.error({ err, requestId: req.id }, "Unhandled taxa error");
       res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }
@@ -1192,10 +1250,14 @@ app.get(
       if (d1) params.d1 = d1;
       if (d2) params.d2 = d2;
 
-      const data = await fetchJSON("https://api.inaturalist.org/v1/observations/species_counts", params);
+      const data = await fetchJSON("https://api.inaturalist.org/v1/observations/species_counts", params, {
+        logger: req.log,
+        requestId: req.id,
+        label: "species-counts",
+      });
       res.json(data);
     } catch (err) {
-      console.error("Unhandled species_counts error:", err);
+      req.log?.error({ err, requestId: req.id }, "Unhandled species_counts error");
       res.status(500).json({ error: "Erreur interne du serveur" });
     }
   }

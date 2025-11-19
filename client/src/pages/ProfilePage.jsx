@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ACHIEVEMENTS } from '../achievements';
 import { useUser } from '../context/UserContext';
 import { getTaxaByIds } from '../services/api';
-import PACKS from '../../../shared/packs.js';
 import { resetProfile } from '../services/PlayerProfile';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { usePacks } from '../context/PacksContext.jsx';
 
 const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
 const getXpForLevel = (level) => Math.pow((level - 1) * 10, 2);
@@ -29,6 +29,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { profile, refreshProfile } = useUser();
   const { t, getTaxonDisplayNames, language } = useLanguage();
+  const { packs } = usePacks();
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
@@ -189,7 +190,7 @@ const ProfilePage = () => {
                 <h3>{t('profile.pack_stats_title')}</h3>
                 <ul className="pack-stats-list">
                   {Object.entries(profile.stats.packsPlayed || {}).map(([packId, { correct, answered }]) => {
-                    const pack = PACKS.find((p) => p.id === packId);
+                    const pack = packs.find((p) => p.id === packId);
                     const accuracy = answered > 0 ? ((correct / answered) * 100).toFixed(1) : '0.0';
                     return (
                       <li key={packId} className="pack-stat-item">

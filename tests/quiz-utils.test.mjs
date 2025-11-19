@@ -1,12 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  buildCacheKey,
-  effectiveCooldownN,
-  lcaDepth,
-  setWithLimit,
-  shuffleFisherYates,
-} from "../lib/quiz-utils.js";
+import { buildCacheKey, effectiveCooldownN, lcaDepth, shuffleFisherYates } from "../lib/quiz-utils.js";
+import { SimpleLRUCache } from "../lib/simple-lru.js";
 
 test("buildCacheKey sorts keys and flattens arrays", () => {
   const key = buildCacheKey({ b: 2, a: ["x", "y"], c: 3 });
@@ -31,12 +26,12 @@ test("shuffleFisherYates keeps all items", () => {
   assert.deepEqual(arr.sort(), shuffled.slice().sort());
 });
 
-test("setWithLimit enforces maximum entries", () => {
-  const map = new Map();
-  setWithLimit(map, "a", 1, 2);
-  setWithLimit(map, "b", 2, 2);
-  setWithLimit(map, "c", 3, 2);
-  assert.equal(map.size, 2);
-  assert.ok(map.has("b"));
-  assert.ok(map.has("c"));
+test("SimpleLRUCache evicts oldest entries", () => {
+  const cache = new SimpleLRUCache({ max: 2, ttl: 0 });
+  cache.set("a", 1);
+  cache.set("b", 2);
+  cache.set("c", 3);
+  assert.equal(cache.get("a"), undefined);
+  assert.equal(cache.get("b"), 2);
+  assert.equal(cache.get("c"), 3);
 });
