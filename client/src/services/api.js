@@ -1,17 +1,21 @@
 // src/services/api.js
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
+const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : {};
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
+  runtimeEnv.VITE_API_URL ||
+  (runtimeEnv.DEV
     ? "http://localhost:3001"
     : "https://inaturamouche.onrender.com");
+
+const DEFAULT_TIMEOUT = 8000;
 
 /** Construit des URLSearchParams à partir d'un objet.
  *  - Ignore undefined/null/""
  *  - Les arrays sont joints par des virgules (ex: ["1","2"] -> "1,2")
  */
-function buildSearchParams(params = {}) {
+export function buildSearchParams(params = {}) {
   if (params instanceof URLSearchParams) return params;
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -26,30 +30,52 @@ function buildSearchParams(params = {}) {
   return sp;
 }
 
-async function apiGet(path, params = {}) {
+async function apiGet(path, params = {}, options = {}) {
+  const { signal, timeout = DEFAULT_TIMEOUT } = options;
   const url = new URL(path, API_BASE_URL);
   url.search = buildSearchParams(params).toString();
 
-  const res = await fetch(url);
-  let data = {};
+  const controller = new AbortController();
+  const abortHandler = () => controller.abort(signal?.reason);
+  const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout", "AbortError")), timeout);
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+    } else {
+      signal.addEventListener("abort", abortHandler, { once: true });
+    }
+  }
+
   try {
-    data = await res.json();
-  } catch (_) {
-    // Pas de JSON → laisser data = {}
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (_) {
+      // Pas de JSON → laisser data = {}
+    }
+    if (!res.ok) {
+      const error = new Error(data.error || "Erreur réseau");
+      error.status = res.status;
+      throw error;
+    }
+    return data;
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal && !signal.aborted) {
+      signal.removeEventListener("abort", abortHandler);
+    }
   }
-  if (!res.ok) {
-    const error = new Error(data.error || "Erreur réseau");
-    error.status = res.status;
-    throw error;
-  }
-  return data;
 }
 
 /**
  * Récupère une question de quiz en fonction des filtres.
  * Accepte objets ou URLSearchParams. Les arrays deviennent "a,b,c".
  */
-export const fetchQuizQuestion = (params) => apiGet("/api/quiz-question", params);
+export const fetchQuizQuestion = (params, options) => apiGet("/api/quiz-question", params, options);
 
 /**
  * Détails complets pour un taxon.
