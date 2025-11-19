@@ -68,7 +68,7 @@ const AppLayout = () => {
           onClick={isTitleInteractive ? handleTitleClick : undefined}
           title={isTitleInteractive ? t('nav.title_tooltip') : ''}
           decoding="async"
-          fetchpriority="high"
+          fetchPriority="high"
         />
         <img
           src={logoImage}
@@ -77,7 +77,7 @@ const AppLayout = () => {
           onClick={isTitleInteractive ? handleTitleClick : undefined}
           title={isTitleInteractive ? t('nav.title_tooltip') : ''}
           decoding="async"
-          fetchpriority="high"
+          fetchPriority="high"
         />
       </header>
 

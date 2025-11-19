@@ -1,10 +1,10 @@
 import React, { useMemo, useId } from 'react';
-import PACKS from '../../shared/packs.js';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
 import { useGame } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
+import { usePacks } from './context/PacksContext.jsx';
 
 function Configurator({ onStartGame, onStartReview, onShowHelp }) {
   const {
@@ -16,10 +16,11 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
     clearError,
     canStartReview,
   } = useGame();
+  const { packs, loading: packsLoading, error: packsError } = usePacks();
   const { t, useScientificName, setUseScientificName } = useLanguage();
   const preferenceHintId = useId();
 
-  const activePack = useMemo(() => PACKS.find((pack) => pack.id === activePackId), [activePackId]);
+  const activePack = useMemo(() => packs.find((pack) => pack.id === activePackId), [packs, activePackId]);
   const scientificPreferenceHint = t('common.scientific_preference_help');
 
   // On trouve les détails du pack actuellement sélectionné pour afficher sa description
@@ -44,7 +45,9 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
       )}
 
       <div className="configurator-panel">
-        {error && <ErrorModal message={error} onClose={clearError} />}
+        {(error || packsError) && (
+          <ErrorModal message={error || packsError} onClose={error ? clearError : undefined} />
+        )}
         
         <div className="pack-selector">
           <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
@@ -59,8 +62,9 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
               value={activePackId}
               onChange={handlePackChange}
               className="pack-select-dropdown"
+              disabled={packsLoading}
             >
-              {PACKS.map((pack) => (
+              {packs.map((pack) => (
                 <option key={pack.id} value={pack.id}>
                   {pack.titleKey ? t(pack.titleKey) : pack.id}
                 </option>
@@ -70,7 +74,10 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
         </div>
 
         <div className="pack-details">
-          {activePack?.descriptionKey && (
+          {packsLoading && (
+            <p className="pack-description">{t('configurator.loading_packs') ?? 'Chargement des packs...'}</p>
+          )}
+          {activePack?.descriptionKey && !packsLoading && (
             <p className="pack-description">
               <strong>{t('common.pack_description_label')}:</strong> {t(activePack.descriptionKey)}
             </p>
@@ -104,9 +111,13 @@ function Configurator({ onStartGame, onStartReview, onShowHelp }) {
           </label>
         </div>
 
-        <button onClick={onStartGame} className="start-button">{t('common.start_game')}</button>
+        <button onClick={onStartGame} className="start-button" disabled={packsLoading}>
+          {t('common.start_game')}
+        </button>
         {canStartReview && (
-          <button onClick={onStartReview} className="start-button">{t('common.review_mistakes')}</button>
+          <button onClick={onStartReview} className="start-button" disabled={packsLoading}>
+            {t('common.review_mistakes')}
+          </button>
         )}
       </div>
     </>

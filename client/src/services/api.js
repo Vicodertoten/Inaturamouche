@@ -1,3 +1,4 @@
+/// <reference path="../../../types/inaturalist.d.ts" />
 // src/services/api.js
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
@@ -118,3 +119,5 @@ export const getTaxaByIds = (ids, locale = "fr") => {
   const list = Array.isArray(ids) ? ids : String(ids).split(",");
   return apiGet("/api/taxa", { ids: list.join(","), locale });
 };
+
+export const getPackCatalog = () => apiGet("/api/packs");
