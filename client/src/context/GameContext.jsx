@@ -214,8 +214,10 @@ export function GameProvider({ children }) {
     } else if (activePack?.type === 'dynamic') {
       params.set('pack_id', activePack.id);
     } else {
-      customFilters.includedTaxa.forEach((taxon) => params.append('include_taxa', taxon.id));
-      customFilters.excludedTaxa.forEach((taxon) => params.append('exclude_taxa', taxon.id));
+      if (customFilters.taxa_enabled) {
+        customFilters.includedTaxa.forEach((taxon) => params.append('include_taxa', taxon.id));
+        customFilters.excludedTaxa.forEach((taxon) => params.append('exclude_taxa', taxon.id));
+      }
 
       if (customFilters.place_enabled) {
         const g = customFilters.geo;
@@ -232,7 +234,7 @@ export function GameProvider({ children }) {
         }
       }
 
-      if (customFilters.date_enabled) {
+      if (customFilters.period_enabled) {
         if (customFilters.d1) params.set('d1', customFilters.d1);
         if (customFilters.d2) params.set('d2', customFilters.d2);
       }

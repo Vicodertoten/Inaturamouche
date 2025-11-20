@@ -1,13 +1,18 @@
 export const initialCustomFilters = {
+  taxa_enabled: false,
   includedTaxa: [],
   excludedTaxa: [],
   place_enabled: false,
   geo: { mode: 'place' },
-  date_enabled: false, d1: '', d2: ''
+  period_enabled: false,
+  d1: '',
+  d2: ''
 };
 
 export function customFilterReducer(state, action) {
   switch (action.type) {
+    case 'TOGGLE_TAXA':
+      return { ...state, taxa_enabled: !state.taxa_enabled };
     case 'ADD_INCLUDED_TAXON':
       if (state.includedTaxa.some(t => t.id === action.payload.id)) return state;
       return { ...state, includedTaxa: [...state.includedTaxa, action.payload] };
@@ -20,8 +25,8 @@ export function customFilterReducer(state, action) {
       return { ...state, excludedTaxa: state.excludedTaxa.filter(t => t.id !== action.payload) };
     case 'TOGGLE_PLACE':
       return { ...state, place_enabled: !state.place_enabled };
-    case 'TOGGLE_DATE':
-      return { ...state, date_enabled: !state.date_enabled };
+    case 'TOGGLE_PERIOD':
+      return { ...state, period_enabled: !state.period_enabled };
     case 'SET_GEO':
       return { ...state, geo: action.payload };
     case 'SET_FILTER':
