@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useId } from 'react';
+import React, { useMemo, useId } from 'react';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
@@ -20,7 +20,6 @@ function Configurator({ onStartGame }) {
   const preferenceHintId = useId();
 
   const activePack = useMemo(() => packs.find((pack) => pack.id === activePackId), [packs, activePackId]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const recommendedPack = useMemo(() => {
     const eligible = packs.filter((pack) => pack.id !== 'custom');
@@ -29,12 +28,6 @@ function Configurator({ onStartGame }) {
     const hash = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return eligible[hash % eligible.length];
   }, [packs]);
-
-  useEffect(() => {
-    if (activePackId !== 'custom' && showAdvancedFilters) {
-      setShowAdvancedFilters(false);
-    }
-  }, [activePackId, showAdvancedFilters]);
 
   const scientificPreferenceHint = t('common.scientific_preference_help');
 
@@ -56,11 +49,7 @@ function Configurator({ onStartGame }) {
           <div className="recommended-pack">
             <p className="eyebrow">{t('home.recommended_pack_label')}</p>
             <h3>{recommendedPack.titleKey ? t(recommendedPack.titleKey) : recommendedPack.id}</h3>
-            {recommendedPack.descriptionKey && (
-              <p className="recommended-pack-description">
-                {t(recommendedPack.descriptionKey)}
-              </p>
-            )}
+            
             <button
               type="button"
               className="secondary-button"
@@ -74,62 +63,49 @@ function Configurator({ onStartGame }) {
           </div>
         )}
         
-        <div className="pack-selector">
-          <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
-          <div
-            className="tooltip"
-            data-tooltip={t('configurator.pack_hint')}
-            onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
-            title={t('configurator.pack_hint')}
-          >
-            <select
-              id="pack-select"
-              value={activePackId}
-              onChange={handlePackChange}
-              className="pack-select-dropdown"
-              disabled={packsLoading}
+        <div className="pack-card">
+          <div className="pack-selector">
+            <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
+            <div
+              className="tooltip"
+              data-tooltip={t('configurator.pack_hint')}
+              onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
+              title={t('configurator.pack_hint')}
             >
-              {packs.map((pack) => (
-                <option key={pack.id} value={pack.id}>
-                  {pack.titleKey ? t(pack.titleKey) : pack.id}
-                </option>
-              ))}
-            </select>
+              <select
+                id="pack-select"
+                value={activePackId}
+                onChange={handlePackChange}
+                className="pack-select-dropdown"
+                disabled={packsLoading}
+              >
+                {packs.map((pack) => (
+                  <option key={pack.id} value={pack.id}>
+                    {pack.titleKey ? t(pack.titleKey) : pack.id}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div className="pack-details">
-          {packsLoading && (
-            <p className="pack-description">{t('configurator.loading_packs') ?? 'Chargement des packs...'}</p>
-          )}
-          {activePack?.descriptionKey && !packsLoading && (
-            <p className="pack-description">
-              <strong>{t('common.pack_description_label')}:</strong> {t(activePack.descriptionKey)}
-            </p>
-          )}
-          {activePackId === 'custom' && (
-            <div className={`advanced-filters ${showAdvancedFilters ? 'open' : ''}`}>
-              <div className="advanced-filters-header">
-                <p>{t('configurator.advanced_filters_title')}</p>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setShowAdvancedFilters((prev) => !prev)}
-                >
-                  {showAdvancedFilters
-                    ? t('configurator.hide_advanced_filters')
-                    : t('configurator.show_advanced_filters')}
-                </button>
-              </div>
-              <p className="advanced-filters-helper">{t('configurator.advanced_filters_helper')}</p>
-              {showAdvancedFilters && (
+          <div className="pack-details">
+            {packsLoading && (
+              <p className="pack-description">{t('configurator.loading_packs') ?? 'Chargement des packs...'}</p>
+            )}
+            {activePack?.descriptionKey && !packsLoading && (
+              <p className="pack-description">
+                 {t(activePack.descriptionKey)}
+              </p>
+            )}
+            {activePackId === 'custom' && (
+              <div className="advanced-filters open">
                 <CustomFilter
                   filters={customFilters}
                   dispatch={dispatchCustomFilters}
                 />
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="scientific-toggle">

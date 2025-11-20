@@ -7,14 +7,19 @@
   color: var(--text-color);
 }
 
-.configurator-panel .pack-selector,
-.configurator-panel .pack-details,
+.configurator-panel .pack-card,
 .configurator-panel .scientific-toggle {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--border-radius);
   padding: var(--space-4);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.pack-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .pack-selector {
@@ -55,8 +60,14 @@
   color: var(--text-color);
 }
 
+.custom-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .custom-filter-container fieldset {
-  margin-top: var(--space-3);
+  margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--border-radius);
   padding: var(--space-3);
@@ -141,8 +152,14 @@
 }
 .date-filters {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   align-items: center;
+}
+
+.date-filters label {
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 
@@ -212,7 +229,6 @@
 }
 
 .advanced-filters {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: var(--space-3);
   display: flex;
   flex-direction: column;
@@ -235,6 +251,58 @@
   font-size: 0.95rem;
   color: var(--text-color-muted);
   line-height: 1.4;
+}
+
+.filter-section {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.filter-section + .filter-section {
+  margin-top: var(--space-3);
+}
+
+.filter-section.open {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.filter-section-toggle {
+  font-size: 1rem;
+}
+
+.filter-helper {
+  margin: 0;
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+}
+
+.filter-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.taxa-fieldsets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .taxa-fieldsets {
+    flex-direction: row;
+  }
+}
+
+.taxa-fieldsets fieldset {
+  flex: 1;
+  min-width: 0;
 }
 
 
