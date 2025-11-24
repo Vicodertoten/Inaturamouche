@@ -1,4 +1,4 @@
-import React, { useCallback, useId, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
@@ -68,31 +68,6 @@ const SkeletonLine = ({ width = '100%' }) => (
   <div className="skeleton-line" style={{ width }} aria-hidden="true"></div>
 );
 
-const ScientificNameToggle = ({ enabled, onToggle, label, hint, hintId }) => (
-  <div className="scientific-switch">
-    <div className="switch-copy">
-      <p className="switch-label">{label}</p>
-      <p id={hintId} className="switch-hint">
-        {hint}
-      </p>
-    </div>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-label={label}
-      aria-describedby={hintId}
-      className={`toggle-switch ${enabled ? 'on' : 'off'}`}
-      onClick={() => onToggle(!enabled)}
-    >
-      <span className="switch-track">
-        <span className="switch-thumb" />
-      </span>
-      <span className="switch-status">{enabled ? 'ON' : 'OFF'}</span>
-    </button>
-  </div>
-);
-
 const usePackOptions = ({ packs, t, canStartReview, missedCount }) =>
   useMemo(() => {
     const baseOptions = [
@@ -124,8 +99,7 @@ function Configurator({ onStartGame }) {
   } = useGame();
   const { packs, loading: packsLoading, error: packsError } = usePacks();
   const { profile } = useUser();
-  const { t, useScientificName, setUseScientificName } = useLanguage();
-  const preferenceHintId = useId();
+  const { t } = useLanguage();
   const missedCount = profile?.stats?.missedSpecies?.length || 0;
 
   const packOptions = usePackOptions({ packs, t, canStartReview, missedCount });
@@ -145,7 +119,6 @@ function Configurator({ onStartGame }) {
     return eligible[hash % eligible.length];
   }, [packs]);
 
-  const scientificPreferenceHint = t('common.scientific_preference_help');
   const isReviewSelection = activePackId === 'review';
 
   const handlePackChange = useCallback(
@@ -281,37 +254,20 @@ function Configurator({ onStartGame }) {
             </label>
           </div>
         </section>
-
-        <section className="config-section config-section-preferences">
-          <SectionHeader
-            step="3"
-            title={t('common.preferences')}
-            subtitle={t('common.scientific_preference_label')}
-          />
-          <div className="preferences-grid">
-            <ScientificNameToggle
-              enabled={useScientificName}
-              onToggle={setUseScientificName}
-              label={t('common.scientific_preference_label')}
-              hint={scientificPreferenceHint}
-              hintId={preferenceHintId}
-            />
-            <div className="footer-actions">
-              <div className="start-copy">
-                <p className="start-heading">{t('home.play_pillar_title')}</p>
-                <p className="start-subtitle">{t('home.play_pillar_desc')}</p>
-              </div>
-              <button
-                onClick={handleStartClick}
-                className="start-button start-button-glow"
-                disabled={packsLoading || (isReviewSelection && !canStartReview)}
-                aria-label={t('common.start_game')}
-              >
-                {t('common.start_game')}
-              </button>
-            </div>
+        <div className="config-start footer-actions">
+          <div className="start-copy">
+            <p className="start-heading">{t('home.play_pillar_title')}</p>
+            <p className="start-subtitle">{t('home.play_pillar_desc')}</p>
           </div>
-        </section>
+          <button
+            onClick={handleStartClick}
+            className="start-button start-button-glow"
+            disabled={packsLoading || (isReviewSelection && !canStartReview)}
+            aria-label={t('common.start_game')}
+          >
+            {t('common.start_game')}
+          </button>
+        </div>
       </div>
     </>
   );

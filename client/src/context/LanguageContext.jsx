@@ -6,7 +6,9 @@ import nl from '../locales/nl';
 const MESSAGES = { fr, en, nl };
 const DEFAULT_LANGUAGE = 'fr';
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
-const SCIENTIFIC_STORAGE_KEY = 'inaturamouche_scientific';
+const NAME_FORMAT_STORAGE_KEY = 'user_pref_name_format';
+const LEGACY_SCIENTIFIC_STORAGE_KEY = 'inaturamouche_scientific';
+const DEFAULT_NAME_FORMAT = 'vernacular';
 
 const LanguageContext = createContext(null);
 
@@ -16,14 +18,20 @@ function getStoredLanguage() {
   return stored && MESSAGES[stored] ? stored : DEFAULT_LANGUAGE;
 }
 
-function getStoredScientificPreference() {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(SCIENTIFIC_STORAGE_KEY) === '1';
+function getStoredNameFormat() {
+  if (typeof window === 'undefined') return DEFAULT_NAME_FORMAT;
+  const stored = localStorage.getItem(NAME_FORMAT_STORAGE_KEY);
+  if (stored === 'vernacular' || stored === 'scientific') return stored;
+
+  // Legacy fallback: migrate the previous boolean preference
+  const legacyScientificPreference = localStorage.getItem(LEGACY_SCIENTIFIC_STORAGE_KEY);
+  if (legacyScientificPreference === '1') return 'scientific';
+  return DEFAULT_NAME_FORMAT;
 }
 
 export function LanguageProvider({ children }) {
   const [language, setLanguageState] = useState(getStoredLanguage);
-  const [useScientificName, setUseScientificName] = useState(getStoredScientificPreference);
+  const [nameFormat, setNameFormat] = useState(getStoredNameFormat);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -33,8 +41,10 @@ export function LanguageProvider({ children }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(SCIENTIFIC_STORAGE_KEY, useScientificName ? '1' : '0');
-  }, [useScientificName]);
+    localStorage.setItem(NAME_FORMAT_STORAGE_KEY, nameFormat);
+    // Clean legacy key to avoid stale state when switching between versions
+    localStorage.removeItem(LEGACY_SCIENTIFIC_STORAGE_KEY);
+  }, [nameFormat]);
 
   const setLanguage = useCallback((nextLanguage) => {
     setLanguageState((prev) => {
@@ -65,16 +75,23 @@ export function LanguageProvider({ children }) {
     [language]
   );
 
+  const toggleNameFormat = useCallback((format) => {
+    setNameFormat((prev) => {
+      if (format !== 'scientific' && format !== 'vernacular') return prev;
+      return format;
+    });
+  }, []);
+
   const formatTaxonName = useCallback(
     (taxon = {}, fallback = '') => {
       if (!taxon) return fallback;
       const scientific = taxon.name || '';
       const common =
         taxon.preferred_common_name || taxon.common_name || taxon.commonName || '';
-      if (useScientificName) return scientific || common || fallback;
+      if (nameFormat === 'scientific') return scientific || common || fallback;
       return common || scientific || fallback;
     },
-    [useScientificName]
+    [nameFormat]
   );
 
   const getTaxonDisplayNames = useCallback(
@@ -84,14 +101,14 @@ export function LanguageProvider({ children }) {
       const common =
         taxon?.preferred_common_name || taxon?.common_name || taxon?.commonName || '';
       let secondary = '';
-      if (useScientificName) {
+      if (nameFormat === 'scientific') {
         if (common && common !== primary) secondary = common;
       } else if (scientific && scientific !== primary) {
         secondary = scientific;
       }
       return { primary, secondary };
     },
-    [formatTaxonName, useScientificName]
+    [formatTaxonName, nameFormat]
   );
 
   const value = useMemo(
@@ -100,8 +117,8 @@ export function LanguageProvider({ children }) {
       setLanguage,
       availableLanguages: Object.keys(MESSAGES),
       languageNames: MESSAGES[language]?.languageNames ?? {},
-      useScientificName,
-      setUseScientificName,
+      nameFormat,
+      toggleNameFormat,
       t,
       formatTaxonName,
       getTaxonDisplayNames,
@@ -111,9 +128,9 @@ export function LanguageProvider({ children }) {
       getTaxonDisplayNames,
       language,
       setLanguage,
-      setUseScientificName,
+      toggleNameFormat,
       t,
-      useScientificName,
+      nameFormat,
     ]
   );
 

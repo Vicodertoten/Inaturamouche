@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AchievementModal from './AchievementModal';
 import HelpModal from './HelpModal';
-import LanguageSwitcher from './LanguageSwitcher';
+import PreferencesMenu from './PreferencesMenu';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.png';
 import { useGame } from '../context/GameContext';
@@ -69,7 +69,7 @@ const AppLayout = () => {
             </span>
           </button>
         </div>
-        <LanguageSwitcher />
+        <PreferencesMenu />
       </nav>
 
       <header className="app-header">
