@@ -30,26 +30,32 @@
 }
 
 .language-switcher {
-  position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
-.language-switcher::after {
-  bottom: 1px;
-    content: '▾';
-    position: absolute;
-    right: 0.65rem;
-    color: var(--text-color-muted);
-    font-size: 1.6rem;
-    pointer-events: none;
+.language-control {
+  position: relative;
 }
 
-.language-switcher select {
+.language-control::after {
+  content: '▾';
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-color-muted);
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+
+.language-control select {
   padding-right: calc(var(--space-3) + 1rem);
 }
 
-.language-switcher select:focus {
+.language-control select:focus {
   outline: none;
   border-color: var(--accent-color);
   box-shadow: 0 0 0 2px var(--accent-color-transparent);
@@ -77,8 +83,8 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 .nav-pill.nav-icon {
-  width: 44px;
-  height: 44px;
+  width: 37px;
+  height: 37px;
   padding: 0;
   border-radius: 50%;
   justify-content: center;
