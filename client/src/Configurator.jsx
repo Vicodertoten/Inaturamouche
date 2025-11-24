@@ -1,10 +1,114 @@
-import React, { useMemo, useId } from 'react';
+import React, { useCallback, useId, useMemo } from 'react';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
 import { useGame } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { usePacks } from './context/PacksContext.jsx';
+import { useUser } from './context/UserContext.jsx';
+
+const ModeVisual = ({ variant }) => {
+  if (variant === 'easy') {
+    return (
+      <div className="mode-visual mode-visual-easy" aria-hidden="true">
+        <div className="soft-grid">
+          <span className="tile tile-1" />
+          <span className="tile tile-2" />
+          <span className="tile tile-3" />
+          <span className="tile tile-4" />
+        </div>
+        <div className="grid-glow" />
+      </div>
+    );
+  }
+  return (
+    <div className="mode-visual mode-visual-hard" aria-hidden="true">
+      <svg className="phylo-svg" viewBox="0 0 120 120" role="presentation" focusable="false">
+        <defs>
+          <linearGradient id="phyloGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--primary-color)" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+        <g stroke="url(#phyloGradient)" strokeWidth="3" fill="none" strokeLinecap="round">
+          <path d="M60 100 V70" />
+          <path d="M60 70 C60 60, 50 55, 42 50" />
+          <path d="M60 70 C60 60, 72 55, 80 48" />
+          <path d="M42 50 C32 42, 26 34, 20 26" />
+          <path d="M42 50 C46 40, 54 34, 60 26" />
+          <path d="M80 48 C90 38, 96 32, 102 22" />
+          <path d="M80 48 C76 36, 68 30, 60 26" />
+        </g>
+        <g className="phylo-nodes" fill="url(#phyloGradient)">
+          <circle cx="60" cy="100" r="6" className="node root" />
+          <circle cx="60" cy="70" r="5" />
+          <circle cx="42" cy="50" r="4" />
+          <circle cx="80" cy="48" r="4" />
+          <circle cx="20" cy="26" r="4" />
+          <circle cx="60" cy="26" r="4" />
+          <circle cx="102" cy="22" r="4" />
+        </g>
+      </svg>
+      <div className="phylo-aura" />
+    </div>
+  );
+};
+
+const SectionHeader = ({ step, title, subtitle }) => (
+  <div className="section-head">
+    <span className="step-badge">{step}</span>
+    <div>
+      <p className="eyebrow">{title}</p>
+      {subtitle && <p className="section-subtitle">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const SkeletonLine = ({ width = '100%' }) => (
+  <div className="skeleton-line" style={{ width }} aria-hidden="true"></div>
+);
+
+const ScientificNameToggle = ({ enabled, onToggle, label, hint, hintId }) => (
+  <div className="scientific-switch">
+    <div className="switch-copy">
+      <p className="switch-label">{label}</p>
+      <p id={hintId} className="switch-hint">
+        {hint}
+      </p>
+    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
+      aria-describedby={hintId}
+      className={`toggle-switch ${enabled ? 'on' : 'off'}`}
+      onClick={() => onToggle(!enabled)}
+    >
+      <span className="switch-track">
+        <span className="switch-thumb" />
+      </span>
+      <span className="switch-status">{enabled ? 'ON' : 'OFF'}</span>
+    </button>
+  </div>
+);
+
+const usePackOptions = ({ packs, t, canStartReview, missedCount }) =>
+  useMemo(() => {
+    const baseOptions = [
+      {
+        id: 'review',
+        label: `${t('common.review_mistakes')}${missedCount ? ` (${missedCount})` : ''}`,
+        disabled: !canStartReview,
+      },
+      ...packs.map((pack) => ({
+        id: pack.id,
+        label: pack.titleKey ? t(pack.titleKey) : pack.id,
+      })),
+    ];
+
+    return baseOptions;
+  }, [packs, t, canStartReview, missedCount]);
 
 function Configurator({ onStartGame }) {
   const {
@@ -16,12 +120,22 @@ function Configurator({ onStartGame }) {
     clearError,
     gameMode,
     setGameMode,
+    canStartReview,
   } = useGame();
   const { packs, loading: packsLoading, error: packsError } = usePacks();
+  const { profile } = useUser();
   const { t, useScientificName, setUseScientificName } = useLanguage();
   const preferenceHintId = useId();
+  const missedCount = profile?.stats?.missedSpecies?.length || 0;
 
-  const activePack = useMemo(() => packs.find((pack) => pack.id === activePackId), [packs, activePackId]);
+  const packOptions = usePackOptions({ packs, t, canStartReview, missedCount });
+
+  const activePack = useMemo(() => {
+    if (activePackId === 'review') {
+      return { id: 'review', descriptionKey: 'home.learn_action_review' };
+    }
+    return packs.find((pack) => pack.id === activePackId);
+  }, [activePackId, packs]);
 
   const recommendedPack = useMemo(() => {
     const eligible = packs.filter((pack) => pack.id !== 'custom');
@@ -32,17 +146,36 @@ function Configurator({ onStartGame }) {
   }, [packs]);
 
   const scientificPreferenceHint = t('common.scientific_preference_help');
+  const isReviewSelection = activePackId === 'review';
 
-  // On trouve les détails du pack actuellement sélectionné pour afficher sa description
+  const handlePackChange = useCallback(
+    (e) => {
+      setActivePackId(e.target.value);
+    },
+    [setActivePackId]
+  );
 
-  // Le gestionnaire pour le changement de sélection dans le menu déroulant
-  const handlePackChange = (e) => {
-    setActivePackId(e.target.value);
-  };
+  const handleModeChange = useCallback(
+    (mode) => {
+      setGameMode(mode);
+    },
+    [setGameMode]
+  );
 
-  const handleModeChange = (mode) => {
-    setGameMode(mode);
-  };
+  const handleStartClick = useCallback(() => {
+    if (typeof onStartGame === 'function') {
+      onStartGame(isReviewSelection);
+    }
+  }, [isReviewSelection, onStartGame]);
+
+  const handleUseRecommended = useCallback(() => {
+    if (recommendedPack) {
+      setActivePackId(recommendedPack.id);
+    }
+  }, [recommendedPack, setActivePackId]);
+
+  const packDescription =
+    activePack?.descriptionKey && !packsLoading ? t(activePack.descriptionKey) : null;
 
   return (
     <>
@@ -52,40 +185,19 @@ function Configurator({ onStartGame }) {
         )}
 
         <section className="config-section">
-          <div className="section-head">
-            <span className="step-badge">1</span>
-            <div>
-              <p className="eyebrow">{t('configurator.pack_label')}</p>
-              <p className="section-subtitle">{t('configurator.pack_hint')}</p>
-            </div>
-          </div>
+          <SectionHeader
+            step="1"
+            title={t('configurator.pack_label')}
+            subtitle={t('configurator.pack_hint')}
+          />
 
-          {recommendedPack && (
-            <div className="recommended-pack">
-              <div>
-                <p className="eyebrow">{t('home.recommended_pack_label')}</p>
-                <h3>{recommendedPack.titleKey ? t(recommendedPack.titleKey) : recommendedPack.id}</h3>
-              </div>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setActivePackId(recommendedPack.id)}
-                disabled={packsLoading || recommendedPack.id === activePackId}
-              >
-                {recommendedPack.id === activePackId
-                  ? t('home.recommended_pack_active')
-                  : t('home.recommended_pack_cta')}
-              </button>
-            </div>
-          )}
-
-          <div className="pack-card">
+          <div className="pack-card pack-card-glow">
             <div className="pack-selector">
               <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
               <div
                 className="tooltip"
                 data-tooltip={t('configurator.pack_hint')}
-                onPointerLeave={e => e.currentTarget.querySelector('select')?.blur()}
+                onPointerLeave={(e) => e.currentTarget.querySelector('select')?.blur()}
                 title={t('configurator.pack_hint')}
               >
                 <select
@@ -95,9 +207,9 @@ function Configurator({ onStartGame }) {
                   className="pack-select-dropdown"
                   disabled={packsLoading}
                 >
-                  {packs.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {pack.titleKey ? t(pack.titleKey) : pack.id}
+                  {packOptions.map((option) => (
+                    <option key={option.id} value={option.id} disabled={option.disabled}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
@@ -106,19 +218,22 @@ function Configurator({ onStartGame }) {
 
             <div className="pack-details">
               {packsLoading && (
-                <p className="pack-description">{t('configurator.loading_packs') ?? 'Chargement des packs...'}</p>
+                <>
+                  <SkeletonLine width="74%" />
+                  <SkeletonLine width="54%" />
+                </>
               )}
-              {activePack?.descriptionKey && !packsLoading && (
+              {!packsLoading && packDescription && (
                 <p className="pack-description">
-                   {t(activePack.descriptionKey)}
+                  {packDescription}
                 </p>
+              )}
+              {isReviewSelection && !canStartReview && (
+                <p className="pack-description muted">{t('home.learn_action_review_disabled')}</p>
               )}
               {activePackId === 'custom' && (
                 <div className="advanced-filters open">
-                  <CustomFilter
-                    filters={customFilters}
-                    dispatch={dispatchCustomFilters}
-                  />
+                  <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
                 </div>
               )}
             </div>
@@ -126,13 +241,11 @@ function Configurator({ onStartGame }) {
         </section>
 
         <section className="config-section">
-          <div className="section-head">
-            <span className="step-badge">2</span>
-            <div>
-              <p className="eyebrow">{t('home.play_pillar_title')}</p>
-              <p className="section-subtitle">{t('home.play_pillar_desc')}</p>
-            </div>
-          </div>
+          <SectionHeader
+            step="2"
+            title={t('home.play_pillar_title')}
+            subtitle={t('home.play_pillar_desc')}
+          />
 
           <div className="mode-cards" role="radiogroup" aria-label={t('home.play_pillar_title')}>
             <label className={`mode-card ${gameMode === 'easy' ? 'selected' : ''}`}>
@@ -142,10 +255,9 @@ function Configurator({ onStartGame }) {
                 value="easy"
                 checked={gameMode === 'easy'}
                 onChange={() => handleModeChange('easy')}
+                aria-label={t('home.easy_mode')}
               />
-              <div className="mode-visual grid-icon" aria-hidden="true">
-                <span></span><span></span><span></span><span></span>
-              </div>
+              <ModeVisual variant="easy" />
               <div className="mode-content">
                 <h4>{t('home.easy_mode')}</h4>
                 <p className="mode-description">{t('home.easy_mode_description')}</p>
@@ -159,54 +271,47 @@ function Configurator({ onStartGame }) {
                 value="hard"
                 checked={gameMode === 'hard'}
                 onChange={() => handleModeChange('hard')}
+                aria-label={t('home.hard_mode')}
               />
-              <div className="mode-visual tree-icon" aria-hidden="true">
-                <span className="trunk"></span>
-                <span className="branch left"></span>
-                <span className="branch right"></span>
-              </div>
+              <ModeVisual variant="hard" />
               <div className="mode-content">
                 <h4>{t('home.hard_mode')}</h4>
                 <p className="mode-description">{t('home.hard_mode_description')}</p>
               </div>
             </label>
           </div>
+        </section>
 
-          <div className="options-row">
-            <div className="scientific-toggle">
-              <label
-                className="checkbox-label preference-toggle tooltip"
-                data-tooltip={scientificPreferenceHint}
-                title={scientificPreferenceHint}
+        <section className="config-section config-section-preferences">
+          <SectionHeader
+            step="3"
+            title={t('common.preferences')}
+            subtitle={t('common.scientific_preference_label')}
+          />
+          <div className="preferences-grid">
+            <ScientificNameToggle
+              enabled={useScientificName}
+              onToggle={setUseScientificName}
+              label={t('common.scientific_preference_label')}
+              hint={scientificPreferenceHint}
+              hintId={preferenceHintId}
+            />
+            <div className="footer-actions">
+              <div className="start-copy">
+                <p className="start-heading">{t('home.play_pillar_title')}</p>
+                <p className="start-subtitle">{t('home.play_pillar_desc')}</p>
+              </div>
+              <button
+                onClick={handleStartClick}
+                className="start-button start-button-glow"
+                disabled={packsLoading || (isReviewSelection && !canStartReview)}
+                aria-label={t('common.start_game')}
               >
-                <input
-                  type="checkbox"
-                  checked={useScientificName}
-                  onChange={(e) => setUseScientificName(e.target.checked)}
-                  aria-describedby={preferenceHintId}
-                />
-                <span className="custom-checkbox" aria-hidden="true"></span>
-                <span className="checkbox-text">{t('common.scientific_preference_label')}</span>
-                <span id={preferenceHintId} className="sr-only preference-hint">
-                  {scientificPreferenceHint}
-                </span>
-              </label>
+                {t('common.start_game')}
+              </button>
             </div>
           </div>
         </section>
-
-        <div className="config-footer">
-          <div className="section-head">
-            <span className="step-badge">3</span>
-            <div>
-              <p className="eyebrow">{t('common.start_game')}</p>
-              <p className="section-subtitle">{t('home.play_pillar_desc')}</p>
-            </div>
-          </div>
-          <button onClick={onStartGame} className="start-button" disabled={packsLoading}>
-            {t('common.start_game')}
-          </button>
-        </div>
       </div>
     </>
   );

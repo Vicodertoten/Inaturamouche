@@ -46,17 +46,29 @@ const AppLayout = () => {
       )}
 
       <nav className="main-nav">
-        <button
-          className="profile-button nav-pill"
-          onClick={showProfile}
-          aria-label={t('nav.profile_label')}
-          title={t('nav.profile_label')}
-        >
-          <span className="profile-text">{t('common.profile')}</span>
-          <span className="profile-icon" aria-hidden="true">
-            👤
-          </span>
-        </button>
+        <div className="nav-actions">
+          <button
+            className="nav-pill nav-icon nav-elevated"
+            onClick={showHelp}
+            aria-label={t('nav.help_label')}
+            title={t('nav.help_label')}
+            type="button"
+          >
+            ?
+          </button>
+          <button
+            className="profile-button nav-pill nav-elevated"
+            onClick={showProfile}
+            aria-label={t('nav.profile_label')}
+            title={t('nav.profile_label')}
+            type="button"
+          >
+            <span className="profile-text">{t('common.profile')}</span>
+            <span className="profile-icon" aria-hidden="true">
+              👤
+            </span>
+          </button>
+        </div>
         <LanguageSwitcher />
       </nav>
 
