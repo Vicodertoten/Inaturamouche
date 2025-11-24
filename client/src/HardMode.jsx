@@ -33,8 +33,6 @@ function HardMode() {
     currentStreak,
     completeRound,
     resetToLobby,
-    availableLifelines,
-    useLifeline,
   } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
@@ -49,8 +47,6 @@ function HardMode() {
     mode: 'hard',
     hintsUsed: false,
     hintCount: 0,
-    lifelineUsed: false,
-    perksUsed: [],
   });
   const { t, language, getTaxonDisplayNames } = useLanguage();
   const feedbackTimeoutRef = useRef(null);
@@ -69,8 +65,6 @@ function HardMode() {
       mode: 'hard',
       hintsUsed: false,
       hintCount: 0,
-      lifelineUsed: false,
-      perksUsed: [],
     });
   }, [question, score]);
   
@@ -208,11 +202,7 @@ function HardMode() {
   };
 
   const handleRevealNameHint = () => {
-    let lifelineConsumed = false;
-    if (availableLifelines > 0) {
-      lifelineConsumed = useLifeline();
-    }
-    if (!lifelineConsumed && guesses < REVEAL_HINT_COST) {
+    if (guesses < REVEAL_HINT_COST) {
       showFeedback(t('hard.feedback.not_enough_guesses'), 'error');
       triggerPanelShake();
       return;
@@ -220,7 +210,7 @@ function HardMode() {
 
     const firstUnknownRank = RANKS.find(rank => !knownTaxa[rank]);
     if (firstUnknownRank) {
-      const newGuessesCount = lifelineConsumed ? guesses : guesses - REVEAL_HINT_COST;
+      const newGuessesCount = guesses - REVEAL_HINT_COST;
       setGuesses(newGuessesCount);
 
       const rankLabel = t(`ranks.${firstUnknownRank}`);
@@ -255,7 +245,7 @@ function HardMode() {
           return;
         }
 
-        if (newGuessesCount <= 0 && !lifelineConsumed) {
+        if (newGuessesCount <= 0) {
           const roundPoints = currentScore - score;
           const { points, bonus } = computeScore({
             mode: 'hard',
@@ -268,15 +258,10 @@ function HardMode() {
         }
       }
       setRoundMeta((prev) => {
-        const perksUsed = lifelineConsumed
-          ? Array.from(new Set([...(prev.perksUsed || []), 'lifeline']))
-          : prev.perksUsed || [];
         return {
           ...prev,
           hintsUsed: true,
           hintCount: (prev.hintCount || 0) + 1,
-          lifelineUsed: prev.lifelineUsed || lifelineConsumed,
-          perksUsed,
         };
       });
     }
@@ -354,15 +339,12 @@ function HardMode() {
               disabled={
                 isGameOver ||
                 !canUseAnyHint ||
-                (guesses < REVEAL_HINT_COST && availableLifelines === 0)
+                guesses < REVEAL_HINT_COST
               }
               className="action-button hint"
             >
               {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
             </button>
-            <span className="lifeline-counter" aria-live="polite">
-              ⚡ {availableLifelines}
-            </span>
           </div>
         </div>
         </div>

@@ -24,9 +24,10 @@ const STREAK_PERKS = [
     threshold: 3,
     rewards: [
       {
-        type: 'lifeline',
-        amount: 1,
-        persistOnMiss: true,
+        type: 'multiplier',
+        value: 1.2,
+        rounds: 2,
+        persistOnMiss: false,
       },
     ],
   },
@@ -51,17 +52,7 @@ const mintPerkRewards = (config) => {
   if (!config?.rewards) return [];
   const minted = [];
   config.rewards.forEach((reward, rewardIndex) => {
-    if (reward.type === 'lifeline') {
-      const amount = reward.amount || 1;
-      for (let i = 0; i < amount; i += 1) {
-        minted.push({
-          id: generatePerkId(`lifeline-${config.tier}-${rewardIndex}-${i}`),
-          type: 'lifeline',
-          persistOnMiss: reward.persistOnMiss ?? true,
-          label: reward.label || 'free_hint',
-        });
-      }
-    } else if (reward.type === 'multiplier') {
+    if (reward.type === 'multiplier') {
       minted.push({
         id: generatePerkId(`multiplier-${config.tier}-${rewardIndex}`),
         type: 'multiplier',
@@ -121,12 +112,22 @@ export function GameProvider({ children }) {
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
   const activePack = useMemo(
-    () => packs.find((pack) => pack.id === activePackId),
+    () => {
+      if (activePackId === 'review') {
+        return {
+          id: 'review',
+          type: 'review',
+          titleKey: 'common.review_mistakes',
+          descriptionKey: 'home.learn_action_review',
+        };
+      }
+      return packs.find((pack) => pack.id === activePackId);
+    },
     [packs, activePackId]
   );
 
   useEffect(() => {
-    if (!packsLoading && activePackId !== 'custom' && !activePack) {
+    if (!packsLoading && activePackId !== 'custom' && activePackId !== 'review' && !activePack) {
       setActivePackId('custom');
     }
   }, [activePack, activePackId, packsLoading]);
@@ -328,28 +329,10 @@ export function GameProvider({ children }) {
     return nextQuestion.image_urls?.[0] || nextQuestion.image_url || null;
   }, [nextQuestion]);
 
-  const availableLifelines = useMemo(
-    () => activePerks.filter((perk) => perk.type === 'lifeline').length,
-    [activePerks]
-  );
-
   const currentMultiplier = useMemo(
     () => computeMultiplierFromPerks(activePerks),
     [activePerks]
   );
-
-  const useLifeline = useCallback(() => {
-    let consumed = false;
-    setActivePerks((prev) => {
-      const index = prev.findIndex((perk) => perk.type === 'lifeline');
-      if (index === -1) return prev;
-      consumed = true;
-      const next = [...prev];
-      next.splice(index, 1);
-      return next;
-    });
-    return consumed;
-  }, []);
 
   const clearUnlockedLater = useCallback(() => {
     clearAchievementsTimer();
@@ -514,8 +497,6 @@ export function GameProvider({ children }) {
         genusId: genusEntry?.id || null,
         genusName: genusEntry?.name || null,
         wasCorrect: isCorrectFinal,
-        lifelineUsed: !!roundDetails.lifelineUsed,
-        perksUsed: roundDetails.perksUsed || [],
         multiplierApplied: multiplier,
       };
       const nextSpeciesData = [...sessionSpeciesData, speciesEntry];
@@ -648,7 +629,6 @@ export function GameProvider({ children }) {
     currentStreak,
     streakTier,
     activePerks,
-    availableLifelines,
     currentMultiplier,
     newlyUnlocked,
     nextImageUrl,
@@ -656,7 +636,6 @@ export function GameProvider({ children }) {
     completeRound,
     startGame,
     resetToLobby,
-    useLifeline,
     canStartReview,
   };
 

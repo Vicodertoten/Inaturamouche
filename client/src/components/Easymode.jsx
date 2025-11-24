@@ -23,8 +23,6 @@ const EasyMode = () => {
     nextImageUrl,
     completeRound,
     updateScore,
-    availableLifelines,
-    useLifeline,
   } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
@@ -63,8 +61,6 @@ const EasyMode = () => {
     mode: 'easy',
     hintsUsed: false,
     hintCount: 0,
-    lifelineUsed: false,
-    perksUsed: [],
   });
 
   useEffect(() => {
@@ -77,8 +73,6 @@ const EasyMode = () => {
       mode: 'easy',
       hintsUsed: false,
       hintCount: 0,
-      lifelineUsed: false,
-      perksUsed: [],
     });
   }, [question]);
 
@@ -118,23 +112,12 @@ const EasyMode = () => {
     newSet.add(String(toRemove.id));
     setRemovedIds(newSet);
     setHintUsed(true);
-    let lifelineConsumed = false;
-    if (availableLifelines > 0) {
-      lifelineConsumed = useLifeline();
-    }
-    if (!lifelineConsumed) {
-      updateScore(-HINT_COST_EASY);
-    }
+    updateScore(-HINT_COST_EASY);
     setRoundMeta((prev) => {
-      const perksUsed = lifelineConsumed
-        ? Array.from(new Set([...(prev.perksUsed || []), 'lifeline']))
-        : prev.perksUsed || [];
       return {
         ...prev,
         hintsUsed: true,
         hintCount: (prev.hintCount || 0) + 1,
-        lifelineUsed: prev.lifelineUsed || lifelineConsumed,
-        perksUsed,
       };
     });
   };
@@ -172,9 +155,6 @@ const EasyMode = () => {
               >
                 {t('easy.hint_button', { cost: HINT_COST_EASY })}
               </button>
-              <span className="lifeline-counter" aria-live="polite">
-                ⚡ {availableLifelines}
-              </span>
             </div>
             <div className="score-container">
               <h2 className="score">{t('easy.score_label', { score })}</h2>

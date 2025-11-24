@@ -34,12 +34,62 @@ const ProfilePage = () => {
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
 
-  const sortedMastery = useMemo(() => {
-    return Object.entries(profile?.stats?.speciesMastery || {})
-      .map(([id, data]) => [id, data.correct || 0])
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5);
-  }, [profile?.stats?.speciesMastery]);
+  const sortedMastery = useMemo(
+    () =>
+      Object.entries(profile?.stats?.speciesMastery || {})
+        .map(([id, data]) => [id, data.correct || 0])
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5),
+    [profile?.stats?.speciesMastery]
+  );
+
+  const levelInfo = useMemo(() => {
+    const level = getLevelFromXp(profile?.xp);
+    const xpForCurrentLevel = getXpForLevel(level);
+    const xpForNextLevel = getXpForLevel(level + 1);
+    const xpProgress = (profile?.xp || 0) - xpForCurrentLevel;
+    const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel;
+    const progressPercentage = xpNeededForLevel > 0 ? (xpProgress / xpNeededForLevel) * 100 : 100;
+    return {
+      level,
+      xpForCurrentLevel,
+      xpForNextLevel,
+      xpProgress,
+      xpNeededForLevel,
+      progressPercentage,
+    };
+  }, [profile?.xp]);
+
+  const accuracyStats = useMemo(() => {
+    const totalAnswered =
+      (profile?.stats?.easyQuestionsAnswered || 0) + (profile?.stats?.hardQuestionsAnswered || 0);
+    const totalCorrect = (profile?.stats?.correctEasy || 0) + (profile?.stats?.correctHard || 0);
+    return {
+      totalAnswered,
+      totalCorrect,
+      overallAccuracy: totalAnswered > 0 ? ((totalCorrect / totalAnswered) * 100).toFixed(1) : '0.0',
+      easyAccuracy: ((profile?.stats?.accuracyEasy || 0) * 100).toFixed(1),
+      hardAccuracy: ((profile?.stats?.accuracyHard || 0) * 100).toFixed(1),
+    };
+  }, [
+    profile?.stats?.accuracyEasy,
+    profile?.stats?.accuracyHard,
+    profile?.stats?.correctEasy,
+    profile?.stats?.correctHard,
+    profile?.stats?.easyQuestionsAnswered,
+    profile?.stats?.hardQuestionsAnswered,
+  ]);
+
+  const packStats = useMemo(
+    () => Object.entries(profile?.stats?.packsPlayed || {}),
+    [profile?.stats?.packsPlayed]
+  );
+
+  const displayName = useMemo(
+    () => profile?.name || profile?.username || t('profile.title'),
+    [profile?.name, profile?.username, t]
+  );
+  const avatarLetter = useMemo(() => (displayName ? displayName.charAt(0).toUpperCase() : 'E'), [displayName]);
 
   useEffect(() => {
     if (activeTab !== 'stats' || !profile || sortedMastery.length === 0 || masteryDetails.length > 0) {
@@ -89,43 +139,72 @@ const ProfilePage = () => {
 
   const unlockedAchievements = profile.achievements || [];
 
-  const level = getLevelFromXp(profile.xp);
-  const xpForCurrentLevel = getXpForLevel(level);
-  const xpForNextLevel = getXpForLevel(level + 1);
-  const xpProgress = profile.xp - xpForCurrentLevel;
-  const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel;
-  const progressPercentage = xpNeededForLevel > 0 ? (xpProgress / xpNeededForLevel) * 100 : 100;
-
-  const totalAnswered = (profile.stats.easyQuestionsAnswered || 0) + (profile.stats.hardQuestionsAnswered || 0);
-  const totalCorrect = (profile.stats.correctEasy || 0) + (profile.stats.correctHard || 0);
-  const overallAccuracy = totalAnswered > 0 ? ((totalCorrect / totalAnswered) * 100).toFixed(1) : '0.0';
-  const easyAccuracy = ((profile.stats.accuracyEasy || 0) * 100).toFixed(1);
-  const hardAccuracy = ((profile.stats.accuracyHard || 0) * 100).toFixed(1);
-
   return (
     <div className="screen profile-screen">
-      <div className="profile-modal profile-page-card">
-        <button className="back-button" onClick={handleBack}>
+      <div className="profile-modal profile-page-card profile-dashboard">
+        <button className="back-button" onClick={handleBack} aria-label={t('profile.back')}>
           {t('profile.back')}
         </button>
-        <h2 className="modal-title">{t('profile.title')}</h2>
 
-        <div className="tabs-container">
+        <div className="profile-hero sticky-hero">
+          <div className="hero-left">
+            <div className="avatar-ring" aria-label={t('profile.title')}>
+              <span className="avatar-letter">{avatarLetter}</span>
+            </div>
+            <div className="hero-meta">
+              <p className="eyebrow">{t('common.profile')}</p>
+              <h2 className="player-name">{displayName}</h2>
+              <div className="level-chip">
+                <span className="level-label">{t('profile.level', { level: levelInfo.level })}</span>
+                <span className="level-number">#{levelInfo.level}</span>
+              </div>
+            </div>
+          </div>
+          <div className="hero-progress">
+            <div className="xp-bar-container xp-bar-hero" aria-label={t('profile.xp_counter', { current: levelInfo.xpProgress.toLocaleString(), total: levelInfo.xpNeededForLevel.toLocaleString() })}>
+              <div className="xp-bar" style={{ width: `${levelInfo.progressPercentage}%` }}></div>
+              <div className="xp-shine" />
+            </div>
+            <div className="xp-label hero-xp-label">
+              <span>
+                {t('profile.xp_counter', {
+                  current: levelInfo.xpProgress.toLocaleString(),
+                  total: levelInfo.xpNeededForLevel.toLocaleString(),
+                })}
+              </span>
+              <span className="xp-total">XP: {profile.xp.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="tabs-container pill-tabs" role="tablist" aria-label={t('profile.title')}>
           <button
-            className={`tab-button ${activeTab === 'summary' ? 'active' : ''}`}
+            className={`tab-button pill ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => setActiveTab('summary')}
+            role="tab"
+            aria-selected={activeTab === 'summary'}
+            aria-controls="tab-summary"
+            id="tab-summary-trigger"
           >
             {t('profile.tabs.summary')}
           </button>
           <button
-            className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
+            className={`tab-button pill ${activeTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveTab('stats')}
+            role="tab"
+            aria-selected={activeTab === 'stats'}
+            aria-controls="tab-stats"
+            id="tab-stats-trigger"
           >
             {t('profile.tabs.stats')}
           </button>
           <button
-            className={`tab-button ${activeTab === 'achievements' ? 'active' : ''}`}
+            className={`tab-button pill ${activeTab === 'achievements' ? 'active' : ''}`}
             onClick={() => setActiveTab('achievements')}
+            role="tab"
+            aria-selected={activeTab === 'achievements'}
+            aria-controls="tab-achievements"
+            id="tab-achievements-trigger"
           >
             {t('profile.tabs.achievements')}
           </button>
@@ -133,30 +212,26 @@ const ProfilePage = () => {
 
         <div className="tab-content">
           {activeTab === 'summary' && (
-            <div className="fade-in">
-              <div className="profile-section level-section">
-                <h3>{t('profile.level', { level })}</h3>
-                <div className="xp-bar-container">
-                  <div className="xp-bar" style={{ width: `${progressPercentage}%` }}></div>
-                </div>
-                <div className="xp-label">
-                  <span>{t('profile.xp_counter', { current: xpProgress.toLocaleString(), total: xpNeededForLevel.toLocaleString() })}</span>
-                </div>
-              </div>
-
+            <div
+              className="fade-in"
+              id="tab-summary"
+              role="tabpanel"
+              aria-live="polite"
+              aria-labelledby="tab-summary-trigger"
+            >
               <div className="profile-section">
                 <h3>{t('profile.summary_title')}</h3>
-                <div className="stats-grid summary-grid">
-                  <div className="stat-item">
+                <div className="stats-grid summary-grid stat-cards">
+                  <div className="stat-item card-elevated">
                     <span className="stat-value">{profile.xp.toLocaleString()}</span>
                     <span className="stat-label">{t('profile.stats_labels.xp')}</span>
                   </div>
-                  <div className="stat-item">
+                  <div className="stat-item card-elevated">
                     <span className="stat-value">{profile.stats.gamesPlayed || 0}</span>
                     <span className="stat-label">{t('profile.stats_labels.games')}</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{overallAccuracy}%</span>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{accuracyStats.overallAccuracy}%</span>
                     <span className="stat-label">{t('profile.stats_labels.accuracy')}</span>
                   </div>
                 </div>
@@ -171,35 +246,48 @@ const ProfilePage = () => {
           )}
 
           {activeTab === 'stats' && (
-            <div className="fade-in">
+            <div
+              className="fade-in"
+              id="tab-stats"
+              role="tabpanel"
+              aria-live="polite"
+              aria-labelledby="tab-stats-trigger"
+            >
               <div className="profile-section">
                 <h3>{t('profile.accuracy_title')}</h3>
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <span className="stat-value">{easyAccuracy}%</span>
+                <div className="stats-grid stat-cards">
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{accuracyStats.easyAccuracy}%</span>
                     <span className="stat-label">{t('profile.modes.easy')}</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{hardAccuracy}%</span>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{accuracyStats.hardAccuracy}%</span>
                     <span className="stat-label">{t('profile.modes.hard')}</span>
+                  </div>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{accuracyStats.overallAccuracy}%</span>
+                    <span className="stat-label">{t('profile.stats_labels.accuracy')}</span>
                   </div>
                 </div>
               </div>
 
               <div className="profile-section">
                 <h3>{t('profile.pack_stats_title')}</h3>
-                <ul className="pack-stats-list">
-                  {Object.entries(profile.stats.packsPlayed || {}).map(([packId, { correct, answered }]) => {
+                <ul className="pack-stats-grid">
+                  {packStats.map(([packId, { correct, answered }]) => {
                     const pack = packs.find((p) => p.id === packId);
-                    const accuracy = answered > 0 ? ((correct / answered) * 100).toFixed(1) : '0.0';
+                    const accuracy =
+                      answered > 0 ? ((correct / answered) * 100).toFixed(1) : '0.0';
                     return (
-                      <li key={packId} className="pack-stat-item">
+                      <li key={packId} className="pack-stat-card card-elevated">
                         <span className="pack-name">{pack?.titleKey ? t(pack.titleKey) : packId}</span>
-                        <span className="pack-count">{t('profile.pack_accuracy', { correct, answered, accuracy })}</span>
+                        <span className="pack-count">
+                          {t('profile.pack_accuracy', { correct, answered, accuracy })}
+                        </span>
                       </li>
                     );
                   })}
-                  {Object.keys(profile.stats.packsPlayed || {}).length === 0 && (
+                  {packStats.length === 0 && (
                     <p className="empty-state">{t('profile.no_pack_stats')}</p>
                   )}
                 </ul>
@@ -210,7 +298,7 @@ const ProfilePage = () => {
                 {isLoadingMastery ? (
                   <p>{t('profile.mastery_loading')}</p>
                 ) : (
-                  <ul className="mastery-list">
+                  <ul className="mastery-list mastery-grid">
                     {masteryDetails.map(({ id, taxon, count }) => (
                       <MasteryItem
                         key={id}
@@ -228,20 +316,27 @@ const ProfilePage = () => {
           )}
 
           {activeTab === 'achievements' && (
-            <div className="profile-section fade-in">
+            <div
+              className="profile-section fade-in"
+              id="tab-achievements"
+              role="tabpanel"
+              aria-live="polite"
+              aria-labelledby="tab-achievements-trigger"
+            >
               <h3>
                 {t('profile.achievements_title', {
                   count: unlockedAchievements.length,
                   total: Object.keys(ACHIEVEMENTS).length,
                 })}
               </h3>
-              <ul className="achievements-list">
+              <ul className="achievements-grid">
                 {Object.entries(ACHIEVEMENTS).map(([id, achievement]) => {
                   const unlocked = unlockedAchievements.includes(id);
                   return (
                     <li
                       key={id}
-                      className={`achievement-item ${unlocked ? 'unlocked' : 'locked'}`}
+                      className={`achievement-card ${unlocked ? 'unlocked' : 'locked'}`}
+                      aria-label={achievement.titleKey ? t(achievement.titleKey) : id}
                     >
                       <div className="achievement-icon" aria-hidden="true">
                         {achievement.icon}
