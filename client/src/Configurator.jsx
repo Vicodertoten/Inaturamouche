@@ -166,7 +166,7 @@ function Configurator({ onStartGame }) {
 
           <div className="pack-card pack-card-glow">
             <div className="pack-selector">
-              <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
+              
               <div
                 className="tooltip"
                 data-tooltip={t('configurator.pack_hint')}
@@ -254,11 +254,7 @@ function Configurator({ onStartGame }) {
             </label>
           </div>
         </section>
-        <div className="config-start footer-actions">
-          <div className="start-copy">
-            <p className="start-heading">{t('home.play_pillar_title')}</p>
-            <p className="start-subtitle">{t('home.play_pillar_desc')}</p>
-          </div>
+        
           <button
             onClick={handleStartClick}
             className="start-button start-button-glow"
@@ -268,7 +264,7 @@ function Configurator({ onStartGame }) {
             {t('common.start_game')}
           </button>
         </div>
-      </div>
+      
     </>
   );
 }

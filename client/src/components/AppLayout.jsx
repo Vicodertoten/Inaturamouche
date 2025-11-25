@@ -9,6 +9,25 @@ import { useGame } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
+const ProfileIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-icon">
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      d="M12 12.5a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+    />
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M5 19.5c0-3.1 3.1-5.1 7-5.1s7 2 7 5.1"
+    />
+  </svg>
+);
+
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,8 +44,8 @@ const AppLayout = () => {
   const handleTitleClick = useCallback(() => {
     if (isGameActive || isGameOver) {
       resetToLobby(true);
-      navigate('/');
     }
+    navigate('/');
   }, [isGameActive, isGameOver, navigate, resetToLobby]);
 
   const showHelp = useCallback(() => setIsHelpVisible(true), []);
@@ -35,7 +54,6 @@ const AppLayout = () => {
     if (location.pathname !== '/profile') navigate('/profile');
   }, [location.pathname, navigate]);
 
-  const isTitleInteractive = isGameActive || isGameOver;
   const outletContext = useMemo(() => ({ showHelp }), [showHelp]);
 
   return (
@@ -57,16 +75,13 @@ const AppLayout = () => {
             ?
           </button>
           <button
-            className="profile-button nav-pill nav-elevated"
+            className="profile-button nav-pill nav-icon nav-elevated"
             onClick={showProfile}
             aria-label={t('nav.profile_label')}
             title={t('nav.profile_label')}
             type="button"
           >
-            <span className="profile-text">{t('common.profile')}</span>
-            <span className="profile-icon" aria-hidden="true">
-              👤
-            </span>
+            <ProfileIcon />
           </button>
         </div>
         <PreferencesMenu />
@@ -76,18 +91,18 @@ const AppLayout = () => {
         <img
           src={titleImage}
           alt={t('nav.title_alt')}
-          className={`app-title-image app-title-wide ${isTitleInteractive ? 'clickable' : ''}`}
-          onClick={isTitleInteractive ? handleTitleClick : undefined}
-          title={isTitleInteractive ? t('nav.title_tooltip') : ''}
+          className="app-title-image app-title-wide clickable"
+          onClick={handleTitleClick}
+          title={t('nav.title_tooltip')}
           decoding="async"
           fetchPriority="high"
         />
         <img
           src={logoImage}
           alt={t('nav.title_alt')}
-          className={`app-title-image app-title-compact ${isTitleInteractive ? 'clickable' : ''}`}
-          onClick={isTitleInteractive ? handleTitleClick : undefined}
-          title={isTitleInteractive ? t('nav.title_tooltip') : ''}
+          className="app-title-image app-title-compact clickable"
+          onClick={handleTitleClick}
+          title={t('nav.title_tooltip')}
           decoding="async"
           fetchPriority="high"
         />

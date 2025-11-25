@@ -69,7 +69,7 @@
 
 .pack-card-glow {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -92,6 +92,10 @@
 
 .pack-selector .tooltip {
   display: block;
+  isolation: isolate;
+}
+.pack-selector .tooltip::after {
+  z-index: 30;
 }
 
 .pack-details {
@@ -232,15 +236,18 @@
   border-radius: 18px;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(32, 60, 49, 0.92), rgba(24, 42, 73, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
   position: relative;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .mode-visual-easy {
-  background: linear-gradient(145deg, rgba(74, 179, 129, 0.22), rgba(61, 117, 235, 0.1));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle at 28% 24%, rgba(126, 212, 164, 0.28), transparent 48%),
+    radial-gradient(circle at 72% 76%, rgba(105, 158, 241, 0.22), transparent 50%),
+    linear-gradient(160deg, rgba(32, 60, 49, 0.92), rgba(24, 42, 73, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .mode-visual-easy .soft-grid {
   display: grid;
@@ -251,8 +258,9 @@
   width: 22px;
   height: 22px;
   border-radius: 8px;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.6));
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.2), rgba(126, 212, 164, 0.85));
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 .mode-visual-easy .tile-2,
 .mode-visual-easy .tile-3 {
@@ -261,24 +269,27 @@
 .mode-visual-easy .grid-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.12), transparent 50%);
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent 52%);
 }
 
 .mode-visual-hard {
-  background: linear-gradient(160deg, rgba(27, 27, 27, 0.8), rgba(255, 255, 255, 0.04));
+  background: radial-gradient(circle at 30% 30%, rgba(221, 161, 94, 0.22), transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(105, 158, 241, 0.16), transparent 55%),
+    linear-gradient(160deg, rgba(32, 60, 49, 0.92), rgba(24, 42, 73, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .mode-visual-hard .phylo-svg {
   width: 100%;
   height: 100%;
+  opacity: 0.96;
 }
 .mode-visual-hard .phylo-nodes circle {
-  filter: drop-shadow(0 0 8px rgba(221, 161, 94, 0.4));
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
 }
 .mode-visual-hard .phylo-aura {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 60% 20%, rgba(221, 161, 94, 0.18), transparent 40%);
+  background: radial-gradient(circle at 60% 25%, rgba(126, 212, 164, 0.22), transparent 40%);
   mix-blend-mode: screen;
 }
 
