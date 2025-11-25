@@ -173,6 +173,8 @@ const AUTOCOMPLETE_CACHE_TTL = 1000 * 60 * 10; // 10 min
 const MAX_CACHE_ENTRIES = 50;
 const QUIZ_CHOICES = 4;
 const LURE_COUNT = QUIZ_CHOICES - 1;
+const TAXON_DETAILS_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
+const TAXON_DETAILS_CACHE_MAX = 2000;
 
 // Cooldown CIBLE (en nombre de questions)
 const COOLDOWN_TARGET_N = 60;
@@ -195,6 +197,10 @@ const autocompleteCache = new SimpleLRUCache({ max: MAX_CACHE_ENTRIES, ttl: AUTO
 const SELECTION_STATE_TTL = 1000 * 60 * 10;
 const MAX_SELECTION_STATES = 200;
 const selectionStateCache = new SimpleLRUCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
+const taxonDetailsCache = new SimpleLRUCache({
+  max: TAXON_DETAILS_CACHE_MAX,
+  ttl: TAXON_DETAILS_CACHE_TTL,
+});
 
 function createSelectionState(pool) {
   return {
@@ -348,7 +354,17 @@ function sanitizeObservation(obs) {
   };
 }
 
-/* ---- fetch JSON ---- */
+/**
+ * Fetches JSON from iNaturalist with bounded retries and a per-request timeout.
+ * - Appends provided query params to the URL.
+ * - Aborts the request after `timeoutMs` using AbortController.
+ * - Retries on HTTP 5xx or 429 responses with exponential backoff up to `retries`.
+ *
+ * @param {string | URL} url Base endpoint (iNat URL).
+ * @param {Record<string, string | number | boolean | null | undefined>} [params] Query parameters to append.
+ * @param {{ timeoutMs?: number, retries?: number, logger?: import("pino").Logger, requestId?: string, label?: string }} [options]
+ * @returns {Promise<any>} Parsed JSON response body.
+ */
 async function fetchJSON(
   url,
   params = {},
@@ -413,30 +429,78 @@ async function fetchJSON(
 /* -------------------- iNat helpers -------------------- */
 async function getFullTaxaDetails(taxonIds, locale = "fr", { logger, requestId } = {}) {
   if (!taxonIds || taxonIds.length === 0) return [];
-  try {
-    const path = `https://api.inaturalist.org/v1/taxa/${taxonIds.join(",")}`;
-    const localizedResponse = await fetchJSON(path, { locale }, { logger, requestId, label: "taxa-localized" });
-    const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
+  const requestedIds = taxonIds.map((id) => String(id));
+  const uniqueIds = Array.from(new Set(requestedIds));
+  const cachedResults = [];
 
-    if (!locale.startsWith("en")) {
-      const defaultResponse = await fetchJSON(path, {}, { logger, requestId, label: "taxa-default" });
-      const defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
-      const byId = new Map(defaultResults.map((t) => [t.id, t]));
-      return localizedResults.map((loc) => {
-        const def = byId.get(loc.id);
-        if (!loc.wikipedia_url && def?.wikipedia_url) loc.wikipedia_url = def.wikipedia_url;
-        if (!loc.preferred_common_name && def?.preferred_common_name) loc.preferred_common_name = def.preferred_common_name;
-        return loc;
-      });
+  try {
+    taxonDetailsCache.prune();
+    const missingIds = [];
+
+    for (const id of uniqueIds) {
+      const cached = taxonDetailsCache.get(`${id}:${locale}`);
+      if (cached) {
+        cachedResults.push(cached);
+      } else {
+        missingIds.push(id);
+      }
     }
-    return localizedResults;
+
+    let fetchedResults = [];
+    if (missingIds.length > 0) {
+      const path = `https://api.inaturalist.org/v1/taxa/${missingIds.join(",")}`;
+      const localizedResponse = await fetchJSON(path, { locale }, { logger, requestId, label: "taxa-localized" });
+      const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
+
+      let defaultResults = [];
+      if (!locale.startsWith("en")) {
+        const defaultResponse = await fetchJSON(path, {}, { logger, requestId, label: "taxa-default" });
+        defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
+      }
+
+      const defaultById = new Map(defaultResults.map((t) => [String(t.id), t]));
+      const localizedById = new Map(localizedResults.map((t) => [String(t.id), t]));
+
+      fetchedResults = missingIds
+        .map((id) => {
+          const loc = localizedById.get(id);
+          const def = defaultById.get(id);
+          if (loc && def) {
+            if (!loc.wikipedia_url && def.wikipedia_url) loc.wikipedia_url = def.wikipedia_url;
+            if (!loc.preferred_common_name && def.preferred_common_name)
+              loc.preferred_common_name = def.preferred_common_name;
+            return loc;
+          }
+          return loc || def;
+        })
+        .filter(Boolean);
+
+      for (const taxon of fetchedResults) {
+        if (taxon?.id != null) {
+          const cacheKey = `${String(taxon.id)}:${locale}`;
+          taxonDetailsCache.set(cacheKey, taxon);
+        }
+      }
+    }
+
+    const byId = new Map();
+    for (const t of [...cachedResults, ...fetchedResults]) {
+      if (t?.id == null) continue;
+      byId.set(String(t.id), t);
+    }
+
+    const ordered = requestedIds.map((id) => byId.get(id)).filter(Boolean);
+    if (ordered.length > 0) return ordered;
+    return Array.from(byId.values());
   } catch (err) {
     if (logger) {
       logger.error({ requestId, error: err.message }, "Erreur getFullTaxaDetails");
     } else {
       console.error("Erreur getFullTaxaDetails:", err.message);
     }
-    return [];
+    const fallbackMap = new Map(cachedResults.map((t) => [String(t.id), t]));
+    const orderedFallback = requestedIds.map((id) => fallbackMap.get(id)).filter(Boolean);
+    return orderedFallback;
   }
 }
 function getTaxonName(t) {
@@ -499,6 +563,18 @@ function pushTargetCooldown(pool, selectionState, taxonIds, now) {
 }
 
 // Sans-remise corrigé
+/**
+ * Selects the next target taxon id using a shuffle-with-cursor draw so taxa are not repeated until the deck recycles.
+ * - Keeps a shuffled array per client; only advances the cursor when the candidate is eligible.
+ * - Eligibility excludes taxa without observations, already drawn targets under cooldown, and any explicit exclusions.
+ * - When the cursor reaches the end, it reshuffles remaining items to prevent order bias.
+ *
+ * @param {{ taxonList: (string|number)[], byTaxon: Map<string, any[]> }} pool Current observation pool keyed by taxon id.
+ * @param {ReturnType<typeof createSelectionState>} selectionState Per-client selection data (cursor, shuffledTaxonIds, cooldown).
+ * @param {number} now Milliseconds timestamp for TTL eviction.
+ * @param {Set<string>} [excludeSet] Optional explicit blocklist (e.g., taxa used as lures).
+ * @returns {string|null} Eligible taxon id or null if none available.
+ */
 function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) {
   if (!Array.isArray(selectionState.shuffledTaxonIds) || selectionState.shuffledTaxonIds.length === 0) {
     selectionState.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
@@ -579,6 +655,21 @@ function makeChoiceLabels(detailsMap, ids) {
 }
 
 /* ---------- Leurres équilibrés par LCA (near/mid/far) ---------- */
+/**
+ * Builds lure observations stratified by phylogenetic proximity using Lowest Common Ancestor depth.
+ * Closeness = LCA_depth(candidate, target) / target_depth:
+ * - >= LURE_NEAR_THRESHOLD (0.85): near, visually confusable (same genus/family).
+ * - >= LURE_MID_THRESHOLD (0.65): mid, same order/class.
+ * - else: far, ensures coverage of distant clades.
+ * Starts by picking the top item of each bucket, then backfills while avoiding duplicates and expired observations.
+ *
+ * @param {{ taxonList: (string|number)[], byTaxon: Map<string, any[]> }} pool Observation pool indexed by taxon id.
+ * @param {ReturnType<typeof createSelectionState>} selectionState Tracks recently used observations per client.
+ * @param {string|number} targetTaxonId Taxon id of the correct answer.
+ * @param {any} targetObservation Representative observation for the target (provides ancestor_ids).
+ * @param {number} [lureCount=LURE_COUNT] Number of lures to produce (default 3 for 4-choice quiz).
+ * @returns {{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number } }}
+ */
 function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT) {
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
@@ -845,11 +936,31 @@ app.get(
         !Array.isArray(cacheEntry.taxonList) ||
         cacheEntry.taxonList.length < QUIZ_CHOICES
       ) {
-        let page = 1;
+        let startPage = 1;
+        try {
+          const probeParams = { ...params, per_page: 1, page: 1 };
+          const probe = await fetchJSON(
+            "https://api.inaturalist.org/v1/observations",
+            probeParams,
+            { logger: req.log, requestId: req.id, label: "obs-total-probe" }
+          );
+          const totalResults = Number(probe?.total_results) || 0;
+          if (totalResults > 0) {
+            const perPage = Number(params.per_page) || 80;
+            const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
+            const capped = Math.max(1, Math.min(totalPages, 10));
+            startPage = Math.floor(Math.random() * capped) + 1;
+          }
+        } catch (prefetchErr) {
+          req.log?.warn({ requestId: req.id, error: prefetchErr.message }, "Observation total prefetch failed");
+          startPage = 1;
+        }
+
+        let page = startPage;
         let results = [];
         let distinctTaxaSet = new Set();
 
-        while (page <= MAX_OBS_PAGES) {
+        while (pagesFetched < MAX_OBS_PAGES) {
           const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page }, { logger: req.log, requestId: req.id });
           const batch = (Array.isArray(resp.results) ? resp.results : [])
             .map((item) => sanitizeObservation(item))
