@@ -37,7 +37,7 @@ function CustomFilter({ filters, dispatch }) {
     <div className="custom-filter-container">
       <FilterSection
         label={t('customFilter.filter_by_taxa')}
-        helper={t('customFilter.taxa_helper')}
+        
         enabled={filters.taxa_enabled}
         onToggle={() => dispatch({ type: 'TOGGLE_TAXA' })}
       >
@@ -86,7 +86,7 @@ function CustomFilter({ filters, dispatch }) {
 
       <FilterSection
         label={t('customFilter.filter_by_place')}
-        helper={t('customFilter.place_helper')}
+        
         enabled={filters.place_enabled}
         onToggle={() => dispatch({ type: 'TOGGLE_PLACE' })}
       >
@@ -96,7 +96,7 @@ function CustomFilter({ filters, dispatch }) {
 
       <FilterSection
         label={t('customFilter.filter_by_period')}
-        helper={t('customFilter.period_helper')}
+        
         enabled={filters.period_enabled}
         onToggle={() => dispatch({ type: 'TOGGLE_PERIOD' })}
       >

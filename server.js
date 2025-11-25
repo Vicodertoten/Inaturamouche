@@ -234,6 +234,71 @@ function isValidISODate(s) {
   return typeof s === "string" && !Number.isNaN(Date.parse(s));
 }
 
+function normalizeMonthDay(dateString) {
+  if (!isValidISODate(dateString)) return null;
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return null;
+  return { month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+}
+
+function extractMonthDayFromObservation(obs) {
+  const details = obs?.observed_on_details;
+  if (details?.month && details?.day) return { month: details.month, day: details.day };
+  if (typeof obs?.observed_on === "string") {
+    const parsed = new Date(obs.observed_on);
+    if (!Number.isNaN(parsed.getTime())) {
+      return { month: parsed.getUTCMonth() + 1, day: parsed.getUTCDate() };
+    }
+  }
+  if (typeof obs?.time_observed_at === "string") {
+    const parsed = new Date(obs.time_observed_at);
+    if (!Number.isNaN(parsed.getTime())) {
+      return { month: parsed.getUTCMonth() + 1, day: parsed.getUTCDate() };
+    }
+  }
+  return null;
+}
+
+function buildMonthDayFilter(d1, d2) {
+  const start = normalizeMonthDay(d1);
+  const end = normalizeMonthDay(d2);
+  if (!start && !end) return null;
+
+  const startVal = start ? start.month * 100 + start.day : null;
+  const endVal = end ? end.month * 100 + end.day : null;
+  const wrapsYear = startVal != null && endVal != null && startVal > endVal;
+
+  const months = new Set();
+  const addMonthRange = (from, to) => {
+    let m = from;
+    while (true) {
+      months.add(m);
+      if (m === to) break;
+      m = (m % 12) + 1;
+    }
+  };
+
+  if (start && end) {
+    addMonthRange(start.month, end.month);
+  } else if (start) {
+    addMonthRange(start.month, 12);
+  } else if (end) {
+    addMonthRange(1, end.month);
+  }
+
+  const predicate = (md) => {
+    if (!md?.month || !md?.day) return false;
+    const value = md.month * 100 + md.day;
+    if (startVal != null && endVal != null) {
+      return wrapsYear ? value >= startVal || value <= endVal : value >= startVal && value <= endVal;
+    }
+    if (startVal != null) return value >= startVal;
+    return value <= endVal;
+  };
+
+  return { predicate, months: Array.from(months) };
+}
+
 function geoParams(q) {
   const p = {};
   if (q.place_id) {
@@ -272,6 +337,7 @@ function sanitizeObservation(obs) {
     id: obs.id,
     uri: obs.uri,
     photos,
+    observedMonthDay: extractMonthDayFromObservation(obs),
     taxon: {
       id: taxon.id,
       name: taxon.name,
@@ -727,6 +793,7 @@ app.get(
         locale,
         ...geo.p,
       };
+      const monthDayFilter = buildMonthDayFilter(d1, d2);
 
       if (pack_id) {
         const selectedPack = findPackById(pack_id);
@@ -745,13 +812,22 @@ app.get(
         if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
       }
 
-      if (d1 && isValidISODate(d1)) params.d1 = d1;
-      if (d2 && isValidISODate(d2)) params.d2 = d2;
+      if (monthDayFilter?.months?.length) {
+        params.month = monthDayFilter.months.join(",");
+      } else {
+        if (d1 && isValidISODate(d1)) params.d1 = d1;
+        if (d2 && isValidISODate(d2)) params.d2 = d2;
+      }
+      const cacheKeyParams = { ...params };
+      if (monthDayFilter) {
+        cacheKeyParams.d1 = d1 || "";
+        cacheKeyParams.d2 = d2 || "";
+      }
 
       const now = Date.now();
       questionCache.prune();
       selectionStateCache.prune();
-      const cacheKey = buildCacheKey(params);
+      const cacheKey = buildCacheKey(cacheKeyParams);
       let cacheEntry = questionCache.get(cacheKey);
       if (cacheEntry && !cacheEntry.version) {
         cacheEntry.version = cacheEntry.timestamp || now;
@@ -778,7 +854,11 @@ app.get(
           const batch = (Array.isArray(resp.results) ? resp.results : [])
             .map((item) => sanitizeObservation(item))
             .filter(Boolean);
-          results = results.concat(batch);
+          const filteredBatch =
+            monthDayFilter?.predicate && typeof monthDayFilter.predicate === "function"
+              ? batch.filter((obs) => monthDayFilter.predicate(obs.observedMonthDay))
+              : batch;
+          results = results.concat(filteredBatch);
           pagesFetched++;
 
           distinctTaxaSet = new Set(

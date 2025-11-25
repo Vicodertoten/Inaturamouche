@@ -108,21 +108,31 @@ select.nav-pill {
   color: var(--text-color);
 }
 
-/* Texte/icone du bouton profil */
+/* Icône du bouton profil */
 .main-nav .profile-icon {
-  display: none;
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.main-nav .profile-button {
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-color);
+  transition: border-color 140ms ease, box-shadow 180ms ease, transform 120ms ease, color 140ms ease;
+}
+
+.main-nav .profile-button:hover,
+.main-nav .profile-button:focus-visible {
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 600px) {
-  .main-nav .profile-text {
-    display: none;
-  }
   .main-nav .nav-pill {
     padding: var(--space-2);
-  }
-  .main-nav .profile-icon {
-    display: inline;
-    font-size: 1rem;
   }
 }
 
