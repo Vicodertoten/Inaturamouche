@@ -25,7 +25,7 @@ const buildLinearTree = (nodes, rootLabel) => {
   return root;
 };
 
-function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelect }) {
+function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const { t, getTaxonDisplayNames } = useLanguage();
@@ -92,7 +92,11 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
     const linksLayer = rootGroup.select('g.links-layer');
     const nodesLayer = rootGroup.select('g.nodes-layer');
 
-    const layout = d3.tree().nodeSize([96, 140]);
+    const verticalSpacing = 26;
+    const margin = { top: 8, right: 64, bottom: 8, left: 62 };
+    const labelOffset = 12;
+
+    const layout = d3.tree().nodeSize([54, verticalSpacing]);
     const hierarchyRoot = d3.hierarchy(treeData);
     layout(hierarchyRoot);
 
@@ -100,25 +104,21 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
     const x0 = d3.min(visibleNodes, (d) => d.x) ?? 0;
     const x1 = d3.max(visibleNodes, (d) => d.x) ?? 0;
     const y1 = d3.max(hierarchyRoot.descendants(), (d) => d.y) ?? 0;
-    const margin = { top: 32, right: 96, bottom: 32, left: 50 };
+    const longestLabel = d3.max(visibleNodes, (d) => {
+      const labelLength = d.data.label ? d.data.label.length : 0;
+      const secondaryLength = d.data.secondary ? Math.min(24, d.data.secondary.length) * 0.6 : 0;
+      return labelLength + secondaryLength;
+    }) || 0;
+    const labelColumn = Math.max(118, Math.min(180, longestLabel * 3.9 + 18));
 
-    const height = x1 - x0 + margin.top + margin.bottom;
-    const width = y1 + margin.left + margin.right;
-    svg.attr('viewBox', [0, 0, Math.max(width, 360), Math.max(height, 240)].join(' '));
+    const height = y1 + margin.top + margin.bottom + 2;
+    const width = x1 - x0 + margin.left + margin.right + labelColumn;
+    svg.attr('viewBox', [0, 0, Math.max(width, 280), Math.max(height, 140)].join(' '));
 
     const linkGen = d3
-      .linkHorizontal()
-      .x((d) => d.y + margin.left)
-      .y((d) => d.x - x0 + margin.top);
-
-    const linkPath = (d) => {
-      const sourceX = d.source.depth === 0 ? d.target.x : d.source.x;
-      const sourceY = d.source.depth === 0 ? d.target.y - 40 : d.source.y;
-      return linkGen({
-        source: { x: sourceX, y: sourceY },
-        target: { x: d.target.x, y: d.target.y },
-      });
-    };
+      .linkVertical()
+      .x((d) => d.x - x0 + margin.left)
+      .y((d) => d.y + margin.top);
 
     const linksData = hierarchyRoot.links().filter((d) => d.target.depth > 0);
     const links = linksLayer.selectAll('path.phylo-link').data(linksData, (d) => d.target.data.rank || d.target.data.name);
@@ -138,7 +138,12 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
       .merge(links)
       .transition()
       .duration(500)
-      .attr('d', linkPath);
+      .attr('d', (d) =>
+        linkGen({
+          source: { x: d.source.x, y: d.source.y },
+          target: { x: d.target.x, y: d.target.y },
+        })
+      );
 
     links.exit().transition().duration(200).style('opacity', 0).remove();
 
@@ -148,11 +153,11 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
       .enter()
       .append('g')
       .attr('class', (d) => `phylo-node ${d.data.known ? 'known' : 'unknown'} ${d.data.isActive ? 'active' : ''}`)
-      .attr('transform', (d) => `translate(${margin.left}, ${d.parent ? d.parent.x - x0 + margin.top : margin.top})`);
+      .attr('transform', (d) => `translate(${d.parent ? d.parent.x - x0 + margin.left : margin.left}, ${d.parent ? d.parent.y + margin.top : margin.top})`);
 
     nodeEnter
       .append('circle')
-      .attr('r', 18)
+      .attr('r', 6.2)
       .attr('fill', (d) => (d.data.known ? RANK_COLORS[d.data.rank] || 'var(--primary-color)' : 'transparent'))
       .attr('stroke', (d) => (d.data.known ? RANK_COLORS[d.data.rank] || 'var(--primary-color)' : 'var(--border-color)'))
       .attr('stroke-width', (d) => (d.data.isActive ? 3 : 2))
@@ -167,17 +172,17 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
 
     nodeEnter
       .append('text')
-      .attr('dy', 32)
-      .attr('x', 0)
-      .attr('text-anchor', 'middle')
+      .attr('dy', -2)
+      .attr('x', labelOffset)
+      .attr('text-anchor', 'start')
       .attr('class', 'node-label')
       .text((d) => d.data.label);
 
     nodeEnter
       .append('text')
-      .attr('dy', 48)
-      .attr('x', 0)
-      .attr('text-anchor', 'middle')
+      .attr('dy', 14)
+      .attr('x', labelOffset)
+      .attr('text-anchor', 'start')
       .attr('class', 'node-secondary')
       .text((d) => (d.data.secondary ? d.data.secondary : ''));
 
@@ -186,7 +191,7 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
       .attr('class', (d) => `phylo-node ${d.data.known ? 'known' : 'unknown'} ${d.data.isActive ? 'active' : ''}`)
       .transition()
       .duration(450)
-      .attr('transform', (d) => `translate(${d.y + margin.left}, ${d.x - x0 + margin.top})`);
+      .attr('transform', (d) => `translate(${d.x - x0 + margin.left}, ${d.y + margin.top})`);
 
     nodeUpdate
       .select('circle')
@@ -200,8 +205,8 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
       .text((d) => (d.data.known ? '' : '?'))
       .style('opacity', (d) => (d.data.known ? 0 : 1));
 
-    nodeUpdate.select('text.node-label').text((d) => d.data.label);
-    nodeUpdate.select('text.node-secondary').text((d) => (d.data.secondary ? d.data.secondary : ''));
+    nodeUpdate.select('text.node-label').attr('x', labelOffset).text((d) => d.data.label);
+    nodeUpdate.select('text.node-secondary').attr('x', labelOffset).text((d) => (d.data.secondary ? d.data.secondary : ''));
 
     nodes
       .exit()
@@ -210,20 +215,30 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
       .style('opacity', 0)
       .remove();
 
-    const handleTooltip = (event, d) => {
-      if (!d.data.known || !d.data.taxon) return;
+    const hideTooltip = () => {
+      tooltipSel.transition().duration(120).style('opacity', 0);
+    };
+
+    const showTooltip = (event, d) => {
+      if (!d.data.known || !d.data.taxon) {
+        hideTooltip();
+        return;
+      }
       const { primary, secondary } = getTaxonDisplayNames(d.data.taxon);
       const rankLabel = t(`ranks.${d.data.rank}`, {}, d.data.rank);
       const wikiUrl = d.data.wikiUrl;
-      const summary = d.data.taxon?.wikipedia_summary || d.data.taxon?.summary || '';
+      const summary =
+        d.data.taxon?.wikipedia_summary ||
+        d.data.taxon?.summary ||
+        t('hard.phylo.placeholder', {}, 'Description à venir prochainement.');
       const truncatedSummary =
-        summary && summary.length > 220 ? `${summary.slice(0, 220)}…` : summary;
+        summary && summary.length > 240 ? `${summary.slice(0, 240)}…` : summary;
       tooltipSel
         .html(
           `<div class="tooltip-rank">${rankLabel}</div>
            <div class="tooltip-name">${primary || d.data.taxon.name}</div>
            ${secondary ? `<div class="tooltip-secondary">${secondary}</div>` : ''}
-           ${truncatedSummary ? `<div class="tooltip-summary">${truncatedSummary}</div>` : ''}
+           <div class="tooltip-summary">${truncatedSummary}</div>
            ${
              wikiUrl
                ? `<a href="${wikiUrl}" target="_blank" rel="noreferrer">${t('hard.phylo.more', {}, 'Voir la fiche')}</a>`
@@ -231,28 +246,22 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank, onRankSelec
            }`
         )
         .style('opacity', 1)
-        .style('left', `${event.pageX + 12}px`)
+        .style('left', `${event.pageX + 14}px`)
         .style('top', `${event.pageY - 10}px`);
-    };
-
-    const hideTooltip = () => {
-      tooltipSel.transition().duration(150).style('opacity', 0);
     };
 
     nodes
       .merge(nodeEnter)
-      .on('mouseenter', handleTooltip)
-      .on('mousemove', handleTooltip)
+      .on('mouseenter', (event, d) => showTooltip(event, d))
+      .on('mousemove', (event, d) => showTooltip(event, d))
       .on('mouseleave', hideTooltip)
-      .style('cursor', (d) => (!d.data.known && onRankSelect ? 'pointer' : 'default'))
-      .on('click', (_, d) => {
-        if (!d.data.known && onRankSelect) onRankSelect(d.data.rank);
-      });
+      .style('cursor', (d) => (d.data.known ? 'help' : 'default'))
+      .on('click', null);
 
     return () => {
       tooltipSel.on('.interrupt', null);
     };
-  }, [getTaxonDisplayNames, onRankSelect, t, treeData]);
+  }, [getTaxonDisplayNames, t, treeData]);
 
   useEffect(
     () => () => {

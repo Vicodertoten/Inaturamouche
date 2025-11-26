@@ -31,4 +31,11 @@ export function computeScore({
   return { points, bonus };
 }
 
+export const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
+
+export const getXpForLevel = (level) => {
+  if (level <= 1) return 0;
+  return Math.pow((level - 1) * 10, 2);
+};
+
 export default computeScore;

@@ -7,9 +7,9 @@ import { resetProfile } from '../services/PlayerProfile';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
-
-const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
-const getXpForLevel = (level) => Math.pow((level - 1) * 10, 2);
+import Modal from '../components/Modal';
+import Spinner from '../components/Spinner';
+import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
 
 const MasteryItem = ({ taxon, count, getDisplayNames, t }) => {
   if (!taxon) return null;
@@ -27,12 +27,15 @@ const MasteryItem = ({ taxon, count, getDisplayNames, t }) => {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { profile, refreshProfile } = useUser();
+  const { profile, refreshProfile, updateProfile } = useUser();
   const { t, getTaxonDisplayNames, language } = useLanguage();
   const { packs } = usePacks();
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   const sortedMastery = useMemo(
     () =>
@@ -92,6 +95,10 @@ const ProfilePage = () => {
   const avatarLetter = useMemo(() => (displayName ? displayName.charAt(0).toUpperCase() : 'E'), [displayName]);
 
   useEffect(() => {
+    setEditedName(profile?.name || profile?.username || '');
+  }, [profile?.name, profile?.username]);
+
+  useEffect(() => {
     if (activeTab !== 'stats' || !profile || sortedMastery.length === 0 || masteryDetails.length > 0) {
       return;
     }
@@ -116,16 +123,47 @@ const ProfilePage = () => {
   }, [activeTab, language, masteryDetails.length, profile, sortedMastery]);
 
   const handleResetProfile = useCallback(() => {
-    if (window.confirm(t('profile.reset_confirm'))) {
-      resetProfile();
-      refreshProfile();
-    }
-  }, [refreshProfile, t]);
+    setIsResetModalOpen(true);
+  }, []);
+
+  const handleCloseResetModal = useCallback(() => {
+    setIsResetModalOpen(false);
+  }, []);
+
+  const confirmResetProfile = useCallback(() => {
+    resetProfile();
+    refreshProfile();
+    setIsResetModalOpen(false);
+    setIsEditingName(false);
+  }, [refreshProfile, resetProfile]);
 
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate('/');
+    const historyState = window.history.state || {};
+    const canGoBack =
+      typeof historyState.idx === 'number' ? historyState.idx > 0 : window.history.length > 1;
+    if (canGoBack) navigate(-1);
+    else navigate('/', { replace: true });
   }, [navigate]);
+
+  const handleStartEditName = useCallback(() => {
+    setEditedName(profile?.name || profile?.username || '');
+    setIsEditingName(true);
+  }, [profile?.name, profile?.username]);
+
+  const handleCancelEditName = useCallback(() => {
+    setEditedName(profile?.name || profile?.username || '');
+    setIsEditingName(false);
+  }, [profile?.name, profile?.username]);
+
+  const handleSaveName = useCallback(() => {
+    const trimmedName = (editedName || '').trim();
+    if (!trimmedName) {
+      handleCancelEditName();
+      return;
+    }
+    updateProfile((prev) => ({ ...prev, name: trimmedName }));
+    setIsEditingName(false);
+  }, [editedName, handleCancelEditName, updateProfile]);
 
   if (!profile) {
     return (
@@ -153,7 +191,43 @@ const ProfilePage = () => {
             </div>
             <div className="hero-meta">
               <p className="eyebrow">{t('common.profile')}</p>
-              <h2 className="player-name">{displayName}</h2>
+              {isEditingName ? (
+                <div className="name-editor">
+                  <input
+                    type="text"
+                    className="name-input"
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    placeholder={t('profile.title')}
+                    aria-label={t('profile.edit_name')}
+                    autoFocus
+                  />
+                  <div className="name-actions">
+                    <button className="action-button name-action-button" onClick={handleSaveName}>
+                      {t('common.save')}
+                    </button>
+                    <button
+                      className="action-button name-action-button ghost"
+                      onClick={handleCancelEditName}
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="name-row">
+                  <h2 className="player-name">{displayName}</h2>
+                  <button
+                    type="button"
+                    className="edit-name-button nav-pill nav-icon nav-elevated"
+                    onClick={handleStartEditName}
+                    aria-label={t('profile.edit_name')}
+                    title={t('profile.edit_name')}
+                  >
+                    ✎
+                  </button>
+                </div>
+              )}
               <div className="level-chip">
                 <span className="level-label">{t('profile.level', { level: levelInfo.level })}</span>
                 <span className="level-number">#{levelInfo.level}</span>
@@ -296,7 +370,9 @@ const ProfilePage = () => {
               <div className="profile-section">
                 <h3>{t('profile.mastery_title')}</h3>
                 {isLoadingMastery ? (
-                  <p>{t('profile.mastery_loading')}</p>
+                  <div className="mastery-loading" aria-label={t('profile.mastery_loading')}>
+                    <Spinner />
+                  </div>
                 ) : (
                   <ul className="mastery-list mastery-grid">
                     {masteryDetails.map(({ id, taxon, count }) => (
@@ -357,6 +433,20 @@ const ProfilePage = () => {
           )}
         </div>
       </div>
+      {isResetModalOpen && (
+        <Modal onClose={handleCloseResetModal}>
+          <h3 className="modal-title">{t('profile.reset_button')}</h3>
+          <p>{t('profile.reset_confirm')}</p>
+          <div className="modal-actions">
+            <button className="action-button reset-profile-button" onClick={confirmResetProfile}>
+              {t('profile.reset_button')}
+            </button>
+            <button className="action-button modal-cancel-button" onClick={handleCloseResetModal}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

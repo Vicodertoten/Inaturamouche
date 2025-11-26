@@ -320,11 +320,6 @@ function HardMode() {
   const canUseAnyHint = !!firstUnknownRank;
   const placeholderText = t('hard.single_guess_placeholder_species', {}, "Devinez l'espèce...");
 
-  const handleRankSelect = (rank) => {
-    if (!rank || knownTaxa[rank]) return;
-    setActiveRank(rank);
-  };
-
   return (
     <>
       {isGameOver && (
@@ -333,63 +328,83 @@ function HardMode() {
 
       <div className="screen game-screen hard-mode">
         <div className="hard-mode-container">
-
-          <div className="media-panel">
-            <ImageViewer
-              imageUrls={question.image_urls || [question.image_url]}
-              photoMeta={question.image_meta}
-              alt={t('hard.image_alt')}
-              nextImageUrl={nextImageUrl}
-            />
-            <div className="hard-mode-stats">
-              <span>{t('hard.stats_line', { guesses, score: currentScore })}</span>
-              <StreakBadge streak={currentStreak} />
+          <header className="hard-mode-header">
+            <div className="header-stats">
+              <div className="stat-pill score-pill">
+                <span className="pill-label">{t('hard.stats.score', {}, 'Score')}</span>
+                <span className="pill-value">{currentScore}</span>
+              </div>
+              <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
+                <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>
+                <span className="pill-value">{guesses}</span>
+              </div>
+              <div className="streak-chip">
+                <StreakBadge streak={currentStreak} />
+              </div>
             </div>
-          </div>
+            <div className="header-actions">
+              <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">
+                {t('common.quit')}
+              </button>
+            </div>
+          </header>
 
-          <div className="proposition-panel tree-panel">
-            <PhylogeneticTree
-              knownTaxa={knownTaxa}
-              targetTaxon={question?.bonne_reponse}
-              activeRank={activeRank}
-              onRankSelect={handleRankSelect}
-            />
-          </div>
-        </div>
+          <div className="hard-mode-layout">
+            <div className="media-column">
+              <div className="left-stack">
+                <div className="media-panel">
+                  <ImageViewer
+                    imageUrls={question.image_urls || [question.image_url]}
+                    photoMeta={question.image_meta}
+                    alt={t('hard.image_alt')}
+                    nextImageUrl={nextImageUrl}
+                  />
+                </div>
 
-        <div className={`proposition-panel guess-panel floating ${panelEffect ? `panel-${panelEffect}` : ''}`}>
-          <div className="guess-bar">
-            <div className="guess-row">
-              <AutocompleteInput
-                key={`hard-guess-${Object.keys(knownTaxa).length}`}
-                onSelect={handleGuess}
-                disabled={isGameOver || guesses <= 0}
-                placeholder={placeholderText}
-                incorrectAncestorIds={incorrectGuessIds}
-              />
-              <div className="guess-actions-inline">
-                <button 
-                  onClick={handleRevealNameHint} 
-                  disabled={
-                    isGameOver ||
-                    !canUseAnyHint ||
-                    guesses < REVEAL_HINT_COST
-                  }
-                  className="action-button hint"
-                >
-                  {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
-                </button>
-                <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">
-                  {t('common.quit')}
-                </button>
+                <div className={`proposition-panel guess-panel ${panelEffect ? `panel-${panelEffect}` : ''}`}>
+                  <div className="guess-bar">
+                    <div className="guess-row">
+                      <AutocompleteInput
+                        key={`hard-guess-${Object.keys(knownTaxa).length}`}
+                        onSelect={handleGuess}
+                        disabled={isGameOver || guesses <= 0}
+                        placeholder={placeholderText}
+                        incorrectAncestorIds={incorrectGuessIds}
+                      />
+                      <div className="guess-actions-inline">
+                        <button 
+                          onClick={handleRevealNameHint} 
+                          disabled={
+                            isGameOver ||
+                            !canUseAnyHint ||
+                            guesses < REVEAL_HINT_COST
+                          }
+                          className="action-button hint"
+                        >
+                          {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {feedback?.message && (
+                    <div className={`feedback-bar ${feedback.type}`} aria-live="polite">
+                      {feedback.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="tree-column">
+              <div className="proposition-panel tree-panel">
+                <PhylogeneticTree
+                  knownTaxa={knownTaxa}
+                  targetTaxon={question?.bonne_reponse}
+                  activeRank={activeRank}
+                />
               </div>
             </div>
           </div>
-          {feedback?.message && (
-            <div className={`feedback-bar ${feedback.type}`} aria-live="polite">
-              {feedback.message}
-            </div>
-          )}
         </div>
       </div>
     </>

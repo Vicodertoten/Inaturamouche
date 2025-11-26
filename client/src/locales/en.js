@@ -6,6 +6,8 @@ const en = {
   },
   common: {
     close: 'Close',
+    cancel: 'Cancel',
+    save: 'Save',
     loading: 'Loading...',
     start_game: 'Start game!',
     review_mistakes: 'Review my mistakes',
@@ -253,6 +255,7 @@ const en = {
   profile: {
     back: '← Back',
     title: 'Player profile',
+    edit_name: 'Edit name',
     tabs: {
       summary: 'Overview',
       stats: 'Stats',

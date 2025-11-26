@@ -6,6 +6,8 @@ const fr = {
   },
   common: {
     close: 'Fermer',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
     loading: 'Chargement...',
     start_game: 'Lancer la partie !',
     review_mistakes: 'Réviser mes erreurs',
@@ -255,6 +257,7 @@ const fr = {
   profile: {
     back: '← Retour',
     title: 'Profil du joueur',
+    edit_name: 'Modifier le nom',
     tabs: {
       summary: 'Résumé',
       stats: 'Statistiques',
