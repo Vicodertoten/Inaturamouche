@@ -91,6 +91,48 @@
   gap: var(--space-2);
 }
 
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.edit-name-button {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.name-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.name-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-color);
+}
+
+.name-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.action-button.name-action-button {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.95rem;
+}
+
+.action-button.name-action-button.ghost {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-color-muted);
+}
+
 .player-name {
   margin: 0;
   font-size: 1.6rem;
@@ -437,6 +479,13 @@
   padding: var(--space-5) 0;
 }
 
+.mastery-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-3) 0;
+}
+
 .profile-reset-section {
   display: flex;
   justify-content: center;
@@ -454,6 +503,23 @@
 .reset-profile-button:hover {
   background-color: var(--error-color);
   color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.modal-cancel-button {
+  background: transparent;
+  color: var(--text-color);
+}
+
+.modal-cancel-button:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
 }
 
 @keyframes fadeIn {

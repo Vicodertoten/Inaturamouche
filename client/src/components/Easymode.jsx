@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
@@ -26,6 +26,10 @@ const EasyMode = () => {
   } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
+
+  // Réf pour détecter un changement de question avant le rendu
+  const questionRef = useRef(question);
+  const emptyRemovedRef = useRef(new Set());
 
   const choiceDetailMap = useMemo(() => {
     const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
@@ -63,7 +67,8 @@ const EasyMode = () => {
     hintCount: 0,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    questionRef.current = question;
     setAnswered(false);
     setSelectedIndex(null);
     setShowSummary(false);
@@ -76,10 +81,15 @@ const EasyMode = () => {
     });
   }, [question]);
 
-  const remainingPairs = easyPairs.filter(p => !removedIds.has(String(p.id)));
+  const isCurrentQuestion = questionRef.current === question;
+  const answeredThisQuestion = answered && isCurrentQuestion;
+  const hintUsedThisQuestion = hintUsed && isCurrentQuestion;
+  const activeRemovedIds = isCurrentQuestion ? removedIds : emptyRemovedRef.current;
+
+  const remainingPairs = easyPairs.filter(p => !activeRemovedIds.has(String(p.id)));
   const correctPair = easyPairs[correctIndexFromServer];
 
-  const isCorrectAnswer = answered && selectedIndex !== null
+  const isCorrectAnswer = answeredThisQuestion && selectedIndex !== null
     ? (remainingPairs[selectedIndex]?.id?.toString() === correctPair?.id?.toString())
     : false;
 
@@ -87,10 +97,15 @@ const EasyMode = () => {
   const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
 
   const handleSelectAnswer = (idx) => {
-    if (answered) return;
+    if (answeredThisQuestion) return;
     setSelectedIndex(idx);
     setAnswered(true);
-    setTimeout(() => setShowSummary(true), 1200);
+    const answeredQuestion = questionRef.current;
+    setTimeout(() => {
+      if (questionRef.current === answeredQuestion) {
+        setShowSummary(true);
+      }
+    }, 1200);
   };
 
   const handleNext = () => {
@@ -102,7 +117,7 @@ const EasyMode = () => {
   };
 
   const handleHint = () => {
-    if (hintUsed || answered) return;
+    if (hintUsedThisQuestion || answeredThisQuestion) return;
 
     // On choisit au hasard un leurre restant (≠ correct) parmi les non-supprimés
     const incorrectRemaining = remainingPairs.filter(p => p.id.toString() !== correctPair.id.toString());
@@ -130,7 +145,7 @@ const EasyMode = () => {
 
   return (
     <>
-      {showSummary && (
+      {showSummary && isCurrentQuestion && (
         <RoundSummaryModal
           status={isCorrectAnswer ? 'win' : 'lose'}
           question={question}
@@ -148,8 +163,8 @@ const EasyMode = () => {
                 className="hint-button-easy"
                 onClick={handleHint}
                 disabled={
-                  hintUsed ||
-                  answered ||
+                  hintUsedThisQuestion ||
+                  answeredThisQuestion ||
                   remainingPairs.length <= 2 // ne retire pas si déjà 2 choix (bon + 1 leurre)
                 }
               >
@@ -175,7 +190,7 @@ const EasyMode = () => {
             <div className="choices">
               {remainingPairs.map((p, idx) => {
                 let buttonClass = '';
-                if (answered) {
+                if (answeredThisQuestion) {
                   if (isIndexCorrect(idx)) buttonClass = 'correct';
                   else if (idx === selectedIndex) buttonClass = 'incorrect';
                   else buttonClass = 'disabled';
@@ -185,7 +200,7 @@ const EasyMode = () => {
                     key={p.id ?? p.label}
                     className={buttonClass}
                     onClick={() => handleSelectAnswer(idx)}
-                    disabled={answered}
+                    disabled={answeredThisQuestion}
                   >
                     {(() => {
                       const { primary, secondary } = getTaxonDisplayNames(p.detail, p.label);

@@ -6,6 +6,8 @@ const nl = {
   },
   common: {
     close: 'Sluiten',
+    cancel: 'Annuleren',
+    save: 'Opslaan',
     loading: 'Laden...',
     start_game: 'Spel starten!',
     review_mistakes: 'Fouten herzien',
@@ -253,6 +255,7 @@ const nl = {
   profile: {
     back: '← Terug',
     title: 'Spelersprofiel',
+    edit_name: 'Naam bewerken',
     tabs: {
       summary: 'Overzicht',
       stats: 'Statistieken',
