@@ -61,6 +61,16 @@ const fr = {
     advanced_filters_helper: 'Limitez le pool des espèces par taxons, lieu ou dates pour un quiz très ciblé.',
     show_advanced_filters: 'Afficher les filtres avancés',
     hide_advanced_filters: 'Masquer les filtres avancés',
+    game_settings_title: 'Paramètres de la partie',
+    game_settings_hint: 'Définissez la durée et le type de média de votre session.',
+    question_count_label: 'Nombre de questions',
+    media_type_label: 'Type de média',
+    option_infinite: 'Infini',
+    option_images: 'Images',
+    option_sounds: 'Sons',
+    option_both: 'Images + sons',
+    sounds_warning:
+      'Les parties avec sons peuvent charger plus lentement et offrir moins de résultats selon vos filtres.',
   },
   packs: {
     custom: {

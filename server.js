@@ -337,12 +337,23 @@ function sanitizeObservation(obs) {
           original_dimensions: p.original_dimensions,
         }))
     : [];
+  const sounds = Array.isArray(obs.sounds)
+    ? obs.sounds
+        .filter((sound) => sound?.file_url)
+        .map((sound) => ({
+          id: sound.id,
+          file_url: sound.file_url,
+          attribution: sound.attribution,
+          license_code: sound.license_code,
+        }))
+    : [];
 
   const taxon = obs.taxon || {};
   return {
     id: obs.id,
     uri: obs.uri,
     photos,
+    sounds,
     observedMonthDay: extractMonthDayFromObservation(obs),
     taxon: {
       id: taxon.id,
@@ -752,6 +763,7 @@ const quizSchema = z.object({
   d1: z.string().optional(),
   d2: z.string().optional(),
   locale: z.string().default("fr"),
+  media_type: z.enum(["images", "sounds", "both"]).optional(),
 });
 
 const autocompleteSchema = z.object({
@@ -873,6 +885,7 @@ app.get(
         d1,
         d2,
         locale = "fr",
+        media_type,
       } = req.valid;
 
       const geo = geoParams({ place_id, nelat, nelng, swlat, swlng });
@@ -884,6 +897,9 @@ app.get(
         locale,
         ...geo.p,
       };
+      if (media_type === "sounds" || media_type === "both") {
+        params.sounds = true;
+      }
       const monthDayFilter = buildMonthDayFilter(d1, d2);
 
       if (pack_id) {
@@ -1204,6 +1220,7 @@ app.get(
       res.json({
         image_urls,
         image_meta,
+        sounds: targetObservation.sounds || [],
         bonne_reponse: {
           id: correct.id,
           name: correct.name,

@@ -4,6 +4,13 @@ export interface InatPhoto {
   attribution?: string;
 }
 
+export interface InatSound {
+  id: number;
+  file_url: string;
+  attribution?: string;
+  license_code?: string;
+}
+
 export interface InatTaxon {
   id: number;
   name?: string;
@@ -20,4 +27,5 @@ export interface InatObservation {
   uri?: string;
   taxon: InatTaxon;
   photos: InatPhoto[];
+  sounds?: InatSound[];
 }

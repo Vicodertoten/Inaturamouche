@@ -61,6 +61,16 @@ const en = {
     advanced_filters_helper: 'Limit the species pool by taxa, place, or date when you need a very specific quiz.',
     show_advanced_filters: 'Show advanced filters',
     hide_advanced_filters: 'Hide advanced filters',
+    game_settings_title: 'Game settings',
+    game_settings_hint: 'Set the length and media type for your session.',
+    question_count_label: 'Number of questions',
+    media_type_label: 'Media type',
+    option_infinite: 'Infinite',
+    option_images: 'Images',
+    option_sounds: 'Sounds',
+    option_both: 'Images + sounds',
+    sounds_warning:
+      'Sound-based games can take longer to load and return fewer results depending on your filters.',
   },
   packs: {
     custom: {

@@ -34,6 +34,7 @@ function HardMode() {
     currentStreak,
     completeRound,
     resetToLobby,
+    mediaType,
   } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
@@ -51,6 +52,9 @@ function HardMode() {
     hintCount: 0,
   });
   const { t, language } = useLanguage();
+  const soundUrl = question?.sounds?.[0]?.file_url;
+  const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
+  const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
 
@@ -353,12 +357,19 @@ function HardMode() {
             <div className="media-column">
               <div className="left-stack">
                 <div className="media-panel">
-                  <ImageViewer
-                    imageUrls={question.image_urls || [question.image_url]}
-                    photoMeta={question.image_meta}
-                    alt={t('hard.image_alt')}
-                    nextImageUrl={nextImageUrl}
-                  />
+                  {showAudio && (
+                    <div className="audio-panel">
+                      <audio controls src={soundUrl} className="audio-player" preload="none" />
+                    </div>
+                  )}
+                  {showImage && (
+                    <ImageViewer
+                      imageUrls={question.image_urls || [question.image_url]}
+                      photoMeta={question.image_meta}
+                      alt={t('hard.image_alt')}
+                      nextImageUrl={nextImageUrl}
+                    />
+                  )}
                 </div>
 
                 <div className={`proposition-panel guess-panel ${panelEffect ? `panel-${panelEffect}` : ''}`}>
