@@ -95,7 +95,7 @@ app.use(
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "connect-src": ["'self'", "https://api.inaturalist.org"],
+        "connect-src": ["'self'", "https://api.inaturalist.org", "https://*.wikipedia.org"],
         "img-src": [
           "'self'",
           "data:",

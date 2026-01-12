@@ -199,7 +199,7 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
 
     nodeEnter
       .append('text')
-      .attr('dy', 14)
+      .attr('dy', 7)
       .attr('x', labelOffset)
       .attr('text-anchor', 'start')
       .attr('class', 'node-secondary')
@@ -225,7 +225,11 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
       .style('opacity', (d) => (d.data.known ? 0 : 1));
 
     nodeUpdate.select('text.node-label').attr('x', labelOffset).text((d) => d.data.label);
-    nodeUpdate.select('text.node-secondary').attr('x', labelOffset).text((d) => (d.data.secondary ? d.data.secondary : ''));
+    nodeUpdate
+      .select('text.node-secondary')
+      .attr('x', labelOffset)
+      .attr('dy', 7)
+      .text((d) => (d.data.secondary ? d.data.secondary : ''));
 
     nodes
       .exit()
