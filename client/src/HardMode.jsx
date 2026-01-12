@@ -33,7 +33,7 @@ function HardMode() {
     nextImageUrl,
     currentStreak,
     completeRound,
-    resetToLobby,
+    endGame,
     mediaType,
   } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
@@ -347,8 +347,8 @@ function HardMode() {
               </div>
             </div>
             <div className="header-actions">
-              <button onClick={() => resetToLobby(true)} disabled={isGameOver} className="action-button quit">
-                {t('common.quit')}
+              <button onClick={endGame} disabled={isGameOver} className="action-button quit">
+                {t('common.finish')}
               </button>
             </div>
           </header>

@@ -402,7 +402,9 @@ export function GameProvider({ children }) {
       const profileClone = profile
         ? JSON.parse(JSON.stringify(profile))
         : loadProfileWithDefaults();
-      const totalQuestions = resolveTotalQuestions(maxQuestions, questionCount);
+      const totalQuestions = Array.isArray(speciesEntries)
+        ? speciesEntries.length
+        : resolveTotalQuestions(maxQuestions, questionCount);
 
       profileClone.xp = (profileClone.xp || 0) + finalScore;
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
@@ -654,6 +656,30 @@ export function GameProvider({ children }) {
     ]
   );
 
+  const endGame = useCallback(() => {
+    if (!isGameActive) return;
+    abortActiveFetch();
+    abortPrefetchFetch();
+    setLoading(false);
+    finalizeGame({
+      finalCorrectAnswers: sessionStats.correctAnswers,
+      finalScore: score,
+      finalCorrectSpecies: sessionCorrectSpecies,
+      finalMissedSpecies: sessionMissedSpecies,
+      speciesEntries: sessionSpeciesData,
+    });
+  }, [
+    abortActiveFetch,
+    abortPrefetchFetch,
+    finalizeGame,
+    isGameActive,
+    score,
+    sessionCorrectSpecies,
+    sessionMissedSpecies,
+    sessionSpeciesData,
+    sessionStats.correctAnswers,
+  ]);
+
   const canStartReview = (profile?.stats?.missedSpecies?.length || 0) >= DEFAULT_MAX_QUESTIONS;
 
   const value = {
@@ -688,6 +714,7 @@ export function GameProvider({ children }) {
     nextImageUrl,
     updateScore,
     completeRound,
+    endGame,
     startGame,
     resetToLobby,
     canStartReview,

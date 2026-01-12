@@ -18,6 +18,7 @@ const fr = {
     score: 'Score',
     next_question: 'Question suivante',
     quit: 'Abandonner',
+    finish: 'Terminer',
     hint: 'Indice',
     preferences_menu_label: 'Ouvrir les paramètres',
     preferences_title: 'Paramètres',

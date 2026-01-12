@@ -18,6 +18,7 @@ const en = {
     score: 'Score',
     next_question: 'Next question',
     quit: 'Quit',
+    finish: 'Finish',
     hint: 'Hint',
     preferences_menu_label: 'Open preferences',
     preferences_title: 'Settings',
