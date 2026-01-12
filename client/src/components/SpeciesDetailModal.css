@@ -1,0 +1,215 @@
+.species-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: var(--space-4);
+}
+
+.species-modal-content {
+  width: min(760px, 100%);
+  max-height: 90vh;
+  background: var(--surface-color);
+  border-radius: var(--border-radius);
+  padding: var(--space-4);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+.species-modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+}
+
+.species-modal-media {
+  width: 120px;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.species-modal-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.species-modal-titles {
+  flex: 1;
+}
+
+.species-modal-eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-color-muted);
+}
+
+.species-modal-name {
+  margin: 0.2rem 0 0;
+  font-size: 1.6rem;
+}
+
+.species-modal-scientific {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-color-muted);
+}
+
+.species-modal-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  background: none;
+  font-size: 2rem;
+  color: var(--text-color);
+  cursor: pointer;
+  line-height: 1;
+  padding: var(--space-1);
+}
+
+.species-modal-tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: var(--space-1);
+}
+
+.species-modal-tab {
+  border: none;
+  background: none;
+  padding: var(--space-1) var(--space-3);
+  font-weight: 600;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.species-modal-tab.active {
+  border-bottom: 2px solid var(--accent-color);
+}
+
+.species-modal-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 320px);
+  padding-right: var(--space-1);
+}
+
+.species-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2);
+}
+
+.species-stats-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--space-2);
+  background: var(--surface-color);
+}
+
+.species-stats-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-color-muted);
+}
+
+.species-stats-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-top: var(--space-1);
+}
+
+.species-bio-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.species-bio-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--border-radius);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-color);
+}
+
+.species-bio-ancestors ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.species-confusions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.confusions-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.confusions-label {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  color: var(--text-color-muted);
+}
+
+.confusions-card {
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--border-color);
+  padding: var(--space-2);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.species-error {
+  color: var(--danger-color, #f3616d);
+}
+
+.similar-species-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.similar-species-card {
+  display: flex;
+  gap: var(--space-3);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  padding: var(--space-2);
+  background: var(--surface-color);
+}
+
+.similar-species-image {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--border-radius);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}

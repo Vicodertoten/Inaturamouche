@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
+import React, { useState, useMemo, useLayoutEffect, useEffect, useRef } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
+import { getQuestionThumbnail } from '../utils/imageUtils';
 import StreakBadge from './StreakBadge';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -50,6 +51,7 @@ const EasyMode = () => {
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
   const emptyRemovedRef = useRef(new Set());
+  const hasRecordedRef = useRef(false);
 
   const choiceDetailMap = useMemo(() => {
     const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
@@ -99,6 +101,7 @@ const EasyMode = () => {
       hintsUsed: false,
       hintCount: 0,
     });
+    hasRecordedRef.current = false;
   }, [question]);
 
   const isCurrentQuestion = questionRef.current === question;
@@ -116,6 +119,15 @@ const EasyMode = () => {
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
   const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
 
+  useEffect(() => {
+    if (!answeredThisQuestion || hasRecordedRef.current) return;
+    const species = question?.bonne_reponse;
+    if (!species) return;
+    const thumbnail = getQuestionThumbnail(question);
+    updatePokedex(species, isCorrectAnswer, thumbnail);
+    hasRecordedRef.current = true;
+  }, [answeredThisQuestion, isCorrectAnswer, question, updatePokedex]);
+
   const handleSelectAnswer = (idx) => {
     if (answeredThisQuestion) return;
     setSelectedIndex(idx);
@@ -129,12 +141,6 @@ const EasyMode = () => {
   };
 
   const handleNext = () => {
-    const species = question.bonne_reponse;
-    const thumbnail = question.image_urls?.[0];
-    if (species) {
-      updatePokedex(species, isCorrectAnswer, thumbnail);
-    }
-    
     completeRound({
       ...scoreInfo,
       isCorrect: isCorrectAnswer,

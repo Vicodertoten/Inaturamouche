@@ -8,6 +8,10 @@ import { usePacks } from './context/PacksContext.jsx';
 import { useUser } from './context/UserContext.jsx';
 
 const ModeVisual = ({ variant }) => {
+  const gradientId = useMemo(
+    () => `configurator-phylo-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
   if (variant === 'easy') {
     return (
       <div className="mode-visual mode-visual-easy" aria-hidden="true">
@@ -21,16 +25,17 @@ const ModeVisual = ({ variant }) => {
       </div>
     );
   }
+  const gradientUrl = `url(#${gradientId})`;
   return (
     <div className="mode-visual mode-visual-hard" aria-hidden="true">
-      <svg className="phylo-svg" viewBox="0 0 120 120" role="presentation" focusable="false">
+      <svg className="phylo-icon" viewBox="0 0 120 120" role="presentation" focusable="false">
         <defs>
-          <linearGradient id="phyloGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--primary-color)" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0.9" />
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--primary-color, #606c38)" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="var(--accent-color, #dda15e)" stopOpacity="0.9" />
           </linearGradient>
         </defs>
-        <g stroke="url(#phyloGradient)" strokeWidth="3" fill="none" strokeLinecap="round">
+        <g stroke={gradientUrl} strokeWidth="3" fill="none" strokeLinecap="round">
           <path d="M60 100 V70" />
           <path d="M60 70 C60 60, 50 55, 42 50" />
           <path d="M60 70 C60 60, 72 55, 80 48" />
@@ -39,7 +44,7 @@ const ModeVisual = ({ variant }) => {
           <path d="M80 48 C90 38, 96 32, 102 22" />
           <path d="M80 48 C76 36, 68 30, 60 26" />
         </g>
-        <g className="phylo-nodes" fill="url(#phyloGradient)">
+        <g className="phylo-nodes" fill={gradientUrl}>
           <circle cx="60" cy="100" r="6" className="node root" />
           <circle cx="60" cy="70" r="5" />
           <circle cx="42" cy="50" r="4" />
@@ -244,7 +249,7 @@ function Configurator({ onStartGame }) {
 
           <div className="pack-card pack-card-glow">
             <div className="pack-selector">
-              
+              <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
               <div
                 className="tooltip"
                 data-tooltip={t('configurator.pack_hint')}

@@ -75,7 +75,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
             className="answer-image"
             {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
             decoding={imageUrl ? 'async' : undefined}
-            fetchpriority={imageUrl ? 'high' : undefined}
+            fetchPriority={imageUrl ? 'high' : undefined}
           />
           
           {primaryName && <h3 className="answer-name">{primaryName}</h3>}

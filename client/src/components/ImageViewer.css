@@ -7,8 +7,10 @@
   max-height: min(60dvh, 90vw);
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-2);
+  margin: 0 auto;
 }
 
 /* Wrapper : base pour centrer la box, pas la cible de l'overlay */
@@ -29,6 +31,7 @@
   cursor: pointer;
   isolation: isolate;
   z-index: 0;
+  margin: 0 auto;
 }
 
 /* Limite la hauteur des images verticales pour une meilleure UX */
@@ -98,6 +101,7 @@
   transform: translateX(-50%) !important;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 6px 10px;
   background-color: rgba(0, 0, 0, 0.4);

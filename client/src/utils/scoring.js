@@ -1,5 +1,6 @@
 export const EASY_BASE_POINTS = 10;
 export const HARD_GUESS_BONUS = 5;
+export const MASTERY_THRESHOLD = 3;
 
 /**
  * Compute score and bonus for a round depending on game mode.

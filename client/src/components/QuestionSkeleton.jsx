@@ -1,7 +1,7 @@
 import './QuestionSkeleton.css';
 
 const QuestionSkeleton = () => (
-  <div className="screen game-screen" aria-hidden="true">
+  <div className="screen game-screen centered-screen" aria-hidden="true">
     <div className="card question-skeleton">
       <div className="question-skeleton-header">
         <div className="skeleton-chip"></div>

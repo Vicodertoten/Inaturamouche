@@ -1,203 +1,304 @@
-/* client/src/pages/CollectionPage.css */
-
 .collection-page {
-  /* Use App.css padding for safe areas, remove fixed padding here */
-  /* padding: 1rem; -> Handled by .App in App.css for top/bottom */
-  max-width: 1200px; /* Keep max-width for content */
+  min-height: 100vh;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
-  color: var(--text-color); /* Use global text color */
-  min-height: calc(100vh - var(--space-3) * 2); /* Adjust for header/footer if present, or fill height */
+  padding: 0 var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4); /* General spacing between sections */
+  gap: var(--space-4);
+  color: var(--text-color);
 }
 
 .collection-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
   text-align: center;
-  margin-bottom: var(--space-4);
-  padding-top: var(--space-3); /* Add some padding to the top of the header */
+}
+
+.collection-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  color: var(--text-color-muted);
 }
 
 .collection-header h1 {
-  font-size: clamp(1.8rem, 3vw, 2.8rem); /* Responsive font size */
-  margin-bottom: var(--space-2);
-  font-weight: 700; /* Use 700 for main titles */
-  color: var(--text-color);
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 700;
 }
 
-.collection-header p {
-  font-size: 1rem;
+.collection-subtitle {
+  margin: 0;
   color: var(--text-color-muted);
-}
-
-.search-bar {
-  margin-top: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.search-bar input {
-  width: 100%;
-  max-width: 500px;
-  padding: var(--space-2) var(--space-3);
   font-size: 1rem;
-  border-radius: var(--border-radius); /* Use global border-radius */
-  border: 1px solid var(--border-color); /* Use global border-color */
-  background-color: var(--bg-color); /* Use global background color */
-  color: var(--text-color); /* Use global text color */
-  box-shadow: var(--shadow); /* Use global shadow */
-  transition: all 0.2s ease-in-out;
 }
 
-.search-bar input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px var(--accent-color-transparent);
-}
-
-.accordion-item {
-  border: 1px solid var(--border-color); /* Use global border-color */
-  border-radius: var(--border-radius); /* Use global border-radius */
-  margin-bottom: var(--space-3);
-  overflow: hidden;
-  background-color: var(--surface-color); /* Use global surface color */
-  box-shadow: var(--shadow); /* Use global shadow */
-  transition: all 0.2s ease-in-out;
-}
-
-.accordion-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-}
-
-.accordion-header {
+.breadcrumbs {
   display: flex;
   align-items: center;
-  width: 100%;
-  background-color: var(--surface-color); /* Use global surface color */
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.breadcrumb {
+  background: none;
   border: none;
-  padding: var(--space-3) var(--space-4);
-  font-size: clamp(1.1rem, 1.5vw, 1.4rem); /* Responsive font size */
+  color: var(--text-color);
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  text-align: left;
-  transition: background-color 0.2s, color 0.2s;
-  color: var(--text-color); /* Use global text color */
-  font-weight: 600; /* Titles in accordions */
+  font-weight: 500;
 }
 
-.accordion-header:hover {
-  background-color: rgba(0, 0, 0, 0.35); /* Slightly darker on hover */
+.breadcrumb-active {
+  font-weight: 700;
 }
 
-.accordion-title {
-  flex-grow: 1;
-}
-
-.accordion-count {
-  margin: 0 var(--space-3);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--bg-color); /* Contrast with accent */
-  background-color: var(--accent-color); /* Use accent color */
-  padding: var(--space-1) var(--space-2);
-  border-radius: 999px; /* Pill shape */
-}
-
-.accordion-icon {
-  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+.breadcrumb-separator {
   color: var(--text-color-muted);
 }
 
-.accordion-icon.open {
-  transform: rotate(-180deg);
+.collection-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.accordion-content {
-  padding: var(--space-4);
-  background-color: rgba(0, 0, 0, 0.15); /* Slightly transparent background for content */
-  border-top: 1px solid var(--border-color);
+.collection-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
-.species-grid {
+.collection-meta-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-color-muted);
+}
+
+.collection-meta-value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.view-mode-toggle {
+  display: inline-flex;
+  border-radius: var(--border-radius);
+  background-color: var(--surface-color);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.view-mode-toggle button {
+  border: none;
+  background: none;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-color);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.view-mode-toggle .toggle-active {
+  background-color: var(--accent-color);
+  color: var(--bg-color);
+}
+
+.collection-loading,
+.collection-empty {
+  padding: var(--space-5);
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--border-color);
+  text-align: center;
+  color: var(--text-color-muted);
+}
+
+.folder-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* Responsive grid, 1 col mobile, 2/3 desktop */
-  gap: var(--space-3); /* Use global spacing */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
 }
 
-@media (min-width: 768px) {
-  .species-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
+.folder-card {
+  display: grid;
+  grid-template-rows: 120px auto;
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@media (min-width: 1024px) {
-  .species-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  }
+.folder-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.folder-preview {
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+}
+
+.folder-meta {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.folder-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.folder-rank {
+  margin: 0;
+  color: var(--text-color-muted);
+  font-size: 0.85rem;
+}
+
+.folder-count {
+  align-self: flex-end;
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.species-view {
+  flex: 1;
+  min-height: 60vh;
 }
 
 .species-card {
-  border: 1px solid var(--border-color); /* Use global border-color */
-  border-radius: var(--border-radius); /* Use global border-radius */
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  background-color: var(--surface-color); /* Use global surface color */
-  box-shadow: var(--shadow); /* Use global shadow */
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Lift effect */
-  cursor: pointer;
-}
-
-.species-card:hover {
-  transform: translateY(-4px) scale(1.01); /* Enhanced lift effect */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), 0 0 15px rgba(221, 161, 94, 0.1); /* Subtle glow on hover */
-}
-
-.species-card img {
+  background-color: var(--surface-color);
+  margin: 0;
   width: 100%;
-  height: 200px;
-  object-fit: cover;
-  background-color: rgba(0, 0, 0, 0.2); /* Darker placeholder */
-  border-bottom: 1px solid var(--border-color); /* Separator */
 }
 
-.species-info {
+.species-card.album-mode {
+  height: 100%;
+}
+
+.species-cell {
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.species-card-image {
+  width: 100%;
+  height: 140px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.species-card-body {
   padding: var(--space-3);
-  flex-grow: 1;
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
 }
 
 .species-name {
-  font-weight: 600; /* Titles in cards */
-  font-size: 1.1rem;
   margin: 0;
-  color: var(--text-color);
+  font-weight: 600;
 }
 
 .species-scientific-name {
   font-style: italic;
+  margin: 0;
   color: var(--text-color-muted);
-  margin: var(--space-1) 0;
   font-size: 0.9rem;
 }
 
 .species-stats {
+  margin: 0;
   font-size: 0.85rem;
   color: var(--text-color-muted);
-  margin-top: auto;
-  padding-top: var(--space-2);
-  border-top: 1px dashed rgba(255, 255, 255, 0.1); /* Subtle separator */
 }
 
-/* Specific styling for when no species are collected or found */
-.collection-list > p {
-  text-align: center;
-  color: var(--text-color-muted);
-  font-size: 1.1rem;
-  margin-top: var(--space-5);
+.species-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-color);
 }
 
-/* Spinner adjustment for centering */
-.collection-page .spinner-container {
-    padding: var(--space-5);
+.species-row:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.species-row-image {
+  width: 80px;
+  height: 60px;
+  border-radius: var(--border-radius);
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.species-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.species-row-inner {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bronze-frame {
+  border-color: #b37345;
+  box-shadow: 0 0 0 2px rgba(179, 115, 69, 0.4);
+}
+
+.silver-frame {
+  border-color: #b7bec7;
+  box-shadow: 0 0 0 2px rgba(183, 190, 199, 0.35);
+}
+
+.gold-frame {
+  border-color: #f5c25f;
+  box-shadow: 0 0 15px rgba(245, 194, 95, 0.35), 0 0 20px rgba(255, 255, 255, 0.3);
+  animation: gold-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes gold-glow {
+  from {
+    box-shadow: 0 0 12px rgba(245, 194, 95, 0.35), 0 0 16px rgba(255, 255, 255, 0.2);
+  }
+  to {
+    box-shadow: 0 0 18px rgba(245, 194, 95, 0.55), 0 0 22px rgba(255, 255, 255, 0.35);
+  }
 }

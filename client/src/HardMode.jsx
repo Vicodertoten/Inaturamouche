@@ -7,6 +7,7 @@ import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
+import { getQuestionThumbnail } from './utils/imageUtils';
 import StreakBadge from './components/StreakBadge';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
@@ -14,8 +15,8 @@ import { useUser } from './context/UserContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
-const INITIAL_GUESSES = 6;
-const REVEAL_HINT_COST = 2;
+const INITIAL_GUESSES = 3;
+const REVEAL_HINT_COST = 1;
 
 const SCORE_PER_RANK = {
   kingdom: 5,
@@ -69,6 +70,7 @@ function HardMode() {
   }, [question?.bonne_reponse, t]);
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
+  const hasRecordedRef = useRef(false);
 
   const targetLineage = useMemo(() => {
     const lineage = {};
@@ -112,7 +114,17 @@ function HardMode() {
       hintCount: 0,
     });
     setActiveRank(RANKS[0]);
+    hasRecordedRef.current = false;
   }, [question, score]);
+
+  useEffect(() => {
+    if (roundStatus === 'playing' || hasRecordedRef.current) return;
+    const species = question?.bonne_reponse;
+    if (!species) return;
+    const thumbnail = getQuestionThumbnail(question);
+    updatePokedex(species, roundStatus === 'win', thumbnail);
+    hasRecordedRef.current = true;
+  }, [question, roundStatus, updatePokedex]);
   
   useEffect(() => {
     return () => {
@@ -248,13 +260,6 @@ function HardMode() {
     setRoundStatus('playing');
     setScoreInfo(null);
   
-    const isCorrect = roundStatus === 'win';
-    const species = question.bonne_reponse;
-    const thumbnail = question.image_urls?.[0];
-    if (species) {
-      updatePokedex(species, isCorrect, thumbnail);
-    }
-  
     const result = {
       points: scoreInfo?.points || 0,
       bonus: scoreInfo?.bonus || 0,
@@ -295,14 +300,8 @@ function HardMode() {
         }));
 
         const isSpecies = firstUnknownRank === 'species';
-        const speciesPoints = isSpecies ? (SCORE_PER_RANK.species || 0) : 0;
-        const updatedScore = isSpecies ? currentScore + speciesPoints : currentScore;
-        if (isSpecies && speciesPoints > 0) {
-          setCurrentScore(updatedScore);
-        }
-        
         if (isSpecies) {
-          const roundPoints = updatedScore - score;
+          const roundPoints = currentScore - score;
           const { points, bonus } = computeScore({
             mode: 'hard',
             basePoints: roundPoints,
