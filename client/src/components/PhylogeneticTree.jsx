@@ -350,7 +350,7 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
           });
           return;
         }
-        const truncated = summary.length > 260 ? `${summary.slice(0, 260)}…` : summary;
+        const truncated = summary.length > 120 ? `${summary.slice(0, 120)}…` : summary;
         const pageUrl =
           data?.content_urls?.desktop?.page ||
           data?.content_urls?.mobile?.page ||
