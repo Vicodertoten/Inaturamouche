@@ -24,6 +24,7 @@ const EasyMode = () => {
     currentStreak,
     nextImageUrl,
     completeRound,
+    endGame,
     updateScore,
   } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
@@ -180,9 +181,14 @@ const EasyMode = () => {
                 {t('easy.hint_button', { cost: HINT_COST_EASY })}
               </button>
             </div>
-            <div className="score-container">
-              {hasQuestionLimit && <h2 className="score">{t('easy.score_label', { score })}</h2>}
-              <StreakBadge streak={currentStreak} />
+            <div className="header-right">
+              <div className="score-container">
+                {hasQuestionLimit && <h2 className="score">{t('easy.score_label', { score })}</h2>}
+                <StreakBadge streak={currentStreak} />
+              </div>
+              <button onClick={endGame} className="action-button quit" type="button">
+                {t('common.finish')}
+              </button>
             </div>
           </header>
 

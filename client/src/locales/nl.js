@@ -18,6 +18,7 @@ const nl = {
     score: 'Score',
     next_question: 'Volgende vraag',
     quit: 'Stoppen',
+    finish: 'Beëindigen',
     hint: 'Hint',
     preferences_menu_label: 'Instellingen openen',
     preferences_title: 'Instellingen',
