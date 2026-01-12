@@ -40,7 +40,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scale, setScale] = useState(1);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
-  const [isLoaded, setIsLoaded] = useState(true);
+  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+  const [isLowResLoaded, setIsLowResLoaded] = useState(false);
   const [aspectRatio, setAspectRatio] = useState();
   const [isPortrait, setIsPortrait] = useState(false);
   const [maxZoom, setMaxZoom] = useState(BASE_MAX_ZOOM);
@@ -58,21 +59,23 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     setCurrentIndex(0);
     setScale(1);
     setTransform({ x: 0, y: 0 });
-    setIsLoaded(true);
+    setIsHighResLoaded(false);
+    setIsLowResLoaded(false);
     setIsPortrait(false);
     setMaxZoom(BASE_MAX_ZOOM);
   }, [imageUrls]);
 
   useEffect(() => {
-    setIsLoaded(currentIndex === 0);
+    setIsHighResLoaded(false);
+    setIsLowResLoaded(false);
+    setAspectRatio(undefined);
+    setIsPortrait(false);
   }, [currentIndex]);
 
   useEffect(() => {
     if (!nextImageUrl) return;
     const link = document.createElement('link');
-    // Use "prefetch" instead of "preload" to avoid browser warnings when the
-    // next image isn't displayed quickly enough.
-    link.rel = 'prefetch';
+    link.rel = 'preload';
     link.as = 'image';
     link.href = getSizedImageUrl(nextImageUrl, 'medium');
     document.head.appendChild(link);
@@ -153,7 +156,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const handlePointerLeave = endPointer;
 
   const handleImageLoad = (e) => {
-    setIsLoaded(true);
+    setIsHighResLoaded(true);
     const { naturalWidth, naturalHeight } = e.target;
     if (naturalWidth && naturalHeight) {
       setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
@@ -164,6 +167,9 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
       setMaxZoom(computedMax);
     }
   };
+  const handleLowResLoad = () => {
+    setIsLowResLoaded(true);
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); handleNext(); }
@@ -171,14 +177,26 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleImageClick(); }
   };
 
-  if (!imageUrls || imageUrls.length === 0) {
-    return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
-  }
+  const hasImages = Array.isArray(imageUrls) && imageUrls.length > 0;
 
   const currentMeta = useMemo(() => {
-    if (!photoMeta || !photoMeta.length) return null;
+    if (!hasImages || !photoMeta || !photoMeta.length) return null;
     return photoMeta[currentIndex] || null;
-  }, [photoMeta, currentIndex]);
+  }, [hasImages, photoMeta, currentIndex]);
+
+  const lowResUrl = useMemo(() => {
+    if (!hasImages) return null;
+    return getSizedImageUrl(imageUrls[currentIndex], 'small');
+  }, [hasImages, imageUrls, currentIndex]);
+
+  const highResUrl = useMemo(() => {
+    if (!hasImages) return null;
+    return getSizedImageUrl(imageUrls[currentIndex], 'medium');
+  }, [hasImages, imageUrls, currentIndex]);
+
+  if (!hasImages) {
+    return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
+  }
 
   return (
     <div className="image-viewer-container">
@@ -201,8 +219,17 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
         {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
         <div className="image-box" style={{ position: 'relative' }} ref={imageBoxRef}>
           <img
-            src={getSizedImageUrl(imageUrls[currentIndex], 'medium')}
-            srcSet={`${getSizedImageUrl(imageUrls[currentIndex], 'small')} 300w, ${getSizedImageUrl(imageUrls[currentIndex], 'medium')} 600w`}
+            className={`image-lqip ${isLowResLoaded ? 'is-ready' : ''} ${isHighResLoaded ? 'is-hidden' : ''}`}
+            src={lowResUrl}
+            alt=""
+            aria-hidden="true"
+            onLoad={handleLowResLoad}
+            draggable={false}
+          />
+          <img
+            className={`image-main ${isHighResLoaded ? 'is-loaded' : ''}`}
+            src={highResUrl}
+            srcSet={`${lowResUrl} 300w, ${highResUrl} 600w`}
             sizes="(max-width: 600px) 100vw, 600px"
             alt={alt}
             {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
@@ -214,13 +241,15 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
               maxHeight: '50vh',
               aspectRatio,
               transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
-              transition: (isPanning.current || initialPinchDistance.current) ? 'none' : 'transform 0.3s ease',
+              transition: (isPanning.current || initialPinchDistance.current)
+                ? 'opacity 0.3s ease'
+                : 'opacity 0.3s ease, transform 0.3s ease',
               display: 'block' // évite le whitespace inline
             }}
             draggable={false}
           />
 
-          {!isLoaded && currentIndex !== 0 && <div className="image-placeholder" />}
+          {!isLowResLoaded && !isHighResLoaded && <div className="image-placeholder" />}
 
           {imageUrls.length > 1 && (
             <div

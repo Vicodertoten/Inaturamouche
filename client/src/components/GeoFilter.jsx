@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -15,13 +15,16 @@ function BBoxSelector({ value, onChange }) {
   const boundsRef = useRef(null);
   const cleanupRef = useRef([]);
 
-  const toBounds = (sw, ne) =>
-    L.latLngBounds(
-      L.latLng(Math.min(sw.lat, ne.lat), Math.min(sw.lng, ne.lng)),
-      L.latLng(Math.max(sw.lat, ne.lat), Math.max(sw.lng, ne.lng))
-    );
+  const toBounds = useCallback(
+    (sw, ne) =>
+      L.latLngBounds(
+        L.latLng(Math.min(sw.lat, ne.lat), Math.min(sw.lng, ne.lng)),
+        L.latLng(Math.max(sw.lat, ne.lat), Math.max(sw.lng, ne.lng))
+      ),
+    []
+  );
 
-  function emitChangeFromBounds(b) {
+  const emitChangeFromBounds = useCallback((b) => {
     const sw = b.getSouthWest();
     const ne = b.getNorthEast();
     onChange({
@@ -31,9 +34,9 @@ function BBoxSelector({ value, onChange }) {
       swlat: +sw.lat.toFixed(6),
       swlng: +sw.lng.toFixed(6),
     });
-  }
+  }, [onChange]);
 
-  function placeHandles(b) {
+  const placeHandles = useCallback((b) => {
     const SW = b.getSouthWest();
     const NE = b.getNorthEast();
     const NW = L.latLng(NE.lat, SW.lng);
@@ -56,14 +59,14 @@ function BBoxSelector({ value, onChange }) {
     set("e", eMid);
     set("w", wMid);
     set("center", center);
-  }
+  }, []);
 
-  function setBounds(b, { commit = false } = {}) {
+  const setBounds = useCallback((b, { commit = false } = {}) => {
     boundsRef.current = b;
     rectRef.current?.setBounds(b);
     placeHandles(b);
     if (commit) emitChangeFromBounds(b);
-  }
+  }, [emitChangeFromBounds, placeHandles]);
 
   useEffect(() => {
     if (!map) return;
@@ -231,7 +234,7 @@ function BBoxSelector({ value, onChange }) {
       drawingRef.current = null;
       boundsRef.current = null;
     };
-  }, [map, value]);
+  }, [map, setBounds, toBounds, value]);
 
   useEffect(() => {
     if (value?.mode !== "map") return;
@@ -243,7 +246,7 @@ function BBoxSelector({ value, onChange }) {
     const cur = boundsRef.current;
     if (cur && cur.equals(b)) return;
     setBounds(b);
-  }, [value?.mode, value?.swlat, value?.swlng, value?.nelat, value?.nelng]);
+  }, [setBounds, toBounds, value?.mode, value?.swlat, value?.swlng, value?.nelat, value?.nelng]);
 
   return null;
 }

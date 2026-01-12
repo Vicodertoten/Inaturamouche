@@ -8,7 +8,7 @@ import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
 import StreakBadge from './components/StreakBadge';
-import { useGame } from './context/GameContext';
+import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 
@@ -37,7 +37,7 @@ function HardMode() {
     mediaType,
     questionCount,
     maxQuestions,
-  } = useGame();
+  } = useGameData();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
@@ -58,6 +58,13 @@ function HardMode() {
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
+  const imageAlt = useMemo(() => {
+    const taxon = question?.bonne_reponse;
+    const common = taxon?.preferred_common_name || taxon?.common_name;
+    const scientific = taxon?.name;
+    if (common && scientific && common !== scientific) return `${common} (${scientific})`;
+    return common || scientific || t('hard.image_alt');
+  }, [question?.bonne_reponse, t]);
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
 
@@ -219,7 +226,6 @@ function HardMode() {
       }
 
     } catch (error) {
-      console.error("Erreur de validation", error);
       showFeedback(t('hard.feedback.error'), 'error');
       triggerPanelShake();
       if (updatedGuesses <= 0) {
@@ -375,7 +381,7 @@ function HardMode() {
                     <ImageViewer
                       imageUrls={question.image_urls || [question.image_url]}
                       photoMeta={question.image_meta}
-                      alt={t('hard.image_alt')}
+                      alt={imageAlt}
                       nextImageUrl={nextImageUrl}
                     />
                   )}

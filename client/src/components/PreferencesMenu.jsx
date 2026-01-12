@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './PreferencesMenu.css';
 
@@ -166,7 +166,7 @@ function PreferencesMenu() {
                     aria-pressed={isActive}
                   >
                     <span className="format-icon" aria-hidden="true">
-                      <Icon />
+                      {React.createElement(Icon)}
                     </span>
                     <span className="format-label">{t(labelKey)}</span>
                   </button>

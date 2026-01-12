@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -103,7 +104,8 @@ const getBiomesForQuestion = (question, pack) => {
   return [];
 };
 
-const GameContext = createContext(null);
+const GameDataContext = createContext(null);
+const GameUIContext = createContext(null);
 
 export function GameProvider({ children }) {
   const { profile, updateProfile, queueAchievements } = useUser();
@@ -265,7 +267,6 @@ export function GameProvider({ children }) {
     return params;
   }, [
     activePack,
-    activePackId,
     customFilters,
     isReviewMode,
     language,
@@ -682,49 +683,100 @@ export function GameProvider({ children }) {
 
   const canStartReview = (profile?.stats?.missedSpecies?.length || 0) >= DEFAULT_MAX_QUESTIONS;
 
-  const value = {
-    activePackId,
-    setActivePackId,
-    customFilters,
-    dispatchCustomFilters,
-    gameMode,
-    setGameMode,
-    isGameActive,
-    isGameOver,
-    question,
-    nextQuestion,
-    loading,
-    error,
-    clearError,
-    questionCount,
-    maxQuestions,
-    setMaxQuestions,
-    mediaType,
-    setMediaType,
-    score,
-    sessionStats,
-    sessionCorrectSpecies,
-    sessionSpeciesData,
-    sessionMissedSpecies,
-    currentStreak,
-    streakTier,
-    activePerks,
-    currentMultiplier,
-    newlyUnlocked,
-    nextImageUrl,
-    updateScore,
-    completeRound,
-    endGame,
-    startGame,
-    resetToLobby,
-    canStartReview,
-  };
+  const dataValue = useMemo(
+    () => ({
+      activePackId,
+      setActivePackId,
+      customFilters,
+      dispatchCustomFilters,
+      gameMode,
+      setGameMode,
+      isGameActive,
+      isGameOver,
+      question,
+      nextQuestion,
+      questionCount,
+      maxQuestions,
+      setMaxQuestions,
+      mediaType,
+      setMediaType,
+      score,
+      sessionStats,
+      sessionCorrectSpecies,
+      sessionSpeciesData,
+      sessionMissedSpecies,
+      currentStreak,
+      streakTier,
+      activePerks,
+      currentMultiplier,
+      newlyUnlocked,
+      nextImageUrl,
+      updateScore,
+      completeRound,
+      endGame,
+      startGame,
+      resetToLobby,
+      canStartReview,
+    }),
+    [
+      activePackId,
+      customFilters,
+      gameMode,
+      isGameActive,
+      isGameOver,
+      question,
+      nextQuestion,
+      questionCount,
+      maxQuestions,
+      mediaType,
+      score,
+      sessionStats,
+      sessionCorrectSpecies,
+      sessionSpeciesData,
+      sessionMissedSpecies,
+      currentStreak,
+      streakTier,
+      activePerks,
+      currentMultiplier,
+      newlyUnlocked,
+      nextImageUrl,
+      updateScore,
+      completeRound,
+      endGame,
+      startGame,
+      resetToLobby,
+      canStartReview,
+    ]
+  );
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  const uiValue = useMemo(
+    () => ({
+      loading,
+      error,
+      clearError,
+    }),
+    [loading, error, clearError]
+  );
+
+  return (
+    <GameUIContext.Provider value={uiValue}>
+      <GameDataContext.Provider value={dataValue}>{children}</GameDataContext.Provider>
+    </GameUIContext.Provider>
+  );
+}
+
+export function useGameData() {
+  const context = useContext(GameDataContext);
+  if (!context) throw new Error('useGameData must be used within a GameProvider');
+  return context;
+}
+
+export function useGameUI() {
+  const context = useContext(GameUIContext);
+  if (!context) throw new Error('useGameUI must be used within a GameProvider');
+  return context;
 }
 
 export function useGame() {
-  const context = useContext(GameContext);
-  if (!context) throw new Error('useGame must be used within a GameProvider');
-  return context;
+  return { ...useGameData(), ...useGameUI() };
 }

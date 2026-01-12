@@ -317,11 +317,12 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
   useEffect(() => {
     if (!hoveredNodeData?.discovered || !hoveredNodeData?.wikiTitle || !hoveredNodeData?.wikiKey) return;
     const wikiKey = hoveredNodeData.wikiKey;
+    const inFlight = wikiInFlightRef.current;
     const cachedEntry = wikiCacheRef.current[wikiKey];
     if (cachedEntry?.status === 'loaded' || cachedEntry?.status === 'error') return;
-    if (wikiInFlightRef.current.has(wikiKey)) return;
+    if (inFlight.has(wikiKey)) return;
 
-    wikiInFlightRef.current.add(wikiKey);
+    inFlight.add(wikiKey);
     setWikiCache((prev) => {
       const next = { ...prev, [wikiKey]: { status: 'loading', title: hoveredNodeData.wikiTitle } };
       wikiCacheRef.current = next;
@@ -379,13 +380,13 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
         });
       })
       .finally(() => {
-        wikiInFlightRef.current.delete(wikiKey);
+        inFlight.delete(wikiKey);
       });
 
     return () => {
       cancelled = true;
       controller.abort();
-      wikiInFlightRef.current.delete(wikiKey);
+      inFlight.delete(wikiKey);
     };
   }, [hoveredNodeData]);
 
@@ -500,4 +501,23 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
   );
 }
 
-export default PhylogeneticTree;
+const areTreePropsEqual = (prev, next) => {
+  if (prev.activeRank !== next.activeRank) return false;
+  const prevTarget = prev.targetTaxon;
+  const nextTarget = next.targetTaxon;
+  if ((prevTarget?.id ?? null) !== (nextTarget?.id ?? null)) return false;
+  const prevAncestors = prevTarget?.ancestors || [];
+  const nextAncestors = nextTarget?.ancestors || [];
+  if (prevAncestors.length !== nextAncestors.length) return false;
+  for (let i = 0; i < prevAncestors.length; i++) {
+    if (prevAncestors[i]?.id !== nextAncestors[i]?.id) return false;
+  }
+  for (const rank of RANKS) {
+    const prevId = prev.knownTaxa?.[rank]?.taxon?.id ?? prev.knownTaxa?.[rank]?.id ?? null;
+    const nextId = next.knownTaxa?.[rank]?.taxon?.id ?? next.knownTaxa?.[rank]?.id ?? null;
+    if (prevId !== nextId) return false;
+  }
+  return true;
+};
+
+export default React.memo(PhylogeneticTree, areTreePropsEqual);

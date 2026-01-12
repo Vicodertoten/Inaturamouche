@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ACHIEVEMENTS } from '../achievements';
 import { useUser } from '../context/UserContext';
 import { getTaxaByIds } from '../services/api';
+import { notify } from '../services/notifications.js';
 import { resetProfile } from '../services/PlayerProfile';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -114,7 +115,9 @@ const ProfilePage = () => {
         });
         setMasteryDetails(detailsWithCount);
       } catch (error) {
-        console.error('Erreur chargement des espèces maîtrisées:', error);
+        if (!error?.notified) {
+          notify('Impossible de charger les especes maitrisees.', { type: 'error' });
+        }
       }
       setIsLoadingMastery(false);
     };
@@ -135,7 +138,7 @@ const ProfilePage = () => {
     refreshProfile();
     setIsResetModalOpen(false);
     setIsEditingName(false);
-  }, [refreshProfile, resetProfile]);
+  }, [refreshProfile]);
 
   const handleBack = useCallback(() => {
     const historyState = window.history.state || {};

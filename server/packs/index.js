@@ -1,6 +1,19 @@
 import europeanMushrooms from "../../shared/data/common_european_mushrooms.json" with { type: "json" };
 import europeanTrees from "../../shared/data/common_european_trees.json" with { type: "json" };
 
+/**
+ * @typedef {Object} PackDefinition
+ * @property {string} id
+ * @property {"custom" | "list" | "dynamic"} type
+ * @property {string} titleKey
+ * @property {string} descriptionKey
+ * @property {string[]} [taxa_ids]
+ * @property {Record<string, string>} [api_params]
+ */
+
+/**
+ * @type {PackDefinition[]}
+ */
 const PACK_DEFINITIONS = [
   {
     id: "custom",
@@ -70,6 +83,11 @@ const PACK_DEFINITIONS = [
   },
 ];
 
+/**
+ * Returns the public pack catalog.
+ *
+ * @returns {Array<Pick<PackDefinition, "id" | "type" | "titleKey" | "descriptionKey">>}
+ */
 export function listPublicPacks() {
   return PACK_DEFINITIONS.map(({ id, type, titleKey, descriptionKey }) => ({
     id,
@@ -79,6 +97,12 @@ export function listPublicPacks() {
   }));
 }
 
+/**
+ * Finds a pack definition by id.
+ *
+ * @param {string} id
+ * @returns {PackDefinition | undefined}
+ */
 export function findPackById(id) {
   return PACK_DEFINITIONS.find((pack) => pack.id === id);
 }

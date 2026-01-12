@@ -3,9 +3,10 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AchievementModal from './AchievementModal';
 import HelpModal from './HelpModal';
 import PreferencesMenu from './PreferencesMenu';
+import ToastContainer from './ToastContainer';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.png';
-import { useGame } from '../context/GameContext';
+import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -31,7 +32,7 @@ const ProfileIcon = () => (
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isGameActive, isGameOver, resetToLobby } = useGame();
+  const { isGameActive, isGameOver, resetToLobby } = useGameData();
   const { achievementQueue, popAchievement } = useUser();
   const { t } = useLanguage();
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
@@ -62,6 +63,7 @@ const AppLayout = () => {
       {achievementQueue[0] && (
         <AchievementModal achievementId={achievementQueue[0]} onClose={popAchievement} />
       )}
+      <ToastContainer />
 
       <nav className="main-nav">
         <div className="nav-actions">

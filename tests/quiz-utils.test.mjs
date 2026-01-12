@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildCacheKey, effectiveCooldownN, lcaDepth, shuffleFisherYates } from "../lib/quiz-utils.js";
-import { SimpleLRUCache } from "../lib/simple-lru.js";
+import { SmartCache } from "../lib/smart-cache.js";
 
 test("buildCacheKey sorts keys and flattens arrays", () => {
   const key = buildCacheKey({ b: 2, a: ["x", "y"], c: 3 });
@@ -26,8 +26,8 @@ test("shuffleFisherYates keeps all items", () => {
   assert.deepEqual(arr.sort(), shuffled.slice().sort());
 });
 
-test("SimpleLRUCache evicts oldest entries", () => {
-  const cache = new SimpleLRUCache({ max: 2, ttl: 0 });
+test("SmartCache evicts oldest entries", () => {
+  const cache = new SmartCache({ max: 2, ttl: 0 });
   cache.set("a", 1);
   cache.set("b", 2);
   cache.set("c", 3);

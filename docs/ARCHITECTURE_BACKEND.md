@@ -50,10 +50,13 @@ export function effectiveCooldownN(baseN, taxonListLen, quizChoices) { ... }
 
 ## Stratégie de cache
 
-- **SimpleLRUCache** (in-memory) :  
-  - `questionCache` (TTL 5 min, max 50) stocke `byTaxon`, `taxonList`, `version` (timestamp).  
-  - `autocompleteCache` (TTL 10 min, max 50) pour `/api/places` et `/api/taxa/autocomplete`.  
-  - `selectionStateCache` (TTL 10 min, max 200) pour les decks par client (non partagé entre utilisateurs).  
+- **SmartCache** (LRU + SWR) :  
+  - `questionCache` (TTL 5 min, stale 15 min, max 50) stocke `byTaxon`, `taxonList`, `version` (timestamp).  
+  - `autocompleteCache` (TTL 10 min, stale 1h, max 50) pour `/api/places` et `/api/taxa/autocomplete`.  
+  - `taxonDetailsCache` (TTL 24h, stale 7j, max 2000) pour les détails iNat.  
+  - `selectionStateCache` (TTL 10 min, max 200) pour les decks/targets par client (non partagé entre utilisateurs).  
+  - `questionQueueCache` (TTL 10 min) pour maintenir 3 questions d'avance par client.  
+- **Circuit Breaker** : coupe les appels iNat en cas d'échecs répétés et bascule sur les packs locaux.  
 - **Limites** : pas de persistance ni distribution multi-instance ; en cas de scaling horizontal, prévoir un store partagé (Redis) ou coller l'affinité client→instance. Les TTL courtes réduisent la dérive mais n'empêchent pas des doublons si plusieurs pods servent un même client.
 
 ## Observabilité & Debug
@@ -68,5 +71,5 @@ export function effectiveCooldownN(baseN, taxonListLen, quizChoices) { ... }
 ## Algorithmes anti-répétition
 
 - **Cooldown cible** : `effectiveCooldownN` borne la profondeur mémoire (`COOLDOWN_TARGET_N`) en fonction du nombre de taxons disponibles (évite l'épuisement). Option TTL (`COOLDOWN_TARGET_MS`) désactivée par défaut.  
-- **Sans remise observation** : `recentObsSet`/`recentObsQueue` limite la réutilisation d'une même observation (`RECENT_OBS_MAX`).  
-- **Shuffle résilient** : le deck est re-mélangé dès qu'il est consommé, et le curseur ne s'incrémente que sur un taxon éligible.
+- **Sans remise observation** : `HistoryBuffer` (50 derniers IDs) bloque la réapparition immédiate des observations vues.  
+- **Deck taxons** : `taxonDeck` est mélangé (Fisher-Yates) et consommé en pile, avec filtrage des taxons non éligibles.
