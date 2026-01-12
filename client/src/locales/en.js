@@ -164,6 +164,12 @@ const en = {
       not_enough_guesses: 'Not enough chances for that hint!',
       hint_used: 'Hint used! The "{rank}" rank has been revealed.',
     },
+    phylo: {
+      title: 'Phylogenetic tree',
+      root: 'Life',
+      more: 'Open Wikipedia',
+      unavailable: 'Information unavailable',
+    },
   },
   imageViewer: {
     loading: 'Loading...',
