@@ -35,6 +35,8 @@ function HardMode() {
     completeRound,
     endGame,
     mediaType,
+    questionCount,
+    maxQuestions,
   } = useGame();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
@@ -55,6 +57,7 @@ function HardMode() {
   const soundUrl = question?.sounds?.[0]?.file_url;
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
+  const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
 
@@ -337,6 +340,12 @@ function HardMode() {
               <div className="stat-pill score-pill">
                 <span className="pill-label">{t('hard.stats.score', {}, 'Score')}</span>
                 <span className="pill-value">{currentScore}</span>
+              </div>
+              <div className="stat-pill">
+                <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
+                <span className="pill-value">
+                  {hasQuestionLimit ? `${questionCount}/${maxQuestions}` : questionCount}
+                </span>
               </div>
               <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
                 <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>

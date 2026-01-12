@@ -34,8 +34,8 @@ const EasyMode = () => {
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
   const headerLabel = hasQuestionLimit
-    ? t('easy.question_counter', { current: questionCount, total: maxQuestions })
-    : t('easy.score_label', { score });
+    ? t('common.question_counter', { current: questionCount, total: maxQuestions })
+    : t('common.question_counter_infinite', { current: questionCount });
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
@@ -183,7 +183,7 @@ const EasyMode = () => {
             </div>
             <div className="header-right">
               <div className="score-container">
-                {hasQuestionLimit && <h2 className="score">{t('easy.score_label', { score })}</h2>}
+                <h2 className="score">{t('easy.score_label', { score })}</h2>
                 <StreakBadge streak={currentStreak} />
               </div>
               <button onClick={endGame} className="action-button quit" type="button">

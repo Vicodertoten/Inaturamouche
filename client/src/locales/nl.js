@@ -31,6 +31,8 @@ const nl = {
     scientific_preference_label: 'Wetenschappelijke naam voorrang geven',
     scientific_preference_help: 'Gebruik de Latijnse naam wanneer mogelijk.',
     pack_description_label: 'Over dit pack',
+    question_counter: 'Vraag {current}/{total}',
+    question_counter_infinite: 'Vraag {current}',
   },
   nav: {
     help_label: 'Help en informatie',
@@ -146,6 +148,11 @@ const nl = {
   hard: {
     title: 'Identificeer de soort',
     stats_line: 'Kansen: {guesses} | Score: {score}',
+    stats: {
+      score: 'Score',
+      guesses: 'Levens',
+      question: 'Vraag',
+    },
     reveal_button: 'Onthul (-{cost} kansen)',
     image_alt: 'Soort om te identificeren',
     rank_placeholder: 'Voer een {rank} in...',

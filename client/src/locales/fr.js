@@ -31,6 +31,8 @@ const fr = {
     scientific_preference_label: 'Prioriser le nom scientifique',
     scientific_preference_help: 'Utiliser le nom latin lorsque possible.',
     pack_description_label: 'À propos du pack',
+    question_counter: 'Question {current}/{total}',
+    question_counter_infinite: 'Question {current}',
   },
   nav: {
     help_label: 'Aide et informations',
@@ -146,6 +148,11 @@ const fr = {
   hard: {
     title: "Identifier l'espèce",
     stats_line: 'Chances : {guesses} | Score : {score}',
+    stats: {
+      score: 'Score',
+      guesses: 'Vies',
+      question: 'Question',
+    },
     reveal_button: 'Révéler (-{cost} chances)',
     image_alt: 'Espèce à identifier',
     rank_placeholder: 'Entrez un {rank}...',
