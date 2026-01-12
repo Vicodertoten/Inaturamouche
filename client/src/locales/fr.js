@@ -164,6 +164,12 @@ const fr = {
       not_enough_guesses: 'Pas assez de chances pour cet indice !',
       hint_used: 'Indice utilisé ! Le rang "{rank}" a été révélé.',
     },
+    phylo: {
+      title: 'Arbre phylogénétique',
+      root: 'Vie',
+      more: 'Ouvrir Wikipédia',
+      unavailable: 'Informations non disponibles',
+    },
   },
   imageViewer: {
     loading: 'Chargement...',

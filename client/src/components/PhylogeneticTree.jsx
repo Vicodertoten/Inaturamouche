@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -27,8 +27,22 @@ const buildLinearTree = (nodes, rootLabel) => {
 
 function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
   const svgRef = useRef(null);
-  const tooltipRef = useRef(null);
-  const { t, getTaxonDisplayNames } = useLanguage();
+  const scrollRef = useRef(null);
+  const cardRef = useRef(null);
+  const hoverTimerRef = useRef(null);
+  const hideTimerRef = useRef(null);
+  const hoverStateRef = useRef({ nodeHovered: false, cardHovered: false });
+  const wikiCacheRef = useRef({});
+  const wikiInFlightRef = useRef(new Set());
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [cardPosition, setCardPosition] = useState({ left: 0, top: 0 });
+  const [wikiCache, setWikiCache] = useState({});
+  const { t, getTaxonDisplayNames, language } = useLanguage();
+
+  const wikiLanguage = useMemo(() => {
+    if (language === 'fr' || language === 'en' || language === 'nl') return language;
+    return 'fr';
+  }, [language]);
 
   const lineageByRank = useMemo(() => {
     if (!targetTaxon) return {};
@@ -44,7 +58,7 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
     return map;
   }, [targetTaxon]);
 
-  const treeData = useMemo(() => {
+  const { treeRoot, nodeByRank } = useMemo(() => {
     const rankLabels = RANKS.reduce((acc, rank) => {
       acc[rank] = t(`ranks.${rank}`);
       return acc;
@@ -55,33 +69,38 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
       const taxon = knownEntry?.taxon || lineageByRank[rank];
       const { primary, secondary } = knownEntry ? getTaxonDisplayNames(knownEntry.taxon) : { primary: '', secondary: '' };
       const displayName = knownEntry ? primary : rankLabels[rank] || rank;
+      const wikiTitle =
+        taxon?.name || taxon?.preferred_common_name || taxon?.common_name || taxon?.commonName || '';
+      const wikiKey = wikiTitle ? `${wikiLanguage}:${wikiTitle}` : null;
 
       return {
         rank,
         known: Boolean(knownEntry),
+        discovered: Boolean(knownEntry),
         label: displayName,
         secondary: knownEntry ? secondary : '',
         taxon,
         isActive: activeRank === rank,
-        wikiUrl: taxon?.wikipedia_url || (taxon?.id ? `https://www.inaturalist.org/taxa/${taxon.id}` : null),
+        rankLabel: rankLabels[rank] || rank,
+        wikiTitle,
+        wikiKey,
+        wikiLanguage,
       };
     });
 
     const rootLabel = t('hard.phylo.root', {}, 'Vie');
-    return buildLinearTree(nodes, rootLabel);
-  }, [activeRank, getTaxonDisplayNames, knownTaxa, lineageByRank, t]);
+    const nodeByRank = nodes.reduce((acc, node) => {
+      acc[node.rank] = node;
+      return acc;
+    }, {});
+    return { treeRoot: buildLinearTree(nodes, rootLabel), nodeByRank };
+  }, [activeRank, getTaxonDisplayNames, knownTaxa, lineageByRank, t, wikiLanguage]);
+
+  const hoveredNodeData = hoveredNode ? nodeByRank[hoveredNode.rank] : null;
+  const hoveredWikiEntry = hoveredNodeData?.wikiKey ? wikiCache[hoveredNodeData.wikiKey] : null;
 
   useEffect(() => {
     const svg = d3.select(svgRef.current);
-    let tooltipSel = tooltipRef.current ? d3.select(tooltipRef.current) : null;
-    if (!tooltipSel) {
-      tooltipSel = d3
-        .select('body')
-        .append('div')
-        .attr('class', 'phylo-tooltip')
-        .style('opacity', 0);
-      tooltipRef.current = tooltipSel.node();
-    }
 
     let rootGroup = svg.select('g.graph-root');
     if (rootGroup.empty()) {
@@ -97,7 +116,7 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
     const labelOffset = 12;
 
     const layout = d3.tree().nodeSize([54, verticalSpacing]);
-    const hierarchyRoot = d3.hierarchy(treeData);
+    const hierarchyRoot = d3.hierarchy(treeRoot);
     layout(hierarchyRoot);
 
     const visibleNodes = hierarchyRoot.descendants().filter((d) => d.depth > 0);
@@ -215,67 +234,263 @@ function PhylogeneticTree({ knownTaxa = {}, targetTaxon, activeRank }) {
       .style('opacity', 0)
       .remove();
 
-    const hideTooltip = () => {
-      tooltipSel.transition().duration(120).style('opacity', 0);
+    const clearHoverTimers = () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
     };
 
-    const showTooltip = (event, d) => {
-      if (!d.data.known || !d.data.taxon) {
-        hideTooltip();
-        return;
+    const scheduleHide = () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
       }
-      const { primary, secondary } = getTaxonDisplayNames(d.data.taxon);
-      const rankLabel = t(`ranks.${d.data.rank}`, {}, d.data.rank);
-      const wikiUrl = d.data.wikiUrl;
-      const summary =
-        d.data.taxon?.wikipedia_summary ||
-        d.data.taxon?.summary ||
-        t('hard.phylo.placeholder', {}, 'Description à venir prochainement.');
-      const truncatedSummary =
-        summary && summary.length > 240 ? `${summary.slice(0, 240)}…` : summary;
-      tooltipSel
-        .html(
-          `<div class="tooltip-rank">${rankLabel}</div>
-           <div class="tooltip-name">${primary || d.data.taxon.name}</div>
-           ${secondary ? `<div class="tooltip-secondary">${secondary}</div>` : ''}
-           <div class="tooltip-summary">${truncatedSummary}</div>
-           ${
-             wikiUrl
-               ? `<a href="${wikiUrl}" target="_blank" rel="noreferrer">${t('hard.phylo.more', {}, 'Voir la fiche')}</a>`
-               : ''
-           }`
-        )
-        .style('opacity', 1)
-        .style('left', `${event.pageX + 14}px`)
-        .style('top', `${event.pageY - 10}px`);
+      hideTimerRef.current = setTimeout(() => {
+        if (!hoverStateRef.current.nodeHovered && !hoverStateRef.current.cardHovered) {
+          setHoveredNode(null);
+        }
+      }, 140);
+    };
+
+    const scheduleShow = (event, d) => {
+      const containerEl = scrollRef.current;
+      if (!containerEl || !event.currentTarget || !d?.data?.rank) return;
+
+      const containerRect = containerEl.getBoundingClientRect();
+      const nodeRect = event.currentTarget.getBoundingClientRect();
+      const anchorX = nodeRect.left - containerRect.left + containerEl.scrollLeft + nodeRect.width / 2;
+      const anchorY = nodeRect.top - containerRect.top + containerEl.scrollTop + nodeRect.height / 2;
+
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+      hoverTimerRef.current = setTimeout(() => {
+        setHoveredNode({ rank: d.data.rank, anchorX, anchorY });
+      }, 200);
     };
 
     nodes
       .merge(nodeEnter)
-      .on('mouseenter', (event, d) => showTooltip(event, d))
-      .on('mousemove', (event, d) => showTooltip(event, d))
-      .on('mouseleave', hideTooltip)
-      .style('cursor', (d) => (d.data.known ? 'help' : 'default'))
+      .on('mouseenter', (event, d) => {
+        hoverStateRef.current.nodeHovered = true;
+        scheduleShow(event, d);
+      })
+      .on('mouseleave', () => {
+        hoverStateRef.current.nodeHovered = false;
+        if (hoverTimerRef.current) {
+          clearTimeout(hoverTimerRef.current);
+          hoverTimerRef.current = null;
+        }
+        scheduleHide();
+      })
+      .style('cursor', (d) => (d.data.known ? 'pointer' : 'default'))
       .on('click', null);
 
     return () => {
-      tooltipSel.on('.interrupt', null);
+      clearHoverTimers();
     };
-  }, [getTaxonDisplayNames, t, treeData]);
+  }, [treeRoot]);
 
-  useEffect(
-    () => () => {
-      if (tooltipRef.current) {
-        d3.select(tooltipRef.current).remove();
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
       }
-    },
-    []
-  );
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setHoveredNode(null);
+  }, [targetTaxon]);
+
+  useEffect(() => {
+    if (!hoveredNodeData?.discovered || !hoveredNodeData?.wikiTitle || !hoveredNodeData?.wikiKey) return;
+    const wikiKey = hoveredNodeData.wikiKey;
+    const cachedEntry = wikiCacheRef.current[wikiKey];
+    if (cachedEntry?.status === 'loaded' || cachedEntry?.status === 'error') return;
+    if (wikiInFlightRef.current.has(wikiKey)) return;
+
+    wikiInFlightRef.current.add(wikiKey);
+    setWikiCache((prev) => {
+      const next = { ...prev, [wikiKey]: { status: 'loading', title: hoveredNodeData.wikiTitle } };
+      wikiCacheRef.current = next;
+      return next;
+    });
+
+    const controller = new AbortController();
+    let cancelled = false;
+    const wikiBase = `https://${hoveredNodeData.wikiLanguage}.wikipedia.org/api/rest_v1/page/summary/`;
+    const wikiTitle = encodeURIComponent(hoveredNodeData.wikiTitle.replace(/ /g, '_'));
+    const wikiUrl = `${wikiBase}${wikiTitle}`;
+
+    fetch(wikiUrl, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('wiki_fetch_failed');
+        return response.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const summary = typeof data?.extract === 'string' ? data.extract.trim() : '';
+        if (!summary) {
+          setWikiCache((prev) => {
+            const next = { ...prev, [wikiKey]: { status: 'error' } };
+            wikiCacheRef.current = next;
+            return next;
+          });
+          return;
+        }
+        const truncated = summary.length > 260 ? `${summary.slice(0, 260)}…` : summary;
+        const pageUrl =
+          data?.content_urls?.desktop?.page ||
+          data?.content_urls?.mobile?.page ||
+          data?.content_urls?.canonical ||
+          null;
+        setWikiCache((prev) => {
+          const next = {
+            ...prev,
+            [wikiKey]: {
+              status: 'loaded',
+              summary: truncated,
+              title: data?.title || hoveredNodeData.wikiTitle,
+              url: pageUrl,
+            },
+          };
+          wikiCacheRef.current = next;
+          return next;
+        });
+      })
+      .catch((error) => {
+        if (cancelled || error?.name === 'AbortError') return;
+        setWikiCache((prev) => {
+          const next = { ...prev, [wikiKey]: { status: 'error' } };
+          wikiCacheRef.current = next;
+          return next;
+        });
+      })
+      .finally(() => {
+        wikiInFlightRef.current.delete(wikiKey);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      wikiInFlightRef.current.delete(wikiKey);
+    };
+  }, [hoveredNodeData]);
+
+  useLayoutEffect(() => {
+    if (!hoveredNode || !hoveredNodeData || !cardRef.current || !scrollRef.current) return;
+    const containerEl = scrollRef.current;
+    const cardRect = cardRef.current.getBoundingClientRect();
+    const gap = 12;
+    const scrollLeft = containerEl.scrollLeft;
+    const scrollTop = containerEl.scrollTop;
+    const visibleLeft = scrollLeft + gap;
+    const visibleRight = scrollLeft + containerEl.clientWidth - gap;
+    const visibleTop = scrollTop + gap;
+    const visibleBottom = scrollTop + containerEl.clientHeight - gap;
+
+    let left = hoveredNode.anchorX + gap;
+    let top = hoveredNode.anchorY - cardRect.height / 2;
+
+    if (left + cardRect.width > visibleRight) {
+      left = hoveredNode.anchorX - cardRect.width - gap;
+    }
+    if (left < visibleLeft) left = visibleLeft;
+    if (top < visibleTop) top = visibleTop;
+    if (top + cardRect.height > visibleBottom) {
+      top = visibleBottom - cardRect.height;
+    }
+
+    setCardPosition({ left, top });
+  }, [hoveredNode, hoveredNodeData, hoveredWikiEntry]);
+
+  const handleCardEnter = () => {
+    hoverStateRef.current.cardHovered = true;
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  const handleCardLeave = () => {
+    hoverStateRef.current.cardHovered = false;
+    if (!hoverStateRef.current.nodeHovered) {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+      hideTimerRef.current = setTimeout(() => {
+        if (!hoverStateRef.current.nodeHovered && !hoverStateRef.current.cardHovered) {
+          setHoveredNode(null);
+        }
+      }, 140);
+    }
+  };
+
+  const isDiscovered = hoveredNodeData?.discovered;
+  const wikiUrl = hoveredWikiEntry?.url || hoveredNodeData?.taxon?.wikipedia_url || null;
+  const summaryText = (() => {
+    if (!isDiscovered) return '';
+    if (!hoveredWikiEntry || hoveredWikiEntry.status === 'loading') {
+      return t('common.loading', {}, 'Chargement...');
+    }
+    if (hoveredWikiEntry.status === 'loaded' && hoveredWikiEntry.summary) {
+      return hoveredWikiEntry.summary;
+    }
+    return t('hard.phylo.unavailable', {}, 'Informations non disponibles');
+  })();
+
+  const cardContent = hoveredNodeData ? (
+    isDiscovered ? (
+      <>
+        <div className="phylo-card-rank">{hoveredNodeData.rankLabel}</div>
+        <div className="phylo-card-name">{hoveredNodeData.label}</div>
+        {hoveredNodeData.secondary ? <div className="phylo-card-secondary">{hoveredNodeData.secondary}</div> : null}
+        <div className="phylo-card-summary">{summaryText}</div>
+        {wikiUrl ? <div className="phylo-card-link">{t('hard.phylo.more', {}, 'Ouvrir Wikipédia')}</div> : null}
+      </>
+    ) : (
+      <div className="phylo-card-unknown">?</div>
+    )
+  ) : null;
 
   return (
     <div className="phylo-tree-shell">
-      <div className="phylo-scroll">
+      <div className="phylo-scroll" ref={scrollRef}>
         <svg ref={svgRef} className="phylo-svg" role="img" aria-label={t('hard.phylo.title', {}, 'Arbre phylogénétique')}></svg>
+        {hoveredNodeData && hoveredNode ? (
+          wikiUrl && isDiscovered ? (
+            <a
+              className={`phylo-card ${isDiscovered ? 'discovered' : 'unknown'}`}
+              href={wikiUrl}
+              target="_blank"
+              rel="noreferrer"
+              ref={cardRef}
+              style={{ left: `${cardPosition.left}px`, top: `${cardPosition.top}px` }}
+              onMouseEnter={handleCardEnter}
+              onMouseLeave={handleCardLeave}
+            >
+              {cardContent}
+            </a>
+          ) : (
+            <div
+              className={`phylo-card ${isDiscovered ? 'discovered' : 'unknown'}`}
+              ref={cardRef}
+              style={{ left: `${cardPosition.left}px`, top: `${cardPosition.top}px` }}
+              onMouseEnter={handleCardEnter}
+              onMouseLeave={handleCardLeave}
+            >
+              {cardContent}
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
