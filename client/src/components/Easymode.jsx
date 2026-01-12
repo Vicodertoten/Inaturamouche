@@ -5,6 +5,8 @@ import { computeScore } from '../utils/scoring';
 import StreakBadge from './StreakBadge';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useUser } from '../context/UserContext.jsx';
+
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
 /**
@@ -27,6 +29,7 @@ const EasyMode = () => {
     endGame,
     updateScore,
   } = useGameData();
+  const { updatePokedex } = useUser();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
@@ -56,14 +59,14 @@ const EasyMode = () => {
   const easyPairs = useMemo(() => {
     const labels = Array.isArray(question?.choix_mode_facile) ? question.choix_mode_facile : [];
     const ids = Array.isArray(question?.choix_mode_facile_ids) ? question.choix_mode_facile_ids : labels;
-    return labels.map((label, i) => {
+    return labels.map((((label, i) => {
       const id = ids[i] ?? label;
       return {
         id,
         label,
         detail: choiceDetailMap.get(String(id)),
       };
-    });
+    })));
   }, [choiceDetailMap, question]);
 
   const fallbackLabel = question?.bonne_reponse?.preferred_common_name || question?.bonne_reponse?.common_name;
@@ -126,6 +129,12 @@ const EasyMode = () => {
   };
 
   const handleNext = () => {
+    const species = question.bonne_reponse;
+    const thumbnail = question.image_urls?.[0];
+    if (species) {
+      updatePokedex(species, isCorrectAnswer, thumbnail);
+    }
+    
     completeRound({
       ...scoreInfo,
       isCorrect: isCorrectAnswer,

@@ -29,6 +29,16 @@ const ProfileIcon = () => (
   </svg>
 );
 
+const CollectionIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="5" width="9" height="14" rx="1.2" />
+    <path d="M14.5 5h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2" />
+    <path d="M14.5 6v12" />
+    <path d="M7.5 9h5" />
+    <path d="M7.5 13h5" />
+  </svg>
+);
+
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +65,10 @@ const AppLayout = () => {
     if (location.pathname !== '/profile') navigate('/profile');
   }, [location.pathname, navigate]);
 
+  const showCollection = useCallback(() => {
+    if (location.pathname !== '/collection') navigate('/collection');
+  }, [location.pathname, navigate]);
+
   const outletContext = useMemo(() => ({ showHelp }), [showHelp]);
 
   return (
@@ -65,8 +79,8 @@ const AppLayout = () => {
       )}
       <ToastContainer />
 
-      <nav className="main-nav">
-        <div className="nav-actions">
+      <nav className="main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
+        <div className="main-nav-items">
           <button
             className="nav-pill nav-icon nav-elevated"
             onClick={showHelp}
@@ -77,6 +91,15 @@ const AppLayout = () => {
             ?
           </button>
           <button
+            className="collection-button nav-pill nav-icon nav-elevated"
+            onClick={showCollection}
+            aria-label={t('nav.collection_label')}
+            title={t('nav.collection_label')}
+            type="button"
+          >
+            <CollectionIcon />
+          </button>
+          <button
             className="profile-button nav-pill nav-icon nav-elevated"
             onClick={showProfile}
             aria-label={t('nav.profile_label')}
@@ -85,8 +108,8 @@ const AppLayout = () => {
           >
             <ProfileIcon />
           </button>
+          <PreferencesMenu />
         </div>
-        <PreferencesMenu />
       </nav>
 
       <header className="app-header">

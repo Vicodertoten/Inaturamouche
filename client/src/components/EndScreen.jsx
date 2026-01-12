@@ -9,6 +9,7 @@ const EndScreen = ({
   newlyUnlocked = [],
   onRestart,
   onReturnHome,
+  profile,
 }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
   const totalQuestions = sessionSpeciesData.length || 0;
@@ -44,14 +45,19 @@ const EndScreen = ({
               {sortedSpecies.map((sp) => {
                 const isFound = sessionCorrectSpecies.includes(sp.id);
                 const { primary, secondary } = getTaxonDisplayNames(sp);
+                const isNewDiscovery = isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
+
                 return (
                   <li
                     key={sp.id}
                     className={`species-item ${isFound ? 'found' : 'missed'}`}
                   >
                     <div className="species-info">
-                      {primary && <span className="species-common">{primary}</span>}
-                      {secondary && <em>{secondary}</em>}
+                      <div>
+                        {primary && <span className="species-common">{primary}</span>}
+                        {secondary && <em>{secondary}</em>}
+                      </div>
+                      {isNewDiscovery && <span className="discovery-badge">✨ Découverte Sauvage ajoutée au Classeur !</span>}
                     </div>
                     <div className="species-links">
                       <span

@@ -116,14 +116,14 @@
   top: 1rem;
   align-self: start;
   max-width: 720px;
-  height: calc(100vh - 140px);
+  height: calc(100dvh - 140px);
 }
 
 .left-stack {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
@@ -131,7 +131,7 @@
 
 .tree-column {
   min-height: 0;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0.35rem;
@@ -192,18 +192,18 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  max-height: calc(100vh - 220px);
+  max-height: calc(100dvh - 220px);
   overflow: hidden;
   padding-top: 0.5rem;
 }
 
 .media-panel .image-wrapper {
   width: 100%;
-  max-height: calc(100vh - 240px);
+  max-height: calc(100dvh - 240px);
 }
 
 .hard-mode-container .image-wrapper.portrait {
-  max-height: calc(100vh - 200px);
+  max-height: calc(100dvh - 200px);
 }
 
 .left-stack .image-viewer-container {
@@ -478,11 +478,11 @@
 
   .media-panel {
     order: 1;
-    max-height: 50vh;
+    max-height: 50dvh;
   }
 
   .media-panel .image-wrapper {
-    max-height: 50vh;
+    max-height: 50dvh;
   }
 
   .guess-panel {

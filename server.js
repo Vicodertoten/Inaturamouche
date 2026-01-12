@@ -20,6 +20,7 @@ import fallbackTrees from "./shared/data/common_european_trees.json" with { type
 import { findPackById, listPublicPacks } from "./server/packs/index.js";
 import {
   buildCacheKey,
+  createSeededRandom,
   createShuffledDeck,
   effectiveCooldownN,
   HistoryBuffer,
@@ -232,19 +233,19 @@ const inatCircuitBreaker = new CircuitBreaker({
   halfOpenMax: INAT_CIRCUIT_HALF_OPEN_MAX,
 });
 
-function createSelectionState(pool) {
+function createSelectionState(pool, rng) {
   const historyLimit = Math.min(OBS_HISTORY_LIMIT, Math.max(0, (pool?.observationCount || 0) - 1));
   return {
     recentTargetTaxa: [],
     recentTargetSet: new Set(),
     cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
     observationHistory: new HistoryBuffer(historyLimit),
-    taxonDeck: createShuffledDeck(pool.taxonList),
+    taxonDeck: createShuffledDeck(pool.taxonList, rng),
     version: pool.version,
   };
 }
 
-function getSelectionStateForClient(cacheKey, clientId, pool, now) {
+function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
   const key = `${cacheKey}|${clientId || "anon"}`;
   let state = selectionStateCache.get(key);
   const historyLimit = Math.min(OBS_HISTORY_LIMIT, Math.max(0, (pool?.observationCount || 0) - 1));
@@ -255,7 +256,7 @@ function getSelectionStateForClient(cacheKey, clientId, pool, now) {
   ) {
     const previousHistory =
       state && state.observationHistory instanceof HistoryBuffer ? state.observationHistory : null;
-    const nextState = createSelectionState(pool);
+    const nextState = createSelectionState(pool, rng);
     if (previousHistory) {
       nextState.observationHistory = previousHistory;
       nextState.observationHistory.resize(historyLimit);
@@ -266,7 +267,7 @@ function getSelectionStateForClient(cacheKey, clientId, pool, now) {
     }
     state = nextState;
   } else if (state.taxonDeck.length === 0) {
-    state.taxonDeck = createShuffledDeck(pool.taxonList);
+    state.taxonDeck = createShuffledDeck(pool.taxonList, rng);
   }
   if (!(state.observationHistory instanceof HistoryBuffer)) {
     state.observationHistory = new HistoryBuffer(historyLimit);
@@ -711,9 +712,10 @@ function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa }) {
   };
 }
 
-async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId } = {}) {
+async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng } = {}) {
   let pagesFetched = 0;
   let startPage = 1;
+  const random = typeof rng === "function" ? rng : Math.random;
   try {
     const probeParams = { ...params, per_page: 1, page: 1 };
     const probe = await fetchInatJSON(
@@ -726,7 +728,7 @@ async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, re
       const perPage = Number(params.per_page) || 80;
       const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
       const capped = Math.max(1, Math.min(totalPages, 10));
-      startPage = Math.floor(Math.random() * capped) + 1;
+      startPage = Math.floor(random() * capped) + 1;
     }
   } catch (prefetchErr) {
     logger?.warn({ requestId, error: prefetchErr.message }, "Observation total prefetch failed");
@@ -809,6 +811,7 @@ async function getObservationPool({
   logger,
   requestId,
   fallbackContext,
+  rng,
 }) {
   questionCache.prune();
   const cachedEntry = questionCache.getEntry(cacheKey);
@@ -830,7 +833,7 @@ async function getObservationPool({
 
   const refreshPool = async () => {
     try {
-      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId });
+      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng });
       questionCache.set(cacheKey, fresh.pool);
       return { ...fresh, cacheStatus: "miss" };
     } catch (err) {
@@ -902,6 +905,8 @@ async function buildQuizQuestion({
   logger,
   requestId,
   fallbackContext,
+  rng,
+  poolRng,
 }) {
   const marks = {};
   marks.start = performance.now();
@@ -913,18 +918,31 @@ async function buildQuizQuestion({
     logger,
     requestId,
     fallbackContext,
+    rng: poolRng,
   });
 
   marks.fetchedObs = performance.now();
   marks.builtIndex = marks.fetchedObs;
 
-  const { state: selectionState } = getSelectionStateForClient(cacheKey, clientId, cacheEntry, Date.now());
+  const { state: selectionState } = getSelectionStateForClient(
+    cacheKey,
+    clientId,
+    cacheEntry,
+    Date.now(),
+    rng
+  );
   const excludeTaxaForTarget = new Set();
-  let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, Date.now(), excludeTaxaForTarget);
+  let targetTaxonId = nextEligibleTaxonId(
+    cacheEntry,
+    selectionState,
+    Date.now(),
+    excludeTaxaForTarget,
+    rng
+  );
 
   let selectionMode = "normal";
   if (!targetTaxonId) {
-    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget);
+    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, rng);
     selectionMode = "fallback_relax";
     logger?.info(
       { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
@@ -937,9 +955,13 @@ async function buildQuizQuestion({
     throw err;
   }
 
-  const targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId, {
-    allowSeen: false,
-  });
+  const targetObservation = pickObservationForTaxon(
+    cacheEntry,
+    selectionState,
+    targetTaxonId,
+    { allowSeen: false },
+    rng
+  );
   if (!targetObservation) {
     const err = new Error("Aucune observation exploitable trouvée pour le taxon cible.");
     err.status = 503;
@@ -948,7 +970,14 @@ async function buildQuizQuestion({
   rememberObservation(selectionState, targetObservation.id);
   marks.pickedTarget = performance.now();
 
-  const { lures, buckets } = buildLures(cacheEntry, selectionState, targetTaxonId, targetObservation, LURE_COUNT);
+  const { lures, buckets } = buildLures(
+    cacheEntry,
+    selectionState,
+    targetTaxonId,
+    targetObservation,
+    LURE_COUNT,
+    rng
+  );
   if (!lures || lures.length < LURE_COUNT) {
     const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
     err.status = 404;
@@ -998,7 +1027,7 @@ async function buildQuizQuestion({
 
   const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
   const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
-  const shuffledChoices = shuffleFisherYates(choiceObjects);
+  const shuffledChoices = shuffleFisherYates(choiceObjects, rng);
   const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
   const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
 
@@ -1006,7 +1035,7 @@ async function buildQuizQuestion({
     taxon_id: id,
     label: getTaxonName(details.get(String(id))),
   }));
-  const facileShuffled = shuffleFisherYates(facilePairs);
+  const facileShuffled = shuffleFisherYates(facilePairs, rng);
   const choix_mode_facile = facileShuffled.map((p) => p.label);
   const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
   const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
@@ -1056,6 +1085,8 @@ async function buildQuizQuestion({
         preferred_common_name: correct.preferred_common_name || correct.common_name || null,
         common_name: getTaxonName(correct),
         ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
+        ancestor_ids: correct.ancestor_ids,
+        iconic_taxon_id: correct.iconic_taxon_id,
         wikipedia_url: correct.wikipedia_url,
       },
       choices: shuffledChoices,
@@ -1092,7 +1123,7 @@ function hasEligibleObservation(pool, selectionState, taxonId) {
   if (!selectionState?.observationHistory) return true;
   return list.some((obs) => !selectionState.observationHistory.has(String(obs.id)));
 }
-function pickObservationForTaxon(pool, selectionState, taxonId, { allowSeen = false } = {}) {
+function pickObservationForTaxon(pool, selectionState, taxonId, { allowSeen = false } = {}, rng = Math.random) {
   const list = pool.byTaxon.get(String(taxonId)) || [];
   if (list.length === 0) return null;
   const filtered =
@@ -1100,7 +1131,8 @@ function pickObservationForTaxon(pool, selectionState, taxonId, { allowSeen = fa
       ? list.filter((o) => !selectionState.observationHistory.has(String(o.id)))
       : list.slice();
   if (!filtered.length) return null;
-  return filtered[Math.floor(Math.random() * filtered.length)];
+  const random = typeof rng === "function" ? rng : Math.random;
+  return filtered[Math.floor(random() * filtered.length)];
 }
 
 // Cooldown cible
@@ -1150,11 +1182,12 @@ function pushTargetCooldown(pool, selectionState, taxonIds, now) {
  * @param {ReturnType<typeof createSelectionState>} selectionState Per-client selection data (cursor, shuffledTaxonIds, cooldown).
  * @param {number} now Milliseconds timestamp for TTL eviction.
  * @param {Set<string>} [excludeSet] Optional explicit blocklist (e.g., taxa used as lures).
+ * @param {() => number} [rng] Optional RNG for deterministic selection.
  * @returns {string|null} Eligible taxon id or null if none available.
  */
-function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) {
+function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set(), rng = Math.random) {
   if (!Array.isArray(selectionState.taxonDeck) || selectionState.taxonDeck.length === 0) {
-    selectionState.taxonDeck = createShuffledDeck(pool.taxonList);
+    selectionState.taxonDeck = createShuffledDeck(pool.taxonList, rng);
   }
   const maxAttempts = pool.taxonList.length;
   if (maxAttempts === 0) return null;
@@ -1171,9 +1204,9 @@ function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) 
   let attempts = 0;
   while (attempts < maxAttempts) {
     if (!selectionState.taxonDeck.length) {
-      selectionState.taxonDeck = createShuffledDeck(pool.taxonList);
+      selectionState.taxonDeck = createShuffledDeck(pool.taxonList, rng);
     }
-    const tid = drawFromDeck(selectionState.taxonDeck);
+    const tid = drawFromDeck(selectionState.taxonDeck, rng);
     if (tid == null) return null;
     if (isEligible(tid)) return String(tid);
     attempts += 1;
@@ -1182,7 +1215,7 @@ function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) 
 }
 
 // Fallback relax (pondéré par ancienneté) — cible
-function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set()) {
+function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set(), rng = Math.random) {
   const all = pool.taxonList.filter(
     (t) =>
       !excludeSet.has(String(t)) &&
@@ -1190,6 +1223,7 @@ function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set()) {
       hasEligibleObservation(pool, selectionState, String(t))
   );
   if (all.length === 0) return null;
+  const random = typeof rng === "function" ? rng : Math.random;
 
   const weightFor = (id) => {
     const s = String(id);
@@ -1201,7 +1235,7 @@ function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set()) {
 
   const weights = all.map(weightFor);
   const total = weights.reduce((a, b) => a + b, 0) || all.length;
-  let r = Math.random() * total;
+  let r = random() * total;
   for (let i = 0; i < all.length; i++) {
     r -= weights[i];
     if (r <= 0) return String(all[i]);
@@ -1244,11 +1278,13 @@ function makeChoiceLabels(detailsMap, ids) {
  * @param {string|number} targetTaxonId Taxon id of the correct answer.
  * @param {any} targetObservation Representative observation for the target (provides ancestor_ids).
  * @param {number} [lureCount=LURE_COUNT] Number of lures to produce (default 3 for 4-choice quiz).
+ * @param {() => number} [rng] Optional RNG for deterministic lure ordering.
  * @returns {{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number } }}
  */
-function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT) {
+function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT, rng = Math.random) {
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
+  const random = typeof rng === "function" ? rng : Math.random;
 
   const targetAnc = Array.isArray(targetObservation?.taxon?.ancestor_ids)
     ? targetObservation.taxon.ancestor_ids
@@ -1275,7 +1311,7 @@ function buildLures(pool, selectionState, targetTaxonId, targetObservation, lure
   }
 
   const jitterSort = (arr) =>
-    arr.sort((a, b) => (b.depth + Math.random() * 0.01) - (a.depth + Math.random() * 0.01));
+    arr.sort((a, b) => (b.depth + random() * 0.01) - (a.depth + random() * 0.01));
   jitterSort(near); jitterSort(mid); jitterSort(far);
 
   const out = [];
@@ -1283,7 +1319,8 @@ function buildLures(pool, selectionState, targetTaxonId, targetObservation, lure
     for (const s of arr) {
       if (out.length >= lureCount) return;
       if (seenTaxa.has(s.tid)) continue;
-      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }) || s.rep;
+      const obs =
+        pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs });
         seenTaxa.add(s.tid);
@@ -1298,7 +1335,7 @@ function buildLures(pool, selectionState, targetTaxonId, targetObservation, lure
   if (out.length < lureCount) pickFromArr(mid);
   if (out.length < lureCount) pickFromArr(far);
   if (out.length < lureCount) {
-    const rest = shuffleFisherYates(scored);
+    const rest = shuffleFisherYates(scored, rng);
     pickFromArr(rest);
   }
 
@@ -1327,6 +1364,8 @@ const quizSchema = z.object({
   swlng: z.coerce.number().min(-180).max(180).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
+  seed: z.string().optional(),
+  seed_session: z.string().optional(),
   locale: z.string().default("fr"),
   media_type: z.enum(["images", "sounds", "both"]).optional(),
 });
@@ -1451,11 +1490,19 @@ app.get(
         swlng,
         d1,
         d2,
+        seed,
+        seed_session,
         locale = "fr",
         media_type,
       } = req.valid;
 
-      const geo = geoParams({ place_id, nelat, nelng, swlat, swlng });
+      const normalizedSeed = typeof seed === "string" ? seed.trim() : "";
+      const hasSeed = normalizedSeed.length > 0;
+      const rng = hasSeed ? createSeededRandom(normalizedSeed) : undefined;
+      const poolRng = hasSeed ? createSeededRandom(`${normalizedSeed}|pool`) : undefined;
+      const normalizedSeedSession = typeof seed_session === "string" ? seed_session.trim() : "";
+
+      const geo = hasSeed ? { p: {}, mode: "global" } : geoParams({ place_id, nelat, nelng, swlat, swlng });
       const params = {
         quality_grade: "research",
         photos: true,
@@ -1486,6 +1533,14 @@ app.get(
         if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
       }
 
+      if (hasSeed) {
+        delete params.place_id;
+        delete params.nelat;
+        delete params.nelng;
+        delete params.swlat;
+        delete params.swlng;
+      }
+
       if (monthDayFilter?.months?.length) {
         params.month = monthDayFilter.months.join(",");
       } else {
@@ -1497,22 +1552,31 @@ app.get(
         cacheKeyParams.d1 = d1 || "";
         cacheKeyParams.d2 = d2 || "";
       }
+      if (hasSeed) {
+        cacheKeyParams.seed = normalizedSeed;
+      }
 
       const cacheKey = buildCacheKey(cacheKeyParams);
       selectionStateCache.prune();
       questionQueueCache.prune();
       const clientIp = getClientIp(req);
-      const queueKey = `${cacheKey}|${clientIp || "anon"}`;
+      const clientKey =
+        hasSeed && normalizedSeedSession
+          ? `${clientIp || "anon"}|${normalizedSeedSession}`
+          : clientIp;
+      const queueKey = `${cacheKey}|${clientKey || "anon"}`;
       const context = {
         params,
         cacheKey,
         monthDayFilter,
         locale,
         geoMode: geo.mode,
-        clientId: clientIp,
+        clientId: clientKey,
         logger: req.log,
         requestId: req.id,
         fallbackContext: { pack_id, taxon_ids, include_taxa, exclude_taxa },
+        rng,
+        poolRng,
       };
 
       const queueEntry = getQueueEntry(queueKey);

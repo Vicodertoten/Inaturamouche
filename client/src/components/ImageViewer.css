@@ -1,23 +1,26 @@
 /* Conteneur global */
 .image-viewer-container {
   width: 100%;
-  height: auto;
-  max-height: 50vh;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: min(60dvh, 90vw);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-2);
 }
 
 /* Wrapper : base pour centrer la box, pas la cible de l'overlay */
 .image-viewer-container .image-wrapper {
-  flex-grow: 0;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   max-width: 600px;
-  max-height: 50vh;
+  max-height: 100%;
   background-color: var(--bg-color, #0b0b0b);
   border-radius: var(--border-radius, 12px);
-  border: 2px solid var(--border-color, rgba(255,255,255,0.1));
+  border: 2px solid var(--border-color, rgba(255, 255, 255, 0.1));
   overflow: hidden;
   position: relative;
   display: flex;
@@ -30,7 +33,7 @@
 
 /* Limite la hauteur des images verticales pour une meilleure UX */
 .image-viewer-container .image-wrapper.portrait {
-  max-height: 50vh;
+  max-height: 100%;
 }
 
 /* La boîte épouse la taille effective de la photo */
@@ -115,16 +118,18 @@
   font-weight: bold;
   cursor: pointer;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .2s ease, transform .1s ease;
+  transition: background .2s ease, transform .12s ease;
   line-height: 1;
 }
 .image-viewer-container .image-wrapper .nav-button:hover { background-color: rgba(255,255,255,0.22); }
-.image-viewer-container .image-wrapper .nav-button:active { transform: scale(0.96); }
+.image-viewer-container .image-wrapper .nav-button:active { transform: scale(0.98); }
 .image-viewer-container .image-wrapper .nav-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Dots */
@@ -187,6 +192,6 @@
 /* Mobile */
 @media (max-width: 480px) {
   .nav-overlay { bottom: 8px !important; padding: 6px 8px; gap: 8px; }
-  .image-viewer-container .image-wrapper .nav-button { width: 32px; height: 32px; font-size: 18px; }
+  .image-viewer-container .image-wrapper .nav-button { font-size: 18px; }
   .image-viewer-container .image-wrapper .dot { width: 8px; height: 8px; }
 }

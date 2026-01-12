@@ -37,8 +37,10 @@ const nl = {
   nav: {
     help_label: 'Help en informatie',
     profile_label: 'Mijn profiel',
+    collection_label: 'Mijn veldgids',
     title_alt: 'Inaturamouche-logo',
     title_tooltip: 'Terug naar het hoofdmenu',
+    main_label: 'Hoofdnavigatie',
   },
   home: {
     easy_mode: 'Makkelijk',

@@ -37,8 +37,10 @@ const fr = {
   nav: {
     help_label: 'Aide et informations',
     profile_label: 'Mon Profil',
+    collection_label: 'Mon Classeur',
     title_alt: 'Titre Inaturamouche',
     title_tooltip: 'Retour au menu principal',
+    main_label: 'Navigation principale',
   },
   home: {
     easy_mode: 'Facile',

@@ -19,6 +19,7 @@ const getDefaultProfile = () => ({
     packsPlayed: {},
   },
   achievements: [],
+  pokedex: {},
 });
 
 // Charger le profil en fusionnant avec le profil par défaut pour la compatibilité
@@ -39,6 +40,7 @@ export const loadProfileWithDefaults = () => {
         ...defaultProfile.stats,
         ...(loadedProfile.stats || {}),
       },
+      pokedex: loadedProfile.pokedex || {},
     };
     // Migration des anciennes structures packsPlayed qui stockaient simplement un nombre
     if (finalProfile.stats.packsPlayed) {

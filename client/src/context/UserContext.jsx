@@ -21,6 +21,42 @@ export function UserProvider({ children }) {
     });
   }, []);
 
+  const updatePokedex = useCallback((species, isCorrect, thumbnail) => {
+    updateProfile(prevProfile => {
+      const { id, name, preferred_common_name, iconic_taxon_id, ancestor_ids } = species;
+      const now = new Date().toISOString();
+
+      const newPokedex = { ...prevProfile.pokedex };
+      let entry = newPokedex[id];
+
+      if (entry) {
+        entry.seenCount += 1;
+        if (isCorrect) {
+          entry.correctCount += 1;
+        }
+        entry.lastSeenAt = now;
+        newPokedex[id] = entry;
+      } else if (isCorrect) {
+        newPokedex[id] = {
+          id,
+          name,
+          common_name: preferred_common_name,
+          iconic_taxon_id,
+          ancestor_ids,
+          seenCount: 1,
+          correctCount: 1,
+          thumbnail,
+          lastSeenAt: now,
+        };
+      }
+      
+      return {
+        ...prevProfile,
+        pokedex: newPokedex,
+      };
+    });
+  }, [updateProfile]);
+
   const queueAchievements = useCallback((ids = []) => {
     if (!ids.length) return;
     setAchievementQueue((prev) => [...prev, ...ids]);
@@ -37,6 +73,7 @@ export function UserProvider({ children }) {
     achievementQueue,
     queueAchievements,
     popAchievement,
+    updatePokedex,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
