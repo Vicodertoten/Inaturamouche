@@ -238,7 +238,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             onLoad={handleImageLoad}
             style={{
               width: '100%',
-              maxHeight: '50vh',
+              maxHeight: 'min(60dvh, 100%)',
               aspectRatio,
               transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
               transition: (isPanning.current || initialPinchDistance.current)

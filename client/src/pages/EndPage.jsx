@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EndScreen from '../components/EndScreen';
 import { useGameData } from '../context/GameContext';
+import { useUser } from '../context/UserContext';
 
 const EndPage = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const EndPage = () => {
     startGame,
     resetToLobby,
   } = useGameData();
+  const { profile } = useUser();
 
   useEffect(() => {
     if (!isGameOver) navigate('/', { replace: true });
@@ -39,6 +41,7 @@ const EndPage = () => {
       newlyUnlocked={newlyUnlocked}
       onRestart={handleRestart}
       onReturnHome={handleReturnHome}
+      profile={profile}
     />
   );
 };

@@ -33,6 +33,11 @@ const normalizeMediaType = (value, fallback = DEFAULT_MEDIA_TYPE) => {
   return fallback;
 };
 
+const normalizeGameMode = (value, fallback = 'easy') => {
+  if (value === 'easy' || value === 'hard') return value;
+  return fallback;
+};
+
 const hasQuestionLimit = (value) => Number.isInteger(value) && value > 0;
 
 const resolveTotalQuestions = (maxQuestions, questionCount) =>
@@ -67,6 +72,9 @@ const STREAK_PERKS = [
 
 const generatePerkId = (prefix) =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+const createSeedSessionId = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const mintPerkRewards = (config) => {
   if (!config?.rewards) return [];
@@ -124,6 +132,8 @@ export function GameProvider({ children }) {
   const [questionCount, setQuestionCount] = useState(0);
   const [maxQuestions, setMaxQuestions] = useState(DEFAULT_MAX_QUESTIONS);
   const [mediaType, setMediaType] = useState(DEFAULT_MEDIA_TYPE);
+  const [dailySeed, setDailySeed] = useState(null);
+  const [dailySeedSession, setDailySeedSession] = useState(null);
   const [score, setScore] = useState(0);
   const [sessionStats, setSessionStats] = useState({ correctAnswers: 0 });
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
@@ -199,6 +209,8 @@ export function GameProvider({ children }) {
     setStreakTier(0);
     setActivePerks([]);
     setNewlyUnlocked([]);
+    setDailySeed(null);
+    setDailySeedSession(null);
     clearAchievementsTimer();
   }, [clearAchievementsTimer]);
 
@@ -228,6 +240,8 @@ export function GameProvider({ children }) {
     const params = new URLSearchParams();
     params.set('locale', language);
     params.set('media_type', mediaType);
+    if (dailySeed) params.set('seed', dailySeed);
+    if (dailySeedSession) params.set('seed_session', dailySeedSession);
 
     if (isReviewMode) {
       (profile?.stats?.missedSpecies || []).forEach((id) => params.append('taxon_ids', id));
@@ -271,6 +285,8 @@ export function GameProvider({ children }) {
     isReviewMode,
     language,
     mediaType,
+    dailySeed,
+    dailySeedSession,
     profile?.stats?.missedSpecies,
   ]);
 
@@ -342,17 +358,33 @@ export function GameProvider({ children }) {
   }, [question?.bonne_reponse?.id]);
 
   const startGame = useCallback(
-    ({ review = false, maxQuestions: nextMaxQuestions, mediaType: nextMediaType } = {}) => {
+    ({
+      review = false,
+      maxQuestions: nextMaxQuestions,
+      mediaType: nextMediaType,
+      gameMode: nextGameMode,
+      seed,
+    } = {}) => {
       resetSessionState();
+      const normalizedSeed = typeof seed === 'string' ? seed.trim() : '';
+      const isDailyChallenge = normalizedSeed.length > 0;
+      const forcedMaxQuestions = isDailyChallenge ? 10 : nextMaxQuestions;
+      const forcedGameMode = isDailyChallenge ? 'hard' : nextGameMode;
+
+      setDailySeed(isDailyChallenge ? normalizedSeed : null);
+      setDailySeedSession(isDailyChallenge ? createSeedSessionId() : null);
       setQuestion(null);
       setNextQuestion(null);
       setError(null);
       setQuestionCount(1);
       setIsGameActive(true);
       setIsGameOver(false);
-      setIsReviewMode(review);
+      setIsReviewMode(isDailyChallenge ? false : review);
+      setGameMode((prev) =>
+        forcedGameMode === undefined ? prev : normalizeGameMode(forcedGameMode, prev)
+      );
       setMaxQuestions((prev) =>
-        nextMaxQuestions === undefined ? prev : normalizeMaxQuestions(nextMaxQuestions, prev)
+        forcedMaxQuestions === undefined ? prev : normalizeMaxQuestions(forcedMaxQuestions, prev)
       );
       setMediaType((prev) =>
         nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)

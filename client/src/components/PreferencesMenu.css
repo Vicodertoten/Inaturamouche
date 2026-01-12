@@ -186,6 +186,14 @@
   }
 }
 
+@media (max-width: 767px) {
+  .preferences-popover {
+    top: auto;
+    bottom: calc(100% + 0.75rem);
+    right: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .preferences-popover {
     animation: none;

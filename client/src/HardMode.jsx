@@ -10,6 +10,7 @@ import { computeScore } from './utils/scoring';
 import StreakBadge from './components/StreakBadge';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
+import { useUser } from './context/UserContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -38,6 +39,7 @@ function HardMode() {
     questionCount,
     maxQuestions,
   } = useGameData();
+  const { updatePokedex } = useUser();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
@@ -243,20 +245,26 @@ function HardMode() {
   };
 
   const handleNext = () => {
-    // Réinitialise immédiatement l'état de fin de manche pour éviter
-    // l'affichage furtif du résultat lors du chargement de la prochaine question.
     setRoundStatus('playing');
     setScoreInfo(null);
-
+  
+    const isCorrect = roundStatus === 'win';
+    const species = question.bonne_reponse;
+    const thumbnail = question.image_urls?.[0];
+    if (species) {
+      updatePokedex(species, isCorrect, thumbnail);
+    }
+  
     const result = {
       points: scoreInfo?.points || 0,
       bonus: scoreInfo?.bonus || 0,
       streakBonus: scoreInfo?.streakBonus || 0,
-      isCorrect: roundStatus === 'win'
+      isCorrect,
     };
+  
     completeRound({
       ...result,
-      roundMeta: { ...roundMeta, wasCorrect: roundStatus === 'win' },
+      roundMeta: { ...roundMeta, wasCorrect: isCorrect },
     });
   };
 

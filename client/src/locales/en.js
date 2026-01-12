@@ -37,8 +37,10 @@ const en = {
   nav: {
     help_label: 'Help & information',
     profile_label: 'My Profile',
+    collection_label: 'My Field Guide',
     title_alt: 'Inaturamouche title',
     title_tooltip: 'Back to the main menu',
+    main_label: 'Primary navigation',
   },
   home: {
     easy_mode: 'Easy',

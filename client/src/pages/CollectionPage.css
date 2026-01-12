@@ -1,0 +1,203 @@
+/* client/src/pages/CollectionPage.css */
+
+.collection-page {
+  /* Use App.css padding for safe areas, remove fixed padding here */
+  /* padding: 1rem; -> Handled by .App in App.css for top/bottom */
+  max-width: 1200px; /* Keep max-width for content */
+  margin: 0 auto;
+  color: var(--text-color); /* Use global text color */
+  min-height: calc(100vh - var(--space-3) * 2); /* Adjust for header/footer if present, or fill height */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4); /* General spacing between sections */
+}
+
+.collection-header {
+  text-align: center;
+  margin-bottom: var(--space-4);
+  padding-top: var(--space-3); /* Add some padding to the top of the header */
+}
+
+.collection-header h1 {
+  font-size: clamp(1.8rem, 3vw, 2.8rem); /* Responsive font size */
+  margin-bottom: var(--space-2);
+  font-weight: 700; /* Use 700 for main titles */
+  color: var(--text-color);
+}
+
+.collection-header p {
+  font-size: 1rem;
+  color: var(--text-color-muted);
+}
+
+.search-bar {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.search-bar input {
+  width: 100%;
+  max-width: 500px;
+  padding: var(--space-2) var(--space-3);
+  font-size: 1rem;
+  border-radius: var(--border-radius); /* Use global border-radius */
+  border: 1px solid var(--border-color); /* Use global border-color */
+  background-color: var(--bg-color); /* Use global background color */
+  color: var(--text-color); /* Use global text color */
+  box-shadow: var(--shadow); /* Use global shadow */
+  transition: all 0.2s ease-in-out;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-color-transparent);
+}
+
+.accordion-item {
+  border: 1px solid var(--border-color); /* Use global border-color */
+  border-radius: var(--border-radius); /* Use global border-radius */
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+  background-color: var(--surface-color); /* Use global surface color */
+  box-shadow: var(--shadow); /* Use global shadow */
+  transition: all 0.2s ease-in-out;
+}
+
+.accordion-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: var(--surface-color); /* Use global surface color */
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  font-size: clamp(1.1rem, 1.5vw, 1.4rem); /* Responsive font size */
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s, color 0.2s;
+  color: var(--text-color); /* Use global text color */
+  font-weight: 600; /* Titles in accordions */
+}
+
+.accordion-header:hover {
+  background-color: rgba(0, 0, 0, 0.35); /* Slightly darker on hover */
+}
+
+.accordion-title {
+  flex-grow: 1;
+}
+
+.accordion-count {
+  margin: 0 var(--space-3);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bg-color); /* Contrast with accent */
+  background-color: var(--accent-color); /* Use accent color */
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px; /* Pill shape */
+}
+
+.accordion-icon {
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  color: var(--text-color-muted);
+}
+
+.accordion-icon.open {
+  transform: rotate(-180deg);
+}
+
+.accordion-content {
+  padding: var(--space-4);
+  background-color: rgba(0, 0, 0, 0.15); /* Slightly transparent background for content */
+  border-top: 1px solid var(--border-color);
+}
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* Responsive grid, 1 col mobile, 2/3 desktop */
+  gap: var(--space-3); /* Use global spacing */
+}
+
+@media (min-width: 768px) {
+  .species-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .species-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+.species-card {
+  border: 1px solid var(--border-color); /* Use global border-color */
+  border-radius: var(--border-radius); /* Use global border-radius */
+  overflow: hidden;
+  background-color: var(--surface-color); /* Use global surface color */
+  box-shadow: var(--shadow); /* Use global shadow */
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Lift effect */
+  cursor: pointer;
+}
+
+.species-card:hover {
+  transform: translateY(-4px) scale(1.01); /* Enhanced lift effect */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), 0 0 15px rgba(221, 161, 94, 0.1); /* Subtle glow on hover */
+}
+
+.species-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background-color: rgba(0, 0, 0, 0.2); /* Darker placeholder */
+  border-bottom: 1px solid var(--border-color); /* Separator */
+}
+
+.species-info {
+  padding: var(--space-3);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.species-name {
+  font-weight: 600; /* Titles in cards */
+  font-size: 1.1rem;
+  margin: 0;
+  color: var(--text-color);
+}
+
+.species-scientific-name {
+  font-style: italic;
+  color: var(--text-color-muted);
+  margin: var(--space-1) 0;
+  font-size: 0.9rem;
+}
+
+.species-stats {
+  font-size: 0.85rem;
+  color: var(--text-color-muted);
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px dashed rgba(255, 255, 255, 0.1); /* Subtle separator */
+}
+
+/* Specific styling for when no species are collected or found */
+.collection-list > p {
+  text-align: center;
+  color: var(--text-color-muted);
+  font-size: 1.1rem;
+  margin-top: var(--space-5);
+}
+
+/* Spinner adjustment for centering */
+.collection-page .spinner-container {
+    padding: var(--space-5);
+}
