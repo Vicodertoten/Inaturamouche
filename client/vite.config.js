@@ -103,5 +103,17 @@ export default defineConfig({
   build: {
     sourcemap: true,
     target: "esnext",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react-router-dom")) return "router";
+          if (id.includes("react-dom") || id.includes("react")) return "react";
+          if (id.includes("d3")) return "d3";
+          if (id.includes("leaflet") || id.includes("react-leaflet")) return "leaflet";
+          return "vendor";
+        },
+      },
+    },
   },
 });

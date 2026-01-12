@@ -3,7 +3,7 @@ import AutocompleteInput from './AutocompleteInput';
 import GeoFilter from './components/GeoFilter.jsx';
 import { useLanguage } from './context/LanguageContext.jsx';
 
-const TaxonPill = React.memo(({ taxon, onRemove, label, removeLabel }) => (
+const TaxonPill = React.memo(({ onRemove, label, removeLabel }) => (
   <div className="taxon-pill">
     <span>{label}</span>
     <button
@@ -53,7 +53,6 @@ function CustomFilter({ filters, dispatch }) {
               {filters.includedTaxa.map(taxon => (
                 <TaxonPill
                   key={taxon.id}
-                  taxon={taxon}
                   label={formatTaxonName(taxon)}
                   removeLabel={removeLabel}
                   onRemove={() => dispatch({ type: 'REMOVE_INCLUDED_TAXON', payload: taxon.id })}
@@ -73,7 +72,6 @@ function CustomFilter({ filters, dispatch }) {
               {filters.excludedTaxa.map(taxon => (
                 <TaxonPill
                   key={taxon.id}
-                  taxon={taxon}
                   label={formatTaxonName(taxon)}
                   removeLabel={removeLabel}
                   onRemove={() => dispatch({ type: 'REMOVE_EXCLUDED_TAXON', payload: taxon.id })}

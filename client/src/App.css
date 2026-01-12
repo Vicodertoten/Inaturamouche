@@ -368,6 +368,28 @@ button:focus-visible {
 }
 @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+/* --- SKELETON CONFIGURATOR --- */
+.configurator-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+.configurator-skeleton .skeleton-block,
+.configurator-skeleton .skeleton-line {
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.08) 8%, rgba(255, 255, 255, 0.18) 18%, rgba(255, 255, 255, 0.08) 33%);
+  background-size: 200% 100%;
+  animation: skeleton-sheen 1.4s ease infinite;
+  border-radius: 12px;
+}
+.configurator-skeleton .skeleton-block { height: 180px; }
+.configurator-skeleton .skeleton-line { height: 14px; }
+.configurator-skeleton .skeleton-line.short { width: 60%; }
+@keyframes skeleton-sheen {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* --- AUTRES STYLES (inchangés ou mineurs) --- */
 
 .game-screen .card { flex-grow: 0; }

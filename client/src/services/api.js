@@ -1,5 +1,6 @@
 /// <reference path="../../../types/inaturalist.d.ts" />
 // src/services/api.js
+import { notify } from "./notifications.js";
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
 const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : {};
@@ -11,6 +12,17 @@ const API_BASE_URL =
     : "https://inaturamouche.onrender.com");
 
 const DEFAULT_TIMEOUT = 8000;
+const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
+
+const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) => {
+  if (!error || typeof window === "undefined") return;
+  if (error.name === "AbortError") return;
+  const rawMessage = error.message || "";
+  const message =
+    rawMessage && !rawMessage.includes("Failed to fetch") ? rawMessage : fallbackMessage;
+  notify(message, { type: "error" });
+  error.notified = true;
+};
 
 /** Construit des URLSearchParams à partir d'un objet.
  *  - Ignore undefined/null/""
@@ -61,9 +73,15 @@ async function apiGet(path, params = {}, options = {}) {
     if (!res.ok) {
       const error = new Error(data.error || "Erreur réseau");
       error.status = res.status;
+      if (!options?.silent) {
+        notifyApiError(error);
+      }
       throw error;
     }
     return data;
+  } catch (error) {
+    if (!options?.silent && !error?.notified) notifyApiError(error);
+    throw error;
   } finally {
     clearTimeout(timeoutId);
     if (signal && !signal.aborted) {

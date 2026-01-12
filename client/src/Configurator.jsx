@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import CustomFilter from './CustomFilter';
 import ErrorModal from './components/ErrorModal';
 import './configurator.css';
-import { useGame } from './context/GameContext';
+import { useGameData, useGameUI } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import { usePacks } from './context/PacksContext.jsx';
 import { useUser } from './context/UserContext.jsx';
@@ -138,8 +138,6 @@ function Configurator({ onStartGame }) {
     setActivePackId,
     customFilters,
     dispatchCustomFilters,
-    error,
-    clearError,
     gameMode,
     setGameMode,
     canStartReview,
@@ -147,7 +145,8 @@ function Configurator({ onStartGame }) {
     setMaxQuestions,
     mediaType,
     setMediaType,
-  } = useGame();
+  } = useGameData();
+  const { error, clearError } = useGameUI();
   const { packs, loading: packsLoading, error: packsError } = usePacks();
   const { profile } = useUser();
   const { t } = useLanguage();
@@ -161,14 +160,6 @@ function Configurator({ onStartGame }) {
     }
     return packs.find((pack) => pack.id === activePackId);
   }, [activePackId, packs]);
-
-  const recommendedPack = useMemo(() => {
-    const eligible = packs.filter((pack) => pack.id !== 'custom');
-    if (!eligible.length) return null;
-    const today = new Date().toISOString().slice(0, 10);
-    const hash = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return eligible[hash % eligible.length];
-  }, [packs]);
 
   const isReviewSelection = activePackId === 'review';
   const selectedQuestionValue =
@@ -233,12 +224,6 @@ function Configurator({ onStartGame }) {
       onStartGame({ review: isReviewSelection, maxQuestions, mediaType });
     }
   }, [isReviewSelection, maxQuestions, mediaType, onStartGame]);
-
-  const handleUseRecommended = useCallback(() => {
-    if (recommendedPack) {
-      setActivePackId(recommendedPack.id);
-    }
-  }, [recommendedPack, setActivePackId]);
 
   const packDescription =
     activePack?.descriptionKey && !packsLoading ? t(activePack.descriptionKey) : null;
@@ -409,7 +394,7 @@ function Configurator({ onStartGame }) {
                         aria-label={label}
                       />
                       <span className="option-icon" aria-hidden="true">
-                        <Icon />
+                        {React.createElement(Icon)}
                       </span>
                       <span className="option-label">{label}</span>
                     </label>

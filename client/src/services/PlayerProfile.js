@@ -1,4 +1,5 @@
 // src/services/PlayerProfile.js
+import { notify } from './notifications.js';
 
 const PROFILE_KEY = 'inaturamouche_playerProfile';
 
@@ -81,7 +82,7 @@ export const loadProfileWithDefaults = () => {
     return finalProfile;
 
   } catch (error) {
-    console.error("Erreur lors du chargement du profil :", error);
+    notify("Impossible de charger le profil.", { type: "error" });
     return getDefaultProfile();
   }
 };
@@ -92,7 +93,7 @@ export const saveProfile = (profile) => {
     const profileJson = JSON.stringify(profile);
     localStorage.setItem(PROFILE_KEY, profileJson);
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde du profil :", error);
+    notify("Impossible de sauvegarder le profil.", { type: "error" });
   }
 };
 
@@ -101,6 +102,6 @@ export const resetProfile = () => {
   try {
     localStorage.removeItem(PROFILE_KEY);
   } catch (error) {
-    console.error("Erreur lors de la réinitialisation du profil :", error);
+    notify("Impossible de reinitialiser le profil.", { type: "error" });
   }
 };

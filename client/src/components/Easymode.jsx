@@ -3,7 +3,7 @@ import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
 import StreakBadge from './StreakBadge';
-import { useGame } from '../context/GameContext';
+import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
@@ -26,13 +26,20 @@ const EasyMode = () => {
     completeRound,
     endGame,
     updateScore,
-  } = useGame();
+  } = useGameData();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
   const soundUrl = question?.sounds?.[0]?.file_url;
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
+  const imageAlt = useMemo(() => {
+    const taxon = question?.bonne_reponse;
+    const common = taxon?.preferred_common_name || taxon?.common_name;
+    const scientific = taxon?.name;
+    if (common && scientific && common !== scientific) return `${common} (${scientific})`;
+    return common || scientific || t('easy.image_alt');
+  }, [question?.bonne_reponse, t]);
   const headerLabel = hasQuestionLimit
     ? t('common.question_counter', { current: questionCount, total: maxQuestions })
     : t('common.question_counter_infinite', { current: questionCount });
@@ -203,7 +210,7 @@ const EasyMode = () => {
                 <ImageViewer
                   imageUrls={question.image_urls || [question.image_url]}
                   photoMeta={question.image_meta}
-                  alt={t('easy.image_alt')}
+                  alt={imageAlt}
                   nextImageUrl={nextImageUrl}
                 />
               )}

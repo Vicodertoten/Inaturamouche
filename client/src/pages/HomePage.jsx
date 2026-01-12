@@ -1,9 +1,8 @@
-import { useCallback, useMemo } from 'react';
+import { Suspense, lazy, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Configurator from '../Configurator';
-import { useGame } from '../context/GameContext';
-import { useLanguage } from '../context/LanguageContext.jsx';
-import { useUser } from '../context/UserContext.jsx';
+import { useGameData } from '../context/GameContext';
+
+const Configurator = lazy(() => import('../Configurator'));
 
 const LobbyPillars = ({ t, onSelectReview, canStartReview, missedCount }) => (
   <div className="lobby-pillars">
@@ -70,12 +69,7 @@ const ReviewCard = ({ canStartReview, missedCount, onStartReview, t }) => (
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { startGame, canStartReview, setActivePackId } = useGame();
-  const { profile } = useUser();
-  const { t } = useLanguage();
-
-  const missedCount = profile?.stats?.missedSpecies?.length || 0;
-  const totalXp = profile?.xp || 0;
+  const { startGame } = useGameData();
 
   const handleStart = useCallback(
     ({ review = false, maxQuestions, mediaType } = {}) => {
@@ -85,35 +79,23 @@ const HomePage = () => {
     [navigate, startGame]
   );
 
-  const handleSelectReview = useCallback(() => {
-    setActivePackId('review');
-  }, [setActivePackId]);
-
-  const handleStartReview = useCallback(() => {
-    handleSelectReview();
-    handleStart({ review: true });
-  }, [handleSelectReview, handleStart]);
-
-  const heroChips = useMemo(
-    () => [
-      {
-        label: t('common.review_mistakes'),
-        value: missedCount,
-      },
-      {
-        label: t('common.score'),
-        value: totalXp,
-      },
-    ],
-    [missedCount, t, totalXp]
-  );
-
   return (
     <div className="screen configurator-screen">
       <div className="home-dashboard card">
         
         <section className="configurator-shell">
-          <Configurator onStartGame={handleStart} />
+          <Suspense
+            fallback={
+              <div className="configurator-skeleton" aria-hidden="true">
+                <div className="skeleton-block"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line short"></div>
+              </div>
+            }
+          >
+            <Configurator onStartGame={handleStart} />
+          </Suspense>
         </section>
       </div>
     </div>

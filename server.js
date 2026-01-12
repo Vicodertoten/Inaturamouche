@@ -15,14 +15,19 @@ import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import fallbackMushrooms from "./shared/data/common_european_mushrooms.json" with { type: "json" };
+import fallbackTrees from "./shared/data/common_european_trees.json" with { type: "json" };
 import { findPackById, listPublicPacks } from "./server/packs/index.js";
 import {
   buildCacheKey,
+  createShuffledDeck,
   effectiveCooldownN,
+  HistoryBuffer,
   lcaDepth,
+  drawFromDeck,
   shuffleFisherYates,
 } from "./lib/quiz-utils.js";
-import { SimpleLRUCache } from "./lib/simple-lru.js";
+import { SmartCache, CircuitBreaker } from "./lib/smart-cache.js";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import { z } from "zod";
@@ -174,20 +179,25 @@ app.use((req, res, next) => {
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 const QUESTION_CACHE_TTL = 1000 * 60 * 5; // 5 min
+const QUESTION_CACHE_STALE_TTL = 1000 * 60 * 15; // 15 min
 const AUTOCOMPLETE_CACHE_TTL = 1000 * 60 * 10; // 10 min
+const AUTOCOMPLETE_CACHE_STALE_TTL = 1000 * 60 * 60; // 1h
 const MAX_CACHE_ENTRIES = 50;
 const QUIZ_CHOICES = 4;
 const LURE_COUNT = QUIZ_CHOICES - 1;
 const TAXON_DETAILS_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
+const TAXON_DETAILS_CACHE_STALE_TTL = 1000 * 60 * 60 * 24 * 7; // 7d
 const TAXON_DETAILS_CACHE_MAX = 2000;
+const QUESTION_QUEUE_SIZE = 3;
+const OBS_HISTORY_LIMIT = 50;
+const INAT_CIRCUIT_FAILURE_THRESHOLD = 3;
+const INAT_CIRCUIT_COOLDOWN_MS = 15000;
+const INAT_CIRCUIT_HALF_OPEN_MAX = 1;
 
 // Cooldown CIBLE (en nombre de questions)
 const COOLDOWN_TARGET_N = 60;
 // Variante TTL (ms) si souhaitée (null = désactivé)
 const COOLDOWN_TARGET_MS = null;
-
-// Anti-répétition par OBSERVATION (cible)
-const RECENT_OBS_MAX = 200;
 
 // Extension du pool
 const MAX_OBS_PAGES = 1;
@@ -197,25 +207,39 @@ const DISTINCT_TAXA_TARGET = 30;
 const LURE_NEAR_THRESHOLD = 0.85;
 const LURE_MID_THRESHOLD = 0.65;
 
-const questionCache = new SimpleLRUCache({ max: MAX_CACHE_ENTRIES, ttl: QUESTION_CACHE_TTL });
-const autocompleteCache = new SimpleLRUCache({ max: MAX_CACHE_ENTRIES, ttl: AUTOCOMPLETE_CACHE_TTL });
+const questionCache = new SmartCache({
+  max: MAX_CACHE_ENTRIES,
+  ttl: QUESTION_CACHE_TTL,
+  staleTtl: QUESTION_CACHE_STALE_TTL,
+});
+const autocompleteCache = new SmartCache({
+  max: MAX_CACHE_ENTRIES,
+  ttl: AUTOCOMPLETE_CACHE_TTL,
+  staleTtl: AUTOCOMPLETE_CACHE_STALE_TTL,
+});
 const SELECTION_STATE_TTL = 1000 * 60 * 10;
 const MAX_SELECTION_STATES = 200;
-const selectionStateCache = new SimpleLRUCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
-const taxonDetailsCache = new SimpleLRUCache({
+const selectionStateCache = new SmartCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
+const taxonDetailsCache = new SmartCache({
   max: TAXON_DETAILS_CACHE_MAX,
   ttl: TAXON_DETAILS_CACHE_TTL,
+  staleTtl: TAXON_DETAILS_CACHE_STALE_TTL,
+});
+const questionQueueCache = new SmartCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
+const inatCircuitBreaker = new CircuitBreaker({
+  failureThreshold: INAT_CIRCUIT_FAILURE_THRESHOLD,
+  cooldownMs: INAT_CIRCUIT_COOLDOWN_MS,
+  halfOpenMax: INAT_CIRCUIT_HALF_OPEN_MAX,
 });
 
 function createSelectionState(pool) {
+  const historyLimit = Math.min(OBS_HISTORY_LIMIT, Math.max(0, (pool?.observationCount || 0) - 1));
   return {
     recentTargetTaxa: [],
     recentTargetSet: new Set(),
     cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
-    recentObsQueue: [],
-    recentObsSet: new Set(),
-    shuffledTaxonIds: shuffleFisherYates(pool.taxonList),
-    cursor: 0,
+    observationHistory: new HistoryBuffer(historyLimit),
+    taxonDeck: createShuffledDeck(pool.taxonList),
     version: pool.version,
   };
 }
@@ -223,16 +247,31 @@ function createSelectionState(pool) {
 function getSelectionStateForClient(cacheKey, clientId, pool, now) {
   const key = `${cacheKey}|${clientId || "anon"}`;
   let state = selectionStateCache.get(key);
+  const historyLimit = Math.min(OBS_HISTORY_LIMIT, Math.max(0, (pool?.observationCount || 0) - 1));
   if (
     !state ||
-    !Array.isArray(state.shuffledTaxonIds) ||
-    state.version !== pool.version ||
-    state.expires <= now
+    !Array.isArray(state.taxonDeck) ||
+    state.version !== pool.version
   ) {
-    state = createSelectionState(pool);
-  } else if (state.shuffledTaxonIds.length === 0) {
-    state.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
-    state.cursor = 0;
+    const previousHistory =
+      state && state.observationHistory instanceof HistoryBuffer ? state.observationHistory : null;
+    const nextState = createSelectionState(pool);
+    if (previousHistory) {
+      nextState.observationHistory = previousHistory;
+      nextState.observationHistory.resize(historyLimit);
+    }
+    if (state?.recentTargetTaxa?.length && pool?.taxonSet) {
+      nextState.recentTargetTaxa = state.recentTargetTaxa.filter((id) => pool.taxonSet.has(String(id)));
+      nextState.recentTargetSet = new Set(nextState.recentTargetTaxa.map(String));
+    }
+    state = nextState;
+  } else if (state.taxonDeck.length === 0) {
+    state.taxonDeck = createShuffledDeck(pool.taxonList);
+  }
+  if (!(state.observationHistory instanceof HistoryBuffer)) {
+    state.observationHistory = new HistoryBuffer(historyLimit);
+  } else {
+    state.observationHistory.resize(historyLimit);
   }
   state.version = pool.version;
 
@@ -424,12 +463,17 @@ async function fetchJSON(
           { ...requestMeta, status: response.status, durationMs: Date.now() - startedAt },
           "iNat fetch failed"
         );
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        throw error;
       }
       logger?.debug({ ...requestMeta, durationMs: Date.now() - startedAt }, "iNat fetch success");
       return await response.json();
     } catch (err) {
       clearTimeout(timer);
+      if (err?.name === "AbortError") {
+        err.code = "timeout";
+      }
       if (attempt < retries) {
         attempt++;
         logger?.warn({ ...requestMeta, error: err.message }, "Retrying iNat fetch");
@@ -442,104 +486,621 @@ async function fetchJSON(
   }
 }
 
+function shouldTripCircuit(err) {
+  const status = err?.status;
+  if (status && status >= 500) return true;
+  if (status === 429) return true;
+  if (err?.code === "timeout") return true;
+  return false;
+}
+
+/**
+ * Wrapper around iNat fetch with circuit breaker.
+ *
+ * @param {string | URL} url
+ * @param {Record<string, string | number | boolean | null | undefined>} [params]
+ * @param {{ timeoutMs?: number, retries?: number, logger?: import("pino").Logger, requestId?: string, label?: string }} [options]
+ * @returns {Promise<any>}
+ */
+async function fetchInatJSON(url, params = {}, options = {}) {
+  if (!inatCircuitBreaker.canRequest()) {
+    const err = new Error("iNat circuit open");
+    err.code = "circuit_open";
+    throw err;
+  }
+  try {
+    const data = await fetchJSON(url, params, options);
+    inatCircuitBreaker.recordSuccess();
+    return data;
+  } catch (err) {
+    if (shouldTripCircuit(err)) inatCircuitBreaker.recordFailure();
+    throw err;
+  }
+}
+
 /* -------------------- iNat helpers -------------------- */
-async function getFullTaxaDetails(taxonIds, locale = "fr", { logger, requestId } = {}) {
+async function getFullTaxaDetails(
+  taxonIds,
+  locale = "fr",
+  { logger, requestId, fallbackDetails = new Map() } = {}
+) {
   if (!taxonIds || taxonIds.length === 0) return [];
   const requestedIds = taxonIds.map((id) => String(id));
   const uniqueIds = Array.from(new Set(requestedIds));
   const cachedResults = [];
+  const staleIds = [];
+  const missingIds = [];
 
-  try {
-    taxonDetailsCache.prune();
-    const missingIds = [];
+  taxonDetailsCache.prune();
 
-    for (const id of uniqueIds) {
-      const cached = taxonDetailsCache.get(`${id}:${locale}`);
-      if (cached) {
-        cachedResults.push(cached);
-      } else {
-        missingIds.push(id);
+  for (const id of uniqueIds) {
+    const entry = taxonDetailsCache.getEntry(`${id}:${locale}`);
+    if (entry?.value) {
+      cachedResults.push(entry.value);
+      if (entry.isStale) staleIds.push(id);
+    } else {
+      missingIds.push(id);
+    }
+  }
+
+  const idsToFetch = Array.from(new Set([...missingIds, ...staleIds]));
+  const mergeLocalizedDefaults = (localizedResults, defaultResults, ids) => {
+    const defaultById = new Map(defaultResults.map((t) => [String(t.id), t]));
+    const localizedById = new Map(localizedResults.map((t) => [String(t.id), t]));
+    return ids
+      .map((id) => {
+        const loc = localizedById.get(id);
+        const def = defaultById.get(id);
+        if (loc && def) {
+          if (!loc.wikipedia_url && def.wikipedia_url) loc.wikipedia_url = def.wikipedia_url;
+          if (!loc.preferred_common_name && def.preferred_common_name)
+            loc.preferred_common_name = def.preferred_common_name;
+          return loc;
+        }
+        return loc || def;
+      })
+      .filter(Boolean);
+  };
+
+  const fetchBatch = async (ids) => {
+    if (!ids.length) return [];
+    const path = `https://api.inaturalist.org/v1/taxa/${ids.join(",")}`;
+    const localizedResponse = await fetchInatJSON(path, { locale }, { logger, requestId, label: "taxa-localized" });
+    const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
+    let defaultResults = [];
+    if (!locale.startsWith("en")) {
+      const defaultResponse = await fetchInatJSON(path, {}, { logger, requestId, label: "taxa-default" });
+      defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
+    }
+    const merged = mergeLocalizedDefaults(localizedResults, defaultResults, ids);
+    for (const taxon of merged) {
+      if (taxon?.id != null) {
+        const cacheKey = `${String(taxon.id)}:${locale}`;
+        taxonDetailsCache.set(cacheKey, taxon);
       }
     }
+    return merged;
+  };
 
-    let fetchedResults = [];
-    if (missingIds.length > 0) {
-      const path = `https://api.inaturalist.org/v1/taxa/${missingIds.join(",")}`;
-      const localizedResponse = await fetchJSON(path, { locale }, { logger, requestId, label: "taxa-localized" });
-      const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
-
-      let defaultResults = [];
-      if (!locale.startsWith("en")) {
-        const defaultResponse = await fetchJSON(path, {}, { logger, requestId, label: "taxa-default" });
-        defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
-      }
-
-      const defaultById = new Map(defaultResults.map((t) => [String(t.id), t]));
-      const localizedById = new Map(localizedResults.map((t) => [String(t.id), t]));
-
-      fetchedResults = missingIds
-        .map((id) => {
-          const loc = localizedById.get(id);
-          const def = defaultById.get(id);
-          if (loc && def) {
-            if (!loc.wikipedia_url && def.wikipedia_url) loc.wikipedia_url = def.wikipedia_url;
-            if (!loc.preferred_common_name && def.preferred_common_name)
-              loc.preferred_common_name = def.preferred_common_name;
-            return loc;
-          }
-          return loc || def;
-        })
-        .filter(Boolean);
-
-      for (const taxon of fetchedResults) {
-        if (taxon?.id != null) {
-          const cacheKey = `${String(taxon.id)}:${locale}`;
-          taxonDetailsCache.set(cacheKey, taxon);
+  let fetchedResults = [];
+  const shouldBackgroundRefresh = idsToFetch.length > 0 && missingIds.length === 0;
+  if (idsToFetch.length > 0) {
+    if (shouldBackgroundRefresh) {
+      fetchBatch(idsToFetch).catch((err) => {
+        logger?.warn({ requestId, error: err.message }, "Background taxa refresh failed");
+      });
+    } else {
+      try {
+        fetchedResults = await fetchBatch(idsToFetch);
+      } catch (err) {
+        if (logger) {
+          logger.error({ requestId, error: err.message }, "Erreur getFullTaxaDetails");
         }
       }
     }
-
-    const byId = new Map();
-    for (const t of [...cachedResults, ...fetchedResults]) {
-      if (t?.id == null) continue;
-      byId.set(String(t.id), t);
-    }
-
-    const ordered = requestedIds.map((id) => byId.get(id)).filter(Boolean);
-    if (ordered.length > 0) return ordered;
-    return Array.from(byId.values());
-  } catch (err) {
-    if (logger) {
-      logger.error({ requestId, error: err.message }, "Erreur getFullTaxaDetails");
-    } else {
-      console.error("Erreur getFullTaxaDetails:", err.message);
-    }
-    const fallbackMap = new Map(cachedResults.map((t) => [String(t.id), t]));
-    const orderedFallback = requestedIds.map((id) => fallbackMap.get(id)).filter(Boolean);
-    return orderedFallback;
   }
+
+  const byId = new Map();
+  for (const t of [...cachedResults, ...fetchedResults]) {
+    if (t?.id == null) continue;
+    byId.set(String(t.id), t);
+  }
+  for (const [id, fallback] of fallbackDetails.entries()) {
+    if (!byId.has(String(id))) byId.set(String(id), fallback);
+  }
+
+  const ordered = requestedIds.map((id) => byId.get(id)).filter(Boolean);
+  if (ordered.length > 0) return ordered;
+  return Array.from(byId.values());
 }
 function getTaxonName(t) {
   return t?.preferred_common_name || t?.name || "Nom introuvable";
 }
 
+const FALLBACK_PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#dfe8e6" offset="0"/><stop stop-color="#c7d4cf" offset="1"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><g fill="#5a6b67" font-family="Arial, sans-serif" font-size="28"><text x="50%" y="48%" text-anchor="middle">Offline pack</text><text x="50%" y="60%" text-anchor="middle" font-size="16">Temporary image</text></g></svg>'
+)}`;
+
+const FALLBACK_PACKS = {
+  european_mushrooms: fallbackMushrooms,
+  european_trees: fallbackTrees,
+};
+const FALLBACK_PACK_DEFAULT = "european_mushrooms";
+
+function normalizeIdList(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.map((v) => String(v)).map((v) => v.trim()).filter(Boolean);
+  return String(input)
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa }) {
+  const baseList = FALLBACK_PACKS[pack_id] || [
+    ...(FALLBACK_PACKS[FALLBACK_PACK_DEFAULT] || []),
+    ...(fallbackTrees || []),
+  ];
+  const includeSet = new Set(normalizeIdList(taxon_ids || include_taxa));
+  const excludeSet = new Set(normalizeIdList(exclude_taxa));
+
+  let filtered = baseList;
+  if (includeSet.size) {
+    filtered = filtered.filter((item) => includeSet.has(String(item.inaturalist_id)));
+  }
+  if (excludeSet.size) {
+    filtered = filtered.filter((item) => !excludeSet.has(String(item.inaturalist_id)));
+  }
+  if (filtered.length < QUIZ_CHOICES) {
+    const combined = [
+      ...(FALLBACK_PACKS[FALLBACK_PACK_DEFAULT] || []),
+      ...(fallbackTrees || []),
+    ];
+    filtered = includeSet.size
+      ? combined.filter((item) => includeSet.has(String(item.inaturalist_id)))
+      : combined.filter((item) => !excludeSet.has(String(item.inaturalist_id)));
+    if (filtered.length < QUIZ_CHOICES) {
+      filtered = combined;
+    }
+  }
+
+  const byTaxon = new Map();
+  for (const item of filtered) {
+    const taxonId = String(item.inaturalist_id);
+    if (!taxonId) continue;
+    const obs = {
+      id: `fallback-${taxonId}`,
+      uri: null,
+      photos: [
+        {
+          id: `fallback-${taxonId}`,
+          attribution: "Offline pack",
+          license_code: "CC0",
+          url: FALLBACK_PLACEHOLDER_IMAGE,
+          original_dimensions: { width: 640, height: 360 },
+        },
+      ],
+      sounds: [],
+      observedMonthDay: null,
+      taxon: {
+        id: Number.isFinite(Number(taxonId)) ? Number(taxonId) : taxonId,
+        name: item.scientific_name,
+        preferred_common_name: item.common_name,
+        ancestor_ids: [],
+        rank: "species",
+      },
+    };
+    if (!byTaxon.has(taxonId)) byTaxon.set(taxonId, []);
+    byTaxon.get(taxonId).push(obs);
+  }
+
+  const taxonList = Array.from(byTaxon.keys());
+  return {
+    pool: {
+      timestamp: Date.now(),
+      version: Date.now(),
+      byTaxon,
+      taxonList,
+      taxonSet: new Set(taxonList.map(String)),
+      observationCount: Array.from(byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
+      source: "fallback",
+    },
+    pagesFetched: 0,
+    poolObs: Array.from(byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
+    poolTaxa: taxonList.length,
+  };
+}
+
+async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId } = {}) {
+  let pagesFetched = 0;
+  let startPage = 1;
+  try {
+    const probeParams = { ...params, per_page: 1, page: 1 };
+    const probe = await fetchInatJSON(
+      "https://api.inaturalist.org/v1/observations",
+      probeParams,
+      { logger, requestId, label: "obs-total-probe" }
+    );
+    const totalResults = Number(probe?.total_results) || 0;
+    if (totalResults > 0) {
+      const perPage = Number(params.per_page) || 80;
+      const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
+      const capped = Math.max(1, Math.min(totalPages, 10));
+      startPage = Math.floor(Math.random() * capped) + 1;
+    }
+  } catch (prefetchErr) {
+    logger?.warn({ requestId, error: prefetchErr.message }, "Observation total prefetch failed");
+    startPage = 1;
+  }
+
+  let page = startPage;
+  let results = [];
+  let distinctTaxaSet = new Set();
+
+  while (pagesFetched < MAX_OBS_PAGES) {
+    const resp = await fetchInatJSON(
+      "https://api.inaturalist.org/v1/observations",
+      { ...params, page },
+      { logger, requestId }
+    );
+    const batch = (Array.isArray(resp.results) ? resp.results : [])
+      .map((item) => sanitizeObservation(item))
+      .filter(Boolean);
+    const filteredBatch =
+      monthDayFilter?.predicate && typeof monthDayFilter.predicate === "function"
+        ? batch.filter((obs) => monthDayFilter.predicate(obs.observedMonthDay))
+        : batch;
+    results = results.concat(filteredBatch);
+    pagesFetched++;
+
+    distinctTaxaSet = new Set(
+      results
+        .filter((o) => o?.taxon?.id && Array.isArray(o.photos) && o.photos.length > 0)
+        .map((o) => o.taxon.id)
+    );
+
+    if (distinctTaxaSet.size >= DISTINCT_TAXA_TARGET) break;
+    if (batch.length === 0) break;
+    page++;
+  }
+
+  if (results.length === 0) {
+    const err = new Error(
+      "Aucune observation trouvée avec vos critères. Élargissez la zone ou la période."
+    );
+    err.status = 404;
+    throw err;
+  }
+
+  const byTaxon = new Map();
+  for (const o of results) {
+    const tid = o?.taxon?.id;
+    if (!tid) continue;
+    if (!Array.isArray(o.photos) || o.photos.length === 0) continue;
+    const key = String(tid);
+    if (!byTaxon.has(key)) byTaxon.set(key, []);
+    byTaxon.get(key).push(o);
+  }
+
+  const taxonList = Array.from(byTaxon.keys());
+  if (taxonList.length < QUIZ_CHOICES) {
+    const err = new Error("Pas assez d'espèces différentes pour créer un quiz avec ces critères.");
+    err.status = 404;
+    throw err;
+  }
+
+  const pool = {
+    timestamp: Date.now(),
+    version: Date.now(),
+    byTaxon,
+    taxonList,
+    taxonSet: new Set(taxonList.map(String)),
+    observationCount: results.length,
+    source: "inat",
+  };
+
+  return { pool, pagesFetched, poolObs: results.length, poolTaxa: taxonList.length };
+}
+
+async function getObservationPool({
+  cacheKey,
+  params,
+  monthDayFilter,
+  logger,
+  requestId,
+  fallbackContext,
+}) {
+  questionCache.prune();
+  const cachedEntry = questionCache.getEntry(cacheKey);
+  const cachedPool = cachedEntry?.value;
+  if (cachedPool) {
+    if (!cachedPool.version) cachedPool.version = cachedPool.timestamp || Date.now();
+    if (!cachedPool.taxonSet && Array.isArray(cachedPool.taxonList)) {
+      cachedPool.taxonSet = new Set(cachedPool.taxonList.map(String));
+    }
+    if (typeof cachedPool.observationCount !== "number" && cachedPool.byTaxon) {
+      cachedPool.observationCount = Array.from(cachedPool.byTaxon.values()).reduce((n, arr) => n + arr.length, 0);
+    }
+  }
+
+  const poolStatsFromCache = (pool) => ({
+    poolObs: pool?.observationCount || Array.from(pool.byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
+    poolTaxa: pool?.taxonList?.length || 0,
+  });
+
+  const refreshPool = async () => {
+    try {
+      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId });
+      questionCache.set(cacheKey, fresh.pool);
+      return { ...fresh, cacheStatus: "miss" };
+    } catch (err) {
+      const isUnavailable =
+        err?.code === "circuit_open" || err?.code === "timeout" || (err?.status && err.status >= 500);
+      if (!isUnavailable) throw err;
+      logger?.warn({ requestId, error: err.message }, "Falling back to local packs");
+      const fallback = buildFallbackPool(fallbackContext);
+      if (fallback.poolTaxa < QUIZ_CHOICES) {
+        const fallbackErr = new Error("Pool d'observations indisponible, réessayez.");
+        fallbackErr.status = 503;
+        throw fallbackErr;
+      }
+      questionCache.set(cacheKey, fallback.pool);
+      return { ...fallback, cacheStatus: "fallback" };
+    }
+  };
+
+  if (cachedEntry && !cachedEntry.isStale) {
+    return { pool: cachedPool, pagesFetched: 0, ...poolStatsFromCache(cachedPool), cacheStatus: "hit" };
+  }
+  if (cachedEntry && cachedEntry.isStale) {
+    refreshPool().catch((err) => {
+      logger?.warn({ requestId, error: err.message }, "Background pool refresh failed");
+    });
+    return { pool: cachedPool, pagesFetched: 0, ...poolStatsFromCache(cachedPool), cacheStatus: "stale" };
+  }
+  return refreshPool();
+}
+
+function getQueueEntry(queueKey) {
+  let entry = questionQueueCache.get(queueKey);
+  if (!entry || !Array.isArray(entry.queue)) {
+    entry = { queue: [], inFlight: null, lastFailureAt: 0 };
+  }
+  questionQueueCache.set(queueKey, entry);
+  return entry;
+}
+
+async function fillQuestionQueue(entry, context) {
+  if (entry.inFlight) return entry.inFlight;
+  entry.inFlight = (async () => {
+    while (entry.queue.length < QUESTION_QUEUE_SIZE) {
+      try {
+        const item = await buildQuizQuestion(context);
+        if (item?.payload) {
+          entry.queue.push(item);
+        } else {
+          break;
+        }
+      } catch (err) {
+        entry.lastFailureAt = Date.now();
+        break;
+      }
+    }
+  })().finally(() => {
+    entry.inFlight = null;
+  });
+  return entry.inFlight;
+}
+
+async function buildQuizQuestion({
+  params,
+  cacheKey,
+  monthDayFilter,
+  locale,
+  geoMode,
+  clientId,
+  logger,
+  requestId,
+  fallbackContext,
+}) {
+  const marks = {};
+  marks.start = performance.now();
+
+  const { pool: cacheEntry, pagesFetched, poolObs, poolTaxa } = await getObservationPool({
+    cacheKey,
+    params,
+    monthDayFilter,
+    logger,
+    requestId,
+    fallbackContext,
+  });
+
+  marks.fetchedObs = performance.now();
+  marks.builtIndex = marks.fetchedObs;
+
+  const { state: selectionState } = getSelectionStateForClient(cacheKey, clientId, cacheEntry, Date.now());
+  const excludeTaxaForTarget = new Set();
+  let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, Date.now(), excludeTaxaForTarget);
+
+  let selectionMode = "normal";
+  if (!targetTaxonId) {
+    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget);
+    selectionMode = "fallback_relax";
+    logger?.info(
+      { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
+      "Target fallback relax engaged"
+    );
+  }
+  if (!targetTaxonId) {
+    const err = new Error("Pool d'observations indisponible, réessayez.");
+    err.status = 503;
+    throw err;
+  }
+
+  const targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId, {
+    allowSeen: false,
+  });
+  if (!targetObservation) {
+    const err = new Error("Aucune observation exploitable trouvée pour le taxon cible.");
+    err.status = 503;
+    throw err;
+  }
+  rememberObservation(selectionState, targetObservation.id);
+  marks.pickedTarget = performance.now();
+
+  const { lures, buckets } = buildLures(cacheEntry, selectionState, targetTaxonId, targetObservation, LURE_COUNT);
+  if (!lures || lures.length < LURE_COUNT) {
+    const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
+    err.status = 404;
+    throw err;
+  }
+  marks.builtLures = performance.now();
+
+  const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
+  const fallbackDetails = new Map();
+  fallbackDetails.set(String(targetTaxonId), targetObservation?.taxon || {});
+  for (const lure of lures) {
+    fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
+  }
+
+  const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale, {
+    logger,
+    requestId,
+    fallbackDetails,
+  });
+  const details = new Map();
+  for (const taxon of choiceTaxaDetails) {
+    details.set(String(taxon.id), taxon);
+  }
+  for (const id of choiceIdsInOrder) {
+    const key = String(id);
+    if (!details.has(key)) {
+      details.set(key, fallbackDetails.get(key) || {});
+    }
+  }
+  const correct = details.get(String(targetTaxonId));
+  if (!correct) {
+    const err = new Error(`Impossible de récupérer les détails du taxon ${targetTaxonId}`);
+    err.status = 502;
+    throw err;
+  }
+  marks.taxaFetched = performance.now();
+
+  const choiceTaxaInfo = choiceIdsInOrder.map((id) => {
+    const info = details.get(String(id)) || {};
+    return {
+      taxon_id: String(id),
+      name: info.name || info.taxon?.name,
+      preferred_common_name: info.preferred_common_name || info.common_name || null,
+      rank: info.rank,
+    };
+  });
+
+  const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
+  const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
+  const shuffledChoices = shuffleFisherYates(choiceObjects);
+  const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
+  const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
+
+  const facilePairs = choiceIdsInOrder.map((id) => ({
+    taxon_id: id,
+    label: getTaxonName(details.get(String(id))),
+  }));
+  const facileShuffled = shuffleFisherYates(facilePairs);
+  const choix_mode_facile = facileShuffled.map((p) => p.label);
+  const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
+  const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
+    (id) => id === String(targetTaxonId)
+  );
+  marks.labelsMade = performance.now();
+
+  const observationPhotos = Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
+  const image_urls = observationPhotos
+    .map((p) => (p?.url ? p.url.replace("square", "large") : null))
+    .filter(Boolean);
+  const image_meta = observationPhotos.map((p, idx) => ({
+    id: p.id ?? idx,
+    attribution: p.attribution,
+    license_code: p.license_code,
+    url: p.url,
+    original_dimensions: p.original_dimensions,
+  }));
+
+  pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], Date.now());
+
+  marks.end = performance.now();
+  const { timing, serverTiming, xTiming } = buildTimingData(marks, { pagesFetched, poolObs, poolTaxa });
+
+  logger?.info(
+    {
+      cacheKey,
+      selectionMode,
+      pagesFetched,
+      poolObs,
+      poolTaxa,
+      timings: timing,
+      targetTaxonId: String(targetTaxonId),
+      targetObsId: String(targetObservation.id),
+    },
+    "Quiz timings"
+  );
+
+  return {
+    payload: {
+      image_urls,
+      image_meta,
+      sounds: targetObservation.sounds || [],
+      bonne_reponse: {
+        id: correct.id,
+        name: correct.name,
+        preferred_common_name: correct.preferred_common_name || correct.common_name || null,
+        common_name: getTaxonName(correct),
+        ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
+        wikipedia_url: correct.wikipedia_url,
+      },
+      choices: shuffledChoices,
+      correct_choice_index,
+      correct_label,
+      choice_taxa_details: choiceTaxaInfo,
+      choix_mode_facile,
+      choix_mode_facile_ids,
+      choix_mode_facile_correct_index,
+      inaturalist_url: targetObservation.uri,
+    },
+    headers: {
+      "X-Cache-Key": cacheKey,
+      "X-Lures-Relaxed": selectionMode === "fallback_relax" ? "1" : "0",
+      "X-Lure-Buckets": `${buckets.near}|${buckets.mid}|${buckets.far}`,
+      "X-Pool-Pages": String(pagesFetched),
+      "X-Pool-Obs": String(poolObs),
+      "X-Pool-Taxa": String(poolTaxa),
+      "X-Selection-Geo": geoMode,
+      "Server-Timing": serverTiming,
+      "X-Timing": xTiming,
+    },
+  };
+}
+
 /* -------------------- Helpers ABCD -------------------- */
 function rememberObservation(selectionState, obsId) {
-  const id = String(obsId);
-  if (selectionState.recentObsSet.has(id)) return;
-  selectionState.recentObsQueue.push(id);
-  selectionState.recentObsSet.add(id);
-  while (selectionState.recentObsQueue.length > RECENT_OBS_MAX) {
-    const old = selectionState.recentObsQueue.shift();
-    selectionState.recentObsSet.delete(old);
-  }
+  if (!selectionState?.observationHistory) return;
+  selectionState.observationHistory.add(String(obsId));
 }
-function pickObservationForTaxon(pool, selectionState, taxonId) {
+function hasEligibleObservation(pool, selectionState, taxonId) {
+  const list = pool.byTaxon.get(String(taxonId)) || [];
+  if (!list.length) return false;
+  if (!selectionState?.observationHistory) return true;
+  return list.some((obs) => !selectionState.observationHistory.has(String(obs.id)));
+}
+function pickObservationForTaxon(pool, selectionState, taxonId, { allowSeen = false } = {}) {
   const list = pool.byTaxon.get(String(taxonId)) || [];
   if (list.length === 0) return null;
-  const filtered = list.filter((o) => !selectionState.recentObsSet.has(String(o.id)));
-  const arr = filtered.length ? filtered : list;
-  return arr[Math.floor(Math.random() * arr.length)];
+  const filtered =
+    selectionState?.observationHistory && !allowSeen
+      ? list.filter((o) => !selectionState.observationHistory.has(String(o.id)))
+      : list.slice();
+  if (!filtered.length) return null;
+  return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
 // Cooldown cible
@@ -592,34 +1153,30 @@ function pushTargetCooldown(pool, selectionState, taxonIds, now) {
  * @returns {string|null} Eligible taxon id or null if none available.
  */
 function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) {
-  if (!Array.isArray(selectionState.shuffledTaxonIds) || selectionState.shuffledTaxonIds.length === 0) {
-    selectionState.shuffledTaxonIds = shuffleFisherYates(pool.taxonList);
-    selectionState.cursor = 0;
+  if (!Array.isArray(selectionState.taxonDeck) || selectionState.taxonDeck.length === 0) {
+    selectionState.taxonDeck = createShuffledDeck(pool.taxonList);
   }
-  const n = selectionState.shuffledTaxonIds.length;
-  if (n === 0) return null;
+  const maxAttempts = pool.taxonList.length;
+  if (maxAttempts === 0) return null;
 
   const isEligible = (tid) => {
     const key = String(tid);
     if (excludeSet.has(key)) return false;
     if (!pool.byTaxon.get(key)?.length) return false;
+    if (!hasEligibleObservation(pool, selectionState, key)) return false;
     if (isBlockedByTargetCooldown(selectionState, key, now)) return false;
     return true;
   };
 
-  let scanned = 0;
-  while (scanned < n) {
-    if (selectionState.cursor >= n) {
-      selectionState.shuffledTaxonIds = shuffleFisherYates(selectionState.shuffledTaxonIds);
-      selectionState.cursor = 0;
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    if (!selectionState.taxonDeck.length) {
+      selectionState.taxonDeck = createShuffledDeck(pool.taxonList);
     }
-    const tid = selectionState.shuffledTaxonIds[selectionState.cursor];
-    if (isEligible(tid)) {
-      selectionState.cursor++; // ne consomme que si éligible
-      return String(tid);
-    }
-    selectionState.shuffledTaxonIds.push(selectionState.shuffledTaxonIds.splice(selectionState.cursor, 1)[0]);
-    scanned++;
+    const tid = drawFromDeck(selectionState.taxonDeck);
+    if (tid == null) return null;
+    if (isEligible(tid)) return String(tid);
+    attempts += 1;
   }
   return null;
 }
@@ -627,7 +1184,10 @@ function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set()) 
 // Fallback relax (pondéré par ancienneté) — cible
 function pickRelaxedTaxon(pool, selectionState, excludeSet = new Set()) {
   const all = pool.taxonList.filter(
-    (t) => !excludeSet.has(String(t)) && pool.byTaxon.get(String(t))?.length
+    (t) =>
+      !excludeSet.has(String(t)) &&
+      pool.byTaxon.get(String(t))?.length &&
+      hasEligibleObservation(pool, selectionState, String(t))
   );
   if (all.length === 0) return null;
 
@@ -723,7 +1283,7 @@ function buildLures(pool, selectionState, targetTaxonId, targetObservation, lure
     for (const s of arr) {
       if (out.length >= lureCount) return;
       if (seenTaxa.has(s.tid)) continue;
-      const obs = pickObservationForTaxon(pool, selectionState, s.tid) || s.rep;
+      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }) || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs });
         seenTaxa.add(s.tid);
@@ -833,7 +1393,7 @@ function validate(schema) {
 }
 
 /* -------------------- Helper observabilité -------------------- */
-function setTimingHeaders(res, marks, extra = {}) {
+function buildTimingData(marks, extra = {}) {
   const ms = (a, b) => Math.max(0, Math.round((marks[b] - marks[a]) || 0));
   const total = Math.max(0, Math.round((marks.end - marks.start) || 0));
   const timing = {
@@ -846,7 +1406,6 @@ function setTimingHeaders(res, marks, extra = {}) {
     totalMs: total,
     ...extra,
   };
-  res.set("X-Timing", JSON.stringify(timing));
   const serverTiming =
     `fetchObs;dur=${timing.fetchObsMs}, ` +
     `buildIndex;dur=${timing.buildIndexMs}, ` +
@@ -855,6 +1414,12 @@ function setTimingHeaders(res, marks, extra = {}) {
     `taxa;dur=${timing.taxaDetailsMs}, ` +
     `labels;dur=${timing.labelsMs}, ` +
     `total;dur=${timing.totalMs}`;
+  return { timing, serverTiming, xTiming: JSON.stringify(timing) };
+}
+
+function setTimingHeaders(res, marks, extra = {}) {
+  const { timing, serverTiming, xTiming } = buildTimingData(marks, extra);
+  res.set("X-Timing", xTiming);
   res.set("Server-Timing", serverTiming);
   return timing;
 }
@@ -873,10 +1438,7 @@ app.get(
   quizLimiter,
   validate(quizSchema),
   async (req, res) => {
-    const marks = {};
     try {
-      marks.start = performance.now();
-
       const {
         pack_id,
         taxon_ids,
@@ -936,336 +1498,48 @@ app.get(
         cacheKeyParams.d2 = d2 || "";
       }
 
-      const now = Date.now();
-      questionCache.prune();
-      selectionStateCache.prune();
       const cacheKey = buildCacheKey(cacheKeyParams);
-      let cacheEntry = questionCache.get(cacheKey);
-      if (cacheEntry && !cacheEntry.version) {
-        cacheEntry.version = cacheEntry.timestamp || now;
-      }
-
-      let pagesFetched = 0;
-      let poolObs = 0;
-      let poolTaxa = 0;
-
-      // (Re)chargement du pool
-      if (
-        !cacheEntry ||
-        cacheEntry.timestamp + QUESTION_CACHE_TTL < now ||
-        !cacheEntry.byTaxon ||
-        !Array.isArray(cacheEntry.taxonList) ||
-        cacheEntry.taxonList.length < QUIZ_CHOICES
-      ) {
-        let startPage = 1;
-        try {
-          const probeParams = { ...params, per_page: 1, page: 1 };
-          const probe = await fetchJSON(
-            "https://api.inaturalist.org/v1/observations",
-            probeParams,
-            { logger: req.log, requestId: req.id, label: "obs-total-probe" }
-          );
-          const totalResults = Number(probe?.total_results) || 0;
-          if (totalResults > 0) {
-            const perPage = Number(params.per_page) || 80;
-            const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
-            const capped = Math.max(1, Math.min(totalPages, 10));
-            startPage = Math.floor(Math.random() * capped) + 1;
-          }
-        } catch (prefetchErr) {
-          req.log?.warn({ requestId: req.id, error: prefetchErr.message }, "Observation total prefetch failed");
-          startPage = 1;
-        }
-
-        let page = startPage;
-        let results = [];
-        let distinctTaxaSet = new Set();
-
-        while (pagesFetched < MAX_OBS_PAGES) {
-          const resp = await fetchJSON("https://api.inaturalist.org/v1/observations", { ...params, page }, { logger: req.log, requestId: req.id });
-          const batch = (Array.isArray(resp.results) ? resp.results : [])
-            .map((item) => sanitizeObservation(item))
-            .filter(Boolean);
-          const filteredBatch =
-            monthDayFilter?.predicate && typeof monthDayFilter.predicate === "function"
-              ? batch.filter((obs) => monthDayFilter.predicate(obs.observedMonthDay))
-              : batch;
-          results = results.concat(filteredBatch);
-          pagesFetched++;
-
-          distinctTaxaSet = new Set(
-            results
-              .filter((o) => o?.taxon?.id && Array.isArray(o.photos) && o.photos.length > 0)
-              .map((o) => o.taxon.id)
-          );
-
-          if (distinctTaxaSet.size >= DISTINCT_TAXA_TARGET) break;
-          if (batch.length === 0) break;
-          page++;
-        }
-
-        if (results.length === 0) {
-          marks.fetchedObs = performance.now();
-          marks.builtIndex = marks.fetchedObs;
-          marks.pickedTarget = marks.builtIndex;
-          marks.builtLures = marks.pickedTarget;
-          marks.taxaFetched = marks.builtLures;
-          marks.labelsMade = marks.taxaFetched;
-          marks.end = performance.now();
-          setTimingHeaders(res, marks, { pagesFetched: 0, poolObs: 0, poolTaxa: 0 });
-          return res
-            .status(404)
-            .json({ error: "Aucune observation trouvée avec vos critères. Élargissez la zone ou la période." });
-        }
-
-        const byTaxon = new Map();
-        for (const o of results) {
-          const tid = o?.taxon?.id;
-          if (!tid) continue;
-          if (!Array.isArray(o.photos) || o.photos.length === 0) continue;
-          const key = String(tid);
-          if (!byTaxon.has(key)) byTaxon.set(key, []);
-          byTaxon.get(key).push(o);
-        }
-
-        const taxonList = Array.from(byTaxon.keys());
-        if (taxonList.length < QUIZ_CHOICES) {
-          marks.fetchedObs = performance.now();
-          marks.builtIndex = marks.fetchedObs;
-          marks.pickedTarget = marks.builtIndex;
-          marks.builtLures = marks.pickedTarget;
-          marks.taxaFetched = marks.builtLures;
-          marks.labelsMade = marks.taxaFetched;
-          marks.end = performance.now();
-          setTimingHeaders(res, marks, { pagesFetched, poolObs: results.length, poolTaxa: taxonList.length });
-          return res
-            .status(404)
-            .json({ error: "Pas assez d'espèces différentes pour créer un quiz avec ces critères." });
-        }
-
-        cacheEntry = {
-          timestamp: now,
-          version: now,
-          byTaxon,
-          taxonList,
-        };
-        questionCache.set(cacheKey, cacheEntry);
-
-        poolObs = results.length;
-        poolTaxa = taxonList.length;
-        marks.fetchedObs = performance.now();
-        marks.builtIndex = marks.fetchedObs; // on a construit les index pendant la boucle
-      } else {
-        // Pool déjà en cache
-        pagesFetched = 0;
-        poolObs = Array.from(cacheEntry.byTaxon.values()).reduce((n, arr) => n + arr.length, 0);
-        poolTaxa = cacheEntry.taxonList.length;
-        marks.fetchedObs = performance.now();
-        marks.builtIndex = marks.fetchedObs;
-      }
-
-      // CIBLE
+      selectionStateCache.prune();
+      questionQueueCache.prune();
       const clientIp = getClientIp(req);
-      const { state: selectionState } = getSelectionStateForClient(cacheKey, clientIp, cacheEntry, now);
-      const excludeTaxaForTarget = new Set();
-      let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget);
-
-      let selectionMode = "normal";
-      if (!targetTaxonId) {
-        targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget);
-        selectionMode = "fallback_relax";
-        req.log?.info(
-          { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
-          "Target fallback relax engaged"
-        );
-      }
-      if (!targetTaxonId) {
-        marks.pickedTarget = performance.now();
-        marks.builtLures = marks.pickedTarget;
-        marks.taxaFetched = marks.builtLures;
-        marks.labelsMade = marks.taxaFetched;
-        marks.end = performance.now();
-        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
-        return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
-      }
-      res.set("X-Selection-Geo", geo.mode);
-
-      const targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId);
-      if (!targetObservation) {
-        marks.pickedTarget = performance.now();
-        marks.builtLures = marks.pickedTarget;
-        marks.taxaFetched = marks.builtLures;
-        marks.labelsMade = marks.taxaFetched;
-        marks.end = performance.now();
-        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
-        return res.status(503).json({ error: "Aucune observation exploitable trouvée pour le taxon cible." });
-      }
-      rememberObservation(selectionState, targetObservation.id);
-      marks.pickedTarget = performance.now();
-
-      // LEURRES
-      const { lures, buckets } = buildLures(cacheEntry, selectionState, targetTaxonId, targetObservation, LURE_COUNT);
-      if (!lures || lures.length < LURE_COUNT) {
-        marks.builtLures = performance.now();
-        marks.taxaFetched = marks.builtLures;
-        marks.labelsMade = marks.taxaFetched;
-        marks.end = performance.now();
-        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
-        return res.status(404).json({ error: "Pas assez d'espèces différentes pour composer les choix." });
-      }
-      marks.builtLures = performance.now();
-
-      const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
-
-      const fallbackDetails = new Map();
-      fallbackDetails.set(String(targetTaxonId), targetObservation?.taxon || {});
-      for (const lure of lures) {
-        fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
-      }
-
-      const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale, {
+      const queueKey = `${cacheKey}|${clientIp || "anon"}`;
+      const context = {
+        params,
+        cacheKey,
+        monthDayFilter,
+        locale,
+        geoMode: geo.mode,
+        clientId: clientIp,
         logger: req.log,
         requestId: req.id,
-      });
-      const details = new Map();
-      for (const taxon of choiceTaxaDetails) {
-        details.set(String(taxon.id), taxon);
+        fallbackContext: { pack_id, taxon_ids, include_taxa, exclude_taxa },
+      };
+
+      const queueEntry = getQueueEntry(queueKey);
+      let item = queueEntry.queue.shift();
+      if (!item) {
+        item = await buildQuizQuestion(context);
       }
-      for (const id of choiceIdsInOrder) {
-        const key = String(id);
-        if (!details.has(key)) {
-          details.set(key, fallbackDetails.get(key) || {});
+      if (!item?.payload) {
+        return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
+      }
+      if (item.headers) {
+        for (const [key, value] of Object.entries(item.headers)) {
+          res.set(key, value);
         }
       }
-      const correct = details.get(String(targetTaxonId));
-      if (!correct) {
-        marks.taxaFetched = performance.now();
-        marks.labelsMade = marks.taxaFetched;
-        marks.end = performance.now();
-        setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
-        return res.status(502).json({ error: `Impossible de récupérer les détails du taxon ${targetTaxonId}` });
-      }
+      res.json(item.payload);
 
-      // Construire une map “détails” compatible avec makeChoiceLabels
-      marks.taxaFetched = performance.now();
-
-      const choiceTaxaInfo = choiceIdsInOrder.map((id) => {
-        const info = details.get(String(id)) || {};
-        return {
-          taxon_id: String(id),
-          name: info.name || info.taxon?.name,
-          preferred_common_name: info.preferred_common_name || info.common_name || null,
-          rank: info.rank,
-        };
-      });
-
-      // CHOIX "RICHE"
-      const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
-      const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
-      const shuffledChoices = shuffleFisherYates(choiceObjects);
-      const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
-      const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
-
-      // MODE FACILE
-      const facilePairs = choiceIdsInOrder.map((id) => ({
-        taxon_id: id,
-        label: getTaxonName(details.get(String(id))),
-      }));
-      const facileShuffled = shuffleFisherYates(facilePairs);
-      const choix_mode_facile = facileShuffled.map((p) => p.label);
-      const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
-      const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
-        (id) => id === String(targetTaxonId)
-      );
-      marks.labelsMade = performance.now();
-
-      // Images
-      const observationPhotos = Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
-      const image_urls = observationPhotos
-        .map((p) => (p?.url ? p.url.replace("square", "large") : null))
-        .filter(Boolean);
-      const image_meta = observationPhotos.map((p, idx) => ({
-        id: p.id ?? idx,
-        attribution: p.attribution,
-        license_code: p.license_code,
-        url: p.url,
-        original_dimensions: p.original_dimensions,
-      }));
-
-      // Cooldown cible
-      pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], now);
-
-      // Entêtes debug/observabilité
-      res.set("X-Cache-Key", cacheKey);
-      res.set("X-Lures-Relaxed", "0");
-      res.set("X-Lure-Buckets", `${buckets.near}|${buckets.mid}|${buckets.far}`);
-      res.set("X-Pool-Pages", String(pagesFetched));
-      res.set("X-Pool-Obs", String(poolObs));
-      res.set("X-Pool-Taxa", String(poolTaxa));
-
-      marks.end = performance.now();
-      const timing = setTimingHeaders(res, marks, { pagesFetched, poolObs, poolTaxa });
-
-      // Log structuré des timings
-      req.log?.info(
-        {
-          cacheKey,
-          selectionMode,
-          pagesFetched,
-          poolObs,
-          poolTaxa,
-          timings: timing,
-          targetTaxonId: String(targetTaxonId),
-          targetObsId: String(targetObservation.id),
-        },
-        "Quiz timings"
-      );
-
-      // Réponse
-      res.json({
-        image_urls,
-        image_meta,
-        sounds: targetObservation.sounds || [],
-        bonne_reponse: {
-          id: correct.id,
-          name: correct.name,
-          preferred_common_name: correct.preferred_common_name || correct.common_name || null,
-          common_name: getTaxonName(correct),
-          ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
-          wikipedia_url: correct.wikipedia_url,
-        },
-
-        // --- Choix "riches"
-        choices: shuffledChoices, // [{ taxon_id, label }]
-        correct_choice_index,
-        correct_label,
-        choice_taxa_details: choiceTaxaInfo,
-
-        // --- MODE FACILE ---
-        choix_mode_facile,                   // [label]
-        choix_mode_facile_ids,              // [taxon_id] aligné aux labels
-        choix_mode_facile_correct_index,    // index du bon choix
-
-        inaturalist_url: targetObservation.uri,
+      fillQuestionQueue(queueEntry, context).catch((err) => {
+        req.log?.warn({ err, requestId: req.id }, "Background queue fill failed");
       });
     } catch (err) {
-      try {
-        // tenter d'envoyer des timings même en cas d'erreur tardive
-        if (!res.headersSent) {
-          const now = performance.now();
-          const safe = (k, def) => (typeof marks[k] === "number" ? marks[k] : def);
-          marks.fetchedObs = safe("fetchedObs", now);
-          marks.builtIndex = safe("builtIndex", marks.fetchedObs);
-          marks.pickedTarget = safe("pickedTarget", marks.builtIndex);
-          marks.builtLures = safe("builtLures", marks.pickedTarget);
-          marks.taxaFetched = safe("taxaFetched", marks.builtLures);
-          marks.labelsMade = safe("labelsMade", marks.taxaFetched);
-          marks.end = now;
-          setTimingHeaders(res, marks);
-        }
-      } catch (_) {}
       req.log?.error({ err, requestId: req.id }, "Unhandled quiz route error");
-      if (!res.headersSent) res.status(500).json({ error: "Erreur interne du serveur" });
+      if (res.headersSent) return;
+      const status = err?.status || 500;
+      const message =
+        status === 500 ? "Erreur interne du serveur" : err?.message || "Erreur interne du serveur";
+      res.status(status).json({ error: message });
     }
   }
 );
@@ -1279,24 +1553,29 @@ app.get(
     try {
       const { q, per_page } = req.valid;
       const cacheKey = buildCacheKey({ places: q, per_page });
-      const now = Date.now();
       autocompleteCache.prune();
-      const cached = autocompleteCache.get(cacheKey);
-      if (cached && cached.expires > now) return res.json(cached.data);
-
-      const data = await fetchJSON(
-        "https://api.inaturalist.org/v1/places/autocomplete",
-        { q, per_page },
-        { logger: req.log, requestId: req.id, label: "places-autocomplete" }
+      const out = await autocompleteCache.getOrFetch(
+        cacheKey,
+        async () => {
+          const data = await fetchInatJSON(
+            "https://api.inaturalist.org/v1/places/autocomplete",
+            { q, per_page },
+            { logger: req.log, requestId: req.id, label: "places-autocomplete" }
+          );
+          return (data.results || []).map((p) => ({
+            id: p.id,
+            name: p.display_name || p.name,
+            type: p.place_type_name,
+            admin_level: p.admin_level,
+            area_km2: p.bounding_box_area,
+          }));
+        },
+        {
+          allowStale: true,
+          background: true,
+          onError: (err) => req.log?.warn({ requestId: req.id, error: err.message }, "places cache refresh failed"),
+        }
       );
-      const out = (data.results || []).map((p) => ({
-        id: p.id,
-        name: p.display_name || p.name,
-        type: p.place_type_name,
-        admin_level: p.admin_level,
-        area_km2: p.bounding_box_area,
-      }));
-      autocompleteCache.set(cacheKey, { data: out });
       res.json(out);
     } catch (e) {
       req.log?.error({ err: e, requestId: req.id }, "Unhandled places autocomplete error");
@@ -1313,7 +1592,7 @@ app.get(
     try {
       const idsParam = req.valid.ids.join(",");
       if (!idsParam) return res.json([]);
-      const data = await fetchJSON(`https://api.inaturalist.org/v1/places/${idsParam}`, {}, {
+      const data = await fetchInatJSON(`https://api.inaturalist.org/v1/places/${idsParam}`, {}, {
         logger: req.log,
         requestId: req.id,
         label: "places-by-id",
@@ -1341,44 +1620,45 @@ app.get(
   async (req, res) => {
     try {
       const { q, rank, locale = "fr" } = req.valid;
-      const now = Date.now();
       autocompleteCache.prune();
       const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
+      const out = await autocompleteCache.getOrFetch(
+        cacheKey,
+        async () => {
+          const params = { q: String(q).trim(), is_active: true, per_page: 10, locale };
+          if (rank) params.rank = rank;
 
-      const cached = autocompleteCache.get(cacheKey);
-      if (cached && cached.expires > now) {
-        return res.json(cached.data);
-      }
+          const response = await fetchInatJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params, {
+            logger: req.log,
+            requestId: req.id,
+            label: "taxa-autocomplete",
+          });
+          const initial = Array.isArray(response.results) ? response.results : [];
+          if (initial.length === 0) {
+            return [];
+          }
 
-      const params = { q: String(q).trim(), is_active: true, per_page: 10, locale };
-      if (rank) params.rank = rank;
+          const taxonIds = initial.map((t) => t.id);
+          const taxaDetails = await getFullTaxaDetails(taxonIds, locale, { logger: req.log, requestId: req.id });
+          const byId = new Map(taxaDetails.map((t) => [t.id, t]));
 
-      const response = await fetchJSON("https://api.inaturalist.org/v1/taxa/autocomplete", params, {
-        logger: req.log,
-        requestId: req.id,
-        label: "taxa-autocomplete",
-      });
-      const initial = Array.isArray(response.results) ? response.results : [];
-      if (initial.length === 0) {
-        autocompleteCache.set(cacheKey, { data: [] });
-        return res.json([]);
-      }
-
-      const taxonIds = initial.map((t) => t.id);
-      const taxaDetails = await getFullTaxaDetails(taxonIds, locale, { logger: req.log, requestId: req.id });
-      const byId = new Map(taxaDetails.map((t) => [t.id, t]));
-
-      const out = initial.map((t) => {
-        const d = byId.get(t.id);
-        return {
-          id: t.id,
-          name: t.preferred_common_name ? `${t.preferred_common_name} (${t.name})` : t.name,
-          rank: t.rank,
-          ancestor_ids: Array.isArray(d?.ancestors) ? d.ancestors.map((a) => a.id) : [],
-        };
-      });
-
-      autocompleteCache.set(cacheKey, { data: out });
+          return initial.map((t) => {
+            const d = byId.get(t.id);
+            return {
+              id: t.id,
+              name: t.preferred_common_name ? `${t.preferred_common_name} (${t.name})` : t.name,
+              rank: t.rank,
+              ancestor_ids: Array.isArray(d?.ancestors) ? d.ancestors.map((a) => a.id) : [],
+            };
+          });
+        },
+        {
+          allowStale: true,
+          background: true,
+          onError: (err) =>
+            req.log?.warn({ requestId: req.id, error: err.message }, "taxa autocomplete refresh failed"),
+        }
+      );
       res.json(out);
     } catch (err) {
       req.log?.error({ err, requestId: req.id }, "Unhandled autocomplete error");
@@ -1403,7 +1683,7 @@ app.get(
         return res.status(400).json({ error: "Paramètres invalides", issues: parsed.error.issues });
       }
       const { id, locale } = parsed.data;
-      const response = await fetchJSON(
+      const response = await fetchInatJSON(
         `https://api.inaturalist.org/v1/taxa/${id}`,
         { locale },
         { logger: req.log, requestId: req.id, label: "taxon-detail" }
@@ -1474,7 +1754,7 @@ app.get(
       if (d1) params.d1 = d1;
       if (d2) params.d2 = d2;
 
-      const data = await fetchJSON("https://api.inaturalist.org/v1/observations/species_counts", params, {
+      const data = await fetchInatJSON("https://api.inaturalist.org/v1/observations/species_counts", params, {
         logger: req.log,
         requestId: req.id,
         label: "species-counts",

@@ -44,7 +44,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   const { bonne_reponse, inaturalist_url } = question;
 
   const isWin = status === 'win';
-  const removeEmojis = (text = '') => text.replace(/[🎉😟]/g, '').trim();
+  const removeEmojis = (text = '') => text.replace(/[🎉😟]/gu, '').trim();
 
   const { primary: primaryName, secondary: secondaryName } = getTaxonDisplayNames(bonne_reponse);
   const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
