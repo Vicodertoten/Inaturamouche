@@ -103,6 +103,11 @@ app.use(
           "https://static.inaturalist.org",
           "https://inaturalist-open-data.s3.amazonaws.com",
         ],
+        "media-src": [
+          "'self'",
+          "https://static.inaturalist.org",
+          "https://inaturalist-open-data.s3.amazonaws.com",
+        ],
         "style-src": ["'self'", "'unsafe-inline'"],
         "font-src": ["'self'", "https:", "data:"],
         "script-src": ["'self'"],
