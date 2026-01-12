@@ -78,8 +78,8 @@ const HomePage = () => {
   const totalXp = profile?.xp || 0;
 
   const handleStart = useCallback(
-    (review = false) => {
-      startGame({ review });
+    ({ review = false, maxQuestions, mediaType } = {}) => {
+      startGame({ review, maxQuestions, mediaType });
       navigate('/play');
     },
     [navigate, startGame]
@@ -91,7 +91,7 @@ const HomePage = () => {
 
   const handleStartReview = useCallback(() => {
     handleSelectReview();
-    handleStart(true);
+    handleStart({ review: true });
   }, [handleSelectReview, handleStart]);
 
   const heroChips = useMemo(

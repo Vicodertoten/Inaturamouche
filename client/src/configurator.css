@@ -304,6 +304,107 @@
   line-height: 1.5;
 }
 
+.game-settings-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.setting-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--space-3);
+  background: rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.setting-label {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-color-muted);
+  font-weight: 600;
+}
+
+.setting-options {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.setting-options.media-options {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.setting-option {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.setting-option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.setting-option:hover,
+.setting-option:focus-within {
+  border-color: var(--accent-color);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.setting-option.active {
+  background: linear-gradient(120deg, rgba(221, 161, 94, 0.24), rgba(96, 108, 56, 0.45));
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px rgba(221, 161, 94, 0.3), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.media-option {
+  justify-content: center;
+}
+
+.option-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.media-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.media-icon-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.settings-hint {
+  margin: 0;
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .options-row {
   display: flex;
   align-items: center;

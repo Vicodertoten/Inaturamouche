@@ -61,6 +61,16 @@ const nl = {
     advanced_filters_helper: 'Beperk de soortenlijst met taxa, locatie of datum als je een gerichte quiz wilt.',
     show_advanced_filters: 'Geavanceerde filters tonen',
     hide_advanced_filters: 'Geavanceerde filters verbergen',
+    game_settings_title: 'Spelinstellingen',
+    game_settings_hint: 'Kies de lengte en het mediatype van je sessie.',
+    question_count_label: 'Aantal vragen',
+    media_type_label: 'Mediatype',
+    option_infinite: 'Oneindig',
+    option_images: 'Afbeeldingen',
+    option_sounds: 'Geluiden',
+    option_both: 'Afbeeldingen + geluiden',
+    sounds_warning:
+      'Spellen met geluid kunnen langer laden en minder resultaten geven, afhankelijk van je filters.',
   },
   packs: {
     custom: {

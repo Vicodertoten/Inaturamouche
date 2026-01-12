@@ -17,11 +17,13 @@ Base URL front : `VITE_API_URL` si défini, sinon `http://localhost:3001` en dev
   - `nelat?`/`nelng?`/`swlat?`/`swlng?`: number, bbox avec [-90,90] et [-180,180].  
   - `d1?`/`d2?`: string ISO (fenêtre temporelle ou filtre saison via `buildMonthDayFilter`).  
   - `locale`: string, défaut `"fr"`.  
+  - `media_type?`: `"images" | "sounds" | "both"` (filtre iNat `sounds=true` si sons demandés).  
 - **200**  
   ```json
   {
     "image_urls": ["https://.../large.jpg"],
     "image_meta": [{ "id": 123, "attribution": "...", "license_code": "cc-by", "url": "...", "original_dimensions": { "width": 1200, "height": 900 } }],
+    "sounds": [{ "id": 456, "file_url": "https://.../audio.mp3", "attribution": "...", "license_code": "cc-by" }],
     "bonne_reponse": {
       "id": 12345,
       "name": "Rana temporaria",

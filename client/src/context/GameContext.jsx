@@ -16,7 +16,26 @@ import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
 import { usePacks } from './PacksContext.jsx';
 
-export const MAX_QUESTIONS_PER_GAME = 5;
+export const DEFAULT_MAX_QUESTIONS = 5;
+const DEFAULT_MEDIA_TYPE = 'images';
+
+const normalizeMaxQuestions = (value, fallback = DEFAULT_MAX_QUESTIONS) => {
+  if (value === null || value === -1 || value === 'infinite') return null;
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.trunc(parsed);
+};
+
+const normalizeMediaType = (value, fallback = DEFAULT_MEDIA_TYPE) => {
+  if (value === 'images' || value === 'sounds' || value === 'both') return value;
+  return fallback;
+};
+
+const hasQuestionLimit = (value) => Number.isInteger(value) && value > 0;
+
+const resolveTotalQuestions = (maxQuestions, questionCount) =>
+  hasQuestionLimit(maxQuestions) ? maxQuestions : questionCount || 0;
 
 const STREAK_PERKS = [
   {
@@ -101,6 +120,8 @@ export function GameProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [questionCount, setQuestionCount] = useState(0);
+  const [maxQuestions, setMaxQuestions] = useState(DEFAULT_MAX_QUESTIONS);
+  const [mediaType, setMediaType] = useState(DEFAULT_MEDIA_TYPE);
   const [score, setScore] = useState(0);
   const [sessionStats, setSessionStats] = useState({ correctAnswers: 0 });
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
@@ -204,6 +225,7 @@ export function GameProvider({ children }) {
   const buildQuizParams = useCallback(() => {
     const params = new URLSearchParams();
     params.set('locale', language);
+    params.set('media_type', mediaType);
 
     if (isReviewMode) {
       (profile?.stats?.missedSpecies || []).forEach((id) => params.append('taxon_ids', id));
@@ -241,7 +263,15 @@ export function GameProvider({ children }) {
       }
     }
     return params;
-  }, [activePack, activePackId, customFilters, isReviewMode, language, profile?.stats?.missedSpecies]);
+  }, [
+    activePack,
+    activePackId,
+    customFilters,
+    isReviewMode,
+    language,
+    mediaType,
+    profile?.stats?.missedSpecies,
+  ]);
 
   const fetchQuestion = useCallback(
     async (prefetchOnly = false) => {
@@ -311,7 +341,7 @@ export function GameProvider({ children }) {
   }, [question?.bonne_reponse?.id]);
 
   const startGame = useCallback(
-    ({ review = false } = {}) => {
+    ({ review = false, maxQuestions: nextMaxQuestions, mediaType: nextMediaType } = {}) => {
       resetSessionState();
       setQuestion(null);
       setNextQuestion(null);
@@ -320,14 +350,21 @@ export function GameProvider({ children }) {
       setIsGameActive(true);
       setIsGameOver(false);
       setIsReviewMode(review);
+      setMaxQuestions((prev) =>
+        nextMaxQuestions === undefined ? prev : normalizeMaxQuestions(nextMaxQuestions, prev)
+      );
+      setMediaType((prev) =>
+        nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)
+      );
     },
     [resetSessionState]
   );
 
   const nextImageUrl = useMemo(() => {
+    if (mediaType === 'sounds') return null;
     if (!nextQuestion) return null;
     return nextQuestion.image_urls?.[0] || nextQuestion.image_url || null;
-  }, [nextQuestion]);
+  }, [mediaType, nextQuestion]);
 
   const currentMultiplier = useMemo(
     () => computeMultiplierFromPerks(activePerks),
@@ -365,6 +402,7 @@ export function GameProvider({ children }) {
       const profileClone = profile
         ? JSON.parse(JSON.stringify(profile))
         : loadProfileWithDefaults();
+      const totalQuestions = resolveTotalQuestions(maxQuestions, questionCount);
 
       profileClone.xp = (profileClone.xp || 0) + finalScore;
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
@@ -372,14 +410,14 @@ export function GameProvider({ children }) {
       if (gameMode === 'easy') {
         profileClone.stats.correctEasy = (profileClone.stats.correctEasy || 0) + finalCorrectAnswers;
         profileClone.stats.easyQuestionsAnswered =
-          (profileClone.stats.easyQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+          (profileClone.stats.easyQuestionsAnswered || 0) + totalQuestions;
         profileClone.stats.accuracyEasy = profileClone.stats.easyQuestionsAnswered > 0
           ? profileClone.stats.correctEasy / profileClone.stats.easyQuestionsAnswered
           : 0;
       } else {
         profileClone.stats.correctHard = (profileClone.stats.correctHard || 0) + finalCorrectAnswers;
         profileClone.stats.hardQuestionsAnswered =
-          (profileClone.stats.hardQuestionsAnswered || 0) + MAX_QUESTIONS_PER_GAME;
+          (profileClone.stats.hardQuestionsAnswered || 0) + totalQuestions;
         profileClone.stats.accuracyHard = profileClone.stats.hardQuestionsAnswered > 0
           ? profileClone.stats.correctHard / profileClone.stats.hardQuestionsAnswered
           : 0;
@@ -403,7 +441,7 @@ export function GameProvider({ children }) {
         profileClone.stats.packsPlayed[activePackId] = { correct: 0, answered: 0 };
       }
       profileClone.stats.packsPlayed[activePackId].correct += finalCorrectAnswers;
-      profileClone.stats.packsPlayed[activePackId].answered += MAX_QUESTIONS_PER_GAME;
+      profileClone.stats.packsPlayed[activePackId].answered += totalQuestions;
       profileClone.stats.biomeMastery = profileClone.stats.biomeMastery || {};
       speciesEntries.forEach((entry) => {
         if (!entry || !Array.isArray(entry.biomes)) return;
@@ -437,7 +475,17 @@ export function GameProvider({ children }) {
       setIsGameOver(true);
       setNextQuestion(null);
     },
-    [activePackId, clearAchievementsTimer, clearUnlockedLater, gameMode, profile, queueAchievements, updateProfile]
+    [
+      activePackId,
+      clearAchievementsTimer,
+      clearUnlockedLater,
+      gameMode,
+      maxQuestions,
+      profile,
+      questionCount,
+      queueAchievements,
+      updateProfile,
+    ]
   );
 
   const completeRound = useCallback(
@@ -561,7 +609,8 @@ export function GameProvider({ children }) {
       setSessionMissedSpecies(finalMissedSpecies);
       setSessionSpeciesData(nextSpeciesData);
 
-      if (questionCount < MAX_QUESTIONS_PER_GAME) {
+      const hasLimit = hasQuestionLimit(maxQuestions);
+      if (!hasLimit || questionCount < maxQuestions) {
         setQuestionCount((prev) => prev + 1);
         if (nextQuestion) {
           setQuestion(nextQuestion);
@@ -600,11 +649,12 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionStats.correctAnswers,
       streakTier,
+      maxQuestions,
       updateProfile,
     ]
   );
 
-  const canStartReview = (profile?.stats?.missedSpecies?.length || 0) >= MAX_QUESTIONS_PER_GAME;
+  const canStartReview = (profile?.stats?.missedSpecies?.length || 0) >= DEFAULT_MAX_QUESTIONS;
 
   const value = {
     activePackId,
@@ -621,6 +671,10 @@ export function GameProvider({ children }) {
     error,
     clearError,
     questionCount,
+    maxQuestions,
+    setMaxQuestions,
+    mediaType,
+    setMediaType,
     score,
     sessionStats,
     sessionCorrectSpecies,

@@ -10,7 +10,7 @@ Ce guide résume l'architecture React, la gestion d'état du jeu et la configura
 - **LOADING** : `startGame()` positionne `isGameActive=true`, `questionCount=1`, déclenche `fetchQuestion()` (spinner sur `/play` tant que `question` ou `nextQuestion` est nul).  
 - **PLAYING** : une question est présente. `completeRound` reçoit les résultats du mode actif, calcule score/streak, enregistre la réponse (espèce, biomes, temps de réponse) et gère les perks.  
 - **ANSWERED** : chaque mode contrôle localement l'état de round (`roundStatus` dans `HardMode`, modale récap dans `EasyMode`), puis déclenche `completeRound`.  
-- **SUMMARY** : si `questionCount < MAX_QUESTIONS_PER_GAME`, on précharge la question suivante (`prefetchRequestController`) et le front présente le prochain round ; sinon `finalizeGame` fige la session.  
+- **SUMMARY** : si `maxQuestions` est défini et `questionCount < maxQuestions`, on précharge la question suivante (`prefetchRequestController`) et le front présente le prochain round ; sinon `finalizeGame` fige la session.  
 - **GAME_OVER** : `isGameOver=true`, `nextQuestion=null`, l'utilisateur est redirigé vers `/end`. `resetToLobby` remet le lobby/filters à zéro.
 
 Autres points clés :

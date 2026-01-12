@@ -3,7 +3,7 @@ import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
 import StreakBadge from './StreakBadge';
-import { MAX_QUESTIONS_PER_GAME, useGame } from '../context/GameContext';
+import { useGame } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
@@ -19,6 +19,8 @@ const EasyMode = () => {
     question,
     score,
     questionCount,
+    maxQuestions,
+    mediaType,
     currentStreak,
     nextImageUrl,
     completeRound,
@@ -26,6 +28,13 @@ const EasyMode = () => {
   } = useGame();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
+  const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
+  const soundUrl = question?.sounds?.[0]?.file_url;
+  const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
+  const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
+  const headerLabel = hasQuestionLimit
+    ? t('easy.question_counter', { current: questionCount, total: maxQuestions })
+    : t('easy.score_label', { score });
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
@@ -158,7 +167,7 @@ const EasyMode = () => {
         <div className="card">
           <header className="game-header">
             <div className="header-left">
-              <h2>{t('easy.question_counter', { current: questionCount, total: MAX_QUESTIONS_PER_GAME })}</h2>
+              <h2>{headerLabel}</h2>
               <button
                 className="hint-button-easy"
                 onClick={handleHint}
@@ -172,19 +181,26 @@ const EasyMode = () => {
               </button>
             </div>
             <div className="score-container">
-              <h2 className="score">{t('easy.score_label', { score })}</h2>
+              {hasQuestionLimit && <h2 className="score">{t('easy.score_label', { score })}</h2>}
               <StreakBadge streak={currentStreak} />
             </div>
           </header>
 
           <main className="game-main">
             <div className="image-section">
-              <ImageViewer
-                imageUrls={question.image_urls || [question.image_url]}
-                photoMeta={question.image_meta}
-                alt={t('easy.image_alt')}
-                nextImageUrl={nextImageUrl}
-              />
+              {showAudio && (
+                <div className="audio-panel">
+                  <audio controls src={soundUrl} className="audio-player" preload="none" />
+                </div>
+              )}
+              {showImage && (
+                <ImageViewer
+                  imageUrls={question.image_urls || [question.image_url]}
+                  photoMeta={question.image_meta}
+                  alt={t('easy.image_alt')}
+                  nextImageUrl={nextImageUrl}
+                />
+              )}
             </div>
 
             <div className="choices">
