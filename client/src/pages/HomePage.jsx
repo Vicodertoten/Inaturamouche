@@ -4,6 +4,8 @@ import { useGameData } from '../context/GameContext';
 
 const Configurator = lazy(() => import('../Configurator'));
 
+const dailyChallengeLabel = '\u{1F4C5} D\u00E9fi du Jour';
+
 const LobbyPillars = ({ t, onSelectReview, canStartReview, missedCount }) => (
   <div className="lobby-pillars">
     <div className="lobby-pillar pillar-play">
@@ -79,10 +81,26 @@ const HomePage = () => {
     [navigate, startGame]
   );
 
+  const handleDailyChallenge = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    startGame({ seed: today, gameMode: 'hard', maxQuestions: 10 });
+    navigate('/play');
+  }, [navigate, startGame]);
+
   return (
     <div className="screen configurator-screen">
       <div className="home-dashboard card">
-        
+        <section className="daily-challenge-cta">
+          <button
+            type="button"
+            className="start-button"
+            onClick={handleDailyChallenge}
+            aria-label={dailyChallengeLabel}
+          >
+            {dailyChallengeLabel}
+          </button>
+        </section>
+
         <section className="configurator-shell">
           <Suspense
             fallback={

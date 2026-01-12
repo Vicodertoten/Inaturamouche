@@ -5,12 +5,13 @@
 //  - /api/taxa/autocomplete & /api/observations/species_counts => StaleWhileRevalidate
 //  - images iNaturalist => CacheFirst (TTL 7 jours)
 
-import { defineConfig } from "vite";
+import { defineConfig, splitVendorChunkPlugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   plugins: [
+    splitVendorChunkPlugin(),
     react(),
     VitePWA({
       registerType: "autoUpdate",

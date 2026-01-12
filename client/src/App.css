@@ -466,6 +466,20 @@ button:active:not(:disabled),
   align-items: stretch;
 }
 
+.game-screen.easy-mode {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.game-screen.centered-screen {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
 .game-screen .card {
   flex: 1;
   min-height: 0;
@@ -473,11 +487,24 @@ button:active:not(:disabled),
 
 .game-screen.easy-mode .card {
   min-height: 0;
+  width: min(100%, 940px);
+  margin: 0 auto;
+}
+
+.game-screen.centered-screen .card {
+  min-height: 0;
+  width: min(100%, 940px);
+  margin: 0 auto;
 }
 
 .game-screen.easy-mode .game-main {
   flex: 1;
   min-height: 0;
+}
+
+.game-screen.easy-mode .image-section {
+  align-items: center;
+  justify-content: center;
 }
 
 .game-header { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; flex-shrink: 0; }

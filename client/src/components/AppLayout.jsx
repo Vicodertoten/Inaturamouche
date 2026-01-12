@@ -5,7 +5,7 @@ import HelpModal from './HelpModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import titleImage from '../assets/inaturamouche-title.png';
-import logoImage from '../assets/inaturamouche-logo.png';
+import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -120,7 +120,8 @@ const AppLayout = () => {
           onClick={handleTitleClick}
           title={t('nav.title_tooltip')}
           decoding="async"
-          fetchPriority="high"
+          width={1228}
+          height={383}
         />
         <img
           src={logoImage}
@@ -130,6 +131,8 @@ const AppLayout = () => {
           title={t('nav.title_tooltip')}
           decoding="async"
           fetchPriority="high"
+          width={105}
+          height={105}
         />
       </header>
 

@@ -1,61 +1,140 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useState } from 'react';
-import { loadProfileWithDefaults, saveProfile } from '../services/PlayerProfile';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../services/PlayerProfile';
+import db, { speciesTable, statsTable } from '../services/db';
+import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
+import { buildSpeciesPayload } from '../utils/speciesUtils';
+import { MASTERY_THRESHOLD } from '../utils/scoring';
+import { queueTaxonForEnrichment } from '../services/TaxonomyService';
 
 const UserContext = createContext(null);
 
-export function UserProvider({ children }) {
-  const [profile, setProfile] = useState(() => loadProfileWithDefaults());
-  const [achievementQueue, setAchievementQueue] = useState([]);
+const sanitizeProfile = (profileCandidate) => {
+  const base = profileCandidate ?? getDefaultProfile();
+  const { pokedex: _pokedex, ...rest } = base;
+  return rest;
+};
 
-  const refreshProfile = useCallback(() => {
-    setProfile(loadProfileWithDefaults());
+export function UserProvider({ children }) {
+  const [profile, setProfile] = useState(() => sanitizeProfile());
+  const [achievementQueue, setAchievementQueue] = useState([]);
+  const [collectionVersion, setCollectionVersion] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initialize = async () => {
+      let migrationApplied = false;
+      try {
+        migrationApplied = await migrateLocalStorageToIndexedDB();
+      } catch (migrationError) {
+        console.error('Failed to migrate legacy collection', migrationError);
+      }
+      try {
+        const loadedProfile = await loadProfileFromStore();
+        if (!isMounted) return;
+        setProfile(sanitizeProfile(loadedProfile));
+      } catch (loadError) {
+        console.error('Failed to load profile', loadError);
+        if (isMounted) {
+          setProfile(sanitizeProfile());
+        }
+      }
+      if (migrationApplied && isMounted) {
+        setCollectionVersion((prev) => prev + 1);
+      }
+    };
+    void initialize();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    const loadedProfile = await loadProfileFromStore();
+    setProfile(sanitizeProfile(loadedProfile));
   }, []);
 
   const updateProfile = useCallback((updater) => {
     setProfile((prev) => {
-      const base = prev ?? loadProfileWithDefaults();
+      const base = prev ?? sanitizeProfile();
       const next = typeof updater === 'function' ? updater(base) : updater;
-      saveProfile(next);
-      return next;
+      const sanitized = sanitizeProfile(next);
+      void saveProfile(sanitized);
+      return sanitized;
     });
   }, []);
 
-  const updatePokedex = useCallback((species, isCorrect, thumbnail) => {
-    updateProfile(prevProfile => {
-      const { id, name, preferred_common_name, iconic_taxon_id, ancestor_ids } = species;
-      const now = new Date().toISOString();
-
-      const newPokedex = { ...prevProfile.pokedex };
-      let entry = newPokedex[id];
-
-      if (entry) {
-        entry.seenCount += 1;
-        if (isCorrect) {
-          entry.correctCount += 1;
-        }
-        entry.lastSeenAt = now;
-        newPokedex[id] = entry;
-      } else if (isCorrect) {
-        newPokedex[id] = {
-          id,
-          name,
-          common_name: preferred_common_name,
-          iconic_taxon_id,
-          ancestor_ids,
-          seenCount: 1,
-          correctCount: 1,
-          thumbnail,
+  const addSpeciesToCollection = useCallback(async (taxon, isCorrect = false, thumbnail) => {
+    if (!taxon?.id) return;
+    const payload = buildSpeciesPayload(taxon, thumbnail);
+    if (!payload) return;
+    const now = new Date().toISOString();
+    const wasCorrect = Boolean(isCorrect);
+    try {
+      await db.transaction('rw', speciesTable, statsTable, async () => {
+        const existingStats = await statsTable.get(taxon.id);
+        const seenCount = (Number(existingStats?.seenCount) || 0) + 1;
+        const correctCount = (Number(existingStats?.correctCount) || 0) + (wasCorrect ? 1 : 0);
+        await statsTable.put({
+          id: taxon.id,
+          seenCount,
+          correctCount,
           lastSeenAt: now,
-        };
-      }
-      
+          accuracy: seenCount ? correctCount / seenCount : 0,
+        });
+        await speciesTable.put(payload);
+      });
+      queueTaxonForEnrichment(taxon.id);
+      setCollectionVersion((prev) => prev + 1);
+    } catch (error) {
+      console.error('Failed to persist collection entry', error);
+    }
+  }, []);
+
+  const updatePokedex = useCallback((species, isCorrect, thumbnail) => {
+    void addSpeciesToCollection(species, isCorrect, thumbnail);
+  }, [addSpeciesToCollection]);
+
+  const getCollectionStats = useCallback(async () => {
+    try {
+      const [totalSpecies, statsEntries] = await Promise.all([
+        speciesTable.count(),
+        statsTable.toArray(),
+      ]);
+      let masteredSpecies = 0;
+      let lastSeenAt = null;
+      statsEntries.forEach((entry) => {
+        if (!entry) return;
+        const correctCount = Number(entry.correctCount) || 0;
+        if (correctCount >= MASTERY_THRESHOLD) masteredSpecies += 1;
+        if (entry.lastSeenAt && (!lastSeenAt || entry.lastSeenAt > lastSeenAt)) {
+          lastSeenAt = entry.lastSeenAt;
+        }
+      });
       return {
-        ...prevProfile,
-        pokedex: newPokedex,
+        totalSpecies,
+        masteredSpecies,
+        lastSeenAt,
       };
-    });
-  }, [updateProfile]);
+    } catch (error) {
+      console.error('Failed to read collection stats', error);
+      return {
+        totalSpecies: 0,
+        masteredSpecies: 0,
+        lastSeenAt: null,
+      };
+    }
+  }, []);
+
+  const getSpeciesById = useCallback((id) => {
+    if (!id) return null;
+    return speciesTable.get(id);
+  }, []);
+
+  const getSpeciesStats = useCallback((id) => {
+    if (!id) return null;
+    return statsTable.get(id);
+  }, []);
 
   const queueAchievements = useCallback((ids = []) => {
     if (!ids.length) return;
@@ -73,7 +152,12 @@ export function UserProvider({ children }) {
     achievementQueue,
     queueAchievements,
     popAchievement,
+    addSpeciesToCollection,
     updatePokedex,
+    getCollectionStats,
+    getSpeciesById,
+    getSpeciesStats,
+    collectionVersion,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

@@ -1,10 +1,28 @@
-// src/services/PlayerProfile.js
+import { openDB } from 'idb';
 import { notify } from './notifications.js';
 
-const PROFILE_KEY = 'inaturamouche_playerProfile';
+const LEGACY_STORAGE_KEY = 'inaturamouche_playerProfile';
+const DB_NAME = 'inaturamouche-player';
+const DB_VERSION = 1;
+const STORE_NAME = 'playerProfiles';
+const PROFILE_STORE_KEY = 'playerProfile';
 
-// L'objet de profil par défaut pour un nouveau joueur ou pour mettre à jour un ancien profil
-const getDefaultProfile = () => ({
+let dbPromise;
+
+const getDb = () => {
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      },
+    });
+  }
+  return dbPromise;
+};
+
+export const getDefaultProfile = () => ({
   xp: 0,
   stats: {
     gamesPlayed: 0,
@@ -14,7 +32,7 @@ const getDefaultProfile = () => ({
     correctHard: 0,
     accuracyEasy: 0,
     accuracyHard: 0,
-    speciesMastery: {}, // ex: { taxonId: { correct: n } }
+    speciesMastery: {},
     missedSpecies: [],
     packsPlayed: {},
   },
@@ -22,88 +40,116 @@ const getDefaultProfile = () => ({
   pokedex: {},
 });
 
-// Charger le profil en fusionnant avec le profil par défaut pour la compatibilité
-export const loadProfileWithDefaults = () => {
+const mergeProfileWithDefaults = (loadedProfile = {}) => {
+  const safeProfile =
+    loadedProfile && typeof loadedProfile === 'object' && !Array.isArray(loadedProfile)
+      ? loadedProfile
+      : {};
+  const defaultProfile = getDefaultProfile();
+  const finalProfile = {
+    ...defaultProfile,
+    ...safeProfile,
+    xp: safeProfile.totalScore || safeProfile.xp || 0,
+    stats: {
+      ...defaultProfile.stats,
+      ...(safeProfile.stats || {}),
+    },
+    pokedex: safeProfile.pokedex || {},
+  };
+
+  if (finalProfile.stats.packsPlayed) {
+    const migrated = {};
+    Object.entries(finalProfile.stats.packsPlayed).forEach(([packId, data]) => {
+      if (typeof data === 'number') {
+        migrated[packId] = { correct: 0, answered: 0 };
+      } else {
+        migrated[packId] = {
+          correct: data.correct || 0,
+          answered: data.answered || 0,
+        };
+      }
+    });
+    finalProfile.stats.packsPlayed = migrated;
+  } else {
+    finalProfile.stats.packsPlayed = {};
+  }
+
+  if (finalProfile.stats.speciesMastery) {
+    Object.entries(finalProfile.stats.speciesMastery).forEach(([id, val]) => {
+      if (typeof val === 'number') {
+        finalProfile.stats.speciesMastery[id] = { correct: val };
+      } else {
+        finalProfile.stats.speciesMastery[id] = { correct: val.correct || 0 };
+      }
+    });
+  } else {
+    finalProfile.stats.speciesMastery = {};
+  }
+
+  if (Array.isArray(finalProfile.stats.missedSpecies)) {
+    const normalized = finalProfile.stats.missedSpecies
+      .map((entry) => parseInt(entry, 10))
+      .filter((id) => !Number.isNaN(id));
+    finalProfile.stats.missedSpecies = Array.from(new Set(normalized));
+  } else {
+    finalProfile.stats.missedSpecies = [];
+  }
+
+  delete finalProfile.totalScore;
+  return finalProfile;
+};
+
+const migrateLegacyProfile = () => {
+  if (typeof localStorage === 'undefined') return null;
   try {
-    const profileJson = localStorage.getItem(PROFILE_KEY);
-    const loadedProfile = profileJson ? JSON.parse(profileJson) : {};
-
-    const defaultProfile = getDefaultProfile();
-    
-    // Fusion profonde pour garantir que toutes les clés existent
-    const finalProfile = {
-      ...defaultProfile,
-      ...loadedProfile,
-      // On remplace totalScore par xp s'il existe
-      xp: loadedProfile.totalScore || loadedProfile.xp || 0,
-      stats: {
-        ...defaultProfile.stats,
-        ...(loadedProfile.stats || {}),
-      },
-      pokedex: loadedProfile.pokedex || {},
-    };
-    // Migration des anciennes structures packsPlayed qui stockaient simplement un nombre
-    if (finalProfile.stats.packsPlayed) {
-      const migrated = {};
-      Object.entries(finalProfile.stats.packsPlayed).forEach(([packId, data]) => {
-        if (typeof data === 'number') {
-          migrated[packId] = { correct: 0, answered: 0 };
-        } else {
-          migrated[packId] = {
-            correct: data.correct || 0,
-            answered: data.answered || 0,
-          };
-        }
-      });
-      finalProfile.stats.packsPlayed = migrated;
-    }
-
-    // Migration de l'ancienne structure speciesMastery (stockant un nombre)
-    if (finalProfile.stats.speciesMastery) {
-      Object.entries(finalProfile.stats.speciesMastery).forEach(([id, val]) => {
-        if (typeof val === 'number') {
-          finalProfile.stats.speciesMastery[id] = { correct: val };
-        } else {
-          finalProfile.stats.speciesMastery[id] = { correct: val.correct || 0 };
-        }
-      });
-    }
-
-    // Normalisation de la liste des espèces ratées (suppression doublons + conversion en nombres)
-    if (Array.isArray(finalProfile.stats.missedSpecies)) {
-      const normalized = finalProfile.stats.missedSpecies
-        .map(id => parseInt(id, 10))
-        .filter(id => !isNaN(id));
-      finalProfile.stats.missedSpecies = Array.from(new Set(normalized));
-    } else {
-      finalProfile.stats.missedSpecies = [];
-    }
-    // On supprime l'ancienne clé totalScore pour faire le ménage
-    delete finalProfile.totalScore;
-
-    return finalProfile;
-
+    const profileJson = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!profileJson) return null;
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return JSON.parse(profileJson);
   } catch (error) {
-    notify("Impossible de charger le profil.", { type: "error" });
+    console.warn('Legacy profile migration failed', error);
+    return null;
+  }
+};
+
+export const loadProfileWithDefaults = () => getDefaultProfile();
+
+export const loadProfileFromStore = async () => {
+  try {
+    const db = await getDb();
+    let stored = await db.get(STORE_NAME, PROFILE_STORE_KEY);
+    if (!stored) {
+      const legacy = migrateLegacyProfile();
+      if (legacy) {
+        stored = legacy;
+        try {
+          await db.put(STORE_NAME, stored, PROFILE_STORE_KEY);
+        } catch (error) {
+          console.warn('Failed to persist migrated profile to IndexedDB', error);
+        }
+      }
+    }
+    return mergeProfileWithDefaults(stored);
+  } catch (error) {
+    notify('Impossible de charger le profil.', { type: 'error' });
     return getDefaultProfile();
   }
 };
 
-// Sauvegarder le profil dans le localStorage
-export const saveProfile = (profile) => {
+export const saveProfile = async (profile) => {
   try {
-    const profileJson = JSON.stringify(profile);
-    localStorage.setItem(PROFILE_KEY, profileJson);
+    const db = await getDb();
+    await db.put(STORE_NAME, profile, PROFILE_STORE_KEY);
   } catch (error) {
-    notify("Impossible de sauvegarder le profil.", { type: "error" });
+    notify('Impossible de sauvegarder le profil.', { type: 'error' });
   }
 };
 
-// Supprimer complètement le profil sauvegardé
-export const resetProfile = () => {
+export const resetProfile = async () => {
   try {
-    localStorage.removeItem(PROFILE_KEY);
+    const db = await getDb();
+    await db.delete(STORE_NAME, PROFILE_STORE_KEY);
   } catch (error) {
-    notify("Impossible de reinitialiser le profil.", { type: "error" });
+    notify('Impossible de reinitialiser le profil.', { type: 'error' });
   }
 };

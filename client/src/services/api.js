@@ -14,6 +14,13 @@ const API_BASE_URL =
 const DEFAULT_TIMEOUT = 8000;
 const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
 
+const inatFetcher =
+  typeof window !== "undefined"
+    ? window.fetch.bind(window)
+    : typeof globalThis !== "undefined" && typeof globalThis.fetch === "function"
+      ? globalThis.fetch.bind(globalThis)
+      : null;
+
 const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) => {
   if (!error || typeof window === "undefined") return;
   if (error.name === "AbortError") return;
@@ -139,3 +146,39 @@ export const getTaxaByIds = (ids, locale = "fr") => {
 };
 
 export const getPackCatalog = () => apiGet("/api/packs");
+
+export const fetchSimilarSpecies = async (taxonId) => {
+  if (!taxonId || !inatFetcher) return [];
+  const url = new URL("https://api.inaturalist.org/v1/identifications/similar_species");
+  url.searchParams.set("taxon_id", taxonId);
+
+  try {
+    const response = await inatFetcher(url.toString(), {
+      headers: { Accept: "application/json" },
+    });
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      // ignore parsing errors
+    }
+
+    if (!response.ok) {
+      const error = new Error(data?.error || "Impossible de charger les espèces similaires.");
+      notifyApiError(error, "Impossible de charger les espèces similaires.");
+      throw error;
+    }
+
+    const results = Array.isArray(data.results)
+      ? data.results
+      : Array.isArray(data.similar_species)
+        ? data.similar_species
+        : [];
+    return results;
+  } catch (error) {
+    if (!error?.notified) {
+      notifyApiError(error, "Impossible de charger les espèces similaires.");
+    }
+    throw error;
+  }
+};
