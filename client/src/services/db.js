@@ -3,71 +3,100 @@ import Dexie from 'dexie';
 // Initialize Dexie Database
 const db = new Dexie('inaturalist_quiz');
 
-db.version(1).stores({
+/**
+ * Version 3: Clean schema with clear separation
+ * - taxa: Encyclopedia (species data, mostly static)
+ * - stats: Player progression (mastery, seen count, etc.)
+ * Keep species/collection for backward compatibility during migration
+ */
+db.version(3).stores({
   /**
    * Encyclopedia of all taxa available in the game.
-   * This data is mostly static and readonly.
+   * PK: id (iNaturalist taxon ID)
+   * Indexed: iconic_taxon_id (for filtering by group), updatedAt (for stale cache detection)
    */
-  taxa: 'id,name,iconic_taxon_id',
+  taxa: 'id,iconic_taxon_id,updatedAt',
 
   /**
-   * Player's collection, tracking progress for each taxon.
-   * This data is dynamic and frequently updated.
+   * Player progression and stats per taxon.
+   * PK: id (same as taxon.id)
+   * Indexed: masteryLevel, lastSeenAt (for filtering), iconic_taxon_id (for roll-ups)
+   */
+  stats: 'id,masteryLevel,lastSeenAt,iconic_taxon_id',
+
+  /**
+   * Legacy collection table (kept for backward compatibility, migrated to stats)
    */
   collection: 'taxon_id,masteryLevel',
 
   /**
-   * Cache for phylogenetic tree structures.
-   */
-  taxonomy_cache: 'id',
-});
-
-db.version(2).stores({
-  taxa: 'id,name,iconic_taxon_id',
-  collection: 'taxon_id,masteryLevel',
-  taxonomy_cache: 'id',
-
-  /**
-   * Species payload for richer details (photos, ancestor references, etc.).
+   * Legacy species table (kept for backward compatibility, merged into taxa)
    */
   species: 'id,iconic_taxon_id',
 
   /**
-   * Stats table used for mastery tracking.
+   * Cache for phylogenetic tree structures (kept if referenced elsewhere)
    */
-  stats: 'id,masteryLevel,seenCount,correctCount',
+  taxonomy_cache: 'id',
 
   /**
-   * Taxonomic group cache for ancestor data.
+   * Legacy taxonomic group cache (kept if referenced elsewhere)
    */
   taxon_groups: 'id,parent_id',
 });
 
 /**
- * Retrieves the statistics for a given taxon ID.
- * This function will not perform a join, as it's more efficient
- * to query the collection directly. The full taxon data can be fetched
- * separately from the `taxa` table if needed.
- *
+ * Helper function to retrieve stats for a taxon.
  * @param {number} taxonId - The iNaturalist taxon ID.
- * @returns {Promise<Object|null>} A promise that resolves to the stats object or null if not found.
+ * @returns {Promise<Object|null>}
  */
 async function getStats(taxonId) {
   if (!taxonId) return null;
-  return await db.collection.get(taxonId);
+  return await db.stats.get(taxonId);
 }
 
-// Export tables for external use
+/**
+ * Helper function to retrieve taxon data.
+ * @param {number} taxonId - The iNaturalist taxon ID.
+ * @returns {Promise<Object|null>}
+ */
+async function getTaxon(taxonId) {
+  if (!taxonId) return null;
+  return await db.taxa.get(taxonId);
+}
+
+/**
+ * Helper function to get combined taxon + stats for display.
+ * @param {number} taxonId - The iNaturalist taxon ID.
+ * @returns {Promise<Object|null>}
+ */
+async function getTaxonWithStats(taxonId) {
+  if (!taxonId) return null;
+  const [taxon, stats] = await Promise.all([
+    db.taxa.get(taxonId),
+    db.stats.get(taxonId),
+  ]);
+  return taxon ? { taxon, stats: stats || null } : null;
+}
+
+// ============== Exports ==============
+
+// Primary tables (new schema)
 export const taxa = db.taxa;
+export const stats = db.stats;
+
+// Legacy tables (kept for backward compatibility)
 export const collection = db.collection;
 export const speciesTable = db.species;
-export const statsTable = db.stats;
+export const statsTable = db.stats; // Alias for consistency
 export const taxonGroupsTable = db.taxon_groups;
 export const taxonomy_cache = db.taxonomy_cache;
 
-// Export helper functions
+// Helper functions
 export const helpers = {
   getStats,
+  getTaxon,
+  getTaxonWithStats,
 };
 
 // Export the db instance itself
