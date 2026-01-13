@@ -241,6 +241,7 @@ function createSelectionState(pool, rng) {
     cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
     observationHistory: new HistoryBuffer(historyLimit),
     taxonDeck: createShuffledDeck(pool.taxonList, rng),
+    questionIndex: 0,
     version: pool.version,
   };
 }
@@ -256,7 +257,12 @@ function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
   ) {
     const previousHistory =
       state && state.observationHistory instanceof HistoryBuffer ? state.observationHistory : null;
+    const previousQuestionIndex =
+      state && Number.isInteger(state.questionIndex) && state.questionIndex >= 0
+        ? state.questionIndex
+        : 0;
     const nextState = createSelectionState(pool, rng);
+    nextState.questionIndex = previousQuestionIndex;
     if (previousHistory) {
       nextState.observationHistory = previousHistory;
       nextState.observationHistory.resize(historyLimit);
@@ -266,13 +272,14 @@ function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
       nextState.recentTargetSet = new Set(nextState.recentTargetTaxa.map(String));
     }
     state = nextState;
-  } else if (state.taxonDeck.length === 0) {
-    state.taxonDeck = createShuffledDeck(pool.taxonList, rng);
   }
   if (!(state.observationHistory instanceof HistoryBuffer)) {
     state.observationHistory = new HistoryBuffer(historyLimit);
   } else {
     state.observationHistory.resize(historyLimit);
+  }
+  if (!Number.isInteger(state.questionIndex) || state.questionIndex < 0) {
+    state.questionIndex = 0;
   }
   state.version = pool.version;
 
@@ -907,6 +914,7 @@ async function buildQuizQuestion({
   fallbackContext,
   rng,
   poolRng,
+  seed,
 }) {
   const marks = {};
   marks.start = performance.now();
@@ -931,18 +939,24 @@ async function buildQuizQuestion({
     Date.now(),
     rng
   );
+  const hasSeed = typeof seed === "string" && seed.length > 0;
+  const questionIndex =
+    Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
+      ? selectionState.questionIndex
+      : 0;
+  const questionRng = hasSeed ? createSeededRandom(`${seed}|q|${questionIndex}`) : rng;
   const excludeTaxaForTarget = new Set();
   let targetTaxonId = nextEligibleTaxonId(
     cacheEntry,
     selectionState,
     Date.now(),
     excludeTaxaForTarget,
-    rng
+    questionRng
   );
 
   let selectionMode = "normal";
   if (!targetTaxonId) {
-    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, rng);
+    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
     selectionMode = "fallback_relax";
     logger?.info(
       { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
@@ -960,7 +974,7 @@ async function buildQuizQuestion({
     selectionState,
     targetTaxonId,
     { allowSeen: false },
-    rng
+    questionRng
   );
   if (!targetObservation) {
     const err = new Error("Aucune observation exploitable trouvée pour le taxon cible.");
@@ -976,7 +990,7 @@ async function buildQuizQuestion({
     targetTaxonId,
     targetObservation,
     LURE_COUNT,
-    rng
+    questionRng
   );
   if (!lures || lures.length < LURE_COUNT) {
     const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
@@ -1027,7 +1041,7 @@ async function buildQuizQuestion({
 
   const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
   const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
-  const shuffledChoices = shuffleFisherYates(choiceObjects, rng);
+  const shuffledChoices = shuffleFisherYates(choiceObjects, questionRng);
   const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
   const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
 
@@ -1035,7 +1049,7 @@ async function buildQuizQuestion({
     taxon_id: id,
     label: getTaxonName(details.get(String(id))),
   }));
-  const facileShuffled = shuffleFisherYates(facilePairs, rng);
+  const facileShuffled = shuffleFisherYates(facilePairs, questionRng);
   const choix_mode_facile = facileShuffled.map((p) => p.label);
   const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
   const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex(
@@ -1058,6 +1072,7 @@ async function buildQuizQuestion({
   pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], Date.now());
 
   marks.end = performance.now();
+  selectionState.questionIndex = questionIndex + 1;
   const { timing, serverTiming, xTiming } = buildTimingData(marks, { pagesFetched, poolObs, poolTaxa });
 
   logger?.info(
@@ -1511,26 +1526,28 @@ app.get(
         locale,
         ...geo.p,
       };
-      if (media_type === "sounds" || media_type === "both") {
+      if (!hasSeed && (media_type === "sounds" || media_type === "both")) {
         params.sounds = true;
       }
-      const monthDayFilter = buildMonthDayFilter(d1, d2);
+      const monthDayFilter = hasSeed ? null : buildMonthDayFilter(d1, d2);
 
-      if (pack_id) {
-        const selectedPack = findPackById(pack_id);
-        if (!selectedPack) {
-          return res.status(400).json({ error: "Pack inconnu" });
+      if (!hasSeed) {
+        if (pack_id) {
+          const selectedPack = findPackById(pack_id);
+          if (!selectedPack) {
+            return res.status(400).json({ error: "Pack inconnu" });
+          }
+          if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
+            params.taxon_id = selectedPack.taxa_ids.join(",");
+          } else if (selectedPack.api_params) {
+            Object.assign(params, selectedPack.api_params);
+          }
+        } else if (taxon_ids) {
+          params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
+        } else if (include_taxa || exclude_taxa) {
+          if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
+          if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
         }
-        if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
-          params.taxon_id = selectedPack.taxa_ids.join(",");
-        } else if (selectedPack.api_params) {
-          Object.assign(params, selectedPack.api_params);
-        }
-      } else if (taxon_ids) {
-        params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
-      } else if (include_taxa || exclude_taxa) {
-        if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
-        if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
       }
 
       if (hasSeed) {
@@ -1541,11 +1558,13 @@ app.get(
         delete params.swlng;
       }
 
-      if (monthDayFilter?.months?.length) {
-        params.month = monthDayFilter.months.join(",");
-      } else {
-        if (d1 && isValidISODate(d1)) params.d1 = d1;
-        if (d2 && isValidISODate(d2)) params.d2 = d2;
+      if (!hasSeed) {
+        if (monthDayFilter?.months?.length) {
+          params.month = monthDayFilter.months.join(",");
+        } else {
+          if (d1 && isValidISODate(d1)) params.d1 = d1;
+          if (d2 && isValidISODate(d2)) params.d2 = d2;
+        }
       }
       const cacheKeyParams = { ...params };
       if (monthDayFilter) {
@@ -1574,9 +1593,10 @@ app.get(
         clientId: clientKey,
         logger: req.log,
         requestId: req.id,
-        fallbackContext: { pack_id, taxon_ids, include_taxa, exclude_taxa },
+        fallbackContext: hasSeed ? {} : { pack_id, taxon_ids, include_taxa, exclude_taxa },
         rng,
         poolRng,
+        seed: hasSeed ? normalizedSeed : "",
       };
 
       const queueEntry = getQueueEntry(queueKey);

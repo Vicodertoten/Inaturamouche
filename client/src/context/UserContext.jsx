@@ -42,10 +42,33 @@ export function UserProvider({ children }) {
       if (migrationApplied && isMounted) {
         setCollectionVersion((prev) => prev + 1);
       }
+      try {
+        const count = await speciesTable.count();
+        console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
+      } catch (e) { console.error("Erreur lecture DB", e); }
     };
     void initialize();
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const BroadcastChannelConstructor =
+      typeof BroadcastChannel !== 'undefined'
+        ? BroadcastChannel
+        : undefined;
+    if (!BroadcastChannelConstructor) return undefined;
+    const channel = new BroadcastChannelConstructor('inaturamouche_channel');
+    const handleMessage = (event) => {
+      if (event?.data?.type === 'COLLECTION_UPDATED') {
+        setCollectionVersion((prev) => prev + 1);
+      }
+    };
+    channel.addEventListener('message', handleMessage);
+    return () => {
+      channel.removeEventListener('message', handleMessage);
+      channel.close();
     };
   }, []);
 
@@ -70,9 +93,13 @@ export function UserProvider({ children }) {
     if (!payload) return;
     const now = new Date().toISOString();
     const wasCorrect = Boolean(isCorrect);
+    let shouldQueueEnrichment = false;
     try {
       await db.transaction('rw', speciesTable, statsTable, async () => {
-        const existingStats = await statsTable.get(taxon.id);
+        const [existingStats, existingSpecies] = await Promise.all([
+          statsTable.get(taxon.id),
+          speciesTable.get(taxon.id),
+        ]);
         const seenCount = (Number(existingStats?.seenCount) || 0) + 1;
         const correctCount = (Number(existingStats?.correctCount) || 0) + (wasCorrect ? 1 : 0);
         await statsTable.put({
@@ -82,9 +109,18 @@ export function UserProvider({ children }) {
           lastSeenAt: now,
           accuracy: seenCount ? correctCount / seenCount : 0,
         });
-        await speciesTable.put(payload);
+        const hasAncestorData =
+          existingSpecies &&
+          Array.isArray(existingSpecies.ancestor_ids) &&
+          existingSpecies.ancestor_ids.length > 0;
+        if (!existingSpecies || !hasAncestorData) {
+          await speciesTable.put(payload);
+          shouldQueueEnrichment = true;
+        }
       });
-      queueTaxonForEnrichment(taxon.id);
+      if (shouldQueueEnrichment) {
+        queueTaxonForEnrichment(taxon.id);
+      }
       setCollectionVersion((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to persist collection entry', error);

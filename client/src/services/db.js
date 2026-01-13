@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 
 export const DB_NAME = 'inaturamouche-collection';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 const db = new Dexie(DB_NAME);
 

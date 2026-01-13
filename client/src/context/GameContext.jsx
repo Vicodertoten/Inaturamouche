@@ -124,6 +124,7 @@ export function GameProvider({ children }) {
   const [customFilters, dispatchCustomFilters] = useReducer(customFilterReducer, initialCustomFilters);
   const [gameMode, setGameMode] = useState('easy');
   const [isGameActive, setIsGameActive] = useState(false);
+  const [isStartingNewGame, setIsStartingNewGame] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [question, setQuestion] = useState(null);
   const [nextQuestion, setNextQuestion] = useState(null);
@@ -209,8 +210,6 @@ export function GameProvider({ children }) {
     setStreakTier(0);
     setActivePerks([]);
     setNewlyUnlocked([]);
-    setDailySeed(null);
-    setDailySeedSession(null);
     clearAchievementsTimer();
   }, [clearAchievementsTimer]);
 
@@ -226,6 +225,8 @@ export function GameProvider({ children }) {
       setError(null);
       setIsReviewMode(false);
       if (clearSession) resetSessionState();
+      setDailySeed(null);
+      setDailySeedSession(null);
     },
     [abortActiveFetch, abortPrefetchFetch, resetSessionState]
   );
@@ -238,10 +239,15 @@ export function GameProvider({ children }) {
 
   const buildQuizParams = useCallback(() => {
     const params = new URLSearchParams();
+    const isDailyChallenge = typeof dailySeed === 'string' && dailySeed.length > 0;
+    const effectiveMediaType = isDailyChallenge ? DEFAULT_MEDIA_TYPE : mediaType;
     params.set('locale', language);
-    params.set('media_type', mediaType);
-    if (dailySeed) params.set('seed', dailySeed);
-    if (dailySeedSession) params.set('seed_session', dailySeedSession);
+    params.set('media_type', effectiveMediaType);
+    if (isDailyChallenge) {
+      params.set('seed', dailySeed);
+      if (dailySeedSession) params.set('seed_session', dailySeedSession);
+      return params;
+    }
 
     if (isReviewMode) {
       (profile?.stats?.missedSpecies || []).forEach((id) => params.append('taxon_ids', id));
@@ -357,6 +363,12 @@ export function GameProvider({ children }) {
     }
   }, [question?.bonne_reponse?.id]);
 
+  useEffect(() => {
+    if (isStartingNewGame && (question || error)) {
+      setIsStartingNewGame(false);
+    }
+  }, [isStartingNewGame, question, error]);
+
   const startGame = useCallback(
     ({
       review = false,
@@ -365,7 +377,10 @@ export function GameProvider({ children }) {
       gameMode: nextGameMode,
       seed,
     } = {}) => {
+      abortActiveFetch();
+      abortPrefetchFetch();
       resetSessionState();
+      setIsStartingNewGame(true);
       const normalizedSeed = typeof seed === 'string' ? seed.trim() : '';
       const isDailyChallenge = normalizedSeed.length > 0;
       const forcedMaxQuestions = isDailyChallenge ? 10 : nextMaxQuestions;
@@ -390,7 +405,7 @@ export function GameProvider({ children }) {
         nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)
       );
     },
-    [resetSessionState]
+    [abortActiveFetch, abortPrefetchFetch, resetSessionState]
   );
 
   const nextImageUrl = useMemo(() => {
@@ -724,6 +739,7 @@ export function GameProvider({ children }) {
       gameMode,
       setGameMode,
       isGameActive,
+      isStartingNewGame,
       isGameOver,
       question,
       nextQuestion,
@@ -757,6 +773,7 @@ export function GameProvider({ children }) {
       customFilters,
       gameMode,
       isGameActive,
+      isStartingNewGame,
       isGameOver,
       question,
       nextQuestion,

@@ -1,304 +1,214 @@
 .collection-page {
-  min-height: 100vh;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  color: var(--text-color);
+  height: 100%; /* S'adapte au parent (.screen-container) au lieu de forcer 100vh */
+  width: 100%;
+  overflow: hidden; 
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: var(--border-radius); /* Bonus : joli arrondi si dans un container */
 }
 
 .collection-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  text-align: center;
+  flex: 0 0 auto; /* Ne rétrécit pas */
+  padding: 1rem;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
 }
 
 .collection-eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
   font-size: 0.75rem;
-  color: var(--text-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
 }
 
 .collection-header h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-size: 1.5rem;
   font-weight: 700;
 }
 
 .collection-subtitle {
-  margin: 0;
-  color: var(--text-color-muted);
-  font-size: 1rem;
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin: 0.25rem 0 0;
 }
 
 .breadcrumbs {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface-alt);
+  overflow-x: auto;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .breadcrumb {
   background: none;
   border: none;
-  color: var(--text-color);
-  padding: 0;
-  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   cursor: pointer;
-  font-weight: 500;
+  padding: 0;
 }
 
 .breadcrumb-active {
-  font-weight: 700;
+  color: var(--primary-color);
+  font-weight: 600;
+  pointer-events: none;
 }
 
 .breadcrumb-separator {
-  color: var(--text-color-muted);
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
 }
 
 .collection-body {
-  flex: 1;
+  flex: 1; /* Prend tout l'espace restant */
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  min-height: 0; /* CRITIQUE */
+  position: relative;
 }
 
 .collection-meta-row {
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .collection-meta-label {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-color-muted);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .collection-meta-value {
-  margin: 0;
-  font-size: 1.25rem;
   font-weight: 600;
+  font-size: 1rem;
 }
 
 .view-mode-toggle {
-  display: inline-flex;
-  border-radius: var(--border-radius);
-  background-color: var(--surface-color);
-  overflow: hidden;
-  border: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-surface-alt);
+  padding: 0.25rem;
+  border-radius: 6px;
 }
 
 .view-mode-toggle button {
-  border: none;
   background: none;
-  padding: var(--space-2) var(--space-3);
+  border: none;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  font-weight: 600;
-  color: var(--text-color);
-  transition: background 0.2s ease, color 0.2s ease;
+  border-radius: 4px;
+  color: var(--text-secondary);
 }
 
-.view-mode-toggle .toggle-active {
-  background-color: var(--accent-color);
-  color: var(--bg-color);
+.view-mode-toggle button.toggle-active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  font-weight: 500;
 }
 
-.collection-loading,
-.collection-empty {
-  padding: var(--space-5);
-  border-radius: var(--border-radius);
-  border: 1px dashed var(--border-color);
-  text-align: center;
-  color: var(--text-color-muted);
+/* CONTAINER DE LA GRILLE VIRTUELLE */
+.species-view {
+  flex: 1;
+  width: 100%;
+  /* On enlève height: 100% explicite car flex: 1 s'en charge, 
+     mais on garde min-height: 0 pour la sécurité flexbox */
+  min-height: 0; 
 }
 
 .folder-grid {
+  padding: 1rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  overflow-y: auto;
 }
 
-.folder-card {
-  display: grid;
-  grid-template-rows: 120px auto;
-  background-color: var(--surface-color);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  text-align: left;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.folder-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
-}
-
-.folder-preview {
-  background-size: cover;
-  background-position: center;
-  width: 100%;
-  height: 100%;
-}
-
-.folder-meta {
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.folder-name {
-  margin: 0;
-  font-weight: 600;
-}
-
-.folder-rank {
-  margin: 0;
-  color: var(--text-color-muted);
-  font-size: 0.85rem;
-}
-
-.folder-count {
-  align-self: flex-end;
-  font-size: 0.85rem;
-  color: var(--accent-color);
-  font-weight: 600;
-}
-
-.species-view {
-  flex: 1;
-  min-height: 60vh;
-}
-
-.species-card {
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--surface-color);
-  margin: 0;
-  width: 100%;
-}
-
-.species-card.album-mode {
-  height: 100%;
-}
-
+/* CARTES */
 .species-cell {
-  padding: 6px;
+  padding: 0.5rem; /* Gutter pour la grille */
   box-sizing: border-box;
 }
 
-.species-card-image {
+.species-card {
   width: 100%;
-  height: 140px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-card);
+  text-align: left;
+  padding: 0;
+  transition: transform 0.1s;
+  cursor: pointer;
+}
+
+.species-card:active {
+  transform: scale(0.98);
+}
+
+.species-card-image {
+  flex: 1;
   background-size: cover;
   background-position: center;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: #eee;
+  min-height: 0;
 }
 
 .species-card-body {
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  padding: 0.75rem;
+  flex: 0 0 auto;
 }
 
 .species-name {
-  margin: 0;
   font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .species-scientific-name {
   font-style: italic;
-  margin: 0;
-  color: var(--text-color-muted);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.1rem 0 0.5rem;
 }
 
 .species-stats {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
   margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-color-muted);
 }
 
-.species-row {
+/* CADRES DE RARETÉ */
+.bronze-frame { border: 2px solid #cd7f32; }
+.silver-frame { border: 2px solid #c0c0c0; }
+.gold-frame { border: 2px solid #ffd700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
+
+.collection-empty, .collection-loading {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--surface-color);
-}
-
-.species-row:nth-child(odd) {
-  background-color: rgba(255, 255, 255, 0.02);
-}
-
-.species-row-image {
-  width: 80px;
-  height: 60px;
-  border-radius: var(--border-radius);
-  background-size: cover;
-  background-position: center;
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.species-row-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.species-row-inner {
-  width: 100%;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-}
-
-.bronze-frame {
-  border-color: #b37345;
-  box-shadow: 0 0 0 2px rgba(179, 115, 69, 0.4);
-}
-
-.silver-frame {
-  border-color: #b7bec7;
-  box-shadow: 0 0 0 2px rgba(183, 190, 199, 0.35);
-}
-
-.gold-frame {
-  border-color: #f5c25f;
-  box-shadow: 0 0 15px rgba(245, 194, 95, 0.35), 0 0 20px rgba(255, 255, 255, 0.3);
-  animation: gold-glow 3s ease-in-out infinite alternate;
-}
-
-@keyframes gold-glow {
-  from {
-    box-shadow: 0 0 12px rgba(245, 194, 95, 0.35), 0 0 16px rgba(255, 255, 255, 0.2);
-  }
-  to {
-    box-shadow: 0 0 18px rgba(245, 194, 95, 0.55), 0 0 22px rgba(255, 255, 255, 0.35);
-  }
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  padding: 2rem;
+  text-align: center;
 }

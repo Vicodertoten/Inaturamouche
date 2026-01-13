@@ -7,18 +7,27 @@ const MIGRATION_FLAG_KEY = 'inaturamouche_collection_migration_done';
 const MIGRATION_LOCK_KEY = 'inaturamouche_collection_migration_lock';
 const MIGRATION_VERSION = 2;
 
-const mapSpeciesEntry = (entry) => ({
-  id: entry.id,
-  name: entry.name,
-  common_name: entry.common_name,
-  preferred_common_name: entry.preferred_common_name,
-  iconic_taxon_id: entry.iconic_taxon_id,
-  ancestor_ids: entry.ancestor_ids,
-  thumbnail: entry.thumbnail,
-  square_url: entry.square_url,
-  small_url: entry.small_url,
-  medium_url: entry.medium_url,
-});
+const mapSpeciesEntry = (entry) => {
+  const imageUrl =
+    entry?.default_photo?.square_url ||
+    entry?.default_photo?.url ||
+    entry.square_url ||
+    entry.thumbnail ||
+    entry.imageUrl ||
+    null;
+  return {
+    id: entry.id,
+    name: entry.name,
+    common_name: entry.common_name,
+    preferred_common_name: entry.preferred_common_name,
+    iconic_taxon_id: entry.iconic_taxon_id,
+    ancestor_ids: Array.isArray(entry.ancestor_ids) ? entry.ancestor_ids : [],
+    thumbnail: imageUrl,
+    square_url: imageUrl,
+    small_url: entry.small_url,
+    medium_url: entry.medium_url,
+  };
+};
 
 const mapStatsEntry = (entry) => {
   const seenCount = Number(entry.seenCount) || 0;
@@ -46,8 +55,17 @@ export async function migrateLocalStorageToIndexedDB() {
     return false;
   }
   const storedVersion = Number(localStorage.getItem(MIGRATION_FLAG_KEY));
-  if (!Number.isNaN(storedVersion) && storedVersion >= MIGRATION_VERSION) {
-    return false;
+  const hasCompletedMigration =
+    !Number.isNaN(storedVersion) && storedVersion >= MIGRATION_VERSION;
+  if (hasCompletedMigration) {
+    try {
+      const existingCount = await speciesTable.count();
+      if (existingCount > 0) {
+        return false;
+      }
+    } catch (countError) {
+      console.warn('Collection migration: failed to verify species count', countError);
+    }
   }
   if (localStorage.getItem(MIGRATION_LOCK_KEY) === 'in-progress') {
     return false;

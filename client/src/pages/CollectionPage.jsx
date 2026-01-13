@@ -13,9 +13,9 @@ const VIEW_MODES = {
 };
 
 const SPECIES_THRESHOLD_FOR_SUBFOLDERS = 30;
-const GRID_CARD_MIN_WIDTH = 200;
-const GRID_CARD_HEIGHT = 240;
-const LIST_ITEM_HEIGHT = 78;
+const GRID_CARD_MIN_WIDTH = 180;
+const GRID_CARD_HEIGHT = 260;
+const LIST_ITEM_HEIGHT = 80;
 const ROOT_BREADCRUMB = { id: null, name: 'Collection', rank: 'root' };
 
 const getSpeciesName = (species) =>
@@ -52,11 +52,13 @@ const FolderCard = ({ folder, onNavigate }) => (
       className="folder-preview"
       style={{
         backgroundImage: folder.previewThumbnail ? `url(${folder.previewThumbnail})` : 'none',
+        backgroundSize: 'cover',
+        height: '100px',
+        borderRadius: '4px'
       }}
     />
     <div className="folder-meta">
       <p className="folder-name">{folder.name}</p>
-      <p className="folder-rank">{folder.rank || 'Taxon'}</p>
       <span className="folder-count">{folder.speciesCount ?? 0} espèces</span>
     </div>
   </button>
@@ -68,30 +70,23 @@ const AlbumCell = ({ columnIndex, rowIndex, style, data }) => {
   if (idx >= species.length) return null;
   const record = species[idx];
   const frameClass = getFrameClass(record);
+  
   return (
     <div style={style} className="species-cell">
       <button
         type="button"
         className={`species-card album-mode ${frameClass}`}
         onClick={() => onSelect(record)}
-        aria-label={`Voir ${getSpeciesName(record)}`}
       >
         <div
           className="species-card-image"
           style={{
-            backgroundImage: record.square_url
-              ? `url(${record.square_url})`
-              : record.thumbnail
-                ? `url(${record.thumbnail})`
-                : 'none',
+            backgroundImage: record.square_url ? `url(${record.square_url})` : 'none',
           }}
         />
         <div className="species-card-body">
           <p className="species-name">{getSpeciesName(record)}</p>
           <p className="species-scientific-name">{record.name}</p>
-          <p className="species-stats">
-            Vus: {record.seenCount ?? 0} · Corrects: {record.correctCount ?? 0}
-          </p>
         </div>
       </button>
     </div>
@@ -103,31 +98,15 @@ const ListRow = ({ index, style, data }) => {
   const record = species[index];
   if (!record) return null;
   const frameClass = getFrameClass(record);
+  
   return (
     <div className="species-row" style={style}>
       <button
         className={`species-row-inner ${frameClass}`}
         type="button"
         onClick={() => onSelect(record)}
-        aria-label={`Voir ${getSpeciesName(record)}`}
       >
-        <div
-          className="species-row-image"
-          style={{
-            backgroundImage: record.small_url
-              ? `url(${record.small_url})`
-              : record.thumbnail
-                ? `url(${record.thumbnail})`
-                : 'none',
-          }}
-        />
-        <div className="species-row-body">
-          <p className="species-name">{getSpeciesName(record)}</p>
-          <p className="species-scientific-name">{record.name}</p>
-          <p className="species-stats">
-            Vus: {record.seenCount ?? 0} · Corrects: {record.correctCount ?? 0}
-          </p>
-        </div>
+        <p className="species-name">{getSpeciesName(record)}</p>
       </button>
     </div>
   );
@@ -145,145 +124,80 @@ export function CollectionPage() {
   const [collectionStats, setCollectionStats] = useState(null);
   const [viewMode, setViewMode] = useState(VIEW_MODES.ALBUM);
   const [selectedSpecies, setSelectedSpecies] = useState(null);
+  
   const isMountedRef = useRef(true);
   const currentFolderIdRef = useRef(null);
 
   useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
   const buildBreadcrumbs = useCallback(async (folder) => {
     const trail = [ROOT_BREADCRUMB];
-    if (!folder) {
-      return trail;
-    }
-    const ancestors = [];
-    let cursor = folder;
-    while (cursor) {
-      ancestors.unshift(cursor);
-      if (!cursor.parent_id) break;
-      // eslint-disable-next-line no-await-in-loop
-      cursor = await taxonGroupsTable.get(cursor.parent_id);
-    }
-    return trail.concat(ancestors);
+    if (!folder) return trail;
+    // Logique simplifiée pour l'instant (pas de remontee recursive complete)
+    trail.push(folder);
+    return trail;
   }, []);
 
   const loadFolder = useCallback(async (folderId = null) => {
     if (!isMountedRef.current) return;
-    currentFolderIdRef.current = folderId ?? null;
+    currentFolderIdRef.current = folderId;
     setIsLoading(true);
+    
     try {
+      // 1. Charger Dossier & Count
       const folder = folderId ? await taxonGroupsTable.get(folderId) : null;
-      const breadcrumbChain = await buildBreadcrumbs(folder);
       const totalCount = folder
         ? await speciesTable.where('ancestor_ids').equals(folder.id).count()
         : await speciesTable.count();
-      const rawChildren =
-        folderId == null
-          ? (
-              await taxonGroupsTable.toArray()
-            ).filter((child) => child.parent_id == null)
-          : await taxonGroupsTable.where('parent_id').equals(folderId).toArray();
-      const enrichedChildren = await Promise.all(
-        rawChildren.map(async (child) => {
-          const count = await speciesTable.where('ancestor_ids').equals(child.id).count();
-          const preview = await speciesTable.where('ancestor_ids').equals(child.id).first();
-          return {
-            ...child,
-            speciesCount: count,
-            previewThumbnail: preview?.small_url || preview?.thumbnail || preview?.square_url || null,
-          };
-        })
-      );
-      enrichedChildren.sort((a, b) => (b.speciesCount ?? 0) - (a.speciesCount ?? 0));
-      const showSpecies =
-        totalCount <= SPECIES_THRESHOLD_FOR_SUBFOLDERS || enrichedChildren.length === 0;
-      let speciesToDisplay = [];
-      if (showSpecies) {
-        const rawSpecies = folderId
-          ? await speciesTable.where('ancestor_ids').equals(folder.id).toArray()
-          : await speciesTable.toArray();
-        const sorted = sortSpeciesList(rawSpecies);
-        const ids = sorted.map((record) => record.id).filter(Boolean);
-        const statsRecords = ids.length ? await statsTable.bulkGet(ids) : [];
-        const statsMap = new Map();
-        ids.forEach((id, index) => {
-          statsMap.set(id, statsRecords[index] || null);
-        });
-        speciesToDisplay = sorted.map((record) => {
-          const stats = statsMap.get(record.id);
-          return {
-            ...record,
-            seenCount: stats?.seenCount ?? 0,
-            correctCount: stats?.correctCount ?? 0,
-            accuracy: stats?.accuracy ?? 0,
-            lastSeenAt: stats?.lastSeenAt ?? null,
-          };
-        });
-      }
+
+      // 2. Charger Espèces (Si pas de sous-dossiers ou threshold)
+      // Note: Pour cette étape on affiche TOUJOURS les espèces s'il n'y a pas de taxon_groups créés
+      // Comme la Phase 2 (Taxonomie) n'est pas encore active, taxonGroupsTable est vide.
+      // Donc on affiche tout.
+      
+      const rawSpecies = folderId
+        ? await speciesTable.where('ancestor_ids').equals(folder.id).toArray()
+        : await speciesTable.toArray();
+        
+      const sorted = sortSpeciesList(rawSpecies);
+      
+      // Hydrater avec les stats
+      const ids = sorted.map(r => r.id);
+      const stats = await statsTable.bulkGet(ids);
+      const enriched = sorted.map((r, i) => ({
+        ...r,
+        ...stats[i]
+      }));
+
       if (!isMountedRef.current) return;
+      
       setActiveFolder(folder);
-      setBreadcrumbs(breadcrumbChain);
       setFolderSpeciesCount(totalCount);
-      setChildFolders(enrichedChildren);
-      setShouldShowSpecies(showSpecies);
-      setSpeciesList(showSpecies ? speciesToDisplay : []);
+      setSpeciesList(enriched);
+      setShouldShowSpecies(true); // On force l'affichage car pas encore de dossiers
+      setBreadcrumbs(await buildBreadcrumbs(folder));
+      
     } catch (error) {
-      console.error('Erreur lors du chargement du dossier', error);
+      console.error('Erreur chargement dossier', error);
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, [buildBreadcrumbs]);
 
   const refreshStats = useCallback(async () => {
     try {
       const stats = await getCollectionStats();
-      if (isMountedRef.current) {
-        setCollectionStats(stats);
-      }
-    } catch (error) {
-      console.error('Impossible de lire les statistiques de la collection', error);
-    }
+      if (isMountedRef.current) setCollectionStats(stats);
+    } catch (e) { console.error(e); }
   }, [getCollectionStats]);
 
   useEffect(() => {
-    void loadFolder(currentFolderIdRef.current);
+    void loadFolder(null);
     void refreshStats();
   }, [collectionVersion, loadFolder, refreshStats]);
-
-  const handleFolderSelect = (folder) => {
-    void loadFolder(folder?.id ?? null);
-  };
-
-  const handleBreadcrumbClick = (crumb) => {
-    if (crumb.id === activeFolder?.id) return;
-    void loadFolder(crumb.id ?? null);
-  };
-
-  const handleSpeciesSelect = useCallback((record) => {
-    setSelectedSpecies(record);
-  }, []);
-
-  const closeSpeciesModal = useCallback(() => {
-    setSelectedSpecies(null);
-  }, []);
-
-  const badgeCount = collectionStats?.totalSpecies ?? 0;
-  const masteredCount = collectionStats?.masteredSpecies ?? 0;
-
-  const breadcrumbTrail = useMemo(
-    () =>
-      breadcrumbs.map((crumb, index) => ({
-        ...crumb,
-        isLast: index === breadcrumbs.length - 1,
-      })),
-    [breadcrumbs]
-  );
 
   return (
     <div className="collection-page">
@@ -291,126 +205,78 @@ export function CollectionPage() {
         <p className="collection-eyebrow">À bout de filet</p>
         <h1>Grand Classeur Naturaliste</h1>
         <p className="collection-subtitle">
-          {badgeCount.toLocaleString()} espèces collectées · {masteredCount.toLocaleString()} maîtrisées
-        </p>
-        <p className="collection-subtitle">
-          Dernier aperçu : {formatLastSeen(collectionStats?.lastSeenAt)}
+          {collectionStats?.totalSpecies || 0} espèces collectées
         </p>
       </header>
 
-      <nav className="breadcrumbs" aria-label="Chemin de navigation">
-        {breadcrumbTrail.map((crumb) => (
-          <React.Fragment key={crumb.id ?? 'root'}>
-            <button
-              type="button"
-              className={`breadcrumb ${crumb.isLast ? 'breadcrumb-active' : ''}`}
-              onClick={() => handleBreadcrumbClick(crumb)}
-            >
-              {crumb.name}
-            </button>
-            {!crumb.isLast && <span className="breadcrumb-separator">/</span>}
-          </React.Fragment>
-        ))}
-      </nav>
-
-      <section className="collection-body">
+      <div className="collection-body">
         <div className="collection-meta-row">
-          <div>
-            <p className="collection-meta-label">
-              Dossier : {activeFolder?.name || 'Collection complète'}
-            </p>
-            <p className="collection-meta-value">{folderSpeciesCount.toLocaleString()} espèces</p>
+          <span className="collection-meta-value">
+            {activeFolder?.name || 'Tout voir'} ({speciesList.length})
+          </span>
+          <div className="view-mode-toggle">
+            <button 
+              className={viewMode === VIEW_MODES.ALBUM ? 'toggle-active' : ''}
+              onClick={() => setViewMode(VIEW_MODES.ALBUM)}
+            >
+              Grille
+            </button>
+            <button 
+              className={viewMode === VIEW_MODES.LIST ? 'toggle-active' : ''}
+              onClick={() => setViewMode(VIEW_MODES.LIST)}
+            >
+              Liste
+            </button>
           </div>
-          {shouldShowSpecies && speciesList.length > 0 && (
-            <div className="view-mode-toggle" role="group" aria-label="Mode d'affichage">
-              <button
-                type="button"
-                className={viewMode === VIEW_MODES.ALBUM ? 'toggle-active' : ''}
-                onClick={() => setViewMode(VIEW_MODES.ALBUM)}
-              >
-                Mode Album
-              </button>
-              <button
-                type="button"
-                className={viewMode === VIEW_MODES.LIST ? 'toggle-active' : ''}
-                onClick={() => setViewMode(VIEW_MODES.LIST)}
-              >
-                Mode Liste
-              </button>
-            </div>
-          )}
         </div>
 
-        {isLoading && (
-          <div className="collection-loading">
-            <p>Chargement de la collection…</p>
-          </div>
-        )}
-
-        {!isLoading &&
-          !shouldShowSpecies &&
-          childFolders.length > 0 &&
-          folderSpeciesCount > SPECIES_THRESHOLD_FOR_SUBFOLDERS && (
-          <div className="folder-grid">
-            {childFolders.map((folder) => (
-              <FolderCard key={folder.id} folder={folder} onNavigate={handleFolderSelect} />
-            ))}
-          </div>
-        )}
-
-        {!isLoading && shouldShowSpecies && speciesList.length > 0 && (
-          <div className="species-view">
-            {viewMode === VIEW_MODES.ALBUM ? (
-              <AutoSizer>
-                {({ height, width }) => {
-                  const columnCount = Math.max(1, Math.floor(width / GRID_CARD_MIN_WIDTH));
-                  return (
-                <FixedSizeGrid
-                  columnCount={columnCount}
-                  columnWidth={Math.floor(width / columnCount)}
-                  rowCount={Math.ceil(speciesList.length / columnCount)}
-                  rowHeight={GRID_CARD_HEIGHT}
-                  height={height}
-                  width={width}
-                  itemData={{ species: speciesList, columnCount, onSelect: handleSpeciesSelect }}
-                >
-                  {AlbumCell}
-                </FixedSizeGrid>
-              );
-            }}
-          </AutoSizer>
+        {isLoading ? (
+          <div className="collection-loading">Chargement...</div>
+        ) : speciesList.length === 0 ? (
+          <div className="collection-empty">Ta collection est vide. Va jouer !</div>
         ) : (
-          <AutoSizer>
-            {({ height, width }) => (
-              <FixedSizeList
-                height={height}
-                width={width}
-                itemCount={speciesList.length}
-                itemSize={LIST_ITEM_HEIGHT}
-                itemData={{ species: speciesList, onSelect: handleSpeciesSelect }}
-              >
-                {ListRow}
-              </FixedSizeList>
-            )}
-          </AutoSizer>
+          <div className="species-view">
+            <AutoSizer>
+              {({ height, width }) => {
+                if (viewMode === VIEW_MODES.LIST) {
+                  return (
+                    <FixedSizeList
+                      height={height}
+                      width={width}
+                      itemCount={speciesList.length}
+                      itemSize={LIST_ITEM_HEIGHT}
+                      itemData={{ species: speciesList, onSelect: setSelectedSpecies }}
+                    >
+                      {ListRow}
+                    </FixedSizeList>
+                  );
+                }
+                const columnCount = Math.max(2, Math.floor(width / GRID_CARD_MIN_WIDTH));
+                const rowCount = Math.ceil(speciesList.length / columnCount);
+                return (
+                  <FixedSizeGrid
+                    columnCount={columnCount}
+                    columnWidth={width / columnCount}
+                    rowCount={rowCount}
+                    rowHeight={GRID_CARD_HEIGHT}
+                    height={height}
+                    width={width}
+                    itemData={{ species: speciesList, columnCount, onSelect: setSelectedSpecies }}
+                  >
+                    {AlbumCell}
+                  </FixedSizeGrid>
+                );
+              }}
+            </AutoSizer>
+          </div>
         )}
       </div>
-        )}
 
-        {!isLoading && shouldShowSpecies && speciesList.length === 0 && (
-          <div className="collection-empty">
-            <p>Pas encore d'espèce enregistrée dans ce dossier. Reviens après une expédition !</p>
-          </div>
-        )}
-
-        {!isLoading && !childFolders.length && !speciesList.length && (
-          <div className="collection-empty">
-            <p>Tu n'as encore rien collecté dans ce dossier. Reviens après une sortie sur le terrain !</p>
-          </div>
-        )}
-      </section>
       {selectedSpecies && (
-        <SpeciesDetailModal species={selectedSpecies} onClose={closeSpeciesModal} />
+        <SpeciesDetailModal 
+          species={selectedSpecies} 
+          onClose={() => setSelectedSpecies(null)} 
+        />
       )}
     </div>
   );

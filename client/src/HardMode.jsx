@@ -260,6 +260,8 @@ function HardMode() {
     setRoundStatus('playing');
     setScoreInfo(null);
   
+    const isCorrect = roundStatus === 'win';
+  
     const result = {
       points: scoreInfo?.points || 0,
       bonus: scoreInfo?.bonus || 0,

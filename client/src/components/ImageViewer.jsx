@@ -74,13 +74,10 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
 
   useEffect(() => {
     if (!nextImageUrl) return;
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = getSizedImageUrl(nextImageUrl, 'medium');
-    document.head.appendChild(link);
+    const preloadImg = new Image();
+    preloadImg.src = getSizedImageUrl(nextImageUrl, 'medium');
     return () => {
-      document.head.removeChild(link);
+      preloadImg.src = '';
     };
   }, [nextImageUrl]);
 
