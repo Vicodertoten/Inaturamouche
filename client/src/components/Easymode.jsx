@@ -6,7 +6,6 @@ import { getQuestionThumbnail } from '../utils/imageUtils';
 import StreakBadge from './StreakBadge';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { useUser } from '../context/UserContext.jsx';
 
 const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 
@@ -30,7 +29,6 @@ const EasyMode = () => {
     endGame,
     updateScore,
   } = useGameData();
-  const { updatePokedex } = useUser();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
@@ -119,14 +117,7 @@ const EasyMode = () => {
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
   const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
 
-  useEffect(() => {
-    if (!answeredThisQuestion || hasRecordedRef.current) return;
-    const species = question?.bonne_reponse;
-    if (!species) return;
-    const thumbnail = getQuestionThumbnail(question);
-    updatePokedex(species, isCorrectAnswer, thumbnail);
-    hasRecordedRef.current = true;
-  }, [answeredThisQuestion, isCorrectAnswer, question, updatePokedex]);
+
 
   const handleSelectAnswer = (idx) => {
     if (answeredThisQuestion) return;

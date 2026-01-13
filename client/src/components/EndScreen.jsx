@@ -1,17 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ACHIEVEMENTS } from '../achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { notify } from '../services/notifications';
+import { MASTERY_NAMES } from '../services/CollectionService';
 
 const EndScreen = ({
   score,
   sessionCorrectSpecies = [],
   sessionSpeciesData = [],
   newlyUnlocked = [],
+  sessionRewards = [],
   onRestart,
   onReturnHome,
   profile,
 }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
+
+  useEffect(() => {
+    if (sessionRewards && sessionRewards.length > 0) {
+      sessionRewards.forEach((reward, index) => {
+        setTimeout(() => {
+          if (reward.type === 'NEW_SPECIES') {
+            notify(`🦋 New species: ${reward.name}!`, { type: 'success', duration: 4000 });
+          } else if (reward.type === 'LEVEL_UP') {
+            notify(`🥇 Grade ${reward.level} reached for ${reward.name}!`, { type: 'success', duration: 5000 });
+          }
+        }, index * 1200 + 500); // Stagger notifications
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
   const totalQuestions = sessionSpeciesData.length || 0;
   const correctCount = sessionCorrectSpecies.length;
   const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;

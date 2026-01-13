@@ -25,15 +25,21 @@ export const normalizeAncestorIds = (taxon = {}) => {
 
 export const buildSpeciesPayload = (taxon, thumbnailHint) => {
   if (!taxon?.id) return null;
-  return {
+  const rawIconicId = taxon.iconic_taxon_id ?? taxon.iconic_taxon?.id;
+  const iconicTaxonId = Number.isFinite(Number(rawIconicId)) ? Number(rawIconicId) : null;
+  const payload = {
     id: taxon.id,
     name: taxon.name,
     preferred_common_name: taxon.preferred_common_name,
     common_name: taxon.common_name,
-    iconic_taxon_id: taxon.iconic_taxon_id,
+    wikipedia_url: taxon.wikipedia_url,
     rank: taxon.rank,
     ancestor_ids: normalizeAncestorIds(taxon),
     default_photo: taxon.default_photo || null,
     ...resolveImageUrls(taxon, thumbnailHint),
   };
+  if (iconicTaxonId !== null) {
+    payload.iconic_taxon_id = iconicTaxonId;
+  }
+  return payload;
 };

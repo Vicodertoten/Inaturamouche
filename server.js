@@ -644,7 +644,7 @@ function normalizeIdList(input) {
     .filter(Boolean);
 }
 
-function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa }) {
+function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa, seed }) {
   const baseList = FALLBACK_PACKS[pack_id] || [
     ...(FALLBACK_PACKS[FALLBACK_PACK_DEFAULT] || []),
     ...(fallbackTrees || []),
@@ -702,7 +702,11 @@ function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa }) {
     byTaxon.get(taxonId).push(obs);
   }
 
-  const taxonList = Array.from(byTaxon.keys());
+  let taxonList = Array.from(byTaxon.keys());
+  if (seed) {
+    taxonList.sort((a, b) => String(a).localeCompare(String(b)));
+  }
+
   return {
     pool: {
       timestamp: Date.now(),
@@ -719,7 +723,7 @@ function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa }) {
   };
 }
 
-async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng } = {}) {
+async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng, seed } = {}) {
   let pagesFetched = 0;
   let startPage = 1;
   const random = typeof rng === "function" ? rng : Math.random;
@@ -791,7 +795,11 @@ async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, re
     byTaxon.get(key).push(o);
   }
 
-  const taxonList = Array.from(byTaxon.keys());
+  let taxonList = Array.from(byTaxon.keys());
+  if (seed) {
+    taxonList.sort((a, b) => String(a).localeCompare(String(b)));
+  }
+
   if (taxonList.length < QUIZ_CHOICES) {
     const err = new Error("Pas assez d'espèces différentes pour créer un quiz avec ces critères.");
     err.status = 404;
@@ -819,6 +827,7 @@ async function getObservationPool({
   requestId,
   fallbackContext,
   rng,
+  seed,
 }) {
   questionCache.prune();
   const cachedEntry = questionCache.getEntry(cacheKey);
@@ -840,7 +849,7 @@ async function getObservationPool({
 
   const refreshPool = async () => {
     try {
-      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng });
+      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng, seed });
       questionCache.set(cacheKey, fresh.pool);
       return { ...fresh, cacheStatus: "miss" };
     } catch (err) {
@@ -919,6 +928,8 @@ async function buildQuizQuestion({
   const marks = {};
   marks.start = performance.now();
 
+  const hasSeed = typeof seed === "string" && seed.length > 0;
+
   const { pool: cacheEntry, pagesFetched, poolObs, poolTaxa } = await getObservationPool({
     cacheKey,
     params,
@@ -927,6 +938,7 @@ async function buildQuizQuestion({
     requestId,
     fallbackContext,
     rng: poolRng,
+    seed: hasSeed ? seed : undefined,
   });
 
   marks.fetchedObs = performance.now();
@@ -939,7 +951,6 @@ async function buildQuizQuestion({
     Date.now(),
     rng
   );
-  const hasSeed = typeof seed === "string" && seed.length > 0;
   const questionIndex =
     Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
       ? selectionState.questionIndex
@@ -951,7 +962,8 @@ async function buildQuizQuestion({
     selectionState,
     Date.now(),
     excludeTaxaForTarget,
-    questionRng
+    questionRng,
+    { seed: hasSeed ? seed : undefined, questionIndex }
   );
 
   let selectionMode = "normal";
@@ -969,13 +981,22 @@ async function buildQuizQuestion({
     throw err;
   }
 
-  const targetObservation = pickObservationForTaxon(
+  let targetObservation = pickObservationForTaxon(
     cacheEntry,
     selectionState,
     targetTaxonId,
     { allowSeen: false },
     questionRng
   );
+  if (!targetObservation) {
+    targetObservation = pickObservationForTaxon(
+      cacheEntry,
+      selectionState,
+      targetTaxonId,
+      { allowSeen: true },
+      questionRng
+    );
+  }
   if (!targetObservation) {
     const err = new Error("Aucune observation exploitable trouvée pour le taxon cible.");
     err.status = 503;
@@ -1200,7 +1221,20 @@ function pushTargetCooldown(pool, selectionState, taxonIds, now) {
  * @param {() => number} [rng] Optional RNG for deterministic selection.
  * @returns {string|null} Eligible taxon id or null if none available.
  */
-function nextEligibleTaxonId(pool, selectionState, now, excludeSet = new Set(), rng = Math.random) {
+function nextEligibleTaxonId(
+  pool,
+  selectionState,
+  now,
+  excludeSet = new Set(),
+  rng = Math.random,
+  { seed, questionIndex } = {}
+) {
+  if (seed && pool.taxonList?.length > 0) {
+    const index = questionIndex % pool.taxonList.length;
+    const taxonId = pool.taxonList[index];
+    return String(taxonId);
+  }
+
   if (!Array.isArray(selectionState.taxonDeck) || selectionState.taxonDeck.length === 0) {
     selectionState.taxonDeck = createShuffledDeck(pool.taxonList, rng);
   }
@@ -1531,26 +1565,27 @@ app.get(
       }
       const monthDayFilter = hasSeed ? null : buildMonthDayFilter(d1, d2);
 
-      if (!hasSeed) {
-        if (pack_id) {
-          const selectedPack = findPackById(pack_id);
-          if (!selectedPack) {
-            return res.status(400).json({ error: "Pack inconnu" });
-          }
-          if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
-            params.taxon_id = selectedPack.taxa_ids.join(",");
-          } else if (selectedPack.api_params) {
-            Object.assign(params, selectedPack.api_params);
-          }
-        } else if (taxon_ids) {
-          params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
-        } else if (include_taxa || exclude_taxa) {
-          if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
-          if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
+      if (pack_id) {
+        const selectedPack = findPackById(pack_id);
+        if (!selectedPack) {
+          return res.status(400).json({ error: "Pack inconnu" });
         }
+        if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
+          params.taxon_id = selectedPack.taxa_ids.join(",");
+        } else if (selectedPack.api_params) {
+          Object.assign(params, selectedPack.api_params);
+        }
+      } else if (taxon_ids) {
+        params.taxon_id = Array.isArray(taxon_ids) ? taxon_ids.join(",") : taxon_ids;
+      } else if (include_taxa || exclude_taxa) {
+        if (include_taxa) params.taxon_id = Array.isArray(include_taxa) ? include_taxa.join(",") : include_taxa;
+        if (exclude_taxa) params.without_taxon_id = Array.isArray(exclude_taxa) ? exclude_taxa.join(",") : exclude_taxa;
       }
 
       if (hasSeed) {
+        if (!pack_id && !taxon_ids && !include_taxa) {
+          params.taxon_id = "47170"; // Fungi
+        }
         delete params.place_id;
         delete params.nelat;
         delete params.nelng;
@@ -1593,7 +1628,7 @@ app.get(
         clientId: clientKey,
         logger: req.log,
         requestId: req.id,
-        fallbackContext: hasSeed ? {} : { pack_id, taxon_ids, include_taxa, exclude_taxa },
+        fallbackContext: hasSeed ? { seed: normalizedSeed } : { pack_id, taxon_ids, include_taxa, exclude_taxa },
         rng,
         poolRng,
         seed: hasSeed ? normalizedSeed : "",
@@ -1621,8 +1656,11 @@ app.get(
       req.log?.error({ err, requestId: req.id }, "Unhandled quiz route error");
       if (res.headersSent) return;
       const status = err?.status || 500;
-      const message =
+      let message =
         status === 500 ? "Erreur interne du serveur" : err?.message || "Erreur interne du serveur";
+      if (err?.code === "timeout") {
+        message = "Le service iNaturalist est lent ou indisponible, réessayez dans quelques instants.";
+      }
       res.status(status).json({ error: message });
     }
   }

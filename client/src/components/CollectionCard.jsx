@@ -1,0 +1,51 @@
+import React from 'react';
+import { MASTERY_LEVELS } from '../services/CollectionService';
+import './CollectionCard.css';
+
+// Memoize the component to prevent re-renders in react-window
+const CollectionCard = React.memo(({ taxon, collection, style }) => {
+  const masteryLevel = collection?.masteryLevel || MASTERY_LEVELS.NONE;
+  const isGhost = collection?.seenCount > 0 && collection?.correctCount === 0;
+
+  const cardClasses = [
+    'collection-card',
+    `mastery-${masteryLevel}`
+  ].join(' ');
+
+  const imageClasses = [
+    'card-image',
+    isGhost ? 'grayscale' : ''
+  ].join(' ');
+
+  // The style prop is passed by react-window for positioning
+  const imageUrl =
+    taxon?.medium_url ||
+    taxon?.picture_url_medium ||
+    taxon?.small_url ||
+    taxon?.picture_url_small ||
+    taxon?.square_url ||
+    taxon?.thumbnail ||
+    taxon?.default_photo?.medium_url ||
+    taxon?.default_photo?.small_url ||
+    taxon?.default_photo?.square_url ||
+    taxon?.default_photo?.url ||
+    '';
+
+  return (
+    <div className={cardClasses} style={style}>
+      <div className="card-image-wrapper">
+        <img src={imageUrl} alt={taxon.name} className={imageClasses} loading="lazy" />
+      </div>
+      <div className="card-info">
+        <p className="card-common-name">{taxon.preferred_common_name || taxon.name}</p>
+        {masteryLevel > MASTERY_LEVELS.BRONZE && (
+          <p className="card-scientific-name">{taxon.name}</p>
+        )}
+      </div>
+    </div>
+  );
+});
+
+CollectionCard.displayName = 'CollectionCard';
+
+export default CollectionCard;

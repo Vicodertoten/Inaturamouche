@@ -11,7 +11,6 @@ import { getQuestionThumbnail } from './utils/imageUtils';
 import StreakBadge from './components/StreakBadge';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
-import { useUser } from './context/UserContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -40,7 +39,6 @@ function HardMode() {
     questionCount,
     maxQuestions,
   } = useGameData();
-  const { updatePokedex } = useUser();
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
@@ -70,7 +68,6 @@ function HardMode() {
   }, [question?.bonne_reponse, t]);
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
-  const hasRecordedRef = useRef(false);
 
   const targetLineage = useMemo(() => {
     const lineage = {};
@@ -114,18 +111,8 @@ function HardMode() {
       hintCount: 0,
     });
     setActiveRank(RANKS[0]);
-    hasRecordedRef.current = false;
   }, [question, score]);
 
-  useEffect(() => {
-    if (roundStatus === 'playing' || hasRecordedRef.current) return;
-    const species = question?.bonne_reponse;
-    if (!species) return;
-    const thumbnail = getQuestionThumbnail(question);
-    updatePokedex(species, roundStatus === 'win', thumbnail);
-    hasRecordedRef.current = true;
-  }, [question, roundStatus, updatePokedex]);
-  
   useEffect(() => {
     return () => {
       if (feedbackTimeoutRef.current) {
