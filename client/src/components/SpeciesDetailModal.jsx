@@ -30,6 +30,8 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('stats');
   const [description, setDescription] = useState('Loading...');
+  const [similarSpecies, setSimilarSpecies] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   // Load species detail on mount
   useEffect(() => {
@@ -52,6 +54,14 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
 
         setDetail(result);
         setLoading(false);
+
+        // Fetch similar species
+        setLoadingSimilar(true);
+        const similar = await CollectionService.getSimilarSpecies(taxonId, result.ancestors);
+        if (isMounted) {
+          setSimilarSpecies(similar);
+          setLoadingSimilar(false);
+        }
 
         // Prepare description
         if (result.taxon.description) {
@@ -176,7 +186,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
               className={`tab-button ${activeTab === 'taxonomy' ? 'active' : ''}`}
               onClick={() => setActiveTab('taxonomy')}
             >
-              Taxonomy
+              Similar Species
             </button>
           </div>
 
@@ -239,21 +249,47 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
 
           {activeTab === 'taxonomy' && (
             <div className="tab-content">
-              <div className="taxonomy-content">
-                <h3>Taxonomic Path</h3>
-                <p className="taxonomy-path">{taxonomyPath}</p>
-                {ancestors && ancestors.length > 0 && (
-                  <div className="ancestors-list">
-                    <h4>Ancestors:</h4>
-                    <ul>
-                      {ancestors.map((ancestor, idx) => (
-                        <li key={ancestor.id || idx}>
-                          <span className="rank">{ancestor.rank || 'unknown'}</span>
-                          <span className="name">{ancestor.name}</span>
-                        </li>
-                      ))}
-                    </ul>
+              <div className="similar-species-content">
+                {loadingSimilar ? (
+                  <p className="loading-text">Finding similar species...</p>
+                ) : similarSpecies && similarSpecies.length > 0 ? (
+                  <div className="similar-species-grid">
+                    {similarSpecies.map((species) => {
+                      const speciesImage =
+                        species.default_photo?.medium_url ||
+                        species.default_photo?.square_url ||
+                        species.medium_url ||
+                        species.square_url ||
+                        '';
+                      return (
+                        <div key={species.id} className="similar-species-card">
+                          {speciesImage && (
+                            <img
+                              src={speciesImage}
+                              alt={species.name}
+                              className="similar-species-image"
+                            />
+                          )}
+                          <div className="similar-species-info">
+                            <p className="similar-common-name">
+                              {species.preferred_common_name || species.name}
+                            </p>
+                            <p className="similar-scientific-name">{species.name}</p>
+                          </div>
+                          <a
+                            href={`https://www.inaturalist.org/taxa/${species.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="similar-species-link"
+                          >
+                            View →
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
+                ) : (
+                  <p className="no-similar-text">No similar species found in our database.</p>
                 )}
               </div>
             </div>

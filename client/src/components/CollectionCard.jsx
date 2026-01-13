@@ -5,19 +5,22 @@ import './CollectionCard.css';
 // Memoize the component to prevent re-renders in react-window
 const CollectionCard = React.memo(({ taxon, collection, style }) => {
   const masteryLevel = collection?.masteryLevel || MASTERY_LEVELS.NONE;
+  
+  // "Ghost" species: seen but never identified correctly
   const isGhost = collection?.seenCount > 0 && collection?.correctCount === 0;
 
   const cardClasses = [
     'collection-card',
-    `mastery-${masteryLevel}`
-  ].join(' ');
+    `mastery-${masteryLevel}`,
+    isGhost ? 'ghost' : '',
+  ].filter(Boolean).join(' ');
 
   const imageClasses = [
     'card-image',
-    isGhost ? 'grayscale' : ''
-  ].join(' ');
+    isGhost ? 'grayscale' : '',
+  ].filter(Boolean).join(' ');
 
-  // The style prop is passed by react-window for positioning
+  // Extract best image URL
   const imageUrl =
     taxon?.medium_url ||
     taxon?.picture_url_medium ||

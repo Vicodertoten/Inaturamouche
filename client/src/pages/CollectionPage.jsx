@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
-import { Grid as FixedSizeGrid } from 'react-window';
 
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
 import { ICONIC_TAXA_LIST } from '../utils/collectionUtils';
@@ -11,9 +9,6 @@ import { useUser } from '../context/UserContext';
 import './CollectionPage.css';
 
 const COLUMN_WIDTH = 180;
-const ROW_HEIGHT = 220;
-const ICONIC_CARD_WIDTH = 200;
-const ICONIC_CARD_HEIGHT = 160;
 
 // ============== IconicTaxaGrid Component ==============
 
@@ -53,10 +48,6 @@ function IconicTaxaGrid({ onSelectIconic }) {
               key={iconicTaxon.id}
               className="iconic-taxon-card"
               onClick={() => onSelectIconic(iconicTaxon.id)}
-              style={{
-                width: ICONIC_CARD_WIDTH,
-                height: ICONIC_CARD_HEIGHT,
-              }}
             >
               <div className="iconic-card-header">
                 <h2>{iconicTaxon.name}</h2>
@@ -86,62 +77,37 @@ function IconicTaxaGrid({ onSelectIconic }) {
   );
 }
 
-// ============== GridCell Component ==============
-
-const GridCell = ({ columnIndex, rowIndex, style, data }) => {
-  const { species, columnCount, onSpeciesSelect } = data;
-  const index = rowIndex * columnCount + columnIndex;
-
-  if (index >= species.length) return null;
-
-  const item = species[index];
-  const { taxon, stats } = item;
-
-  // Adjust position for margins
-  const innerStyle = {
-    ...style,
-    top: `${parseFloat(style.top) + 5}px`,
-    left: `${parseFloat(style.left) + 5}px`,
-    width: `${parseFloat(style.width) - 10}px`,
-    height: `${parseFloat(style.height) - 10}px`,
-  };
-
-  return (
-    <div style={innerStyle} onClick={() => onSpeciesSelect(item)}>
-      <CollectionCard taxon={taxon} collection={stats} />
-    </div>
-  );
-};
-
 // ============== SpeciesGrid Component ==============
 
 function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const { collectionVersion } = useUser();
-  const [sortOrder, setSortOrder] = useState('mastery'); // 'mastery', 'recent', 'alpha'
+  const [sortOrder, setSortOrder] = useState('mastery');
   const [species, setSpecies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const iconicTaxonName = ICONIC_TAXA_LIST.find(t => t.id === iconicTaxonId)?.name || 'Collection';
 
-  // Fetch paginated species data
+  // Fetch species data
   useEffect(() => {
     let isMounted = true;
     const fetch = async () => {
       try {
         setLoading(true);
+        console.log(`🔍 Fetching species for iconic ${iconicTaxonId}...`);
         const result = await CollectionService.getSpeciesPage({
           iconicId: iconicTaxonId,
           offset: 0,
-          limit: 500, // Load initial batch
+          limit: 500,
           sort: sortOrder,
         });
+        console.log(`✅ Fetched ${result.species.length} species (total: ${result.total})`);
         if (isMounted) {
           setSpecies(result.species);
           setError(null);
         }
       } catch (err) {
-        console.error('Failed to fetch species page:', err);
+        console.error('❌ Failed to fetch species page:', err);
         if (isMounted) setError(err.message);
       } finally {
         if (isMounted) setLoading(false);
@@ -153,10 +119,9 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     };
   }, [iconicTaxonId, sortOrder, collectionVersion]);
 
-  // Listen for collection updates via BroadcastChannel
+  // Listen for collection updates
   useEffect(() => {
     const unsubscribe = CollectionService.onCollectionUpdated(() => {
-      // Refetch species data
       const fetch = async () => {
         try {
           const result = await CollectionService.getSpeciesPage({
@@ -167,7 +132,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
           });
           setSpecies(result.species);
         } catch (err) {
-          console.error('Failed to refresh species page:', err);
+          console.error('Failed to refresh:', err);
         }
       };
       void fetch();
@@ -179,7 +144,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     return (
       <div className="collection-error">
         <button onClick={onBack} className="back-button">&larr; Back</button>
-        <p>Error loading species: {error}</p>
+        <p>Error: {error}</p>
       </div>
     );
   }
@@ -209,29 +174,21 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
         </div>
       ) : species.length === 0 ? (
         <div className="collection-empty">
-          <p>No species seen in this category yet.</p>
+          <p>No species in this category yet.</p>
         </div>
       ) : (
         <div className="species-grid-container">
-          <AutoSizer>
-            {({ height, width }) => {
-              const columnCount = Math.max(1, Math.floor(width / COLUMN_WIDTH));
-              const rowCount = Math.ceil(species.length / columnCount);
-              return (
-                <FixedSizeGrid
-                  columnCount={columnCount}
-                  columnWidth={COLUMN_WIDTH}
-                  rowCount={rowCount}
-                  rowHeight={ROW_HEIGHT}
-                  height={height}
-                  width={width}
-                  itemData={{ species, columnCount, onSpeciesSelect }}
-                >
-                  {GridCell}
-                </FixedSizeGrid>
-              );
-            }}
-          </AutoSizer>
+          <div className="simple-grid">
+            {species.map((item) => (
+              <div
+                key={item.taxon.id}
+                className="species-grid-item"
+                onClick={() => onSpeciesSelect(item)}
+              >
+                <CollectionCard taxon={item.taxon} collection={item.stats} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

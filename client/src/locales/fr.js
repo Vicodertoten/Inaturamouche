@@ -15,7 +15,7 @@ const fr = {
     profile: 'Mon Profil',
     home: 'Accueil',
     replay: 'Rejouer',
-    score: 'Score',
+    score: 'Résultat',
     next_question: 'Question suivante',
     quit: 'Abandonner',
     finish: 'Terminer',
@@ -145,15 +145,15 @@ const fr = {
     question_counter: 'Question {current}/{total}',
     hint_button: 'Indice (-{cost} pts)',
     image_alt: 'Quelle est cette espèce ?',
-    score_label: 'Score : {score}',
+    score_label: 'Résultat : {score}',
   },
   hard: {
     title: "Identifier l'espèce",
     stats_line: 'Chances : {guesses} | Score : {score}',
     stats: {
-      score: 'Score',
+      score: 'Résultat',
       guesses: 'Vies',
-      question: 'Question',
+      question: 'Question de quiz',
     },
     reveal_button: 'Révéler (-{cost} chances)',
     image_alt: 'Espèce à identifier',
@@ -181,7 +181,7 @@ const fr = {
     choose_image: "Choix de l'image",
     go_to_image: "Aller à l'image {index}",
     viewer_label: "Visionneuse d'images",
-    meta_unknown: 'Photo via iNaturalist',
+    meta_unknown: 'Photo provenant d\'iNaturalist',
   },
   summary: {
     win_title: 'Espèce trouvée !',
@@ -203,12 +203,12 @@ const fr = {
     species_seen: 'Espèces rencontrées',
     achievements: 'Succès débloqués',
     status: {
-      correct: 'Correct',
-      incorrect: 'Incorrect',
+      correct: 'Correcte',
+      incorrect: 'Incorrecte',
     },
     links: {
-      inaturalist: 'iNaturalist',
-      wikipedia: 'Wikipédia',
+      inaturalist: 'Consulter sur iNaturalist',
+      wikipedia: 'Page Wikipédia',
     },
   },
   achievements: {
