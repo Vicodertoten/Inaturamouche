@@ -1,12 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../services/PlayerProfile';
-import db, { speciesTable, statsTable } from '../services/db';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
-import { buildSpeciesPayload } from '../utils/speciesUtils';
-import { MASTERY_LEVELS, MASTERY_THRESHOLDS } from '../services/CollectionService';
-import { MASTERY_THRESHOLD } from '../utils/scoring';
-import { queueTaxonForEnrichment } from '../services/TaxonomyService';
+import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
+import { stats as statsTable, taxa as taxaTable } from '../services/db';
 
 const UserContext = createContext(null);
 
@@ -16,28 +13,12 @@ const sanitizeProfile = (profileCandidate) => {
   return rest;
 };
 
-const calculateMasteryLevel = ({ correctCount = 0, seenCount = 0 }) => {
-  const ratio = seenCount > 0 ? correctCount / seenCount : 0;
-  if (
-    correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].correct &&
-    ratio >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].ratio
-  ) {
-    return MASTERY_LEVELS.GOLD;
-  }
-  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.SILVER].correct) {
-    return MASTERY_LEVELS.SILVER;
-  }
-  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.BRONZE].correct) {
-    return MASTERY_LEVELS.BRONZE;
-  }
-  return MASTERY_LEVELS.NONE;
-};
-
 export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
 
+  // Initialize: load profile and migrate legacy data
   useEffect(() => {
     let isMounted = true;
     const initialize = async () => {
@@ -61,9 +42,11 @@ export function UserProvider({ children }) {
         setCollectionVersion((prev) => prev + 1);
       }
       try {
-        const count = await speciesTable.count();
+        const count = await taxaTable.count();
         console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
-      } catch (e) { console.error("Erreur lecture DB", e); }
+      } catch (e) {
+        console.error("Erreur lecture DB", e);
+      }
     };
     void initialize();
     return () => {
@@ -71,23 +54,12 @@ export function UserProvider({ children }) {
     };
   }, []);
 
+  // Listen for BroadcastChannel collection updates from other tabs
   useEffect(() => {
-    const BroadcastChannelConstructor =
-      typeof BroadcastChannel !== 'undefined'
-        ? BroadcastChannel
-        : undefined;
-    if (!BroadcastChannelConstructor) return undefined;
-    const channel = new BroadcastChannelConstructor('inaturamouche_channel');
-    const handleMessage = (event) => {
-      if (event?.data?.type === 'COLLECTION_UPDATED') {
-        setCollectionVersion((prev) => prev + 1);
-      }
-    };
-    channel.addEventListener('message', handleMessage);
-    return () => {
-      channel.removeEventListener('message', handleMessage);
-      channel.close();
-    };
+    const unsubscribe = CollectionService.onCollectionUpdated(() => {
+      setCollectionVersion((prev) => prev + 1);
+    });
+    return unsubscribe;
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -105,87 +77,65 @@ export function UserProvider({ children }) {
     });
   }, []);
 
-  const addSpeciesToCollection = useCallback(async (taxon, isCorrect = false, thumbnail) => {
-    if (!taxon?.id) return;
-    const payload = buildSpeciesPayload(taxon, thumbnail);
-    if (!payload) return;
-    const now = new Date().toISOString();
-    const wasCorrect = Boolean(isCorrect);
-    let shouldQueueEnrichment = false;
+  /**
+   * Record an encounter with a taxon (primary gameplay method).
+   * Delegates to CollectionService.recordEncounter.
+   */
+  const recordEncounter = useCallback(async (taxonData, isCorrect = false, thumbnail = null) => {
+    if (!taxonData?.id) return null;
     try {
-      await db.transaction('rw', speciesTable, statsTable, async () => {
-        const [existingStats, existingSpecies] = await Promise.all([
-          statsTable.get(taxon.id),
-          speciesTable.get(taxon.id),
-        ]);
-        const seenCount = (Number(existingStats?.seenCount) || 0) + 1;
-        const correctCount = (Number(existingStats?.correctCount) || 0) + (wasCorrect ? 1 : 0);
-        const streak = wasCorrect ? (Number(existingStats?.streak) || 0) + 1 : 0;
-        const firstSeenAt = existingStats?.firstSeenAt || now;
-        const masteryLevel = calculateMasteryLevel({ correctCount, seenCount });
-        await statsTable.put({
-          id: taxon.id,
-          seenCount,
-          correctCount,
-          streak,
-          firstSeenAt,
-          lastSeenAt: now,
-          accuracy: seenCount ? correctCount / seenCount : 0,
-          masteryLevel,
-        });
-        const hasAncestorData =
-          existingSpecies &&
-          Array.isArray(existingSpecies.ancestor_ids) &&
-          existingSpecies.ancestor_ids.length > 0;
-        const hasIconicTaxon = Number.isFinite(Number(existingSpecies?.iconic_taxon_id));
-        const hasImageUrls = Boolean(
-          existingSpecies?.square_url ||
-          existingSpecies?.small_url ||
-          existingSpecies?.medium_url ||
-          existingSpecies?.thumbnail
-        );
-        if (!existingSpecies || !hasAncestorData || !hasIconicTaxon || !hasImageUrls) {
-          const mergedPayload = existingSpecies ? { ...existingSpecies, ...payload } : payload;
-          if (hasAncestorData && (!payload?.ancestor_ids || payload.ancestor_ids.length === 0)) {
-            mergedPayload.ancestor_ids = existingSpecies.ancestor_ids;
-          }
-          await speciesTable.put(mergedPayload);
-          if (!hasAncestorData) {
-            shouldQueueEnrichment = true;
-          }
-        }
+      const result = await CollectionService.recordEncounter(taxonData, {
+        isCorrect,
+        thumbnail,
+        occurredAt: new Date(),
       });
-      if (shouldQueueEnrichment) {
-        queueTaxonForEnrichment(taxon.id);
-      }
       setCollectionVersion((prev) => prev + 1);
+      return result;
     } catch (error) {
-      console.error('Failed to persist collection entry', error);
+      console.error('Failed to record encounter', error);
+      return null;
     }
   }, []);
 
-  const updatePokedex = useCallback((species, isCorrect, thumbnail) => {
-    void addSpeciesToCollection(species, isCorrect, thumbnail);
-  }, [addSpeciesToCollection]);
+  /**
+   * Legacy alias for recordEncounter (maintains backward compatibility).
+   */
+  const addSpeciesToCollection = useCallback(
+    (taxon, isCorrect = false, thumbnail) => recordEncounter(taxon, isCorrect, thumbnail),
+    [recordEncounter]
+  );
 
+  /**
+   * Legacy alias for recordEncounter.
+   */
+  const updatePokedex = useCallback(
+    (species, isCorrect, thumbnail) => recordEncounter(species, isCorrect, thumbnail),
+    [recordEncounter]
+  );
+
+  /**
+   * Get collection stats/summary across all species.
+   */
   const getCollectionStats = useCallback(async () => {
     try {
-      const [totalSpecies, statsEntries] = await Promise.all([
-        speciesTable.count(),
-        statsTable.toArray(),
-      ]);
+      const allStats = await statsTable.toArray();
+      const allTaxa = await taxaTable.toArray();
+
       let masteredSpecies = 0;
       let lastSeenAt = null;
-      statsEntries.forEach((entry) => {
-        if (!entry) return;
-        const correctCount = Number(entry.correctCount) || 0;
-        if (correctCount >= MASTERY_THRESHOLD) masteredSpecies += 1;
-        if (entry.lastSeenAt && (!lastSeenAt || entry.lastSeenAt > lastSeenAt)) {
-          lastSeenAt = entry.lastSeenAt;
+
+      for (const stat of allStats) {
+        if (stat.masteryLevel > MASTERY_LEVELS.NONE) {
+          masteredSpecies += 1;
         }
-      });
+        if (stat.lastSeenAt && (!lastSeenAt || new Date(stat.lastSeenAt) > new Date(lastSeenAt))) {
+          lastSeenAt = stat.lastSeenAt;
+        }
+      }
+
       return {
-        totalSpecies,
+        totalSpecies: allTaxa.length,
+        seenSpecies: allStats.length,
         masteredSpecies,
         lastSeenAt,
       };
@@ -193,17 +143,32 @@ export function UserProvider({ children }) {
       console.error('Failed to read collection stats', error);
       return {
         totalSpecies: 0,
+        seenSpecies: 0,
         masteredSpecies: 0,
         lastSeenAt: null,
       };
     }
   }, []);
 
-  const getSpeciesById = useCallback((id) => {
-    if (!id) return null;
-    return speciesTable.get(id);
+  /**
+   * Get species detail via CollectionService.
+   */
+  const getSpeciesDetail = useCallback((taxonId) => {
+    if (!taxonId) return null;
+    return CollectionService.getSpeciesDetail(taxonId);
   }, []);
 
+  /**
+   * Legacy: get species by ID (returns taxon only).
+   */
+  const getSpeciesById = useCallback((id) => {
+    if (!id) return null;
+    return taxaTable.get(id);
+  }, []);
+
+  /**
+   * Legacy: get stats by ID.
+   */
   const getSpeciesStats = useCallback((id) => {
     if (!id) return null;
     return statsTable.get(id);
@@ -225,11 +190,13 @@ export function UserProvider({ children }) {
     achievementQueue,
     queueAchievements,
     popAchievement,
-    addSpeciesToCollection,
-    updatePokedex,
+    recordEncounter,
+    addSpeciesToCollection, // Legacy
+    updatePokedex, // Legacy
     getCollectionStats,
-    getSpeciesById,
-    getSpeciesStats,
+    getSpeciesDetail,
+    getSpeciesById, // Legacy
+    getSpeciesStats, // Legacy
     collectionVersion,
   };
 
