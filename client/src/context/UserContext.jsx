@@ -4,6 +4,7 @@ import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../service
 import db, { speciesTable, statsTable } from '../services/db';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
 import { buildSpeciesPayload } from '../utils/speciesUtils';
+import { MASTERY_LEVELS, MASTERY_THRESHOLDS } from '../services/CollectionService';
 import { MASTERY_THRESHOLD } from '../utils/scoring';
 import { queueTaxonForEnrichment } from '../services/TaxonomyService';
 
@@ -13,6 +14,23 @@ const sanitizeProfile = (profileCandidate) => {
   const base = profileCandidate ?? getDefaultProfile();
   const { pokedex: _pokedex, ...rest } = base;
   return rest;
+};
+
+const calculateMasteryLevel = ({ correctCount = 0, seenCount = 0 }) => {
+  const ratio = seenCount > 0 ? correctCount / seenCount : 0;
+  if (
+    correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].correct &&
+    ratio >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].ratio
+  ) {
+    return MASTERY_LEVELS.GOLD;
+  }
+  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.SILVER].correct) {
+    return MASTERY_LEVELS.SILVER;
+  }
+  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.BRONZE].correct) {
+    return MASTERY_LEVELS.BRONZE;
+  }
+  return MASTERY_LEVELS.NONE;
 };
 
 export function UserProvider({ children }) {
@@ -102,20 +120,39 @@ export function UserProvider({ children }) {
         ]);
         const seenCount = (Number(existingStats?.seenCount) || 0) + 1;
         const correctCount = (Number(existingStats?.correctCount) || 0) + (wasCorrect ? 1 : 0);
+        const streak = wasCorrect ? (Number(existingStats?.streak) || 0) + 1 : 0;
+        const firstSeenAt = existingStats?.firstSeenAt || now;
+        const masteryLevel = calculateMasteryLevel({ correctCount, seenCount });
         await statsTable.put({
           id: taxon.id,
           seenCount,
           correctCount,
+          streak,
+          firstSeenAt,
           lastSeenAt: now,
           accuracy: seenCount ? correctCount / seenCount : 0,
+          masteryLevel,
         });
         const hasAncestorData =
           existingSpecies &&
           Array.isArray(existingSpecies.ancestor_ids) &&
           existingSpecies.ancestor_ids.length > 0;
-        if (!existingSpecies || !hasAncestorData) {
-          await speciesTable.put(payload);
-          shouldQueueEnrichment = true;
+        const hasIconicTaxon = Number.isFinite(Number(existingSpecies?.iconic_taxon_id));
+        const hasImageUrls = Boolean(
+          existingSpecies?.square_url ||
+          existingSpecies?.small_url ||
+          existingSpecies?.medium_url ||
+          existingSpecies?.thumbnail
+        );
+        if (!existingSpecies || !hasAncestorData || !hasIconicTaxon || !hasImageUrls) {
+          const mergedPayload = existingSpecies ? { ...existingSpecies, ...payload } : payload;
+          if (hasAncestorData && (!payload?.ancestor_ids || payload.ancestor_ids.length === 0)) {
+            mergedPayload.ancestor_ids = existingSpecies.ancestor_ids;
+          }
+          await speciesTable.put(mergedPayload);
+          if (!hasAncestorData) {
+            shouldQueueEnrichment = true;
+          }
         }
       });
       if (shouldQueueEnrichment) {

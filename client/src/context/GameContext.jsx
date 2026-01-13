@@ -116,7 +116,7 @@ const GameDataContext = createContext(null);
 const GameUIContext = createContext(null);
 
 export function GameProvider({ children }) {
-  const { profile, updateProfile, queueAchievements } = useUser();
+  const { profile, updateProfile, queueAchievements, addSpeciesToCollection } = useUser();
   const { language, t } = useLanguage();
   const { packs, loading: packsLoading } = usePacks();
 
@@ -563,6 +563,22 @@ export function GameProvider({ children }) {
       const derivedBiomes = getBiomesForQuestion(question, activePack);
       const genusEntry =
         question.bonne_reponse?.ancestors?.find((ancestor) => ancestor.rank === 'genus') || null;
+      const fallbackImageUrl =
+        question.bonne_reponse?.default_photo?.square_url ||
+        question.bonne_reponse?.default_photo?.url ||
+        question.bonne_reponse?.photos?.[0]?.square_url ||
+        question.bonne_reponse?.photos?.[0]?.url ||
+        question.image_urls?.[0] ||
+        null;
+      const taxonPayload = {
+        ...question.bonne_reponse,
+      };
+      if (!taxonPayload.default_photo && fallbackImageUrl) {
+        taxonPayload.default_photo = { url: fallbackImageUrl, square_url: fallbackImageUrl };
+      }
+      if (!taxonPayload.square_url && fallbackImageUrl) {
+        taxonPayload.square_url = fallbackImageUrl;
+      }
       const roundDetails = {
         mode: roundMeta.mode || gameMode,
         ...roundMeta,
@@ -586,6 +602,9 @@ export function GameProvider({ children }) {
         common_name: question.bonne_reponse.preferred_common_name || question.bonne_reponse.common_name,
         wikipedia_url: question.bonne_reponse.wikipedia_url,
         inaturalist_url: question.inaturalist_url,
+        default_photo: taxonPayload.default_photo || null,
+        square_url: taxonPayload.square_url || null,
+        taxon: taxonPayload,
         bonus: adjustedBonus,
         streak: newStreak,
         biomes: derivedBiomes,
@@ -597,6 +616,9 @@ export function GameProvider({ children }) {
         wasCorrect: isCorrectFinal,
         multiplierApplied: multiplier,
       };
+      if (addSpeciesToCollection) {
+        void addSpeciesToCollection(taxonPayload, isCorrectFinal, fallbackImageUrl);
+      }
       const nextSpeciesData = [...sessionSpeciesData, speciesEntry];
 
       const microUnlocks = evaluateMicroChallenges(
@@ -683,6 +705,7 @@ export function GameProvider({ children }) {
     [
       activePerks,
       activePack,
+      addSpeciesToCollection,
       currentStreak,
       evaluatePerksForStreak,
       fetchQuestion,

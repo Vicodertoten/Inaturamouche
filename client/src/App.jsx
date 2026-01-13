@@ -8,7 +8,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const PlayPage = lazy(() => import('./pages/PlayPage'));
 const EndPage = lazy(() => import('./pages/EndPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const CollectionPage = lazy(() => import('./pages/CollectionPage').then(m => ({ default: m.CollectionPage })));
+const CollectionPage = lazy(() => import('./pages/CollectionPage'));
 
 function App() {
   return (
@@ -19,8 +19,8 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="play" element={<PlayPage />} />
             <Route path="end" element={<EndPage />} />
-            <Route path="profile" element={<ProfilePage />} />
             <Route path="collection" element={<CollectionPage />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
@@ -30,4 +30,3 @@ function App() {
 }
 
 export default App;
-

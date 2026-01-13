@@ -1,283 +1,168 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
-import { Grid as FixedSizeGrid, List as FixedSizeList } from 'react-window';
-import { speciesTable, statsTable, taxonGroupsTable } from '../services/db';
-import { useUser } from '../context/UserContext';
+import { Grid as FixedSizeGrid } from 'react-window';
+
+import { speciesTable, statsTable } from '../services/db';
+import { ICONIC_TAXA_LIST } from '../utils/collectionUtils';
+import CollectionCard from '../components/CollectionCard';
 import SpeciesDetailModal from '../components/SpeciesDetailModal';
-import { MASTERY_THRESHOLD } from '../utils/scoring';
 import './CollectionPage.css';
 
-const VIEW_MODES = {
-  ALBUM: 'album',
-  LIST: 'list',
-};
+const COLUMN_WIDTH = 180;
+const ROW_HEIGHT = 220;
 
-const SPECIES_THRESHOLD_FOR_SUBFOLDERS = 30;
-const GRID_CARD_MIN_WIDTH = 180;
-const GRID_CARD_HEIGHT = 260;
-const LIST_ITEM_HEIGHT = 80;
-const ROOT_BREADCRUMB = { id: null, name: 'Collection', rank: 'root' };
+// Component for an item in the species grid
+const GridCell = ({ columnIndex, rowIndex, style, data }) => {
+  const { species, columnCount, onSpeciesSelect } = data;
+  const index = rowIndex * columnCount + columnIndex;
+  if (index >= species.length) return null;
 
-const getSpeciesName = (species) =>
-  species?.preferred_common_name ||
-  species?.common_name ||
-  species?.name ||
-  'Espèce inconnue';
+  const speciesData = species[index];
+  const { taxon, collection } = speciesData;
 
-const sortSpeciesList = (list) =>
-  list.slice().sort((a, b) => getSpeciesName(a).localeCompare(getSpeciesName(b), 'fr', { sensitivity: 'base' }));
+  // react-window passes style with position: absolute.
+  // To make the cell clickable, we need a div inside that.
+  const innerStyle = {
+      ...style,
+      top: `${parseFloat(style.top) + 5}px`,
+      left: `${parseFloat(style.left) + 5}px`,
+      width: `${parseFloat(style.width) - 10}px`,
+      height: `${parseFloat(style.height) - 10}px`,
+  };
 
-const formatLastSeen = (value) => {
-  if (!value) return 'Jamais vu';
-  const date = new Date(value);
-  return date.toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const getFrameClass = (record) => {
-  const seen = record?.seenCount ?? 0;
-  const correct = record?.correctCount ?? 0;
-  if (correct >= MASTERY_THRESHOLD) return 'gold-frame';
-  if (seen >= 5) return 'silver-frame';
-  if (seen >= 1) return 'bronze-frame';
-  return '';
-};
-
-const FolderCard = ({ folder, onNavigate }) => (
-  <button className="folder-card" type="button" onClick={() => onNavigate(folder)}>
-    <div
-      className="folder-preview"
-      style={{
-        backgroundImage: folder.previewThumbnail ? `url(${folder.previewThumbnail})` : 'none',
-        backgroundSize: 'cover',
-        height: '100px',
-        borderRadius: '4px'
-      }}
-    />
-    <div className="folder-meta">
-      <p className="folder-name">{folder.name}</p>
-      <span className="folder-count">{folder.speciesCount ?? 0} espèces</span>
-    </div>
-  </button>
-);
-
-const AlbumCell = ({ columnIndex, rowIndex, style, data }) => {
-  const { species, columnCount, onSelect } = data;
-  const idx = rowIndex * columnCount + columnIndex;
-  if (idx >= species.length) return null;
-  const record = species[idx];
-  const frameClass = getFrameClass(record);
-  
   return (
-    <div style={style} className="species-cell">
-      <button
-        type="button"
-        className={`species-card album-mode ${frameClass}`}
-        onClick={() => onSelect(record)}
-      >
-        <div
-          className="species-card-image"
-          style={{
-            backgroundImage: record.square_url ? `url(${record.square_url})` : 'none',
-          }}
+    <div style={innerStyle} onClick={() => onSpeciesSelect(speciesData)}>
+        <CollectionCard
+          taxon={taxon}
+          collection={collection}
         />
-        <div className="species-card-body">
-          <p className="species-name">{getSpeciesName(record)}</p>
-          <p className="species-scientific-name">{record.name}</p>
-        </div>
-      </button>
     </div>
   );
 };
 
-const ListRow = ({ index, style, data }) => {
-  const { species, onSelect } = data;
-  const record = species[index];
-  if (!record) return null;
-  const frameClass = getFrameClass(record);
+
+function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
+  const allSpecies = useLiveQuery(
+    () =>
+      speciesTable
+        .where('iconic_taxon_id')
+        .equals(iconicTaxonId)
+        .or('iconic_taxon_id')
+        .equals(String(iconicTaxonId))
+        .toArray(),
+    [iconicTaxonId]
+  );
+
+  const allCollection = useLiveQuery(
+    () => statsTable.toArray().then(entries => new Map(entries.map(e => [e.id, e]))),
+    []
+  );
+
+  const species = useMemo(() => {
+    if (!allSpecies || !allCollection) return [];
+    return allSpecies.map(taxon => ({
+      taxon,
+      collection: allCollection.get(taxon.id)
+    })).filter(item => item.collection); // Only show collected species
+  }, [allSpecies, allCollection]);
   
+  const iconicTaxonName = ICONIC_TAXA_LIST.find(t => t.id === iconicTaxonId)?.name || 'Collection';
+
   return (
-    <div className="species-row" style={style}>
-      <button
-        className={`species-row-inner ${frameClass}`}
-        type="button"
-        onClick={() => onSelect(record)}
-      >
-        <p className="species-name">{getSpeciesName(record)}</p>
-      </button>
-    </div>
+    <>
+      <div className="collection-header">
+        <button onClick={onBack} className="back-button">&larr; Back</button>
+        <h1>{iconicTaxonName}</h1>
+      </div>
+      <div className="species-grid-container">
+        <AutoSizer>
+          {({ height, width }) => {
+            const columnCount = Math.max(1, Math.floor(width / COLUMN_WIDTH));
+            const rowCount = Math.ceil(species.length / columnCount);
+            return (
+              <FixedSizeGrid
+                columnCount={columnCount}
+                columnWidth={COLUMN_WIDTH}
+                rowCount={rowCount}
+                rowHeight={ROW_HEIGHT}
+                height={height}
+                width={width}
+                itemData={{ species, columnCount, onSpeciesSelect }}
+              >
+                {GridCell}
+              </FixedSizeGrid>
+            );
+          }}
+        </AutoSizer>
+      </div>
+    </>
   );
-};
+}
 
-export function CollectionPage() {
-  const { getCollectionStats, collectionVersion } = useUser();
-  const [activeFolder, setActiveFolder] = useState(null);
-  const [breadcrumbs, setBreadcrumbs] = useState([ROOT_BREADCRUMB]);
-  const [childFolders, setChildFolders] = useState([]);
-  const [speciesList, setSpeciesList] = useState([]);
-  const [shouldShowSpecies, setShouldShowSpecies] = useState(false);
-  const [folderSpeciesCount, setFolderSpeciesCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [collectionStats, setCollectionStats] = useState(null);
-  const [viewMode, setViewMode] = useState(VIEW_MODES.ALBUM);
-  const [selectedSpecies, setSelectedSpecies] = useState(null);
-  
-  const isMountedRef = useRef(true);
-  const currentFolderIdRef = useRef(null);
+function IconicTaxaGrid({ onSelect }) {
+    const summary = useLiveQuery(async () => {
+        const collectedStats = await statsTable.toArray();
+        if (collectedStats.length === 0) return {};
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
-
-  const buildBreadcrumbs = useCallback(async (folder) => {
-    const trail = [ROOT_BREADCRUMB];
-    if (!folder) return trail;
-    // Logique simplifiée pour l'instant (pas de remontee recursive complete)
-    trail.push(folder);
-    return trail;
-  }, []);
-
-  const loadFolder = useCallback(async (folderId = null) => {
-    if (!isMountedRef.current) return;
-    currentFolderIdRef.current = folderId;
-    setIsLoading(true);
-    
-    try {
-      // 1. Charger Dossier & Count
-      const folder = folderId ? await taxonGroupsTable.get(folderId) : null;
-      const totalCount = folder
-        ? await speciesTable.where('ancestor_ids').equals(folder.id).count()
-        : await speciesTable.count();
-
-      // 2. Charger Espèces (Si pas de sous-dossiers ou threshold)
-      // Note: Pour cette étape on affiche TOUJOURS les espèces s'il n'y a pas de taxon_groups créés
-      // Comme la Phase 2 (Taxonomie) n'est pas encore active, taxonGroupsTable est vide.
-      // Donc on affiche tout.
-      
-      const rawSpecies = folderId
-        ? await speciesTable.where('ancestor_ids').equals(folder.id).toArray()
-        : await speciesTable.toArray();
+        const collectedTaxonIds = collectedStats.map(entry => entry.id);
+        const taxaInCollection = await speciesTable.where('id').anyOf(collectedTaxonIds).toArray();
         
-      const sorted = sortSpeciesList(rawSpecies);
-      
-      // Hydrater avec les stats
-      const ids = sorted.map(r => r.id);
-      const stats = await statsTable.bulkGet(ids);
-      const enriched = sorted.map((r, i) => ({
-        ...r,
-        ...stats[i]
-      }));
+        const collectedCounts = {};
+        for(const taxon of taxaInCollection) {
+            if (!taxon?.iconic_taxon_id) continue;
+            collectedCounts[taxon.iconic_taxon_id] = (collectedCounts[taxon.iconic_taxon_id] || 0) + 1;
+        }
 
-      if (!isMountedRef.current) return;
-      
-      setActiveFolder(folder);
-      setFolderSpeciesCount(totalCount);
-      setSpeciesList(enriched);
-      setShouldShowSpecies(true); // On force l'affichage car pas encore de dossiers
-      setBreadcrumbs(await buildBreadcrumbs(folder));
-      
-    } catch (error) {
-      console.error('Erreur chargement dossier', error);
-    } finally {
-      if (isMountedRef.current) setIsLoading(false);
-    }
-  }, [buildBreadcrumbs]);
+        return collectedCounts;
+    }, []);
 
-  const refreshStats = useCallback(async () => {
-    try {
-      const stats = await getCollectionStats();
-      if (isMountedRef.current) setCollectionStats(stats);
-    } catch (e) { console.error(e); }
-  }, [getCollectionStats]);
+  return (
+    <>
+      <div className="collection-header">
+        <h1>Living Atlas</h1>
+      </div>
+      <div className="iconic-taxa-grid">
+        {ICONIC_TAXA_LIST.map(taxon => (
+          <div key={taxon.id} className="iconic-taxon-card" onClick={() => onSelect(taxon.id)}>
+            <h2>{taxon.name}</h2>
+            <p>{summary?.[taxon.id] || 0} Species</p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
 
-  useEffect(() => {
-    void loadFolder(null);
-    void refreshStats();
-  }, [collectionVersion, loadFolder, refreshStats]);
+
+export default function CollectionPage() {
+  const [selectedIconicTaxonId, setSelectedIconicTaxonId] = useState(null);
+  const [modalSpecies, setModalSpecies] = useState(null);
+
+  const handleSelectIconicTaxon = (taxonId) => {
+    setSelectedIconicTaxonId(taxonId);
+  }
+
+  const handleBack = () => {
+    setSelectedIconicTaxonId(null);
+  }
+
+  const handleCloseModal = () => {
+    setModalSpecies(null);
+  }
 
   return (
     <div className="collection-page">
-      <header className="collection-header">
-        <p className="collection-eyebrow">À bout de filet</p>
-        <h1>Grand Classeur Naturaliste</h1>
-        <p className="collection-subtitle">
-          {collectionStats?.totalSpecies || 0} espèces collectées
-        </p>
-      </header>
-
-      <div className="collection-body">
-        <div className="collection-meta-row">
-          <span className="collection-meta-value">
-            {activeFolder?.name || 'Tout voir'} ({speciesList.length})
-          </span>
-          <div className="view-mode-toggle">
-            <button 
-              className={viewMode === VIEW_MODES.ALBUM ? 'toggle-active' : ''}
-              onClick={() => setViewMode(VIEW_MODES.ALBUM)}
-            >
-              Grille
-            </button>
-            <button 
-              className={viewMode === VIEW_MODES.LIST ? 'toggle-active' : ''}
-              onClick={() => setViewMode(VIEW_MODES.LIST)}
-            >
-              Liste
-            </button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="collection-loading">Chargement...</div>
-        ) : speciesList.length === 0 ? (
-          <div className="collection-empty">Ta collection est vide. Va jouer !</div>
-        ) : (
-          <div className="species-view">
-            <AutoSizer>
-              {({ height, width }) => {
-                if (viewMode === VIEW_MODES.LIST) {
-                  return (
-                    <FixedSizeList
-                      height={height}
-                      width={width}
-                      itemCount={speciesList.length}
-                      itemSize={LIST_ITEM_HEIGHT}
-                      itemData={{ species: speciesList, onSelect: setSelectedSpecies }}
-                    >
-                      {ListRow}
-                    </FixedSizeList>
-                  );
-                }
-                const columnCount = Math.max(2, Math.floor(width / GRID_CARD_MIN_WIDTH));
-                const rowCount = Math.ceil(speciesList.length / columnCount);
-                return (
-                  <FixedSizeGrid
-                    columnCount={columnCount}
-                    columnWidth={width / columnCount}
-                    rowCount={rowCount}
-                    rowHeight={GRID_CARD_HEIGHT}
-                    height={height}
-                    width={width}
-                    itemData={{ species: speciesList, columnCount, onSelect: setSelectedSpecies }}
-                  >
-                    {AlbumCell}
-                  </FixedSizeGrid>
-                );
-              }}
-            </AutoSizer>
-          </div>
-        )}
-      </div>
-
-      {selectedSpecies && (
-        <SpeciesDetailModal 
-          species={selectedSpecies} 
-          onClose={() => setSelectedSpecies(null)} 
+      {selectedIconicTaxonId ? (
+        <SpeciesGrid 
+          iconicTaxonId={selectedIconicTaxonId} 
+          onBack={handleBack}
+          onSpeciesSelect={setModalSpecies}
         />
+      ) : (
+        <IconicTaxaGrid onSelect={handleSelectIconicTaxon} />
       )}
+      {modalSpecies && <SpeciesDetailModal species={modalSpecies} onClose={handleCloseModal} />}
     </div>
   );
 }
