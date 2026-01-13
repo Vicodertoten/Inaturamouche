@@ -14,6 +14,7 @@ const EndPage = () => {
     newlyUnlocked,
     startGame,
     resetToLobby,
+    dailySeed,
   } = useGameData();
   const { profile } = useUser();
 
@@ -22,9 +23,9 @@ const EndPage = () => {
   }, [isGameOver, navigate]);
 
   const handleRestart = useCallback(() => {
-    startGame();
+    startGame({ seed: dailySeed });
     navigate('/play');
-  }, [navigate, startGame]);
+  }, [navigate, startGame, dailySeed]);
 
   const handleReturnHome = useCallback(() => {
     resetToLobby(true);

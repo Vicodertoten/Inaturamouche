@@ -7,16 +7,16 @@ import { useGameData, useGameUI } from '../context/GameContext';
 
 const PlayPage = () => {
   const navigate = useNavigate();
-  const { isGameActive, isGameOver, question, gameMode } = useGameData();
+  const { isGameActive, isGameOver, question, gameMode, isStartingNewGame } = useGameData();
   const { loading } = useGameUI();
 
   useEffect(() => {
-    if (!isGameActive) {
+    if (!isGameActive && !isStartingNewGame) {
       navigate(isGameOver ? '/end' : '/', { replace: true });
     }
-  }, [isGameActive, isGameOver, navigate]);
+  }, [isGameActive, isGameOver, isStartingNewGame, navigate]);
 
-  if (!isGameActive || loading || !question) {
+  if (isStartingNewGame || !isGameActive || loading || !question) {
     return <QuestionSkeleton />;
   }
 

@@ -4,6 +4,7 @@ import { buildSpeciesPayload } from '../utils/speciesUtils';
 const TAXON_API_BASE = 'https://api.inaturalist.org/v1';
 const BATCH_INTERVAL_MS = 2000;
 const MAX_BATCH_SIZE = 25;
+const BROADCAST_CHANNEL_NAME = 'inaturamouche_channel';
 
 const pendingIds = new Set();
 let flushTimer;
@@ -26,6 +27,13 @@ const scheduleFlush = () => {
 };
 
 const fetcher = rootScope?.fetch ? rootScope.fetch.bind(rootScope) : null;
+
+const getBroadcastChannelConstructor = () => {
+  if (typeof BroadcastChannel !== 'undefined') {
+    return BroadcastChannel;
+  }
+  return rootScope?.BroadcastChannel ?? null;
+};
 
 const processTaxaBatch = async (ids) => {
   if (!ids.length) return;
@@ -61,17 +69,26 @@ const processTaxaBatch = async (ids) => {
             id: ancestor.id,
             name: ancestor.name,
             rank: ancestor.rank,
-            parent_id: ancestor.parent_id ?? null,
           });
         }
         if (!uniqueAncestors.length) continue;
-        const fetched = await taxonGroupsTable.bulkGet(uniqueAncestors.map(({ id }) => id));
-        const missing = uniqueAncestors.filter((_, index) => !fetched[index]);
+        const ancestorsWithParents = uniqueAncestors.map((ancestor, index) => ({
+          ...ancestor,
+          parent_id: index === 0 ? null : uniqueAncestors[index - 1].id,
+        }));
+        const fetched = await taxonGroupsTable.bulkGet(ancestorsWithParents.map(({ id }) => id));
+        const missing = ancestorsWithParents.filter((_, index) => !fetched[index]);
         if (missing.length) {
           await taxonGroupsTable.bulkPut(missing);
         }
       }
     });
+    const BroadcastChannelConstructor = getBroadcastChannelConstructor();
+    if (BroadcastChannelConstructor) {
+      const channel = new BroadcastChannelConstructor(BROADCAST_CHANNEL_NAME);
+      channel.postMessage({ type: 'COLLECTION_UPDATED' });
+      channel.close();
+    }
   } catch (error) {
     console.error('TaxonomyService: Failed to enrich taxa batch', error);
     throw error;
@@ -91,7 +108,7 @@ export const flushTaxonomyQueue = async () => {
   try {
     await processTaxaBatch(idsToProcess);
   } catch (error) {
-    idsToProcess.forEach((id) => pendingIds.add(id));
+    console.error('TaxonomyService: Failed to flush taxonomy queue', error);
   } finally {
     isFlushing = false;
     if (pendingIds.size) {
