@@ -1466,7 +1466,7 @@ const placesByIdSchema = z.object({
 });
 
 const taxaBatchSchema = z.object({
-  ids: csvIds(50),
+  ids: csvIds(100),
   locale: z.string().default("fr"),
 });
 

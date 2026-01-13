@@ -8,9 +8,10 @@
     flex-direction: column;
     color: #ecf0f1;
     cursor: pointer;
-    border: 3px solid transparent;
+    border: 4px solid transparent;
     transition: all 0.2s ease-in-out;
-    box-sizing: border-box; /* Ensures border is inside */
+    box-sizing: border-box;
+    position: relative;
 }
 
 .collection-card:hover {
@@ -18,20 +19,77 @@
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
 }
 
-.collection-card.mastery-1 { border-color: #CD7F32; /* Bronze */ }
-.collection-card.mastery-2 { border-color: #C0C0C0; /* Silver */ }
-.collection-card.mastery-3 { border-color: #FFD700; /* Gold */ }
-.collection-card.mastery-4 {
-    border-color: #b9f2ff; /* Diamond */
-    box-shadow: 0 0 15px #b9f2ff;
+/* ============== MASTERY BORDERS ============== */
+
+.collection-card.mastery-0 {
+    border-color: #555;
+    opacity: 0.85;
 }
 
+.collection-card.mastery-1 {
+    border-color: #CD7F32;
+    box-shadow: 0 0 8px rgba(205, 127, 50, 0.5);
+}
+
+.collection-card.mastery-2 {
+    border-color: #C0C0C0;
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.6);
+}
+
+.collection-card.mastery-3 {
+    border-color: #FFD700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    position: relative;
+}
+
+/* Gold Shiny Effect */
+.collection-card.mastery-3::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shine 3s infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+.collection-card.mastery-4 {
+    border-color: #b9f2ff;
+    box-shadow: 0 0 20px rgba(185, 242, 255, 0.9), 0 0 40px rgba(100, 200, 255, 0.5);
+}
+
+/* ============== GHOST STATE (Never identified correctly) ============== */
+
+.collection-card.ghost {
+    opacity: 0.65;
+    filter: grayscale(80%);
+}
+
+.collection-card.ghost .card-image {
+    filter: grayscale(100%);
+    opacity: 0.55;
+}
+
+/* ============== CARD IMAGE ============== */
 
 .card-image-wrapper {
     width: 100%;
-    padding-top: 100%; /* 1:1 Aspect Ratio */
+    padding-top: 100%;
     position: relative;
-    background-color: #34495e;
+    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+    overflow: hidden;
 }
 
 .card-image {
@@ -41,11 +99,41 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: filter 0.2s ease;
 }
 
 .card-image.grayscale {
     filter: grayscale(100%);
     opacity: 0.6;
+}
+
+/* ============== CARD INFO ============== */
+
+.card-info {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(44, 62, 80, 0.8) 0%, rgba(44, 62, 80, 0.95) 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-common-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #ecf0f1;
+    word-break: break-word;
+}
+
+.card-scientific-name {
+    margin: 4px 0 0 0;
+    font-size: 11px;
+    font-style: italic;
+    color: #bdc3c7;
+    opacity: 0.8;
 }
 
 .card-info {

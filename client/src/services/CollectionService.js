@@ -108,13 +108,22 @@ export async function seedTaxa(taxonList, opts = {}) {
       await db.transaction('rw', taxaTable, async () => {
         for (const taxon of batch) {
           if (!taxon?.id) continue;
+          
+          // Extract ancestor IDs from ancestors array or use ancestor_ids
+          let ancestorIds = [];
+          if (Array.isArray(taxon.ancestors)) {
+            ancestorIds = taxon.ancestors.map(a => a.id).filter(Boolean);
+          } else if (Array.isArray(taxon.ancestor_ids)) {
+            ancestorIds = taxon.ancestor_ids;
+          }
+          
           await taxaTable.put({
             id: taxon.id,
             name: taxon.name,
             preferred_common_name: taxon.preferred_common_name || taxon.name,
             rank: taxon.rank || 'unknown',
             iconic_taxon_id: taxon.iconic_taxon_id,
-            ancestor_ids: Array.isArray(taxon.ancestor_ids) ? taxon.ancestor_ids : [],
+            ancestor_ids: ancestorIds,
             square_url: _getBestImageUrl(taxon),
             small_url: taxon.small_url || _getBestImageUrl(taxon),
             medium_url: taxon.medium_url || _getBestImageUrl(taxon),
@@ -124,6 +133,33 @@ export async function seedTaxa(taxonList, opts = {}) {
             descriptionUpdatedAt: taxon.description ? Date.now() : null,
             updatedAt: Date.now(),
           });
+          
+          // Also seed the ancestors if they exist
+          if (Array.isArray(taxon.ancestors)) {
+            for (const ancestor of taxon.ancestors) {
+              if (!ancestor?.id) continue;
+              const existing = await taxaTable.get(ancestor.id);
+              if (!existing) {
+                // Only insert if not already in DB
+                await taxaTable.put({
+                  id: ancestor.id,
+                  name: ancestor.name,
+                  preferred_common_name: ancestor.preferred_common_name || ancestor.name,
+                  rank: ancestor.rank || 'unknown',
+                  iconic_taxon_id: ancestor.iconic_taxon_id || null,
+                  ancestor_ids: [],
+                  square_url: _getBestImageUrl(ancestor),
+                  small_url: ancestor.small_url || '',
+                  medium_url: ancestor.medium_url || '',
+                  thumbnail: ancestor.thumbnail || '',
+                  wikipedia_url: ancestor.wikipedia_url || '',
+                  description: ancestor.description || '',
+                  descriptionUpdatedAt: null,
+                  updatedAt: Date.now(),
+                });
+              }
+            }
+          }
         }
       });
       if (onProgress) onProgress(Math.min(i + batchSize, taxonList.length));
@@ -346,8 +382,9 @@ export async function getSpeciesPage(params = {}) {
     return await db.transaction('r', taxaTable, statsTable, async () => {
       // Get all taxa for this iconic taxon
       let allTaxa = await taxaTable.where('iconic_taxon_id').equals(iconicId).toArray();
+      console.log(`📊 Found ${allTaxa.length} taxa for iconic ${iconicId}`);
 
-      // Build array of { taxon, stats }
+      // Build array of { taxon, stats } - includes ALL species, even unseen
       const withStats = await Promise.all(
         allTaxa.map(async (taxon) => ({
           taxon,
@@ -355,29 +392,38 @@ export async function getSpeciesPage(params = {}) {
         }))
       );
 
-      // Filter: only include seen species
-      const seen = withStats.filter(item => item.stats);
+      console.log(`📋 Built withStats array with ${withStats.length} items`);
+      console.log(`   Seen species: ${withStats.filter(s => s.stats).length}`);
+      console.log(`   Unseen species: ${withStats.filter(s => !s.stats).length}`);
 
-      // Sort
+      // Sort - prioritize seen/mastered, then alphabetical
       if (sort === 'mastery') {
-        seen.sort((a, b) => {
+        withStats.sort((a, b) => {
           const levelDiff = (b.stats?.masteryLevel || 0) - (a.stats?.masteryLevel || 0);
           if (levelDiff !== 0) return levelDiff;
           return (b.stats?.lastSeenAt || 0) > (a.stats?.lastSeenAt || 0) ? -1 : 1;
         });
       } else if (sort === 'recent') {
-        seen.sort((a, b) => (b.stats?.lastSeenAt || 0) - (a.stats?.lastSeenAt || 0));
+        withStats.sort((a, b) => {
+          const aTime = a.stats?.lastSeenAt || 0;
+          const bTime = b.stats?.lastSeenAt || 0;
+          if (aTime === 0 && bTime === 0) return 0;
+          if (aTime === 0) return 1; // unseen last
+          if (bTime === 0) return -1; // seen first
+          return bTime > aTime ? -1 : 1;
+        });
       } else if (sort === 'alpha') {
-        seen.sort((a, b) => (a.taxon?.name || '').localeCompare(b.taxon?.name || ''));
+        withStats.sort((a, b) => (a.taxon?.name || '').localeCompare(b.taxon?.name || ''));
       }
 
-      const total = seen.length;
-      const paginated = seen.slice(offset, offset + limit);
+      const total = withStats.length;
+      const paginated = withStats.slice(offset, offset + limit);
 
+      console.log(`📄 Returning ${paginated.length} species (total: ${total})`);
       return { species: paginated, total };
     });
   } catch (error) {
-    console.error('Failed to get species page:', error);
+    console.error('❌ Failed to get species page:', error);
     throw error;
   }
 }
@@ -399,12 +445,18 @@ export async function getSpeciesDetail(taxonId) {
 
       if (!taxon) return null;
 
-      // Fetch ancestors if available
+      // Fetch ancestors from the database
       let ancestors = [];
       if (Array.isArray(taxon.ancestor_ids) && taxon.ancestor_ids.length > 0) {
-        ancestors = await taxaTable.bulkGet(taxon.ancestor_ids);
-        ancestors = ancestors.filter(Boolean); // Remove nulls
+        const ancestorsFromDb = await taxaTable.bulkGet(taxon.ancestor_ids);
+        ancestors = ancestorsFromDb.filter(Boolean); // Remove nulls
       }
+
+      console.log(`📊 getSpeciesDetail for ${taxonId}:`, {
+        taxonName: taxon.name,
+        ancestorCount: ancestors.length,
+        ancestors: ancestors.map(a => ({ id: a.id, name: a.name, rank: a.rank })),
+      });
 
       return {
         taxon,
@@ -464,6 +516,80 @@ export function onCollectionUpdated(callback) {
   }
 }
 
+/**
+ * Find similar species (same genus or family) that could be confused with the given taxon.
+ * @param {number} taxonId
+ * @param {Array} ancestors - The ancestor chain from getSpeciesDetail
+ * @returns {Promise<Array>} Similar species
+ */
+export async function getSimilarSpecies(taxonId, ancestors = []) {
+  try {
+    console.log(`🔍 getSimilarSpecies called for taxon ${taxonId}`);
+    console.log(`📋 Ancestors received:`, ancestors);
+    
+    let genusId = null;
+    
+    // Try to get genus from ancestors array
+    if (ancestors && ancestors.length > 0) {
+      const genusAncestor = ancestors.find(a => a.rank === 'genus');
+      if (genusAncestor) {
+        genusId = genusAncestor.id;
+        console.log(`✅ Found genus in ancestors: ${genusAncestor.name} (${genusId})`);
+      }
+    }
+    
+    // If no genus found, fetch from iNaturalist API directly
+    if (!genusId) {
+      console.log(`⚠️ No genus in ancestors, fetching from iNaturalist API...`);
+      try {
+        const taxonResponse = await fetch(`https://api.inaturalist.org/v1/taxa/${taxonId}`);
+        if (taxonResponse.ok) {
+          const taxonData = await taxonResponse.json();
+          const taxonResult = taxonData.results?.[0];
+          if (taxonResult?.ancestors) {
+            const genusFromApi = taxonResult.ancestors.find(a => a.rank === 'genus');
+            if (genusFromApi) {
+              genusId = genusFromApi.id;
+              console.log(`✅ Found genus from API: ${genusFromApi.name} (${genusId})`);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('❌ Failed to fetch taxon from API:', err);
+      }
+    }
+    
+    if (!genusId) {
+      console.warn('⚠️ Could not find genus for this species');
+      return [];
+    }
+
+    // Fetch species from the same genus
+    const url = `https://api.inaturalist.org/v1/taxa?taxon_id=${genusId}&rank=species&per_page=10&order=observations_count&order_by=desc`;
+    console.log(`📡 API URL:`, url);
+    
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+
+    if (!response.ok) {
+      console.warn(`⚠️ API error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log(`📦 API Response:`, data);
+    
+    const similar = (data.results || [])
+      .filter(t => t.id !== taxonId) // Exclude the current taxon
+      .slice(0, 5); // Top 5 similar
+
+    console.log(`✅ Found ${similar.length} similar species:`, similar.map(s => ({ id: s.id, name: s.name })));
+    return similar;
+  } catch (error) {
+    console.error('❌ Failed to get similar species:', error);
+    return [];
+  }
+}
+
 // ============== EXPORTS ==============
 
 const CollectionService = {
@@ -477,6 +603,7 @@ const CollectionService = {
   getSpeciesPage,
   getSpeciesDetail,
   updateTaxonDescription,
+  getSimilarSpecies,
   onCollectionUpdated,
 };
 

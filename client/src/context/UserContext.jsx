@@ -13,12 +13,74 @@ const sanitizeProfile = (profileCandidate) => {
   return rest;
 };
 
+/**
+ * Load encyclopedia data from packs and seed database with taxon information.
+ * Fetches full taxon data from iNaturalist API based on inaturalist_ids in packs.
+ */
+async function seedEncyclopedia() {
+  try {
+    // Load pack data (mushrooms and trees)
+    const [mushrooms, trees] = await Promise.all([
+      fetch('/packs/common_european_mushrooms.json').then(r => r.json()),
+      fetch('/packs/common_european_trees.json').then(r => r.json()),
+    ]);
+    
+    const allPackData = [...(mushrooms || []), ...(trees || [])];
+    const inaturalistIds = allPackData
+      .map(item => item.inaturalist_id)
+      .filter(Boolean);
+    
+    console.log(`📚 Loading ${inaturalistIds.length} taxa from iNaturalist...`);
+    
+    // Fetch taxon details from iNaturalist via our server
+    const idsParam = inaturalistIds.join(',');
+    const response = await fetch(`/api/taxa?ids=${idsParam}&locale=en`);
+    
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+    
+    const taxaList = await response.json();
+    
+    if (!Array.isArray(taxaList) || taxaList.length === 0) {
+      console.warn('⚠️ No taxa returned from server');
+      return;
+    }
+    
+    console.log(`📚 Seeding ${taxaList.length} taxa into database...`);
+    
+    // Seed into CollectionService (handles transaction, batching, etc.)
+    await CollectionService.seedTaxa(taxaList, {
+      onProgress: (count) => {
+        if (count % 50 === 0) {
+          console.log(`  ✓ Seeded ${count}/${taxaList.length}`);
+        }
+      },
+    });
+    
+    const finalCount = await taxaTable.count();
+    console.log(`✅ Encyclopedia seeded: ${finalCount} taxa available`);
+    
+    // Log breakdown by iconic
+    const allTaxa = await taxaTable.toArray();
+    const byIconic = {};
+    for (const taxon of allTaxa) {
+      const iconicId = taxon.iconic_taxon_id;
+      if (!byIconic[iconicId]) byIconic[iconicId] = 0;
+      byIconic[iconicId]++;
+    }
+    console.log('📊 Taxa breakdown by iconic:', byIconic);
+  } catch (error) {
+    console.error('❌ Failed to seed encyclopedia:', error);
+  }
+}
+
 export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
 
-  // Initialize: load profile and migrate legacy data
+  // Initialize: load profile, migrate legacy data, and seed encyclopedia
   useEffect(() => {
     let isMounted = true;
     const initialize = async () => {
@@ -38,14 +100,24 @@ export function UserProvider({ children }) {
           setProfile(sanitizeProfile());
         }
       }
-      if (migrationApplied && isMounted) {
-        setCollectionVersion((prev) => prev + 1);
-      }
+      
+      // Seed encyclopedia if empty
+      let seedingApplied = false;
       try {
         const count = await taxaTable.count();
         console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
+        if (count === 0) {
+          console.log('🌱 Seeding encyclopedia from packs...');
+          await seedEncyclopedia();
+          seedingApplied = true;
+        }
       } catch (e) {
         console.error("Erreur lecture DB", e);
+      }
+      
+      // Update collectionVersion if any data changes happened
+      if ((migrationApplied || seedingApplied) && isMounted) {
+        setCollectionVersion((prev) => prev + 1);
       }
     };
     void initialize();
