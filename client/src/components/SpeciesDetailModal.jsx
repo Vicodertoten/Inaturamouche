@@ -93,7 +93,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [taxonId]);
+  }, [taxonId, t]);
 
   if (loading) {
     return (
@@ -121,7 +121,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     );
   }
 
-  const { taxon, stats, ancestors } = detail;
+  const { taxon, stats } = detail;
   const masteryLevel = stats?.masteryLevel || 0;
   const seenCount = stats?.seenCount || 0;
   const correctCount = stats?.correctCount || 0;
@@ -143,12 +143,6 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     taxon.default_photo?.square_url ||
     taxon.default_photo?.url ||
     '';
-
-  // Build taxonomy path (ancestors)
-  const taxonomyPath =
-    ancestors && ancestors.length > 0
-      ? ancestors.map((a) => a.name).join(' → ')
-      : t('species.no_taxonomy');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -197,11 +191,11 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
               <div className="stat-grid">
                 <div className="stat-item">
                   <div className="label">{t('species.stats.first_encounter')}</div>
-                  <div className="value">{formatDate(stats?.firstSeenAt)}</div>
+                  <div className="value">{firstSeenAt}</div>
                 </div>
                 <div className="stat-item">
                   <div className="label">{t('species.stats.last_seen')}</div>
-                  <div className="value">{formatDate(stats?.lastSeenAt)}</div>
+                  <div className="value">{lastSeenAt}</div>
                 </div>
                 <div className="stat-item">
                   <div className="label">{t('species.stats.times_seen')}</div>

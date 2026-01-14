@@ -45,6 +45,41 @@ db.version(3).stores({
   taxon_groups: 'id,parent_id',
 });
 
+// Version 4: Denormalized stats and search-friendly taxa
+// - Denormalize stats to include iconic_taxon_id + composite indexes to enable
+//   efficient queries that don't require pulling entire tables into memory.
+// - Index `taxa.name` to enable startsWithIgnoreCase searches.
+// Migration (upgrade) will populate iconic_taxon_id on existing stats entries.
+db.version(4).stores({
+  // Added `name` index for efficient text search
+  taxa: 'id,iconic_taxon_id,updatedAt,name',
+
+  // Denormalized stats: primary key id, iconic_taxon_id for grouping,
+  // composite indexes for efficient sorting & pagination
+  stats: 'id,iconic_taxon_id,[iconic_taxon_id+masteryLevel],[iconic_taxon_id+lastSeenAt],lastSeenAt',
+
+  collection: 'taxon_id,masteryLevel',
+  species: 'id,iconic_taxon_id',
+  taxonomy_cache: 'id',
+  taxon_groups: 'id,parent_id',
+}).upgrade(async (trans) => {
+  // Ensure existing stats entries have iconic_taxon_id populated so that
+  // our new composite indexes work correctly on historical data.
+  console.log('Running DB migration to v4: populating iconic_taxon_id on stats...');
+
+  // Read all taxa (should be small for initial packs) and update corresponding stats
+  const taxa = await trans.table('taxa').toArray();
+  for (const t of taxa) {
+    if (!t?.id) continue;
+    const st = await trans.table('stats').get(t.id);
+    if (st && (st.iconic_taxon_id === undefined || st.iconic_taxon_id === null)) {
+      await trans.table('stats').put({ ...st, iconic_taxon_id: t.iconic_taxon_id ?? null });
+    }
+  }
+
+  console.log('DB migration to v4 completed.');
+});
+
 /**
  * Helper function to retrieve stats for a taxon.
  * @param {number} taxonId - The iNaturalist taxon ID.

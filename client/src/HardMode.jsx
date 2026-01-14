@@ -7,7 +7,6 @@ import RoundSummaryModal from './components/RoundSummaryModal';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
-import { getQuestionThumbnail } from './utils/imageUtils';
 import StreakBadge from './components/StreakBadge';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';

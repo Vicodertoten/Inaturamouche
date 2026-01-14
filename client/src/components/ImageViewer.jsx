@@ -137,8 +137,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const hasImages = Array.isArray(imageUrls) && imageUrls.length > 0;
   
   const currentMeta = useMemo(() => photoMeta?.[currentIndex] || null, [photoMeta, currentIndex]);
-  const lowResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'small') : null, [imageUrls, currentIndex]);
-  const highResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'medium') : null, [imageUrls, currentIndex]);
+  const lowResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'small') : null, [imageUrls, currentIndex, hasImages]);
+  const highResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'medium') : null, [imageUrls, currentIndex, hasImages]);
 
   if (!hasImages) return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
 
@@ -158,6 +158,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
         {/* L'IMAGE (Zoomable Content) */}
         <div className="image-box">
           <img
+            loading={supportsLazyLoading ? 'lazy' : undefined}
             className={`image-lqip ${isLowResLoaded ? 'is-ready' : ''} ${isHighResLoaded ? 'is-hidden' : ''}`}
             src={lowResUrl}
             onLoad={() => setIsLowResLoaded(true)}
@@ -165,6 +166,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             draggable={false}
           />
           <img
+            loading={supportsLazyLoading ? 'eager' : undefined}
             className={`image-main ${isHighResLoaded ? 'is-loaded' : ''}`}
             src={highResUrl}
             alt={alt}

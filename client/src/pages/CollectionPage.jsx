@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
@@ -85,11 +85,22 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const { collectionVersion } = useUser();
   const { t } = useLanguage();
   const [sortOrder, setSortOrder] = useState('mastery');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
+
   const [species, setSpecies] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const iconicTaxonName = ICONIC_TAXA_LIST.find(t => t.id === iconicTaxonId)?.name || 'Collection';
+
+  // Reset page when search, filter or sort changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, filterStatus, sortOrder, iconicTaxonId]);
 
   // Fetch species data
   useEffect(() => {
@@ -97,16 +108,19 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     const fetch = async () => {
       try {
         setLoading(true);
-        console.log(`🔍 Fetching species for iconic ${iconicTaxonId}...`);
+        console.log(`🔍 Fetching species for iconic ${iconicTaxonId} (page ${page})...`);
         const result = await CollectionService.getSpeciesPage({
           iconicId: iconicTaxonId,
-          offset: 0,
-          limit: 500,
+          offset: page * PAGE_SIZE,
+          limit: PAGE_SIZE,
           sort: sortOrder,
+          searchQuery: searchQuery.trim(),
+          filterStatus,
         });
         console.log(`✅ Fetched ${result.species.length} species (total: ${result.total})`);
         if (isMounted) {
           setSpecies(result.species);
+          setTotal(result.total || 0);
           setError(null);
         }
       } catch (err) {
@@ -120,7 +134,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     return () => {
       isMounted = false;
     };
-  }, [iconicTaxonId, sortOrder, collectionVersion]);
+  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, page, collectionVersion]);
 
   // Listen for collection updates
   useEffect(() => {
@@ -144,7 +158,6 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   }, [iconicTaxonId, sortOrder]);
 
   if (error) {
-    const { t } = useLanguage();
     return (
       <div className="collection-error">
         <button onClick={onBack} className="back-button">{t('common.back')}</button>
@@ -158,18 +171,60 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
       <div className="collection-header">
         <button onClick={onBack} className="back-button">{t('common.back')}</button>
         <h1>{iconicTaxonName}</h1>
-        <div className="sort-controls">
-          <label htmlFor="sort-select">{t('collection.sort_label')}</label>
-          <select
-            id="sort-select"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="mastery">{t('collection.sort.mastery')}</option>
-            <option value="recent">{t('collection.sort.recent')}</option>
-            <option value="alpha">{t('collection.sort.alpha')}</option>
-          </select>
+
+        <div className="collection-controls">
+          <div className="search-control">
+            <input
+              type="search"
+              placeholder={t('collection.search_placeholder') || 'Rechercher...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={t('collection.search_placeholder') || 'Search species'}
+            />
+          </div>
+
+          <div className="filter-control">
+            <label htmlFor="filter-select">{t('collection.filter_label') || 'Filtre'}</label>
+            <select
+              id="filter-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">{t('collection.filter.all') || 'Tout'}</option>
+              <option value="seen">{t('collection.filter.seen') || 'Découverts'}</option>
+              <option value="mastered">{t('collection.filter.mastered') || 'Maîtrisés'}</option>
+              <option value="to_learn">{t('collection.filter.to_learn') || "À apprendre"}</option>
+            </select>
+          </div>
+
+          <div className="sort-controls">
+            <label htmlFor="sort-select">{t('collection.sort_label')}</label>
+            <select
+              id="sort-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+            >
+              <option value="mastery">{t('collection.sort.mastery')}</option>
+              <option value="recent">{t('collection.sort.recent')}</option>
+              <option value="alpha">{t('collection.sort.alpha')}</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      <div className="pagination-controls">
+        <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+          {t('common.prev') || 'Prev'}
+        </button>
+        <span className="page-info">{`
+          ${t('collection.page_prefix') || 'Page'} ${page + 1} / ${Math.max(1, Math.ceil(total / PAGE_SIZE))}
+        `}</span>
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={(page + 1) * PAGE_SIZE >= total}
+        >
+          {t('common.next') || 'Next'}
+        </button>
       </div>
 
       {loading && !species.length ? (
