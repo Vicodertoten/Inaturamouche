@@ -5,8 +5,6 @@ import HelpModal from './HelpModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import titleImage from '../assets/inaturamouche-title.png';
-import titleImageWebp from '/assets/inaturamouche-title.webp';
-import titleImageAvif from '/assets/inaturamouche-title.avif';
 import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
@@ -101,17 +99,16 @@ const AppLayout = () => {
       </nav>
 
       <header className="app-header">
-        <picture className="app-title-image app-title-wide clickable" onClick={handleTitleClick} title={t('nav.title_tooltip')}>
-          <source srcSet={titleImageAvif} type="image/avif" />
-          <source srcSet={titleImageWebp} type="image/webp" />
-          <img
-            src={titleImage}
-            alt={t('nav.title_alt')}
-            decoding="async"
-            width={1228}
-            height={383}
-          />
-        </picture>
+        <img
+          src={titleImage}
+          alt={t('nav.title_alt')}
+          className="app-title-image app-title-wide clickable"
+          onClick={handleTitleClick}
+          title={t('nav.title_tooltip')}
+          decoding="async"
+          width={1228}
+          height={383}
+        />
         <img
           src={logoImage}
           alt={t('nav.title_alt')}
