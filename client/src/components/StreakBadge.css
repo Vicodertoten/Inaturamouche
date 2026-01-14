@@ -1,25 +1,56 @@
 .streak-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.4rem 0.8rem;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
   border-radius: 9999px;
-  background-color: var(--accent-color);
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-strong));
   color: var(--bg-color);
-  font-weight: 700;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(238, 187, 77, 0.4);
+  font-size: 1.1rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
-  50% { transform: scale(1.06); box-shadow: 0 6px 18px rgba(0,0,0,0.28); }
-  100% { transform: scale(1); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.streak-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shine-badge 3s infinite;
+}
+
+@keyframes shine-badge {
+  0%, 80% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.streak-icon {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+  animation: flicker 2s infinite alternate;
+}
+
+@keyframes flicker {
+  0% { transform: scale(1); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)) brightness(1); }
+  100% { transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(255, 69, 0, 0.6)) brightness(1.2); }
+}
+
+@keyframes pulse-streak {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(238, 187, 77, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(238, 187, 77, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(238, 187, 77, 0); }
 }
 
 .streak-badge.pulse {
-  animation: pulse 1.4s cubic-bezier(.25,.8,.25,1) infinite;
+  animation: pulse-streak 0.8s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .streak-badge.pulse { animation: none !important; }
+  .streak-badge.pulse, .streak-icon, .streak-badge::before { animation: none !important; }
 }
