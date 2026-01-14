@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useLayoutEffect, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import { computeScore } from '../utils/scoring';
-import { getQuestionThumbnail } from '../utils/imageUtils';
 import StreakBadge from './StreakBadge';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';

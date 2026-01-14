@@ -1,3 +1,4 @@
+/* global Intl */
 export function formatDate(dateInput, locale, options = { year: 'numeric', month: 'short', day: 'numeric' }) {
   if (!dateInput) return '—';
   const d = dateInput instanceof Date ? dateInput : new Date(dateInput);

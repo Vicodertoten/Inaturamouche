@@ -3,7 +3,8 @@ import db, { taxa, stats } from './db';
 import CollectionService, {
   MASTERY_LEVELS,
   MASTERY_NAMES,
-  MASTERY_THRESHOLDS,
+  XP_GAINS,
+  MASTERY_XP_THRESHOLDS,
   seedTaxa,
   upsertTaxon,
   recordEncounter,
@@ -11,7 +12,6 @@ import CollectionService, {
   getSpeciesPage,
   getSpeciesDetail,
   updateTaxonDescription,
-  onCollectionUpdated,
 } from './CollectionService';
 
 // Mock TaxonomyService
@@ -156,20 +156,17 @@ describe('CollectionService', () => {
       expect(stat.correctCount).toBe(5);
     });
 
-    it('should calculate GOLD mastery with 10 correct and 0.8 ratio', async () => {
+    it('should calculate GOLD mastery based on XP thresholds', async () => {
       const taxonData = { id: 1, name: 'Species', iconic_taxon_id: 3 };
 
-      // 10 correct, 2 incorrect = 10/12 = 0.833 ratio
-      for (let i = 0; i < 10; i++) {
+      // 12 correct -> 12 * 10 XP = 120 XP (meets GOLD threshold)
+      for (let i = 0; i < 12; i++) {
         await recordEncounter(taxonData, { isCorrect: true });
-      }
-      for (let i = 0; i < 2; i++) {
-        await recordEncounter(taxonData, { isCorrect: false });
       }
 
       const stat = await stats.get(1);
       expect(stat.masteryLevel).toBe(MASTERY_LEVELS.GOLD);
-      expect(stat.accuracy).toBeGreaterThanOrEqual(0.8);
+      expect(stat.xp).toBeGreaterThanOrEqual(MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.GOLD]);
     });
 
     it('should track streak correctly', async () => {
@@ -356,11 +353,13 @@ describe('CollectionService', () => {
   });
 
   describe('Constants', () => {
-    it('should have correct mastery thresholds', () => {
-      expect(MASTERY_THRESHOLDS[MASTERY_LEVELS.BRONZE].correct).toBe(1);
-      expect(MASTERY_THRESHOLDS[MASTERY_LEVELS.SILVER].correct).toBe(5);
-      expect(MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].correct).toBe(10);
-      expect(MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].ratio).toBe(0.8);
+    it('should have correct XP thresholds', () => {
+      expect(MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.BRONZE]).toBe(10);
+      expect(MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.SILVER]).toBe(50);
+      expect(MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.GOLD]).toBe(120);
+      // Ensure XP gains constants exist
+      expect(XP_GAINS.CORRECT).toBe(10);
+      expect(XP_GAINS.WRONG).toBe(-5);
     });
 
     it('should have mastery names', () => {

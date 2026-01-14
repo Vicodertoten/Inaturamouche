@@ -101,15 +101,34 @@ export function UserProvider({ children }) {
         }
       }
       
-      // Seed encyclopedia if empty
+      // Seed encyclopedia if needed. Use a localStorage flag to avoid partial seeding issues.
       let seedingApplied = false;
       try {
+        const seedingFlag = localStorage.getItem('SEEDING_COMPLETE_V1');
         const count = await taxaTable.count();
         console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
-        if (count === 0) {
-          console.log('🌱 Seeding encyclopedia from packs...');
-          await seedEncyclopedia();
-          seedingApplied = true;
+
+        if (!seedingFlag) {
+          try {
+            console.log('🌱 Seeding encyclopedia (flag missing)...');
+            await seedEncyclopedia();
+            // Only mark seeding complete once it finished without throwing
+            localStorage.setItem('SEEDING_COMPLETE_V1', '1');
+            seedingApplied = true;
+          } catch (seedErr) {
+            // Don't set the flag - seeding failed/aborted; let next init attempt retry
+            console.error('❌ Seeding failed, will retry on next launch:', seedErr);
+          }
+        } else if (count === 0) {
+          // Edge case: flag present but DB empty (possible corruption) - try one more time
+          try {
+            console.warn('⚠️ Seeding flag present but DB empty; re-seeding...');
+            await seedEncyclopedia();
+            localStorage.setItem('SEEDING_COMPLETE_V1', '1');
+            seedingApplied = true;
+          } catch (seedErr) {
+            console.error('❌ Re-seeding failed:', seedErr);
+          }
         }
       } catch (e) {
         console.error("Erreur lecture DB", e);

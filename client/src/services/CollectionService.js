@@ -1,4 +1,5 @@
 import db, { taxa as taxaTable, stats as statsTable } from './db.js';
+import Dexie from 'dexie';
 import { queueTaxonForEnrichment } from './TaxonomyService.js';
 
 // ============== MASTERY CONSTANTS ==============
@@ -19,11 +20,18 @@ export const MASTERY_NAMES = Object.freeze({
   4: 'Diamond',
 });
 
-export const MASTERY_THRESHOLDS = Object.freeze({
-  [MASTERY_LEVELS.BRONZE]: { correct: 1, ratio: 0 },
-  [MASTERY_LEVELS.SILVER]: { correct: 5, ratio: 0 },
-  [MASTERY_LEVELS.GOLD]: { correct: 10, ratio: 0.8 },
-  [MASTERY_LEVELS.DIAMOND]: { correct: 20, ratio: 0.95 },
+// --------- XP-based mastery system ---------
+// Replace the old ratio-based system with a simple XP system.
+export const XP_GAINS = Object.freeze({
+  CORRECT: 10,
+  WRONG: -5,
+});
+
+export const MASTERY_XP_THRESHOLDS = Object.freeze({
+  [MASTERY_LEVELS.BRONZE]: 10,
+  [MASTERY_LEVELS.SILVER]: 50,
+  [MASTERY_LEVELS.GOLD]: 120,
+  [MASTERY_LEVELS.DIAMOND]: 300,
 });
 
 const PLACEHOLDER_IMAGE_URL = '/placeholder.svg';
@@ -32,26 +40,17 @@ const BROADCAST_CHANNEL_NAME = 'COLLECTION_UPDATED';
 // ============== INTERNAL HELPERS ==============
 
 /**
- * Calculate mastery level based on stats.
- * @param {number} correctCount
- * @param {number} seenCount
+ * Calculate mastery level based on accumulated XP.
+ * Uses the XP thresholds defined above to map xp -> mastery level.
+ * @param {number} xp
  * @returns {number} MASTERY_LEVELS
  */
-function _calculateMasteryLevel(correctCount = 0, seenCount = 0) {
-  const ratio = seenCount > 0 ? correctCount / seenCount : 0;
-
-  if (
-    correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].correct &&
-    ratio >= MASTERY_THRESHOLDS[MASTERY_LEVELS.GOLD].ratio
-  ) {
-    return MASTERY_LEVELS.GOLD;
-  }
-  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.SILVER].correct) {
-    return MASTERY_LEVELS.SILVER;
-  }
-  if (correctCount >= MASTERY_THRESHOLDS[MASTERY_LEVELS.BRONZE].correct) {
-    return MASTERY_LEVELS.BRONZE;
-  }
+function _calculateMasteryLevel(xp = 0) {
+  if (!xp || xp <= 0) return MASTERY_LEVELS.NONE;
+  if (xp >= MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.DIAMOND]) return MASTERY_LEVELS.DIAMOND;
+  if (xp >= MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.GOLD]) return MASTERY_LEVELS.GOLD;
+  if (xp >= MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.SILVER]) return MASTERY_LEVELS.SILVER;
+  if (xp >= MASTERY_XP_THRESHOLDS[MASTERY_LEVELS.BRONZE]) return MASTERY_LEVELS.BRONZE;
   return MASTERY_LEVELS.NONE;
 }
 
@@ -134,10 +133,13 @@ export async function seedTaxa(taxonList, opts = {}) {
             updatedAt: Date.now(),
           });
           
-          // Also seed the ancestors if they exist
+          // Also seed the ancestors if they exist. Use a Set to avoid duplicate writes
           if (Array.isArray(taxon.ancestors)) {
+            const seededAncestors = new Set();
             for (const ancestor of taxon.ancestors) {
               if (!ancestor?.id) continue;
+              if (seededAncestors.has(ancestor.id)) continue; // already handled in this batch
+
               const existing = await taxaTable.get(ancestor.id);
               if (!existing) {
                 // Only insert if not already in DB
@@ -158,6 +160,7 @@ export async function seedTaxa(taxonList, opts = {}) {
                   updatedAt: Date.now(),
                 });
               }
+              seededAncestors.add(ancestor.id);
             }
           }
         }
@@ -247,7 +250,7 @@ export async function upsertTaxon(taxonData, opts = {}) {
  * @returns {Promise<{levelUp, firstSeen, oldLevel, newLevel, stats}>}
  */
 export async function recordEncounter(taxonData, encounter = {}) {
-  const { isCorrect = false, thumbnail = null, occurredAt = new Date() } = encounter;
+  const { isCorrect = false, occurredAt = new Date() } = encounter;
   if (!taxonData?.id) throw new Error('Invalid taxonData in recordEncounter');
 
   const taxonId = taxonData.id;
@@ -271,21 +274,30 @@ export async function recordEncounter(taxonData, encounter = {}) {
       result.firstSeen = !existing;
       result.oldLevel = existing?.masteryLevel || MASTERY_LEVELS.NONE;
 
+      // Compute new XP (bounded to min 0)
+      const prevXp = existing?.xp || 0;
+      const xpDelta = isCorrect ? XP_GAINS.CORRECT : XP_GAINS.WRONG;
+      const newXp = Math.max(0, prevXp + xpDelta);
+
       const newStats = {
         id: taxonId,
         iconic_taxon_id: taxonData.iconic_taxon_id,
         seenCount: (existing?.seenCount || 0) + 1,
         correctCount: isCorrect ? (existing?.correctCount || 0) + 1 : (existing?.correctCount || 0),
         streak: isCorrect ? (existing?.streak || 0) + 1 : 0,
+        xp: newXp,
         firstSeenAt: existing?.firstSeenAt || occurredTime,
         lastSeenAt: occurredTime,
-        accuracy: 0, // Will be calculated below
+        // accuracy (legacy) kept for analytics but not used for mastery calculation
+        accuracy: 0,
         masteryLevel: MASTERY_LEVELS.NONE, // Will be calculated below
       };
 
-      // Calculate accuracy and mastery
+      // Legacy accuracy (keep for analytics)
       newStats.accuracy = newStats.seenCount > 0 ? newStats.correctCount / newStats.seenCount : 0;
-      newStats.masteryLevel = _calculateMasteryLevel(newStats.correctCount, newStats.seenCount);
+
+      // Calculate mastery based on XP
+      newStats.masteryLevel = _calculateMasteryLevel(newStats.xp);
 
       // Detect level up
       if (newStats.masteryLevel > result.oldLevel) {
@@ -370,57 +382,164 @@ export async function getIconicSummary() {
 
 /**
  * Get paginated species for a given iconic taxon.
- * @param {Object} params - { iconicId, offset, limit, sort }
- *   sort: 'mastery' (default), 'recent', 'alpha'
- * @returns {Promise<{species: Array, total: number}>}
+ * Supports: iconicId, offset, limit, sort ('mastery'|'recent'|'alpha'), searchQuery (string), filterStatus ('all'|'seen'|'mastered'|'to_learn')
+ * Returns minimally populated objects: { taxon, stats }
  */
 export async function getSpeciesPage(params = {}) {
-  const { iconicId, offset = 0, limit = 50, sort = 'mastery' } = params;
+  const {
+    iconicId,
+    offset = 0,
+    limit = 50,
+    sort = 'mastery',
+    searchQuery = '',
+    filterStatus = 'all',
+  } = params;
+
   if (!iconicId) throw new Error('iconicId required for getSpeciesPage');
+
+  const defaultStatsFor = (taxonId) => ({
+    id: taxonId,
+    masteryLevel: MASTERY_LEVELS.NONE,
+    xp: 0,
+    seenCount: 0,
+    correctCount: 0,
+    streak: 0,
+    firstSeenAt: null,
+    lastSeenAt: null,
+  });
 
   try {
     return await db.transaction('r', taxaTable, statsTable, async () => {
-      // Get all taxa for this iconic taxon
-      let allTaxa = await taxaTable.where('iconic_taxon_id').equals(iconicId).toArray();
-      console.log(`📊 Found ${allTaxa.length} taxa for iconic ${iconicId}`);
+      // Helper: determine which stats entries match the iconicId and optional filters
 
-      // Build array of { taxon, stats } - includes ALL species, even unseen
-      const withStats = await Promise.all(
-        allTaxa.map(async (taxon) => ({
-          taxon,
-          stats: await statsTable.get(taxon.id),
-        }))
-      );
+      // -------------- SEARCH PATH --------------
+      if (searchQuery && searchQuery.trim().length > 0) {
+        const q = searchQuery.trim();
+        // Base collection: taxa whose name starts with query (case-insensitive) and belong to iconicId
+        let base = taxaTable.where('name').startsWithIgnoreCase(q).and(t => t.iconic_taxon_id === iconicId);
 
-      console.log(`📋 Built withStats array with ${withStats.length} items`);
-      console.log(`   Seen species: ${withStats.filter(s => s.stats).length}`);
-      console.log(`   Unseen species: ${withStats.filter(s => !s.stats).length}`);
+        const total = await base.count();
 
-      // Sort - prioritize seen/mastered, then alphabetical
-      if (sort === 'mastery') {
-        withStats.sort((a, b) => {
-          const levelDiff = (b.stats?.masteryLevel || 0) - (a.stats?.masteryLevel || 0);
-          if (levelDiff !== 0) return levelDiff;
-          return (b.stats?.lastSeenAt || 0) > (a.stats?.lastSeenAt || 0) ? -1 : 1;
-        });
-      } else if (sort === 'recent') {
-        withStats.sort((a, b) => {
-          const aTime = a.stats?.lastSeenAt || 0;
-          const bTime = b.stats?.lastSeenAt || 0;
-          if (aTime === 0 && bTime === 0) return 0;
-          if (aTime === 0) return 1; // unseen last
-          if (bTime === 0) return -1; // seen first
-          return bTime > aTime ? -1 : 1;
-        });
-      } else if (sort === 'alpha') {
-        withStats.sort((a, b) => (a.taxon?.name || '').localeCompare(b.taxon?.name || ''));
+        // Fill page by pulling chunks and applying filterStatus in-memory until we have enough
+        let collected = [];
+        let cursor = offset;
+        const CHUNK = Math.max(limit * 3, 50);
+
+        while (collected.length < limit) {
+          const chunk = await base.offset(cursor).limit(CHUNK).toArray();
+          if (!chunk.length) break;
+
+          const ids = chunk.map(t => t.id);
+          const statsArr = await statsTable.bulkGet(ids);
+
+          for (let i = 0; i < chunk.length && collected.length < limit; i++) {
+            const taxon = chunk[i];
+            const stat = statsArr[i] || null;
+
+            // Apply filterStatus
+            if (filterStatus === 'seen' && !stat) continue;
+            if (filterStatus === 'mastered' && (!(stat?.masteryLevel > MASTERY_LEVELS.NONE))) continue;
+            if (filterStatus === 'to_learn') {
+              // To learn: not mastered yet
+              if (stat?.masteryLevel > MASTERY_LEVELS.NONE) continue;
+            }
+
+            collected.push({ taxon, stats: stat || defaultStatsFor(taxon.id) });
+          }
+
+          cursor += chunk.length;
+          if (chunk.length < CHUNK) break; // no more data
+        }
+
+        return { species: collected, total };
       }
 
-      const total = withStats.length;
-      const paginated = withStats.slice(offset, offset + limit);
+      // -------------- NO SEARCH PATH --------------
+      // If we can rely on stats table (seen/mastered/recent/mastery) use indexes
+      if (filterStatus === 'seen' || filterStatus === 'mastered' || sort === 'recent' || sort === 'mastery') {
+        let statsCollection = null;
+        if (sort === 'mastery') {
+          // Use composite index to sort by mastery (ascending numeric), reverse to get highest first
+          statsCollection = statsTable.where('[iconic_taxon_id+masteryLevel]').between([iconicId, Dexie.minKey], [iconicId, Dexie.maxKey]).reverse();
+        } else if (sort === 'recent') {
+          // Use composite index on [iconic+lastSeenAt]
+          statsCollection = statsTable.where('[iconic_taxon_id+lastSeenAt]').between([iconicId, Dexie.minKey], [iconicId, Dexie.maxKey]).reverse();
+        } else {
+          // Default to all stats for this iconic
+          statsCollection = statsTable.where('iconic_taxon_id').equals(iconicId);
+        }
 
-      console.log(`📄 Returning ${paginated.length} species (total: ${total})`);
-      return { species: paginated, total };
+        // If we want only mastered, narrow the range (mastery >= 1)
+        if (filterStatus === 'mastered' && sort === 'mastery') {
+          statsCollection = statsTable.where('[iconic_taxon_id+masteryLevel]').between([iconicId, 1], [iconicId, Dexie.maxKey]).reverse();
+        }
+
+        const totalSeen = await statsCollection.count();
+
+        // For the 'seen'/'mastered' filters the results come entirely from stats table
+        if (filterStatus === 'seen' || filterStatus === 'mastered') {
+          const statsPage = await statsCollection.offset(offset).limit(limit).toArray();
+          // Map to taxon objects
+          const taxonIds = statsPage.map(s => s.id);
+          const taxa = await taxaTable.bulkGet(taxonIds);
+          const species = statsPage.map((s, i) => ({ taxon: taxa[i] || null, stats: s }));
+          return { species, total: totalSeen };
+        }
+
+        // For 'all' with sort mastery/recent we need to include unseen taxa after seen ones.
+        if (filterStatus === 'all' && (sort === 'mastery' || sort === 'recent')) {
+          // First, grab seen stats in page window
+          let seenPage = await statsCollection.offset(offset).limit(limit).toArray();
+          // If we've got enough, map and return
+          if (seenPage.length === limit) {
+            const taxonIds = seenPage.map(s => s.id);
+            const taxa = await taxaTable.bulkGet(taxonIds);
+            return { species: seenPage.map((s, i) => ({ taxon: taxa[i] || null, stats: s })), total: await taxaTable.where('iconic_taxon_id').equals(iconicId).count() };
+          }
+
+          // If not enough seen to fill the page, we need to append unseen taxa
+          const seenCount = await statsTable.where('iconic_taxon_id').equals(iconicId).count();
+          const remaining = limit - seenPage.length;
+
+          // Fetch unseen taxa by scanning taxa table, skipping taxa that have stats
+          const unseen = [];
+          let cursor = Math.max(0, offset - seenCount);
+          const CHUNK = Math.max(100, remaining * 5);
+
+          while (unseen.length < remaining) {
+            const chunk = await taxaTable.where('iconic_taxon_id').equals(iconicId).offset(cursor).limit(CHUNK).toArray();
+            if (!chunk.length) break;
+            const ids = chunk.map(t => t.id);
+            const statsArr = await statsTable.bulkGet(ids);
+            for (let i = 0; i < chunk.length && unseen.length < remaining; i++) {
+              if (statsArr[i]) continue; // skip seen
+              unseen.push({ taxon: chunk[i], stats: defaultStatsFor(chunk[i].id) });
+            }
+            cursor += chunk.length;
+            if (chunk.length < CHUNK) break;
+          }
+
+          const taxonIds = seenPage.map(s => s.id);
+          const taxa = await taxaTable.bulkGet(taxonIds);
+          const mappedSeen = seenPage.map((s, i) => ({ taxon: taxa[i] || null, stats: s }));
+
+          const combined = [...mappedSeen, ...unseen].slice(0, limit);
+          const total = await taxaTable.where('iconic_taxon_id').equals(iconicId).count();
+          return { species: combined, total };
+        }
+      }
+
+      // Default: alpha sort or fallback - use taxa table and attach stats lazily
+      const base = taxaTable.where('iconic_taxon_id').equals(iconicId);
+      const total = await base.count();
+      const taxaPage = await base.offset(offset).limit(limit).toArray();
+      const statsForPage = await statsTable.bulkGet(taxaPage.map(t => t.id));
+      const species = taxaPage.map((taxon, i) => ({ taxon, stats: statsForPage[i] || defaultStatsFor(taxon.id) }));
+      if (sort === 'alpha') {
+        species.sort((a, b) => (a.taxon?.name || '').localeCompare(b.taxon?.name || ''));
+      }
+
+      return { species, total };
     });
   } catch (error) {
     console.error('❌ Failed to get species page:', error);
@@ -595,7 +714,9 @@ export async function getSimilarSpecies(taxonId, ancestors = []) {
 const CollectionService = {
   MASTERY_LEVELS,
   MASTERY_NAMES,
-  MASTERY_THRESHOLDS,
+  // Expose XP constants for external use
+  XP_GAINS,
+  MASTERY_XP_THRESHOLDS,
   seedTaxa,
   upsertTaxon,
   recordEncounter,
