@@ -323,7 +323,7 @@ const en = {
     internal: 'Internal server error',
     bad_request: 'Bad request',
     not_found: 'Not Found',
-    pool_unavailable: 'Observation pool unavailable, please try again.',
+    pool_unavailable: 'No observations found for these criteria. Please broaden the geographic area, time period, or try again later.',
     taxonomy_not_found: 'Taxon not found.',
   },
   profile: {

@@ -15,8 +15,6 @@ import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import fallbackMushrooms from "./shared/data/common_european_mushrooms.json" with { type: "json" };
-import fallbackTrees from "./shared/data/common_european_trees.json" with { type: "json" };
 import { findPackById, listPublicPacks } from "./server/packs/index.js";
 import {
   buildCacheKey,
@@ -225,6 +223,14 @@ const taxonDetailsCache = new SmartCache({
   max: TAXON_DETAILS_CACHE_MAX,
   ttl: TAXON_DETAILS_CACHE_TTL,
   staleTtl: TAXON_DETAILS_CACHE_STALE_TTL,
+});
+// Cache agressif pour similar_species (7j fresh, 30j stale) - les ressemblances ne changent pas
+const SIMILAR_SPECIES_CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 jours
+const SIMILAR_SPECIES_CACHE_STALE_TTL = 1000 * 60 * 60 * 24 * 30; // 30 jours
+const similarSpeciesCache = new SmartCache({
+  max: 1000,
+  ttl: SIMILAR_SPECIES_CACHE_TTL,
+  staleTtl: SIMILAR_SPECIES_CACHE_STALE_TTL,
 });
 const questionQueueCache = new SmartCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
 const inatCircuitBreaker = new CircuitBreaker({
@@ -625,16 +631,6 @@ function getTaxonName(t) {
   return t?.preferred_common_name || t?.name || "Nom introuvable";
 }
 
-const FALLBACK_PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#dfe8e6" offset="0"/><stop stop-color="#c7d4cf" offset="1"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><g fill="#5a6b67" font-family="Arial, sans-serif" font-size="28"><text x="50%" y="48%" text-anchor="middle">Offline pack</text><text x="50%" y="60%" text-anchor="middle" font-size="16">Temporary image</text></g></svg>'
-)}`;
-
-const FALLBACK_PACKS = {
-  european_mushrooms: fallbackMushrooms,
-  european_trees: fallbackTrees,
-};
-const FALLBACK_PACK_DEFAULT = "european_mushrooms";
-
 function normalizeIdList(input) {
   if (!input) return [];
   if (Array.isArray(input)) return input.map((v) => String(v)).map((v) => v.trim()).filter(Boolean);
@@ -642,85 +638,6 @@ function normalizeIdList(input) {
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
-}
-
-function buildFallbackPool({ pack_id, taxon_ids, include_taxa, exclude_taxa, seed }) {
-  const baseList = FALLBACK_PACKS[pack_id] || [
-    ...(FALLBACK_PACKS[FALLBACK_PACK_DEFAULT] || []),
-    ...(fallbackTrees || []),
-  ];
-  const includeSet = new Set(normalizeIdList(taxon_ids || include_taxa));
-  const excludeSet = new Set(normalizeIdList(exclude_taxa));
-
-  let filtered = baseList;
-  if (includeSet.size) {
-    filtered = filtered.filter((item) => includeSet.has(String(item.inaturalist_id)));
-  }
-  if (excludeSet.size) {
-    filtered = filtered.filter((item) => !excludeSet.has(String(item.inaturalist_id)));
-  }
-  if (filtered.length < QUIZ_CHOICES) {
-    const combined = [
-      ...(FALLBACK_PACKS[FALLBACK_PACK_DEFAULT] || []),
-      ...(fallbackTrees || []),
-    ];
-    filtered = includeSet.size
-      ? combined.filter((item) => includeSet.has(String(item.inaturalist_id)))
-      : combined.filter((item) => !excludeSet.has(String(item.inaturalist_id)));
-    if (filtered.length < QUIZ_CHOICES) {
-      filtered = combined;
-    }
-  }
-
-  const byTaxon = new Map();
-  for (const item of filtered) {
-    const taxonId = String(item.inaturalist_id);
-    if (!taxonId) continue;
-    const obs = {
-      id: `fallback-${taxonId}`,
-      uri: null,
-      photos: [
-        {
-          id: `fallback-${taxonId}`,
-          attribution: "Offline pack",
-          license_code: "CC0",
-          url: FALLBACK_PLACEHOLDER_IMAGE,
-          original_dimensions: { width: 640, height: 360 },
-        },
-      ],
-      sounds: [],
-      observedMonthDay: null,
-      taxon: {
-        id: Number.isFinite(Number(taxonId)) ? Number(taxonId) : taxonId,
-        name: item.scientific_name,
-        preferred_common_name: item.common_name,
-        ancestor_ids: [],
-        rank: "species",
-      },
-    };
-    if (!byTaxon.has(taxonId)) byTaxon.set(taxonId, []);
-    byTaxon.get(taxonId).push(obs);
-  }
-
-  let taxonList = Array.from(byTaxon.keys());
-  if (seed) {
-    taxonList.sort((a, b) => String(a).localeCompare(String(b)));
-  }
-
-  return {
-    pool: {
-      timestamp: Date.now(),
-      version: Date.now(),
-      byTaxon,
-      taxonList,
-      taxonSet: new Set(taxonList.map(String)),
-      observationCount: Array.from(byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
-      source: "fallback",
-    },
-    pagesFetched: 0,
-    poolObs: Array.from(byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
-    poolTaxa: taxonList.length,
-  };
 }
 
 async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng, seed } = {}) {
@@ -825,7 +742,6 @@ async function getObservationPool({
   monthDayFilter,
   logger,
   requestId,
-  fallbackContext,
   rng,
   seed,
 }) {
@@ -853,18 +769,13 @@ async function getObservationPool({
       questionCache.set(cacheKey, fresh.pool);
       return { ...fresh, cacheStatus: "miss" };
     } catch (err) {
-      const isUnavailable =
-        err?.code === "circuit_open" || err?.code === "timeout" || (err?.status && err.status >= 500);
-      if (!isUnavailable) throw err;
-      logger?.warn({ requestId, error: err.message }, "Falling back to local packs");
-      const fallback = buildFallbackPool(fallbackContext);
-      if (fallback.poolTaxa < QUIZ_CHOICES) {
-        const fallbackErr = new Error("Pool d'observations indisponible, réessayez.");
-        fallbackErr.status = 503;
-        throw fallbackErr;
-      }
-      questionCache.set(cacheKey, fallback.pool);
-      return { ...fallback, cacheStatus: "fallback" };
+      // MODE STRICT: Plus de fallback hors-sujet
+      // Si l'API est indisponible ou retourne vide, on renvoie une erreur explicite
+      logger?.error({ requestId, error: err.message }, "Observation pool unavailable");
+      const poolErr = new Error("Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres.");
+      poolErr.status = err?.status || 503;
+      poolErr.code = "POOL_UNAVAILABLE";
+      throw poolErr;
     }
   };
 
@@ -920,7 +831,6 @@ async function buildQuizQuestion({
   clientId,
   logger,
   requestId,
-  fallbackContext,
   rng,
   poolRng,
   seed,
@@ -936,7 +846,6 @@ async function buildQuizQuestion({
     monthDayFilter,
     logger,
     requestId,
-    fallbackContext,
     rng: poolRng,
     seed: hasSeed ? seed : undefined,
   });
@@ -1330,6 +1239,75 @@ function makeChoiceLabels(detailsMap, ids) {
  * @param {() => number} [rng] Optional RNG for deterministic lure ordering.
  * @returns {{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number } }}
  */
+/**
+ * Fetches similar species from iNaturalist API with strict timeout and aggressive caching.
+ * Returns empty array on timeout or error (silent fallback).
+ * @param {string|number} taxonId
+ * @param {number} timeoutMs
+ * @returns {Promise<Array>}
+ */
+async function fetchSimilarSpeciesWithTimeout(taxonId, timeoutMs = 900) {
+  if (!taxonId) return [];
+  const cacheKey = `similar:${taxonId}`;
+  
+  // Check cache first (aggressive TTL: 7 days fresh, 30 days stale)
+  const cached = similarSpeciesCache.get(cacheKey, { allowStale: true });
+  if (cached) return cached;
+
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Similar species API timeout')), timeoutMs);
+    });
+
+    const fetchPromise = (async () => {
+      const url = new URL("https://api.inaturalist.org/v1/identifications/similar_species");
+      url.searchParams.set("taxon_id", String(taxonId));
+      const res = await fetch(url.toString(), { 
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined
+      });
+      let data = {};
+      try { 
+        data = await res.json(); 
+      } catch (_) { 
+        return []; 
+      }
+      if (!res.ok) return [];
+      return Array.isArray(data.results) 
+        ? data.results 
+        : Array.isArray(data.similar_species) 
+          ? data.similar_species 
+          : [];
+    })();
+
+    const results = await Promise.race([fetchPromise, timeoutPromise]);
+    
+    // Cache successful results aggressively
+    if (Array.isArray(results) && results.length > 0) {
+      similarSpeciesCache.set(cacheKey, results);
+    }
+    
+    return results;
+  } catch (error) {
+    // Silent fallback on timeout or error
+    return [];
+  }
+}
+
+/**
+ * Builds lure observations with hybrid strategy:
+ * 1. Try to fetch similar species from iNaturalist API with strict timeout (900ms)
+ * 2. If API responds: use similar species as primary lures, complement with phylogenetically close species
+ * 3. If API times out or fails: silently fall back to LCA-only strategy (near/mid/far buckets)
+ * 
+ * @param {{ taxonList: (string|number)[], byTaxon: Map<string, any[]> }} pool Observation pool indexed by taxon id.
+ * @param {ReturnType<typeof createSelectionState>} selectionState Tracks recently used observations per client.
+ * @param {string|number} targetTaxonId Taxon id of the correct answer.
+ * @param {any} targetObservation Representative observation for the target (provides ancestor_ids).
+ * @param {number} [lureCount=LURE_COUNT] Number of lures to produce (default 3 for 4-choice quiz).
+ * @param {() => number} [rng] Optional RNG for deterministic lure ordering.
+ * @returns {Promise<{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number }, source: string }>}
+ */
 async function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT, rng = Math.random) {
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
@@ -1343,6 +1321,7 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
   const candidates = pool.taxonList
     .filter((tid) => String(tid) !== targetId && pool.byTaxon.get(String(tid))?.length);
 
+  // Compute phylogenetic scores for all candidates
   const scored = candidates.map((tid) => {
     const list = pool.byTaxon.get(String(tid)) || [];
     const rep = list[0] || null;
@@ -1352,6 +1331,7 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
     return { tid: String(tid), rep, depth, closeness };
   });
 
+  // Stratify by phylogenetic proximity
   const near = [], mid = [], far = [];
   for (const s of scored) {
     if (s.closeness >= LURE_NEAR_THRESHOLD) near.push(s);
@@ -1377,46 +1357,46 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
     }
   };
 
-  // Prefer similar species from iNaturalist when available (silent fallback on error)
-  try {
-    const similarResults = await (async (taxonId) => {
-      if (!taxonId) return [];
-      try {
-        const url = new URL("https://api.inaturalist.org/v1/identifications/similar_species");
-        url.searchParams.set("taxon_id", taxonId);
-        const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-        let data = {};
-        try { data = await res.json(); } catch (_) { /* ignore parse errors */ }
-        if (!res.ok) return [];
-        return Array.isArray(data.results) ? data.results : Array.isArray(data.similar_species) ? data.similar_species : [];
-      } catch (e) {
-        return [];
-      }
-    })(targetId);
+  let lureSource = 'lca-only';
 
-    const similarIds = Array.isArray(similarResults)
-      ? Array.from(new Set(similarResults.map((r) => (r?.taxon?.id || r?.id || r?.taxon_id)).filter(Boolean).map(String))).filter((id) => id !== targetId)
-      : [];
+  // HYBRID STRATEGY: Try similar_species API with strict timeout (900ms)
+  const similarResults = await fetchSimilarSpeciesWithTimeout(targetId, 900);
+  
+  if (Array.isArray(similarResults) && similarResults.length > 0) {
+    // API responded successfully - use similar species as primary lures
+    lureSource = 'api-hybrid';
+    const similarIds = Array.from(
+      new Set(
+        similarResults
+          .map((r) => (r?.taxon?.id || r?.id || r?.taxon_id))
+          .filter(Boolean)
+          .map(String)
+      )
+    ).filter((id) => id !== targetId);
 
-    if (similarIds.length) {
-      const scoredMap = new Map(scored.map((s) => [s.tid, s]));
-      for (const sid of similarIds) {
-        if (out.length >= lureCount) break;
-        if (!scoredMap.has(sid)) continue; // only pick if present in the pool
-        if (seenTaxa.has(sid)) continue;
-        const s = scoredMap.get(sid);
-        const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
-        if (obs) {
-          out.push({ taxonId: s.tid, obs });
-          seenTaxa.add(s.tid);
-        }
+    const scoredMap = new Map(scored.map((s) => [s.tid, s]));
+    
+    // Pick from similar species first (only if present in pool)
+    for (const sid of similarIds) {
+      if (out.length >= lureCount) break;
+      if (!scoredMap.has(sid)) continue;
+      if (seenTaxa.has(sid)) continue;
+      const s = scoredMap.get(sid);
+      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
+      if (obs) {
+        out.push({ taxonId: s.tid, obs });
+        seenTaxa.add(s.tid);
       }
     }
-  } catch (e) {
-    // Silent fallback: if the external API fails, continue with default selection logic
+    
+    // Complement remaining slots with phylogenetically close species (near bucket only)
+    if (out.length < lureCount) {
+      pickFromArr(near);
+    }
   }
 
-  // Original ordering / fallback to fill remaining lures
+  // FALLBACK STRATEGY: LCA-only (near/mid/far buckets)
+  // Used when API times out, fails, or returns no results
   if (out.length < lureCount && near.length) pickFromArr([near[0]]);
   if (out.length < lureCount && mid.length) pickFromArr([mid[0]]);
   if (out.length < lureCount && far.length) pickFromArr([far[0]]);
@@ -1435,6 +1415,7 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
       mid: out.filter((l) => mid.find((m) => m.tid === l.taxonId)).length,
       far: out.filter((l) => far.find((f) => f.tid === l.taxonId)).length,
     },
+    source: lureSource,
   };
 }
 
@@ -1665,7 +1646,6 @@ app.get(
         clientId: clientKey,
         logger: req.log,
         requestId: req.id,
-        fallbackContext: hasSeed ? { seed: normalizedSeed } : { pack_id, taxon_ids, include_taxa, exclude_taxa },
         rng,
         poolRng,
         seed: hasSeed ? normalizedSeed : "",
