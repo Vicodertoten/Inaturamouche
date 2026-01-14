@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
-import { ICONIC_TAXA_LIST } from '../utils/collectionUtils';
+import { ICONIC_TAXA, ICONIC_TAXA_LIST } from '../utils/collectionUtils';
 import CollectionCard from '../components/CollectionCard';
 import SpeciesDetailModal from '../components/SpeciesDetailModal';
 import { useUser } from '../context/UserContext';
@@ -10,6 +10,13 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import './CollectionPage.css';
 
 const COLUMN_WIDTH = 180;
+
+const getIconicLabel = (iconicTaxonId, t) => {
+  const entry = Object.entries(ICONIC_TAXA).find(([, value]) => value.id === iconicTaxonId);
+  if (!entry) return t('collection.title');
+  const [key, value] = entry;
+  return t(`collection.iconic_taxa.${key}`, {}, value.name);
+};
 
 // ============== IconicTaxaGrid Component ==============
 
@@ -43,8 +50,6 @@ function IconicTaxaGrid({ onSelectIconic }) {
             masteryBreakdown: {},
           };
 
-          const progressPercent = stats.progressPercent || 0;
-
           return (
             <div
               key={iconicTaxon.id}
@@ -52,7 +57,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
               onClick={() => onSelectIconic(iconicTaxon.id)}
             >
               <div className="iconic-card-header">
-                <h2>{iconicTaxon.name}</h2>
+                <h2>{getIconicLabel(iconicTaxon.id, t)}</h2>
               </div>
               <div className="iconic-card-body">
                 <p className="iconic-stat">
@@ -61,15 +66,6 @@ function IconicTaxaGrid({ onSelectIconic }) {
                 <p className="iconic-stat">
                   {t('collection.mastered_count', { count: stats.masteredCount })}
                 </p>
-              </div>
-              <div className="iconic-card-progress">
-                <div className="progress-bar-bg">
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <span className="progress-percent">{progressPercent}%</span>
               </div>
             </div>
           );
@@ -95,7 +91,9 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const iconicTaxonName = ICONIC_TAXA_LIST.find(t => t.id === iconicTaxonId)?.name || 'Collection';
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const iconicTaxonName = getIconicLabel(iconicTaxonId, t);
 
   // Reset page when search, filter or sort changes
   useEffect(() => {
@@ -212,44 +210,44 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
         </div>
       </div>
 
-      <div className="pagination-controls">
-        <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-          {t('common.prev') || 'Prev'}
-        </button>
-        <span className="page-info">{`
-          ${t('collection.page_prefix') || 'Page'} ${page + 1} / ${Math.max(1, Math.ceil(total / PAGE_SIZE))}
-        `}</span>
-        <button
-          onClick={() => setPage(p => p + 1)}
-          disabled={(page + 1) * PAGE_SIZE >= total}
-        >
-          {t('common.next') || 'Next'}
-        </button>
-      </div>
-
-      {loading && !species.length ? (
-        <div className="collection-loading">
-          <p>{t('collection.loading_species')}</p>
-        </div>
-      ) : species.length === 0 ? (
-        <div className="collection-empty">
-          <p>{t('collection.empty')}</p>
-        </div>
-      ) : (
-        <div className="species-grid-container">
-          <div className="simple-grid">
-            {species.map((item) => (
-              <div
-                key={item.taxon.id}
-                className="species-grid-item"
-                onClick={() => onSpeciesSelect(item)}
-              >
-                <CollectionCard taxon={item.taxon} collection={item.stats} />
-              </div>
-            ))}
+      <div className="species-section">
+        {loading && !species.length ? (
+          <div className="collection-loading">
+            <p>{t('collection.loading_species')}</p>
           </div>
+        ) : species.length === 0 ? (
+          <div className="collection-empty">
+            <p>{t('collection.empty')}</p>
+          </div>
+        ) : (
+          <div className="species-grid-container">
+            <div className="simple-grid">
+              {species.map((item) => (
+                <div
+                  key={item.taxon.id}
+                  className="species-grid-item"
+                  onClick={() => onSpeciesSelect(item)}
+                >
+                  <CollectionCard taxon={item.taxon} collection={item.stats} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="pagination-controls">
+          <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+            {t('common.prev') || 'Prev'}
+          </button>
+          <span className="page-info">{`${t('collection.page_prefix') || 'Page'} ${page + 1} / ${totalPages}`}</span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page + 1 >= totalPages}
+          >
+            {t('common.next') || 'Next'}
+          </button>
         </div>
-      )}
+      </div>
     </>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CollectionService, { MASTERY_NAMES } from '../services/CollectionService';
 import './SpeciesDetailModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { getTaxonDetails } from '../services/api';
 
 const MasteryBadge = ({ level }) => {
   if (level === 0) return null;
@@ -12,9 +13,10 @@ const MasteryBadge = ({ level }) => {
   );
 };
 
-const fetchWikipediaSummary = async (scientificName) => {
+const fetchWikipediaSummary = async (scientificName, language = 'en') => {
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(scientificName)}`;
+    const lang = language || 'en';
+    const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(scientificName)}`;
     const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!response.ok) throw new Error('Wikipedia API request failed');
     const data = await response.json();
@@ -26,7 +28,7 @@ const fetchWikipediaSummary = async (scientificName) => {
 };
 
 export default function SpeciesDetailModal({ taxonId, onClose }) {
-  const { t, formatDate } = useLanguage();
+  const { t, formatDate, language } = useLanguage();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +56,17 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
           return;
         }
 
-        setDetail(result);
+        let localizedTaxon = null;
+        try {
+          localizedTaxon = await getTaxonDetails(taxonId, language);
+        } catch (err) {
+          console.warn('Failed to fetch localized taxon details:', err);
+        }
+
+        const mergedTaxon = localizedTaxon || result.taxon;
+        const mergedAncestors = localizedTaxon?.ancestors || result.ancestors || [];
+
+        setDetail({ ...result, taxon: mergedTaxon, ancestors: mergedAncestors });
         setLoading(false);
 
         // Fetch similar species
@@ -66,11 +78,11 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
         }
 
         // Prepare description
-        if (result.taxon.description) {
-          setDescription(result.taxon.description);
+        if (mergedTaxon.description) {
+          setDescription(mergedTaxon.description);
         } else {
           setDescription(t('common.loading'));
-          const summary = await fetchWikipediaSummary(result.taxon.name);
+          const summary = await fetchWikipediaSummary(mergedTaxon.name, language);
           if (isMounted) {
             if (summary) {
               setDescription(summary);
@@ -93,7 +105,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [taxonId, t]);
+  }, [taxonId, t, language]);
 
   if (loading) {
     return (
@@ -230,9 +242,9 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                 >
                   {t('summary.links.inaturalist')}
                 </a>
-                {taxon.wikipedia_url && (
+                { (taxon.wikipedia_url || taxon.name) && (
                   <a
-                    href={taxon.wikipedia_url}
+                    href={taxon.wikipedia_url || `https://${language || 'en'}.wikipedia.org/wiki/${encodeURIComponent(taxon.name)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

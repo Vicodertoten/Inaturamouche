@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
+import GameHeader from './GameHeader';
 import { computeScore } from '../utils/scoring';
-import StreakBadge from './StreakBadge';
+import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
@@ -41,9 +42,6 @@ const EasyMode = () => {
     if (common && scientific && common !== scientific) return `${common} (${scientific})`;
     return common || scientific || t('easy.image_alt');
   }, [question?.bonne_reponse, t]);
-  const headerLabel = hasQuestionLimit
-    ? t('common.question_counter', { current: questionCount, total: maxQuestions })
-    : t('common.question_counter_infinite', { current: questionCount });
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
@@ -177,33 +175,22 @@ const EasyMode = () => {
       )}
 
       <div className="screen game-screen easy-mode">
+        <GameHeader
+          mode="easy"
+          score={score}
+          currentStreak={currentStreak}
+          questionCount={questionCount}
+          maxQuestions={maxQuestions}
+          onQuit={endGame}
+          isGameOver={answeredThisQuestion}
+          onHint={handleHint}
+          hintDisabled={
+            hintUsedThisQuestion ||
+            answeredThisQuestion ||
+            remainingPairs.length <= 2
+          }
+        />
         <div className="card">
-          <header className="game-header">
-            <div className="header-left">
-              <h2>{headerLabel}</h2>
-              <button
-                className="hint-button-easy"
-                onClick={handleHint}
-                disabled={
-                  hintUsedThisQuestion ||
-                  answeredThisQuestion ||
-                  remainingPairs.length <= 2 // ne retire pas si déjà 2 choix (bon + 1 leurre)
-                }
-              >
-                {t('easy.hint_button', { cost: HINT_COST_EASY })}
-              </button>
-            </div>
-            <div className="header-right">
-              <div className="score-container">
-                <h2 className="score">{t('easy.score_label', { score })}</h2>
-                <StreakBadge streak={currentStreak} />
-              </div>
-              <button onClick={endGame} className="action-button quit" type="button">
-                {t('common.finish')}
-              </button>
-            </div>
-          </header>
-
           <main className="game-main">
             <div className="image-section">
               {showAudio && (
