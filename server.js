@@ -1583,9 +1583,6 @@ app.get(
       }
 
       if (hasSeed) {
-        if (!pack_id && !taxon_ids && !include_taxa) {
-          params.taxon_id = "47170"; // Fungi
-        }
         delete params.place_id;
         delete params.nelat;
         delete params.nelng;

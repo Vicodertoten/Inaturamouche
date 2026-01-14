@@ -82,12 +82,15 @@ const HomePage = () => {
   );
 
   const handleDailyChallenge = useCallback(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const localDate = `${year}-${month}-${day}`;
-    startGame({ seed: localDate, gameMode: 'hard', maxQuestions: 10 });
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    const dailySeed = `${year}-${month}-${day}`;
+    // On ajoute un ID de session pour forcer le serveur à repartir de la question 1
+    const seedSession = Date.now().toString();
+
+    startGame({ seed: dailySeed, seed_session: seedSession, gameMode: 'hard', maxQuestions: 10 });
     navigate('/play');
   }, [navigate, startGame]);
 
