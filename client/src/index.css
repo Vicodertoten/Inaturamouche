@@ -49,18 +49,25 @@
   --leading-normal: 1.4;
   --leading-relaxed: 1.6;
 
-  /* --- PALETTE (refined) --- */
-  --bg-color: #1f2718;       /* very dark olive */
-  --surface-color: #283618;  /* main surface */
-  --surface-2: #2f3f2c;
-  --primary-color: #606c38;  /* darker olive */
-  --accent-color: #dda15e;   /* warm amber */
+  /* --- PALETTE (Raffinée & Organique) --- */
+  --bg-color: #1a2015;        /* Plus profond, moins "gris" */
+  --surface-color: #263321;   /* Vert mousse sombre */
+  --surface-2: #34422d;       /* Pour les hovers et cartes */
+  --surface-highlight: #45523e; /* Nouvelle variable pour remplacer le bleu */
+  
+  --primary-color: #7b8c48;   /* Olive plus vivante */
+  --primary-dark: #606c38;
+  
+  --accent-color: #eebb4d;    /* Or plus doux */
   --accent-strong: #ffb86b;
+  --accent-glow: rgba(238, 187, 77, 0.4);
+  
   --success-color: #4caf6a;
   --error-color: #c94a48;
-  --text-color: #f8f7ef;
-  --text-color-muted: #cfcfbd;
-  --border-color: rgba(255,255,255,0.06);
+
+  --text-color: #f1f5e9;      /* Blanc cassé (coquille d'oeuf) plus doux pour les yeux */
+  --text-color-muted: #aab3a5;
+  --border-color: rgba(255,255,255,0.08);
 
   /* --- SPACING --- */
   --space-1: 0.25rem;
@@ -100,10 +107,11 @@
   --mastery-4-start: #b9f2ff;
   --mastery-4-end: #E0F7FF;
 
-  --accent-blue: #5b9bd5;
+  --accent-blue: #5b9bd5; /* Keep for legacy or specific water elements, but use sparingly */
 
   /* Misc */
   --full-height: 100dvh;
+  --nav-height-mobile: 70px;
 }
 
 /* --- STYLE DE BASE --- */
@@ -123,14 +131,11 @@ html, body {
 } 
 
 body {
-  /* On retire le display:flex ici, il n'est plus nécessaire */
-  padding-top: var(--space-2); /* On garde un peu d'espace en haut */
+  padding-top: var(--space-2);
 }
 
-/* --- CORRECTION : #root prend toute la largeur --- */
 #root {
   width: 100%;
-  /* On retire max-width et margin, c'est le rôle de .App maintenant */
 }
 
 h1, h2, h3, h4, h5, h6 {
