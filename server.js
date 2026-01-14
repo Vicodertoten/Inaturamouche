@@ -1005,7 +1005,7 @@ async function buildQuizQuestion({
   rememberObservation(selectionState, targetObservation.id);
   marks.pickedTarget = performance.now();
 
-  const { lures, buckets } = buildLures(
+  const { lures, buckets } = await buildLures(
     cacheEntry,
     selectionState,
     targetTaxonId,
@@ -1330,7 +1330,7 @@ function makeChoiceLabels(detailsMap, ids) {
  * @param {() => number} [rng] Optional RNG for deterministic lure ordering.
  * @returns {{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number } }}
  */
-function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT, rng = Math.random) {
+async function buildLures(pool, selectionState, targetTaxonId, targetObservation, lureCount = LURE_COUNT, rng = Math.random) {
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
   const random = typeof rng === "function" ? rng : Math.random;
@@ -1377,6 +1377,46 @@ function buildLures(pool, selectionState, targetTaxonId, targetObservation, lure
     }
   };
 
+  // Prefer similar species from iNaturalist when available (silent fallback on error)
+  try {
+    const similarResults = await (async (taxonId) => {
+      if (!taxonId) return [];
+      try {
+        const url = new URL("https://api.inaturalist.org/v1/identifications/similar_species");
+        url.searchParams.set("taxon_id", taxonId);
+        const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+        let data = {};
+        try { data = await res.json(); } catch (_) { /* ignore parse errors */ }
+        if (!res.ok) return [];
+        return Array.isArray(data.results) ? data.results : Array.isArray(data.similar_species) ? data.similar_species : [];
+      } catch (e) {
+        return [];
+      }
+    })(targetId);
+
+    const similarIds = Array.isArray(similarResults)
+      ? Array.from(new Set(similarResults.map((r) => (r?.taxon?.id || r?.id || r?.taxon_id)).filter(Boolean).map(String))).filter((id) => id !== targetId)
+      : [];
+
+    if (similarIds.length) {
+      const scoredMap = new Map(scored.map((s) => [s.tid, s]));
+      for (const sid of similarIds) {
+        if (out.length >= lureCount) break;
+        if (!scoredMap.has(sid)) continue; // only pick if present in the pool
+        if (seenTaxa.has(sid)) continue;
+        const s = scoredMap.get(sid);
+        const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
+        if (obs) {
+          out.push({ taxonId: s.tid, obs });
+          seenTaxa.add(s.tid);
+        }
+      }
+    }
+  } catch (e) {
+    // Silent fallback: if the external API fails, continue with default selection logic
+  }
+
+  // Original ordering / fallback to fill remaining lures
   if (out.length < lureCount && near.length) pickFromArr([near[0]]);
   if (out.length < lureCount && mid.length) pickFromArr([mid[0]]);
   if (out.length < lureCount && far.length) pickFromArr([far[0]]);
