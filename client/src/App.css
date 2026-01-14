@@ -1,6 +1,14 @@
 /* --- Polices et Variables Globales --- */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
+/**
+ * Formatage global des noms scientifiques
+ * Les noms scientifiques doivent toujours être en italique
+ */
+em {
+  font-style: italic;
+}
+
 /* --- STRUCTURE PRINCIPALE DE L'APPLICATION --- */
 .main-nav {
   position: absolute;

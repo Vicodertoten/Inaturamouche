@@ -43,3 +43,27 @@ export const buildSpeciesPayload = (taxon, thumbnailHint) => {
   }
   return payload;
 };
+
+/**
+ * Retourne le nom d'affichage principal pour un taxon.
+ * Priorité absolue au nom commun (vernaculaire), avec le nom scientifique en fallback.
+ * @param {Object} taxon - L'objet taxon
+ * @returns {string} Le nom à afficher
+ */
+export const getDisplayName = (taxon = {}) => {
+  if (!taxon) return '';
+  // Priorité absolue : nom commun préféré, puis nom commun général
+  const commonName = taxon.preferred_common_name || taxon.common_name;
+  if (commonName) return commonName;
+  // Fallback : nom scientifique
+  return taxon.name || '';
+};
+
+/**
+ * Retourne le nom scientifique pour affichage en italique (secondaire).
+ * @param {Object} taxon - L'objet taxon
+ * @returns {string} Le nom scientifique ou chaîne vide
+ */
+export const getScientificName = (taxon = {}) => {
+  return taxon?.name || '';
+};

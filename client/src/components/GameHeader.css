@@ -1,0 +1,191 @@
+/**
+ * GameHeader.css - Styles pour le composant GameHeader réutilisable
+ * Styles génériques pour les en-têtes des modes hard et easy
+ * Les styles spécifiques au mode hard sont dans HardMode.css
+ */
+
+
+.game-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0.95rem 1.15rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  flex-wrap: wrap;
+  margin: 0 auto;
+}
+
+.hard-mode-header {
+  max-width: 1200px;
+}
+
+.easy-mode-header {
+  width: min(100%, 900px);
+  max-width: 900px;
+}
+
+/* Ensure easy headers follow card width even if global .game-header rules apply */
+.game-screen.easy-mode .game-header.easy-mode-header {
+  width: min(100%, 900px);
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+.score-pill {
+  border-color: var(--primary-color);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.lives-pill {
+  border-color: var(--accent-color);
+}
+
+.pill-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-color-muted);
+}
+
+.pill-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.lives-pill .pill-value {
+  color: var(--accent-color);
+}
+
+.lives-pill.critical {
+  color: var(--error-color);
+  border-color: var(--error-color);
+  animation: pulse-red 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(255, 72, 72, 0.5); }
+  70% { box-shadow: 0 0 0 14px rgba(255, 72, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 72, 72, 0); }
+}
+
+.streak-chip {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hint-button-easy {
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hint-button-easy:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-color);
+}
+
+.hint-button-easy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-button {
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-color);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-button.quit {
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.action-button.quit:hover:not(:disabled) {
+  background: var(--error-color);
+  color: #fff;
+}
+
+/* === Responsive === */
+@media (max-width: 991px) {
+  .game-header {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+

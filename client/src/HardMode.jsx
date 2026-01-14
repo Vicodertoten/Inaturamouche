@@ -4,10 +4,11 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
+import GameHeader from './components/GameHeader';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
-import StreakBadge from './components/StreakBadge';
+import { getDisplayName } from './utils/speciesUtils';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
@@ -336,32 +337,16 @@ function HardMode() {
 
       <div className="screen game-screen hard-mode">
         <div className="hard-mode-container">
-          <header className="hard-mode-header">
-            <div className="header-stats">
-              <div className="stat-pill score-pill">
-                <span className="pill-label">{t('hard.stats.score', {}, 'Score')}</span>
-                <span className="pill-value">{currentScore}</span>
-              </div>
-              <div className="stat-pill">
-                <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
-                <span className="pill-value">
-                  {hasQuestionLimit ? `${questionCount}/${maxQuestions}` : questionCount}
-                </span>
-              </div>
-              <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
-                <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>
-                <span className="pill-value">{guesses}</span>
-              </div>
-              <div className="streak-chip">
-                <StreakBadge streak={currentStreak} />
-              </div>
-            </div>
-            <div className="header-actions">
-              <button onClick={endGame} disabled={isGameOver} className="action-button quit">
-                {t('common.finish')}
-              </button>
-            </div>
-          </header>
+          <GameHeader
+            mode="hard"
+            score={currentScore}
+            currentStreak={currentStreak}
+            questionCount={questionCount}
+            maxQuestions={maxQuestions}
+            guesses={guesses}
+            onQuit={endGame}
+            isGameOver={isGameOver}
+          />
 
           <div className="hard-mode-layout">
             <div className="media-column">
