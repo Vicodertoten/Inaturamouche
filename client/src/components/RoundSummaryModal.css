@@ -20,7 +20,7 @@
 .modal-content.summary-modal {
   background-color: var(--surface-color);
   padding: var(--space-4);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   width: 90%;
   max-width: 460px;
@@ -41,18 +41,18 @@
 
 .summary-title {
   margin: 0;
-  font-size: 1.4rem;
-  border-radius: var(--border-radius);
-  color: #fff;
+  font-size: var(--type-xl);
+  border-radius: var(--radius-small);
+  color: var(--text-color);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-}
+} 
 
 
 .correct-answer-section {
   background-color: rgba(0, 0, 0, 0.25);
   padding: var(--space-3);
-  border-radius: var(--border-radius);
+  border-radius: var(--radius);
 }
 
 
@@ -62,21 +62,21 @@
     height: auto;
     max-height: 220px;
     object-fit: cover;
-    border-radius: var(--border-radius);
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
   }
 
 .answer-name {
   margin: var(--space-2) 0 var(--space-1) 0;
-  font-size: 1.1rem;
+  font-size: var(--type-md);
   color: var(--text-color);
 }
 
 .answer-scientific-name {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--type-sm);
   color: var(--text-color-muted);
-}
+} 
 
 .score-section {
   display: flex;
@@ -86,8 +86,8 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   background-color: rgba(0, 0, 0, 0.25);
-  border-radius: var(--border-radius);
-  font-size: 0.95rem;
+  border-radius: var(--radius-small);
+  font-size: var(--type-sm);
 }
 
 .score-label {

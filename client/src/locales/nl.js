@@ -319,6 +319,7 @@ const nl = {
     title: 'Fout',
     quiz_no_results: 'Geen soort gevonden, verruim je zoekopdracht.',
     generic: 'Er ging iets mis. Probeer het later opnieuw.',
+    retry: 'Opnieuw proberen',
     internal: 'Interne serverfout',
     bad_request: 'Ongeldige parameters',
     not_found: 'Niet gevonden',

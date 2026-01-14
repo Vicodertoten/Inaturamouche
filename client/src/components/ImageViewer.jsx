@@ -11,30 +11,7 @@ const supportsLazyLoading =
 
 const BASE_MAX_ZOOM = 2.5;
 
-// Fallback inline styles (au cas où le CSS ne serait pas appliqué)
-const Fallback = {
-  overlay: {
-    position: 'absolute', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
-    display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '6px 10px', background: 'rgba(0,0,0,0.4)', borderRadius: '9999px',
-    zIndex: 10, backdropFilter: 'blur(2px)',
-    maxWidth: '100%', boxSizing: 'border-box'
-  },
-  arrow: {
-    width: '36px', height: '36px', borderRadius: '999px', border: 'none',
-    background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: '20px',
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer'
-  },
-  dots: { display: 'flex', alignItems: 'center', gap: '8px' },
-  dot: {
-    width: '10px', height: '10px', borderRadius: '999px',
-    background: 'rgba(255,255,255,0.55)', border: 'none', padding: 0, cursor: 'pointer'
-  }
-};
+
 
 function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -42,7 +19,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [transform, setTransform] = useState({ x: 0, y: 0 });
   const [isHighResLoaded, setIsHighResLoaded] = useState(false);
   const [isLowResLoaded, setIsLowResLoaded] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState();
+  const [aspectRatio, setAspectRatio] = useState('4 / 3');
   const [isPortrait, setIsPortrait] = useState(false);
   const [maxZoom, setMaxZoom] = useState(BASE_MAX_ZOOM);
   const containerRef = useRef(null);
@@ -253,19 +230,17 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
               className="nav-overlay"
               role="group"
               aria-label={t('imageViewer.nav_label')}
-              style={Fallback.overlay}
             >
               <button
                 type="button"
                 className="nav-button prev"
                 aria-label={t('imageViewer.previous')}
                 onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                style={Fallback.arrow}
               >
                 ‹
               </button>
 
-              <div className="dots" role="tablist" aria-label={t('imageViewer.choose_image')} style={Fallback.dots}>
+              <div className="dots" role="tablist" aria-label={t('imageViewer.choose_image')}>
                 {imageUrls.map((_, idx) => (
                   <button
                     key={idx}
@@ -278,10 +253,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
                       setCurrentIndex(idx);
                       setTransform({ x: 0, y: 0 });
                     }}
-                    style={{
-                      ...Fallback.dot,
-                      ...(idx === currentIndex ? { background: 'rgba(255,255,255,0.95)', boxShadow: '0 0 0 2px rgba(255,255,255,0.35)', transform: 'scale(1.2)' } : {})
-                    }}
                   />
                 ))}
               </div>
@@ -291,7 +262,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
                 className="nav-button next"
                 aria-label={t('imageViewer.next')}
                 onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                style={Fallback.arrow}
               >
                 ›
               </button>

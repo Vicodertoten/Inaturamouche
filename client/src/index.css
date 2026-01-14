@@ -32,28 +32,77 @@
   src: url('/fonts/poppins-700.woff2') format('woff2');
 }
 
-:root {
+:root{
+  /* --- TYPOGRAPHY --- */
   --font-family-main: 'Poppins', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  
-  /* Palette "Nature" */
-  --bg-color: #283618;
-  --surface-color: #3a5a40;
-  --primary-color: #606c38;
-  --accent-color: #dda15e;
-  --success-color: #588157;
-  --error-color: #bc4749;
-  --text-color: #fefae0;
-  --text-color-muted: #dad7cd;
-  --border-color: #588157;
-  --accent-color-transparent: rgba(221, 161, 94, 0.2);
+  /* scale (xxl -> xs) */
+  --type-xxl: 2.2rem; /* h1 */
+  --type-xl: 1.6rem; /* h2 */
+  --type-lg: 1.25rem; /* h3 / large body */
+  --type-md: 1rem; /* default body */
+  --type-sm: 0.875rem; /* small */
+  --type-xs: 0.75rem; /* extra small */
+  --type-body: var(--type-md);
+  /* leading / line-heights */
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.4;
+  --leading-relaxed: 1.6;
 
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  --border-radius: 12px;
+  /* --- PALETTE (refined) --- */
+  --bg-color: #1f2718;       /* very dark olive */
+  --surface-color: #283618;  /* main surface */
+  --surface-2: #2f3f2c;
+  --primary-color: #606c38;  /* darker olive */
+  --accent-color: #dda15e;   /* warm amber */
+  --accent-strong: #ffb86b;
+  --success-color: #4caf6a;
+  --error-color: #c94a48;
+  --text-color: #f8f7ef;
+  --text-color-muted: #cfcfbd;
+  --border-color: rgba(255,255,255,0.06);
+
+  /* --- SPACING --- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 1rem;
   --space-4: 1.5rem;
   --space-5: 2rem;
+
+  /* --- RADIUS --- */
+  --radius-small: 6px;
+  --radius: 12px;
+  --radius-pill: 9999px;
+
+  /* --- ELEVATION / SHADOWS --- */
+  --shadow-1: 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-2: 0 10px 30px rgba(0,0,0,0.32);
+
+  /* Z-INDEX LAYERS */
+  --z-modal: 1000;
+  --z-toast: 1200;
+
+  /* --- BREAKPOINTS --- */
+  --bp-xs: 480px;
+  --bp-sm: 600px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1400px;
+
+  /* --- MASTERY / ACCENT COLORS --- */
+  --mastery-0: #555;
+  --mastery-1-start: #CD7F32;
+  --mastery-1-end: #E8A35D;
+  --mastery-2-start: #C0C0C0;
+  --mastery-2-end: #E8E8E8;
+  --mastery-3-start: #FFD700;
+  --mastery-3-end: #FFF44F;
+  --mastery-4-start: #b9f2ff;
+  --mastery-4-end: #E0F7FF;
+
+  --accent-blue: #5b9bd5;
+
+  /* Misc */
   --full-height: 100dvh;
 }
 
@@ -64,10 +113,14 @@ html, body {
   min-height: var(--full-height);
   width: 100%;
   font-family: var(--font-family-main);
+  font-size: var(--type-body);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-color);
   color: var(--text-color);
   overflow-x: hidden;
-}
+} 
 
 body {
   /* On retire le display:flex ici, il n'est plus nécessaire */
@@ -86,20 +139,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: clamp(1.5rem, 2vw, 2.2rem);
+  font-size: var(--type-xxl);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: var(--leading-tight);
+  color: var(--text-color);
+  text-align: center;
+} 
+
+h2 {
+  font-size: var(--type-xl);
+  font-weight: 600;
+  line-height: var(--leading-snug);
   color: var(--text-color);
   text-align: center;
 }
 
-h2 {
-  font-size: clamp(1.2rem, 1.5vw, 1.8rem);
-  font-weight: 500;
-  line-height: 1.1;
+h3 {
+  font-size: var(--type-lg);
+  font-weight: 600;
+  line-height: var(--leading-snug);
   color: var(--text-color);
-  text-align: center;
 }
+
 
 button {
   font-family: var(--font-family-main);

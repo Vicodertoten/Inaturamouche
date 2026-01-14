@@ -186,7 +186,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .preferences-popover {
     top: auto;
     bottom: calc(100% + 0.75rem);

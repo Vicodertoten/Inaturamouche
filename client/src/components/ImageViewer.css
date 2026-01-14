@@ -20,9 +20,9 @@
   width: 100%;
   max-width: 600px;
   max-height: 100%;
-  background-color: var(--bg-color, #0b0b0b);
-  border-radius: var(--border-radius, 12px);
-  border: 2px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background-color: var(--bg-color);
+  border-radius: var(--radius);
+  border: 2px solid var(--border-color);
   overflow: hidden;
   position: relative;
   display: flex;
@@ -41,11 +41,13 @@
 
 /* La boîte épouse la taille effective de la photo */
 .image-viewer-container .image-wrapper .image-box {
-  position: relative !important;
-  display: grid !important; /* shrink-to-fit with overlap */
-  line-height: 0 !important;
-  max-width: 100% !important;       /* la photo ne dépasse pas le wrapper */
-  max-height: 100% !important;
+  position: relative;
+  display: grid; /* shrink-to-fit with overlap */
+  line-height: 0;
+  width: 100%;
+  aspect-ratio: 4 / 3; /* sensible default; updated by JS when real ratio known */
+  max-width: 100%;       /* la photo ne dépasse pas le wrapper */
+  max-height: 100%;
 }
 
 /* L'image ne doit pas étirer .image-box :
@@ -117,7 +119,7 @@
 .image-viewer-container .image-wrapper .nav-button {
   background-color: rgba(255, 255, 255, 0.14);
   border: none;
-  color: #fff;
+  color: var(--text-color);
   font-size: 20px;
   font-weight: bold;
   cursor: pointer;
@@ -153,7 +155,7 @@
   transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
 }
 .image-viewer-container .image-wrapper .dot:hover { background-color: rgba(255,255,255,0.8); transform: scale(1.15); }
-.image-viewer-container .image-wrapper .dot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.image-viewer-container .image-wrapper .dot:focus-visible { outline: 2px solid var(--text-color); outline-offset: 2px; }
 .image-viewer-container .image-wrapper .dot.active {
   background-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
@@ -164,11 +166,11 @@
 .image-viewer-container .image-wrapper .image-box .image-placeholder {
   position: absolute;
   inset: 0;
-  background-color: var(--surface-color, #0f0f0f);
+  background-color: var(--surface-color);
   animation: image-placeholder-pulse 1.5s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
-}
+} 
 
 @keyframes image-placeholder-pulse {
   0% { opacity: 1; }

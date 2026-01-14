@@ -415,7 +415,7 @@ function Configurator({ onStartGame }) {
         
           <button
             onClick={handleStartClick}
-            className="start-button start-button-glow"
+            className="btn btn--primary start-button start-button-glow"
             disabled={packsLoading || (isReviewSelection && !canStartReview)}
             aria-label={t('common.start_game')}
           >

@@ -319,6 +319,7 @@ const en = {
     title: 'Error',
     quiz_no_results: 'No species found, broaden your search.',
     generic: 'Something went wrong. Please try again later.',
+    retry: 'Retry',
     internal: 'Internal server error',
     bad_request: 'Bad request',
     not_found: 'Not Found',
