@@ -27,7 +27,13 @@ npm start                # lance l'API en mode prod
 ```
 - **Docker** : `docker build -t inaturamouche .` puis `docker run -p 3001:3001 inaturamouche`.
 - **Tests** : `npm test` lance les tests Node + client (node --test).
+### Internationalisation (i18n) parity check ✅
+We added an automated i18n parity check that ensures all locale files (`client/src/locales/fr.js`, `en.js`, `nl.js`) contain the same translation keys.
 
+- Run locally: `npm run check:i18n` (prints key counts and any missing/extra keys).
+- CI: The project CI runs this check on push/PR and fails the build if parity is broken.
+
+If you add or rename keys, run `npm run check:i18n` and update the other locale files to keep translations in sync.
 ## Architecture technique
 - **Backend** : Node/Express 5, Zod pour la validation, Pino pour les logs, caches LRU mémoire, appels iNaturalist avec retries/timeout.  
 - **Frontend** : React 19 + Vite + vite-plugin-pwa, routing React Router, contextes `GameContext`/`UserContext` pour l'état global.  

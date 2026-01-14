@@ -29,7 +29,7 @@ const MasteryItem = ({ taxon, count, getDisplayNames, t }) => {
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { profile, refreshProfile, updateProfile } = useUser();
-  const { t, getTaxonDisplayNames, language } = useLanguage();
+  const { t, getTaxonDisplayNames, language, formatNumber } = useLanguage();
   const { packs } = usePacks();
   const [activeTab, setActiveTab] = useState('summary');
   const [masteryDetails, setMasteryDetails] = useState([]);
@@ -238,18 +238,18 @@ const ProfilePage = () => {
             </div>
           </div>
           <div className="hero-progress">
-            <div className="xp-bar-container xp-bar-hero" aria-label={t('profile.xp_counter', { current: levelInfo.xpProgress.toLocaleString(), total: levelInfo.xpNeededForLevel.toLocaleString() })}>
+            <div className="xp-bar-container xp-bar-hero" aria-label={t('profile.xp_counter', { current: formatNumber(levelInfo.xpProgress), total: formatNumber(levelInfo.xpNeededForLevel) })}>
               <div className="xp-bar" style={{ width: `${levelInfo.progressPercentage}%` }}></div>
               <div className="xp-shine" />
             </div>
             <div className="xp-label hero-xp-label">
               <span>
                 {t('profile.xp_counter', {
-                  current: levelInfo.xpProgress.toLocaleString(),
-                  total: levelInfo.xpNeededForLevel.toLocaleString(),
+                  current: formatNumber(levelInfo.xpProgress),
+                  total: formatNumber(levelInfo.xpNeededForLevel),
                 })}
               </span>
-              <span className="xp-total">XP: {profile.xp.toLocaleString()}</span>
+              <span className="xp-total">XP: {formatNumber(profile.xp)}</span>
             </div>
           </div>
         </div>

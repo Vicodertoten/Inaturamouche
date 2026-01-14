@@ -33,6 +33,8 @@ const en = {
     pack_description_label: 'About this pack',
     question_counter: 'Question {current}/{total}',
     question_counter_infinite: 'Question {current}',
+    back: '← Back',
+    view: 'View →',
   },
   nav: {
     help_label: 'Help & information',
@@ -57,6 +59,7 @@ const en = {
     recommended_pack_label: 'Featured pack of the day',
     recommended_pack_cta: 'Use this pack',
     recommended_pack_active: 'Pack selected',
+    daily_challenge_label: '📅 Daily challenge',
   },
   configurator: {
     pack_label: 'Choose a game pack:',
@@ -115,7 +118,20 @@ const en = {
       description: 'Fish, corals, and mollusks from the world’s largest reef.',
     },
   },
-  customFilter: {
+  collection: {
+    title: 'Living Atlas',
+    species_seen: '{count} species seen',
+    mastered_count: '{count} mastered',
+    sort_label: 'Sort:',
+    sort: {
+      mastery: 'Mastery',
+      recent: 'Recently Seen',
+      alpha: 'Alphabetical',
+    },
+    loading_species: 'Loading species...',
+    empty: 'No species in this category yet.',
+  },
+  customFilter: { 
     include_title: 'Taxa to INCLUDE',
     include_description: 'Add the groups you want to see in the quiz.',
     exclude_title: 'Taxa to EXCLUDE',
@@ -196,7 +212,28 @@ const en = {
       wikipedia: 'Wikipedia page',
     },
   },
-  end: {
+  species: {
+    tabs: {
+      stats: 'My Stats',
+      encyclopedia: 'Encyclopedia',
+      taxonomy: 'Similar species',
+    },
+    stats: {
+      first_encounter: 'First encounter',
+      last_seen: 'Last seen',
+      times_seen: 'Times seen',
+      correct_ids: 'Correct IDs',
+      accuracy: 'Accuracy',
+      current_streak: 'Current streak',
+    },
+    no_taxonomy: 'No taxonomy data',
+    no_description: 'No description available.',
+    similar: {
+      finding: 'Finding similar species...',
+      none: 'No similar species found in our database.',
+    },
+  },
+  end: { 
     final_score: 'Final score:',
     correct_count: '{correct} / {total} correct',
     accuracy: 'Accuracy {value}%',
@@ -210,6 +247,7 @@ const en = {
       inaturalist: 'iNaturalist',
       wikipedia: 'Wikipedia',
     },
+    new_discovery: '✨ New species added to your field guide!',
   },
   achievements: {
     modal_title: 'Achievement unlocked!',
@@ -260,7 +298,11 @@ const en = {
       },
     },
   },
-  help: {
+  notifications: {
+    new_species: '🦋 New species: {name}!',
+    level_up: '🥇 Grade {level} reached for {name}!',
+  },
+  help: { 
     title: 'Welcome to Inaturamouche!',
     gameplay_title: 'Game concept',
     gameplay_body:
@@ -277,6 +319,11 @@ const en = {
     title: 'Error',
     quiz_no_results: 'No species found, broaden your search.',
     generic: 'Something went wrong. Please try again later.',
+    internal: 'Internal server error',
+    bad_request: 'Bad request',
+    not_found: 'Not Found',
+    pool_unavailable: 'Observation pool unavailable, please try again.',
+    taxonomy_not_found: 'Taxon not found.',
   },
   profile: {
     back: '← Back',

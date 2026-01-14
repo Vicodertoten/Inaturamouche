@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import fr from '../locales/fr';
 import en from '../locales/en';
 import nl from '../locales/nl';
+import { formatDate as _formatDate, formatNumber as _formatNumber } from '../utils/formatters';
 
 const MESSAGES = { fr, en, nl };
 const DEFAULT_LANGUAGE = 'fr';
@@ -112,6 +113,14 @@ export function LanguageProvider({ children }) {
     [formatTaxonName, nameFormat]
   );
 
+  const formatDate = useCallback((date, opts) => {
+    return _formatDate(date, language, opts);
+  }, [language]);
+
+  const formatNumber = useCallback((value, opts) => {
+    return _formatNumber(value, language, opts);
+  }, [language]);
+
   const value = useMemo(
     () => ({
       language,
@@ -123,6 +132,8 @@ export function LanguageProvider({ children }) {
       t,
       formatTaxonName,
       getTaxonDisplayNames,
+      formatDate,
+      formatNumber,
     }),
     [
       formatTaxonName,
@@ -132,6 +143,8 @@ export function LanguageProvider({ children }) {
       toggleNameFormat,
       t,
       nameFormat,
+      formatDate,
+      formatNumber,
     ]
   );
 

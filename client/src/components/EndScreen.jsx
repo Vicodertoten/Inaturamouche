@@ -21,9 +21,9 @@ const EndScreen = ({
       sessionRewards.forEach((reward, index) => {
         setTimeout(() => {
           if (reward.type === 'NEW_SPECIES') {
-            notify(`🦋 New species: ${reward.name}!`, { type: 'success', duration: 4000 });
+            notify(t('notifications.new_species', { name: reward.name }), { type: 'success', duration: 4000 });
           } else if (reward.type === 'LEVEL_UP') {
-            notify(`🥇 Grade ${reward.level} reached for ${reward.name}!`, { type: 'success', duration: 5000 });
+            notify(t('notifications.level_up', { level: reward.level, name: reward.name }), { type: 'success', duration: 5000 });
           }
         }, index * 1200 + 500); // Stagger notifications
       });
@@ -76,7 +76,7 @@ const EndScreen = ({
                         {primary && <span className="species-common">{primary}</span>}
                         {secondary && <em>{secondary}</em>}
                       </div>
-                      {isNewDiscovery && <span className="discovery-badge">✨ Découverte Sauvage ajoutée au Classeur !</span>}
+                      {isNewDiscovery && <span className="discovery-badge">{t('end.new_discovery')}</span>}
                     </div>
                     <div className="species-links">
                       <span

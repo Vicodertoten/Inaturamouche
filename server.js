@@ -1474,8 +1474,8 @@ const taxaBatchSchema = z.object({
 function validate(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse({ ...req.query, ...req.body });
-    if (!parsed.success) return res.status(400).json({ error: "Bad request", issues: parsed.error.issues });
-    req.valid = parsed.data;
+    if (!parsed.success) return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Bad request' }, issues: parsed.error.issues });
+    req.valid = parsed.data; 
     next();
   };
 }
@@ -1568,7 +1568,7 @@ app.get(
       if (pack_id) {
         const selectedPack = findPackById(pack_id);
         if (!selectedPack) {
-          return res.status(400).json({ error: "Pack inconnu" });
+          return res.status(400).json({ error: { code: 'UNKNOWN_PACK', message: 'Unknown pack' } });
         }
         if (selectedPack.type === "list" && Array.isArray(selectedPack.taxa_ids)) {
           params.taxon_id = selectedPack.taxa_ids.join(",");
@@ -1637,7 +1637,7 @@ app.get(
         item = await buildQuizQuestion(context);
       }
       if (!item?.payload) {
-        return res.status(503).json({ error: "Pool d'observations indisponible, réessayez." });
+        return res.status(503).json({ error: { code: 'POOL_UNAVAILABLE', message: 'Observation pool unavailable, please try again.' } });
       }
       if (item.headers) {
         for (const [key, value] of Object.entries(item.headers)) {
@@ -1653,12 +1653,13 @@ app.get(
       req.log?.error({ err, requestId: req.id }, "Unhandled quiz route error");
       if (res.headersSent) return;
       const status = err?.status || 500;
-      let message =
-        status === 500 ? "Erreur interne du serveur" : err?.message || "Erreur interne du serveur";
-      if (err?.code === "timeout") {
-        message = "Le service iNaturalist est lent ou indisponible, réessayez dans quelques instants.";
+      let code = err?.code || (status === 500 ? 'INTERNAL_SERVER_ERROR' : 'ERROR');
+      let message = err?.message || (status === 500 ? 'Internal server error' : 'Error');
+      if (err?.code === 'timeout') {
+        code = 'INAT_TIMEOUT';
+        message = 'iNaturalist service is slow or unavailable, please try again.';
       }
-      res.status(status).json({ error: message });
+      res.status(status).json({ error: { code, message } });
     }
   }
 );
@@ -1781,7 +1782,7 @@ app.get(
       res.json(out);
     } catch (err) {
       req.log?.error({ err, requestId: req.id }, "Unhandled autocomplete error");
-      res.status(500).json({ error: "Erreur interne du serveur" });
+      res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
     }
   }
 );
@@ -1799,7 +1800,7 @@ app.get(
         })
         .safeParse({ id: req.params.id, locale: req.query.locale });
       if (!parsed.success) {
-        return res.status(400).json({ error: "Paramètres invalides", issues: parsed.error.issues });
+        return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Bad request' }, issues: parsed.error.issues });
       }
       const { id, locale } = parsed.data;
       const response = await fetchInatJSON(
@@ -1808,11 +1809,11 @@ app.get(
         { logger: req.log, requestId: req.id, label: "taxon-detail" }
       );
       const result = Array.isArray(response.results) ? response.results[0] : undefined;
-      if (!result) return res.status(404).json({ error: "Taxon non trouvé." });
+      if (!result) return res.status(404).json({ error: { code: 'TAXON_NOT_FOUND', message: 'Taxon not found.' } });
       res.json(result);
     } catch (err) {
       req.log?.error({ err, requestId: req.id }, "Unhandled taxon error");
-      res.status(500).json({ error: "Erreur interne du serveur" });
+      res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
     }
   }
 );
@@ -1829,7 +1830,7 @@ app.get(
       res.json(taxaDetails);
     } catch (err) {
       req.log?.error({ err, requestId: req.id }, "Unhandled taxa error");
-      res.status(500).json({ error: "Erreur interne du serveur" });
+      res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
     }
   }
 );
@@ -1881,15 +1882,19 @@ app.get(
       res.json(data);
     } catch (err) {
       req.log?.error({ err, requestId: req.id }, "Unhandled species_counts error");
-      res.status(500).json({ error: "Erreur interne du serveur" });
+      res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
     }
   }
 );
 
 /* -------------------- 404 JSON propre -------------------- */
-app.use((_, res) => res.status(404).json({ error: "Not Found" }));
+app.use((_, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not Found' } }));
 
 /* -------------------- Démarrage -------------------- */
-app.listen(PORT, () => {
-  console.log(`Serveur Inaturamouche démarré sur le port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Serveur Inaturamouche démarré sur le port ${PORT}`);
+  });
+}
+
+export default app;

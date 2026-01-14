@@ -6,6 +6,7 @@ import { ICONIC_TAXA_LIST } from '../utils/collectionUtils';
 import CollectionCard from '../components/CollectionCard';
 import SpeciesDetailModal from '../components/SpeciesDetailModal';
 import { useUser } from '../context/UserContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import './CollectionPage.css';
 
 const COLUMN_WIDTH = 180;
@@ -13,6 +14,7 @@ const COLUMN_WIDTH = 180;
 // ============== IconicTaxaGrid Component ==============
 
 function IconicTaxaGrid({ onSelectIconic }) {
+  const { t } = useLanguage();
   // Fetch iconic summary via CollectionService (no toArray)
   const summary = useLiveQuery(
     async () => {
@@ -30,7 +32,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
   return (
     <>
       <div className="collection-header">
-        <h1>Living Atlas</h1>
+        <h1>{t('collection.title')}</h1>
       </div>
       <div className="iconic-taxa-grid">
         {ICONIC_TAXA_LIST.map((iconicTaxon) => {
@@ -54,10 +56,10 @@ function IconicTaxaGrid({ onSelectIconic }) {
               </div>
               <div className="iconic-card-body">
                 <p className="iconic-stat">
-                  {stats.seenCount} species seen
+                  {t('collection.species_seen', { count: stats.seenCount })}
                 </p>
                 <p className="iconic-stat">
-                  {stats.masteredCount} mastered
+                  {t('collection.mastered_count', { count: stats.masteredCount })}
                 </p>
               </div>
               <div className="iconic-card-progress">
@@ -81,6 +83,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
 
 function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const { collectionVersion } = useUser();
+  const { t } = useLanguage();
   const [sortOrder, setSortOrder] = useState('mastery');
   const [species, setSpecies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,10 +144,11 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   }, [iconicTaxonId, sortOrder]);
 
   if (error) {
+    const { t } = useLanguage();
     return (
       <div className="collection-error">
-        <button onClick={onBack} className="back-button">&larr; Back</button>
-        <p>Error: {error}</p>
+        <button onClick={onBack} className="back-button">{t('common.back')}</button>
+        <p>{t('errors.title')}: {error}</p>
       </div>
     );
   }
@@ -152,29 +156,29 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   return (
     <>
       <div className="collection-header">
-        <button onClick={onBack} className="back-button">&larr; Back</button>
+        <button onClick={onBack} className="back-button">{t('common.back')}</button>
         <h1>{iconicTaxonName}</h1>
         <div className="sort-controls">
-          <label htmlFor="sort-select">Sort:</label>
+          <label htmlFor="sort-select">{t('collection.sort_label')}</label>
           <select
             id="sort-select"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
           >
-            <option value="mastery">Mastery</option>
-            <option value="recent">Recently Seen</option>
-            <option value="alpha">Alphabetical</option>
+            <option value="mastery">{t('collection.sort.mastery')}</option>
+            <option value="recent">{t('collection.sort.recent')}</option>
+            <option value="alpha">{t('collection.sort.alpha')}</option>
           </select>
         </div>
       </div>
 
       {loading && !species.length ? (
         <div className="collection-loading">
-          <p>Loading species...</p>
+          <p>{t('collection.loading_species')}</p>
         </div>
       ) : species.length === 0 ? (
         <div className="collection-empty">
-          <p>No species in this category yet.</p>
+          <p>{t('collection.empty')}</p>
         </div>
       ) : (
         <div className="species-grid-container">

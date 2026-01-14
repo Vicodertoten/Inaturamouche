@@ -1,6 +1,16 @@
 /// <reference path="../../../types/inaturalist.d.ts" />
 // src/services/api.js
 import { notify } from "./notifications.js";
+import fr from '../locales/fr.js';
+import en from '../locales/en.js';
+import nl from '../locales/nl.js';
+const MESSAGES = { fr, en, nl };
+const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
+function getCurrentLanguage() {
+  if (typeof window === 'undefined') return 'fr';
+  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  return stored && MESSAGES[stored] ? stored : 'fr';
+}
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
 const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : {};
@@ -15,18 +25,39 @@ const DEFAULT_TIMEOUT = 8000;
 const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
 
 const inatFetcher =
-  typeof window !== "undefined"
+  typeof window !== "undefined" && typeof window.fetch === "function"
     ? window.fetch.bind(window)
     : typeof globalThis !== "undefined" && typeof globalThis.fetch === "function"
       ? globalThis.fetch.bind(globalThis)
       : null;
 
-const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) => {
+export const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) => {
   if (!error || typeof window === "undefined") return;
   if (error.name === "AbortError") return;
-  const rawMessage = error.message || "";
-  const message =
-    rawMessage && !rawMessage.includes("Failed to fetch") ? rawMessage : fallbackMessage;
+
+  // If API provided a structured error with code, try to translate it client-side
+  const lang = getCurrentLanguage();
+  let message = fallbackMessage;
+  if (error && error.code && MESSAGES[lang]?.errors) {
+    // Map server codes to keys in locale files
+    const codeToKey = {
+      INTERNAL_SERVER_ERROR: 'internal',
+      BAD_REQUEST: 'bad_request',
+      NOT_FOUND: 'not_found',
+      POOL_UNAVAILABLE: 'pool_unavailable',
+      TAXON_NOT_FOUND: 'taxonomy_not_found',
+    };
+    const key = codeToKey[error.code];
+    if (key && MESSAGES[lang].errors && MESSAGES[lang].errors[key]) {
+      message = MESSAGES[lang].errors[key];
+    } else if (error.message) {
+      message = error.message;
+    }
+  } else {
+    const rawMessage = error.message || "";
+    message = rawMessage && !rawMessage.includes("Failed to fetch") ? rawMessage : fallbackMessage;
+  }
+
   notify(message, { type: "error" });
   error.notified = true;
 };
@@ -78,8 +109,12 @@ async function apiGet(path, params = {}, options = {}) {
       // Pas de JSON → laisser data = {}
     }
     if (!res.ok) {
-      const error = new Error(data.error || "Erreur réseau");
+      const apiError = data && data.error ? data.error : null;
+      const message = (apiError && apiError.message) || (typeof apiError === 'string' ? apiError : 'Network error');
+      const error = new Error(message);
       error.status = res.status;
+      if (apiError && apiError.code) error.code = apiError.code;
+      error.raw = apiError;
       if (!options?.silent) {
         notifyApiError(error);
       }

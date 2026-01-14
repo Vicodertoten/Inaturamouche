@@ -79,8 +79,8 @@ const AppLayout = () => {
           <button
             className="nav-pill nav-icon nav-elevated"
             onClick={() => navigate('/collection')}
-            aria-label="Collection"
-            title="Collection"
+            aria-label={t('nav.collection_label')}
+            title={t('nav.collection_label')}
             type="button"
           >
             📖

@@ -33,6 +33,8 @@ const nl = {
     pack_description_label: 'Over dit pack',
     question_counter: 'Vraag {current}/{total}',
     question_counter_infinite: 'Vraag {current}',
+    back: '← Terug',
+    view: 'Bekijk →',
   },
   nav: {
     help_label: 'Help en informatie',
@@ -57,6 +59,7 @@ const nl = {
     recommended_pack_label: 'Aanbevolen pack van de dag',
     recommended_pack_cta: 'Gebruik dit pack',
     recommended_pack_active: 'Pack geselecteerd',
+    daily_challenge_label: '📅 Dagelijkse uitdaging',
   },
   configurator: {
     pack_label: 'Kies een spelpack:',
@@ -115,7 +118,20 @@ const nl = {
       description: 'Vissen, koralen en weekdieren van het grootste rif ter wereld.',
     },
   },
-  customFilter: {
+  collection: {
+    title: 'Living Atlas',
+    species_seen: '{count} soorten gezien',
+    mastered_count: '{count} beheerst',
+    sort_label: 'Sorteren:',
+    sort: {
+      mastery: 'Beheersing',
+      recent: 'Onlangs gezien',
+      alpha: 'Alfabetisch',
+    },
+    loading_species: 'Soorten laden...',
+    empty: 'Nog geen soorten in deze categorie.',
+  },
+  customFilter: { 
     include_title: 'In te sluiten taxa',
     include_description: 'Voeg groepen toe die je in de quiz wilt zien.',
     exclude_title: 'Uit te sluiten taxa',
@@ -196,7 +212,28 @@ const nl = {
       wikipedia: 'Wikipedia-pagina',
     },
   },
-  end: {
+  species: {
+    tabs: {
+      stats: 'Statistieken',
+      encyclopedia: 'Encyclopedie',
+      taxonomy: 'Vergelijkbare soorten',
+    },
+    stats: {
+      first_encounter: 'Eerste ontmoeting',
+      last_seen: 'Laatst gezien',
+      times_seen: 'Keer gezien',
+      correct_ids: 'Correcte IDs',
+      accuracy: 'Nauwkeurigheid',
+      current_streak: 'Huidige reeks',
+    },
+    no_taxonomy: 'Geen taxonomische gegevens',
+    no_description: 'Geen beschrijving beschikbaar.',
+    similar: {
+      finding: 'Soorten vergelijken...',
+      none: 'Geen vergelijkbare soorten gevonden in onze database.',
+    },
+  },
+  end: { 
     final_score: 'Eindscore:',
     correct_count: '{correct} / {total} juist',
     accuracy: 'Nauwkeurigheid {value}%',
@@ -210,6 +247,7 @@ const nl = {
       inaturalist: 'Bekijk op iNaturalist',
       wikipedia: 'Wikipedia-pagina',
     },
+    new_discovery: '✨ Nieuwe soort toegevoegd aan je veldgids!',
   },
   achievements: {
     modal_title: 'Prestatie vrijgespeeld!',
@@ -260,7 +298,11 @@ const nl = {
       },
     },
   },
-  help: {
+  notifications: {
+    new_species: '🦋 Nieuwe soort: {name} !',
+    level_up: '🥇 Niveau {level} behaald voor {name}!',
+  },
+  help: { 
     title: 'Welkom bij Inaturamouche!',
     gameplay_title: 'Doel van het spel',
     gameplay_body:
@@ -277,6 +319,11 @@ const nl = {
     title: 'Fout',
     quiz_no_results: 'Geen soort gevonden, verruim je zoekopdracht.',
     generic: 'Er ging iets mis. Probeer het later opnieuw.',
+    internal: 'Interne serverfout',
+    bad_request: 'Ongeldige parameters',
+    not_found: 'Niet gevonden',
+    pool_unavailable: 'Observatiepool niet beschikbaar, probeer het opnieuw.',
+    taxonomy_not_found: 'Taxon niet gevonden.',
   },
   profile: {
     back: '← Terug',
