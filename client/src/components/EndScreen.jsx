@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ACHIEVEMENTS } from '../achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { notify } from '../services/notifications';
 import { MASTERY_NAMES } from '../services/CollectionService';
+import './EndScreen.css';
 
 const EndScreen = ({
   score,
@@ -31,6 +32,17 @@ const EndScreen = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    const prefersReduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReduce) {
+      const start = setTimeout(() => setShowConfetti(true), 300);
+      const stop = setTimeout(() => setShowConfetti(false), 4300);
+      return () => { clearTimeout(start); clearTimeout(stop); };
+    }
+  }, []);
+
   const totalQuestions = sessionSpeciesData.length || 0;
   const correctCount = sessionCorrectSpecies.length;
   const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
@@ -47,6 +59,13 @@ const EndScreen = ({
   return (
     <div className="screen end-screen">
       <div className="card">
+        {showConfetti && (
+          <div className="confetti" aria-hidden="true">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={i} className="confetti-piece" />
+            ))}
+          </div>
+        )}
         <div className="summary">
           <p className="score-line">
             {t('end.final_score')} <span className="score">{score}</span>
@@ -125,10 +144,10 @@ const EndScreen = ({
         )}
 
         <div className="end-actions">
-          <button onClick={onRestart} className="start-button">
+          <button onClick={onRestart} className="btn btn--primary">
             {t('common.replay')}
           </button>
-          <button onClick={onReturnHome}>{t('common.home')}</button>
+          <button onClick={onReturnHome} className="btn btn--secondary">{t('common.home')}</button>
         </div>
       </div>
     </div>

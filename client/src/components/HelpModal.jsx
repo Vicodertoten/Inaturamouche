@@ -60,7 +60,7 @@ function HelpModal({ onClose }) {
           <p>{t('help.packs_body')}</p>
         </section>
 
-        <button onClick={onClose} className="start-button-modal">{t('help.confirm')}</button>
+        <button onClick={onClose} className="btn btn--primary start-button-modal">{t('help.confirm')}</button>
       </div>
     </div>
   );

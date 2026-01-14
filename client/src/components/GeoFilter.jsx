@@ -74,7 +74,8 @@ function BBoxSelector({ value, onChange }) {
     const handleIcon = (size = 10, bg = "red") =>
       L.divIcon({
         className: "",
-        html: `<div class="bbox-handle" style="width:${size}px;height:${size}px;background:${bg};border:2px solid #fff;border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,.4)"></div>`,
+        html: `<div class="bbox-handle" style="width:${size}px;height:${size}px;background:${bg};border:2px solid var(--text-color);border-radius:2px;box-shadow:0 0 2px rgba(0,0,0,.4)"></div>`,
+
       });
     const centerIcon = L.divIcon({
       className: "",
@@ -194,7 +195,7 @@ function BBoxSelector({ value, onChange }) {
       drawingRef.current = {
         startLatLng: e.latlng,
         tempRect: L.rectangle(toBounds(e.latlng, e.latlng), {
-          color: "#999",
+          color: "var(--text-color-muted)",
           weight: 1,
           dashArray: "4 4",
         }).addTo(map),

@@ -103,7 +103,7 @@ const HomePage = () => {
         <section className="daily-challenge-cta">
           <button
             type="button"
-            className="start-button"
+            className="btn btn--primary start-button"
             onClick={handleDailyChallenge}
             aria-label={dailyChallengeLabel}
           >
