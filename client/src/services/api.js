@@ -21,7 +21,8 @@ const API_BASE_URL =
     ? "http://localhost:3001"
     : "https://inaturamouche.onrender.com");
 
-const DEFAULT_TIMEOUT = 8000;
+// Timeout augmenté à 15s pour absorber les cold starts d'iNaturalist
+const DEFAULT_TIMEOUT = 15000;
 const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
 
 const inatFetcher =

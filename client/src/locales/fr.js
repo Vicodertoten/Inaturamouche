@@ -325,7 +325,7 @@ const fr = {
     internal: 'Erreur interne du serveur',
     bad_request: 'Paramètres invalides',
     not_found: 'Introuvable',
-    pool_unavailable: 'Pool d\'observations indisponible, réessayez.',
+    pool_unavailable: 'Aucune observation trouvée pour ces critères. Veuillez élargir la zone géographique, la période, ou réessayer plus tard.',
     taxonomy_not_found: 'Taxon non trouvé.',
   },
   profile: {

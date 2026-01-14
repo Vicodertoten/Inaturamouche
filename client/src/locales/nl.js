@@ -323,7 +323,7 @@ const nl = {
     internal: 'Interne serverfout',
     bad_request: 'Ongeldige parameters',
     not_found: 'Niet gevonden',
-    pool_unavailable: 'Observatiepool niet beschikbaar, probeer het opnieuw.',
+    pool_unavailable: 'Geen waarnemingen gevonden voor deze criteria. Verbreed het geografisch gebied, de periode, of probeer later opnieuw.',
     taxonomy_not_found: 'Taxon niet gevonden.',
   },
   profile: {
