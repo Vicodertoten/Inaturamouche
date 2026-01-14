@@ -3,15 +3,10 @@ import './ImageViewer.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-// Detect native support for the `loading="lazy"` attribute.
-// Fallback: when unsupported (e.g. Safari), the image loads immediately.
-// An IntersectionObserver could be used here instead to emulate lazy loading.
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 
 const BASE_MAX_ZOOM = 2.5;
-
-
 
 function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -19,11 +14,12 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   const [transform, setTransform] = useState({ x: 0, y: 0 });
   const [isHighResLoaded, setIsHighResLoaded] = useState(false);
   const [isLowResLoaded, setIsLowResLoaded] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState('4 / 3');
+  // On supprime l'aspectRatio dynamique qui faisait sauter le layout
+  // On garde isPortrait pour potentiellement ajuster le conteneur, mais c'est optionnel
   const [isPortrait, setIsPortrait] = useState(false);
   const [maxZoom, setMaxZoom] = useState(BASE_MAX_ZOOM);
+  
   const containerRef = useRef(null);
-  const imageBoxRef = useRef(null);
   const isPanning = useRef(false);
   const didPan = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
@@ -42,29 +38,27 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     setMaxZoom(BASE_MAX_ZOOM);
   }, [imageUrls]);
 
-  useEffect(() => {
-    setIsHighResLoaded(false);
-    setIsLowResLoaded(false);
-    setAspectRatio(undefined);
-    setIsPortrait(false);
-  }, [currentIndex]);
-
+  // Preload next image logic...
   useEffect(() => {
     if (!nextImageUrl) return;
     const preloadImg = new Image();
     preloadImg.src = getSizedImageUrl(nextImageUrl, 'medium');
-    return () => {
-      preloadImg.src = '';
-    };
+    return () => { preloadImg.src = ''; };
   }, [nextImageUrl]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % imageUrls.length);
-    setTransform({ x: 0, y: 0 });
+    resetZoom();
   };
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+    resetZoom();
+  };
+
+  const resetZoom = () => {
     setTransform({ x: 0, y: 0 });
+    setScale(1);
+    setIsHighResLoaded(false); // Reset loading state for transition
   };
 
   const handleImageClick = () => {
@@ -77,6 +71,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     }
   };
 
+  // ... Pointer handlers (keep existing logic) ...
   const handlePointerDown = (e) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1 && scale > 1) {
@@ -121,159 +116,102 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     if (pointers.current.size < 2) initialPinchDistance.current = null;
     if (pointers.current.size === 0) {
       isPanning.current = false;
-      if (containerRef.current) containerRef.current.style.cursor = 'pointer';
+      if (containerRef.current) containerRef.current.style.cursor = scale > 1 ? 'grab' : 'default';
     }
   };
-
-  const handlePointerUp = endPointer;
-  const handlePointerCancel = endPointer;
-  const handlePointerLeave = endPointer;
 
   const handleImageLoad = (e) => {
     setIsHighResLoaded(true);
     const { naturalWidth, naturalHeight } = e.target;
     if (naturalWidth && naturalHeight) {
-      setAspectRatio(`${naturalWidth} / ${naturalHeight}`);
       setIsPortrait(naturalHeight > naturalWidth);
+      // Calcul du max zoom basé sur la résolution réelle vs affichée
       const containerWidth = containerRef.current?.clientWidth || naturalWidth;
       const zoomRatio = naturalWidth / containerWidth;
+      // On permet de zoomer au moins jusqu'à la taille réelle, ou x2.5 min
       const computedMax = Math.min(6, Math.max(BASE_MAX_ZOOM, zoomRatio));
       setMaxZoom(computedMax);
     }
   };
-  const handleLowResLoad = () => {
-    setIsLowResLoaded(true);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); handleNext(); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); handlePrev(); }
-    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleImageClick(); }
-  };
 
   const hasImages = Array.isArray(imageUrls) && imageUrls.length > 0;
+  
+  const currentMeta = useMemo(() => photoMeta?.[currentIndex] || null, [photoMeta, currentIndex]);
+  const lowResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'small') : null, [imageUrls, currentIndex]);
+  const highResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'medium') : null, [imageUrls, currentIndex]);
 
-  const currentMeta = useMemo(() => {
-    if (!hasImages || !photoMeta || !photoMeta.length) return null;
-    return photoMeta[currentIndex] || null;
-  }, [hasImages, photoMeta, currentIndex]);
-
-  const lowResUrl = useMemo(() => {
-    if (!hasImages) return null;
-    return getSizedImageUrl(imageUrls[currentIndex], 'small');
-  }, [hasImages, imageUrls, currentIndex]);
-
-  const highResUrl = useMemo(() => {
-    if (!hasImages) return null;
-    return getSizedImageUrl(imageUrls[currentIndex], 'medium');
-  }, [hasImages, imageUrls, currentIndex]);
-
-  if (!hasImages) {
-    return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
-  }
+  if (!hasImages) return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
 
   return (
     <div className="image-viewer-container">
       <div
         ref={containerRef}
         className={`image-wrapper ${isPortrait ? 'portrait' : ''}`}
-        style={{ touchAction: scale > 1 ? 'none' : 'pan-y' }}
-        onClick={handleImageClick}
+        // Handlers sur le wrapper pour capturer les gestes même hors de l'image
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        onPointerLeave={handlePointerLeave}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-        role="group"
-        aria-roledescription={t('imageViewer.viewer_label')}
-        aria-label={alt}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        onPointerLeave={endPointer}
+        onClick={handleImageClick}
       >
-        {/* NOUVEAU CONTENEUR QUI ÉPOUSE LA PHOTO */}
-        <div className="image-box" style={{ position: 'relative' }} ref={imageBoxRef}>
+        {/* L'IMAGE (Zoomable Content) */}
+        <div className="image-box">
           <img
             className={`image-lqip ${isLowResLoaded ? 'is-ready' : ''} ${isHighResLoaded ? 'is-hidden' : ''}`}
             src={lowResUrl}
+            onLoad={() => setIsLowResLoaded(true)}
             alt=""
-            aria-hidden="true"
-            onLoad={handleLowResLoad}
             draggable={false}
           />
           <img
             className={`image-main ${isHighResLoaded ? 'is-loaded' : ''}`}
             src={highResUrl}
-            srcSet={`${lowResUrl} 300w, ${highResUrl} 600w`}
-            sizes="(max-width: 600px) 100vw, 600px"
             alt={alt}
-            {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
-            decoding={currentIndex === 0 ? 'async' : undefined}
-            fetchPriority={currentIndex === 0 ? 'high' : undefined}
             onLoad={handleImageLoad}
-            style={{
-              width: '100%',
-              maxHeight: 'min(60dvh, 100%)',
-              aspectRatio,
-              transform: `translateX(${transform.x}px) translateY(${transform.y}px) scale(${scale})`,
-              transition: (isPanning.current || initialPinchDistance.current)
-                ? 'opacity 0.3s ease'
-                : 'opacity 0.3s ease, transform 0.3s ease',
-              display: 'block' // évite le whitespace inline
-            }}
             draggable={false}
+            style={{
+              transform: `translate(${transform.x}px, ${transform.y}px) scale(${scale})`,
+              cursor: scale > 1 ? (isPanning.current ? 'grabbing' : 'grab') : 'zoom-in'
+            }}
           />
+        </div>
 
-          {!isLowResLoaded && !isHighResLoaded && <div className="image-placeholder" />}
-
-          {imageUrls.length > 1 && (
-            <div
-              className="nav-overlay"
-              role="group"
-              aria-label={t('imageViewer.nav_label')}
+        {/* NAVIGATION (Fixed Overlay) - Sortie de image-box pour ne pas zoomer */}
+        {imageUrls.length > 1 && (
+          <div className="nav-overlay" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="nav-button prev"
+              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+              aria-label={t('imageViewer.previous')}
             >
-              <button
-                type="button"
-                className="nav-button prev"
-                aria-label={t('imageViewer.previous')}
-                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-              >
-                ‹
-              </button>
+              ‹
+            </button>
 
-              <div className="dots" role="tablist" aria-label={t('imageViewer.choose_image')}>
-                {imageUrls.map((_, idx) => (
+            <button
+              className="nav-button next"
+              onClick={(e) => { e.stopPropagation(); handleNext(); }}
+              aria-label={t('imageViewer.next')}
+            >
+              ›
+            </button>
+            
+            <div className="dots">
+               {imageUrls.map((_, idx) => (
                   <button
                     key={idx}
-                    type="button"
-                    aria-label={t('imageViewer.go_to_image', { index: idx + 1 })}
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
-                    aria-selected={idx === currentIndex}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentIndex(idx);
-                      setTransform({ x: 0, y: 0 });
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetZoom(); }}
                   />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                className="nav-button next"
-                aria-label={t('imageViewer.next')}
-                onClick={(e) => { e.stopPropagation(); handleNext(); }}
-              >
-                ›
-              </button>
+               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
       {currentMeta && (
         <div className="photo-meta">
-          <span className="photo-meta-credit">
-            {currentMeta.attribution || t('imageViewer.meta_unknown')}
-          </span>
+          © {currentMeta.attribution || t('imageViewer.meta_unknown')}
         </div>
       )}
     </div>
