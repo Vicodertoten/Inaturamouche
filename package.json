@@ -5,6 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "node --test ./tests/*.mjs && npm --prefix client run test",
+    "check:i18n": "node scripts/i18n-compare.cjs client/src/locales/fr.js client/src/locales/en.js client/src/locales/nl.js",
+    "ci": "npm run check:i18n && npm test",
     "lint": "npm --prefix client run lint",
     "start": "node server.js",
     "dev": "nodemon server.js",

@@ -1,10 +1,11 @@
 import { Suspense, lazy, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameData } from '../context/GameContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const Configurator = lazy(() => import('../Configurator'));
 
-const dailyChallengeLabel = '\u{1F4C5} D\u00E9fi du Jour';
+// dailyChallengeLabel moved inside component to use translations
 
 const LobbyPillars = ({ t, onSelectReview, canStartReview, missedCount }) => (
   <div className="lobby-pillars">
@@ -72,6 +73,8 @@ const ReviewCard = ({ canStartReview, missedCount, onStartReview, t }) => (
 const HomePage = () => {
   const navigate = useNavigate();
   const { startGame } = useGameData();
+  const { t } = useLanguage();
+  const dailyChallengeLabel = t('home.daily_challenge_label');
 
   const handleStart = useCallback(
     ({ review = false, maxQuestions, mediaType } = {}) => {

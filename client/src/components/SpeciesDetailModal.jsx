@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CollectionService, { MASTERY_NAMES } from '../services/CollectionService';
 import './SpeciesDetailModal.css';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const MasteryBadge = ({ level }) => {
   if (level === 0) return null;
@@ -25,11 +26,12 @@ const fetchWikipediaSummary = async (scientificName) => {
 };
 
 export default function SpeciesDetailModal({ taxonId, onClose }) {
+  const { t, formatDate } = useLanguage();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('stats');
-  const [description, setDescription] = useState('Loading...');
+  const [description, setDescription] = useState(t('common.loading'));
   const [similarSpecies, setSimilarSpecies] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
@@ -67,7 +69,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
         if (result.taxon.description) {
           setDescription(result.taxon.description);
         } else {
-          setDescription('Fetching from Wikipedia...');
+          setDescription(t('common.loading'));
           const summary = await fetchWikipediaSummary(result.taxon.name);
           if (isMounted) {
             if (summary) {
@@ -75,7 +77,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
               // Cache it
               CollectionService.updateTaxonDescription(taxonId, summary);
             } else {
-              setDescription('No description available.');
+              setDescription(t('species.no_description'));
             }
           }
         }
@@ -99,7 +101,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close-button" onClick={onClose}>&times;</button>
           <div className="modal-body">
-            <p>Loading...</p>
+            <p>{t('common.loading')}</p>
           </div>
         </div>
       </div>
@@ -112,7 +114,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close-button" onClick={onClose}>&times;</button>
           <div className="modal-body">
-            <p className="error-message">Error: {error || 'Unknown error'}</p>
+            <p className="error-message">{t('errors.title')}: {error || t('errors.generic')}</p>
           </div>
         </div>
       </div>
@@ -125,8 +127,8 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const correctCount = stats?.correctCount || 0;
   const accuracy = seenCount > 0 ? Math.round((correctCount / seenCount) * 100) : 0;
   const streak = stats?.streak || 0;
-  const firstSeenAt = stats?.firstSeenAt ? new Date(stats.firstSeenAt).toLocaleDateString() : '—';
-  const lastSeenAt = stats?.lastSeenAt ? new Date(stats.lastSeenAt).toLocaleDateString() : '—';
+  const firstSeenAt = stats?.firstSeenAt ? formatDate(stats.firstSeenAt) : '—';
+  const lastSeenAt = stats?.lastSeenAt ? formatDate(stats.lastSeenAt) : '—';
 
   // Extract best image URL
   const headerImage =
@@ -146,7 +148,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const taxonomyPath =
     ancestors && ancestors.length > 0
       ? ancestors.map((a) => a.name).join(' → ')
-      : 'No taxonomy data';
+      : t('species.no_taxonomy');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -174,19 +176,19 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
               className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
               onClick={() => setActiveTab('stats')}
             >
-              My Stats
+              {t('species.tabs.stats')}
             </button>
             <button
               className={`tab-button ${activeTab === 'encyclopedia' ? 'active' : ''}`}
               onClick={() => setActiveTab('encyclopedia')}
             >
-              Encyclopedia
+              {t('species.tabs.encyclopedia')}
             </button>
             <button
               className={`tab-button ${activeTab === 'taxonomy' ? 'active' : ''}`}
               onClick={() => setActiveTab('taxonomy')}
             >
-              Similar Species
+              {t('species.tabs.taxonomy')}
             </button>
           </div>
 
@@ -194,27 +196,27 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
             <div className="tab-content">
               <div className="stat-grid">
                 <div className="stat-item">
-                  <div className="label">First Encounter</div>
-                  <div className="value">{firstSeenAt}</div>
+                  <div className="label">{t('species.stats.first_encounter')}</div>
+                  <div className="value">{formatDate(stats?.firstSeenAt)}</div>
                 </div>
                 <div className="stat-item">
-                  <div className="label">Last Seen</div>
-                  <div className="value">{lastSeenAt}</div>
+                  <div className="label">{t('species.stats.last_seen')}</div>
+                  <div className="value">{formatDate(stats?.lastSeenAt)}</div>
                 </div>
                 <div className="stat-item">
-                  <div className="label">Times Seen</div>
+                  <div className="label">{t('species.stats.times_seen')}</div>
                   <div className="value">{seenCount}</div>
                 </div>
                 <div className="stat-item">
-                  <div className="label">Correct IDs</div>
+                  <div className="label">{t('species.stats.correct_ids')}</div>
                   <div className="value">{correctCount}</div>
                 </div>
                 <div className="stat-item">
-                  <div className="label">Accuracy</div>
+                  <div className="label">{t('species.stats.accuracy')}</div>
                   <div className="value">{accuracy}%</div>
                 </div>
                 <div className="stat-item">
-                  <div className="label">Current Streak</div>
+                  <div className="label">{t('species.stats.current_streak')}</div>
                   <div className="value">{streak}</div>
                 </div>
               </div>
@@ -232,7 +234,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  View on iNaturalist
+                  {t('summary.links.inaturalist')}
                 </a>
                 {taxon.wikipedia_url && (
                   <a
@@ -240,7 +242,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    View on Wikipedia
+                    {t('summary.links.wikipedia')}
                   </a>
                 )}
               </div>
@@ -251,7 +253,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
             <div className="tab-content">
               <div className="similar-species-content">
                 {loadingSimilar ? (
-                  <p className="loading-text">Finding similar species...</p>
+                  <p className="loading-text">{t('species.similar.finding')}</p>
                 ) : similarSpecies && similarSpecies.length > 0 ? (
                   <div className="similar-species-grid">
                     {similarSpecies.map((species) => {
@@ -282,14 +284,14 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                             rel="noopener noreferrer"
                             className="similar-species-link"
                           >
-                            View →
+                            {t('common.view')}
                           </a>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <p className="no-similar-text">No similar species found in our database.</p>
+                  <p className="no-similar-text">{t('species.similar.none')}</p>
                 )}
               </div>
             </div>

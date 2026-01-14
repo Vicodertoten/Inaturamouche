@@ -33,6 +33,8 @@ const fr = {
     pack_description_label: 'À propos du pack',
     question_counter: 'Question {current}/{total}',
     question_counter_infinite: 'Question {current}',
+    back: '← Retour',
+    view: 'Voir →',
   },
   nav: {
     help_label: 'Aide et informations',
@@ -57,6 +59,7 @@ const fr = {
     recommended_pack_label: "Pack mis à l'honneur aujourd'hui",
     recommended_pack_cta: 'Utiliser ce pack',
     recommended_pack_active: 'Pack sélectionné',
+    daily_challenge_label: '📅 Défi du Jour',
   },
   configurator: {
     pack_label: 'Choisissez un pack de jeu :',
@@ -115,7 +118,20 @@ const fr = {
       description: 'Poissons, coraux et mollusques du plus grand récif corallien du monde.',
     },
   },
-  customFilter: {
+  collection: {
+    title: 'Living Atlas',
+    species_seen: '{count} espèces vues',
+    mastered_count: '{count} maîtrisées',
+    sort_label: 'Trier :',
+    sort: {
+      mastery: 'Maîtrise',
+      recent: 'Récemment vues',
+      alpha: 'Alphabétique',
+    },
+    loading_species: 'Chargement des espèces...',
+    empty: 'Aucune espèce dans cette catégorie pour le moment.',
+  },
+  customFilter: { 
     include_title: 'Taxons à INCLURE',
     include_description: 'Ajoutez les groupes que vous souhaitez voir dans le quiz.',
     exclude_title: 'Taxons à EXCLURE',
@@ -196,7 +212,28 @@ const fr = {
       wikipedia: 'Page Wikipédia',
     },
   },
-  end: {
+  species: {
+    tabs: {
+      stats: 'Mes statistiques',
+      encyclopedia: 'Encyclopédie',
+      taxonomy: 'Espèces similaires',
+    },
+    stats: {
+      first_encounter: 'Première rencontre',
+      last_seen: 'Dernière observation',
+      times_seen: 'Nombre d\'observations',
+      correct_ids: 'Identifications correctes',
+      accuracy: 'Précision',
+      current_streak: 'Série actuelle',
+    },
+    no_taxonomy: 'Aucune donnée taxonomique',
+    no_description: 'Aucune description disponible.',
+    similar: {
+      finding: 'Recherche d\'espèces similaires...',
+      none: 'Aucune espèce similaire trouvée dans notre base de données.',
+    },
+  },
+  end: { 
     final_score: 'Score final :',
     correct_count: '{correct} / {total} correctes',
     accuracy: 'Précision {value}%',
@@ -210,6 +247,7 @@ const fr = {
       inaturalist: 'Consulter sur iNaturalist',
       wikipedia: 'Page Wikipédia',
     },
+    new_discovery: '✨ Découverte Sauvage ajoutée au Classeur !',
   },
   achievements: {
     modal_title: 'Succès débloqué !',
@@ -260,7 +298,11 @@ const fr = {
       },
     },
   },
-  help: {
+  notifications: {
+    new_species: '🦋 Nouvelle espèce : {name} !',
+    level_up: '🥇 Niveau {level} atteint pour {name} !',
+  },
+  help: { 
     title: 'Bienvenue sur Inaturamouche !',
     gameplay_title: 'Principe du jeu',
     gameplay_body:
@@ -279,6 +321,11 @@ const fr = {
     title: 'Erreur',
     quiz_no_results: 'Aucune espèce trouvée, élargissez la recherche.',
     generic: 'Une erreur est survenue. Réessayez plus tard.',
+    internal: 'Erreur interne du serveur',
+    bad_request: 'Paramètres invalides',
+    not_found: 'Introuvable',
+    pool_unavailable: 'Pool d\'observations indisponible, réessayez.',
+    taxonomy_not_found: 'Taxon non trouvé.',
   },
   profile: {
     back: '← Retour',
