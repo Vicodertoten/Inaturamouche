@@ -8,7 +8,7 @@ import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
+const HINT_COST_XP = 5; // Coût en XP pour utiliser l'indice
 
 /**
  * EasyMode corrigé :
@@ -116,11 +116,11 @@ const EasyMode = () => {
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
   const baseScoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
   
-  // Appliquer la pénalité d'indice (-5 points par indice utilisé)
-  const hintPenalty = hintUsedThisQuestion ? -HINT_COST_EASY : 0;
+  // L'indice réduit l'XP gagné de -5 XP
+  const hintPenalty = hintUsedThisQuestion ? -HINT_COST_XP : 0;
   const scoreInfo = { 
     ...baseScoreInfo, 
-    points: baseScoreInfo.points + hintPenalty,
+    bonus: (baseScoreInfo.bonus || 0) + hintPenalty, // Appliquer au bonus XP
     streakBonus 
   };
 
@@ -157,7 +157,7 @@ const EasyMode = () => {
     newSet.add(String(toRemove.id));
     setRemovedIds(newSet);
     setHintUsed(true);
-    // L'indice coûte -5 XP (pénalité appliquée au moment du completeRound)
+    // L'indice coûte 5 XP (réduit le bonus XP)
     setRoundMeta((prev) => {
       return {
         ...prev,

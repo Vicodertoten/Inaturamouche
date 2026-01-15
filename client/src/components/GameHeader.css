@@ -1,16 +1,13 @@
 /**
  * GameHeader.css - Styles pour le composant GameHeader réutilisable
- * Styles génériques pour les en-têtes des modes hard et easy
- * Les styles spécifiques au mode hard sont dans HardMode.css
+ * Nouvelle structure en 2 lignes pour meilleure hiérarchie visuelle
  */
-
 
 .game-header {
   width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
   font-size: 1.1rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -23,7 +20,6 @@
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-  flex-wrap: wrap;
   margin: 0 auto;
 }
 
@@ -36,12 +32,132 @@
   max-width: 900px;
 }
 
-/* Ensure easy headers follow card width even if global .game-header rules apply */
 .game-screen.easy-mode .game-header.easy-mode-header {
   width: min(100%, 900px);
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* ========================================
+   Auto-save Indicator
+   ======================================== */
+
+.auto-save-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(40, 167, 69, 0.15);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #28a745;
+  animation: fadeInOut 2s ease-in-out;
+  z-index: 30;
+}
+
+.save-icon {
+  font-size: 0.9em;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.save-text {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* ========================================
+   Ligne 1: Niveau | Barre XP
+   ======================================== */
+
+.header-row-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  width: 100%;
+}
+
+.level-xp-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  flex: 1;
+  min-width: 0;
+}
+
+.level-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.4);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  flex-shrink: 0;
+}
+
+.level-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.level-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #667eea;
+  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+}
+
+.xp-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.xp-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ========================================
+   Ligne 2: Question | Vies | Streak+Shields | Boutons
+   ======================================== */
+
+.header-row-2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .header-stats {
@@ -63,7 +179,7 @@
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 
-.score-pill {
+.question-pill {
   border-color: var(--primary-color);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
@@ -170,61 +286,10 @@
   color: #fff;
 }
 
-/* === Section XP === */
-.header-xp-section {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 0.75rem);
-  width: 100%;
-  order: -1;
-}
+/* ========================================
+   Responsive - Mobile Optimization
+   ======================================== */
 
-.xp-level-display {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.125rem;
-  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  border-radius: var(--radius-medium, 12px);
-  min-width: 100px;
-}
-
-.xp-level-label {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #667eea;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.xp-amount {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-@media (max-width: 640px) {
-  .header-xp-section {
-    flex-wrap: wrap;
-  }
-  
-  .xp-level-display {
-    min-width: 80px;
-    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-  }
-  
-  .xp-level-label {
-    font-size: 0.75rem;
-  }
-  
-  .xp-amount {
-    font-size: 0.625rem;
-  }
-}
-
-/* === Responsive === */
 @media (max-width: 991px) {
   .game-header {
     font-size: 1rem;
@@ -233,13 +298,51 @@
 
 @media (max-width: 640px) {
   .game-header {
+    padding: 0.75rem;
+  }
+
+  .header-row-1 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .level-xp-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .level-badge {
+    justify-content: center;
+  }
+
+  .xp-bar-container {
+    max-width: 100%;
+  }
+
+  .header-row-2 {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
   }
+
+  .header-stats {
+    justify-content: space-between;
+    width: 100%;
+  }
+
   .header-actions {
     width: 100%;
-    justify-content: flex-start;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .stat-pill {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .action-button {
+    flex: 1;
   }
 }
 

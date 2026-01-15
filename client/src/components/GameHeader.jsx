@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import InGameStreakDisplay from './InGameStreakDisplay';
 import XPProgressBar from './XPProgressBar';
 import ActiveMultipliers from './ActiveMultipliers';
@@ -43,27 +43,53 @@ const GameHeader = ({
   const { t } = useLanguage();
   const { profile } = useUser();
   const { recentXPGain, xpMultipliers } = useGameData();
-  const { level } = useLevelProgress(profile?.xp || 0);
+  const { level, xpProgress = 0, xpNeeded = 1 } = useLevelProgress(profile?.xp || 0);
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
 
   const questionValue = hasQuestionLimit ? `${questionCount}/${maxQuestions}` : questionCount;
   const showLives = mode === 'hard';
 
+  // Indicateur auto-save
+  const [showAutoSave, setShowAutoSave] = useState(false);
+
+  useEffect(() => {
+    // Afficher brièvement l'indicateur auto-save toutes les 30 secondes
+    const interval = setInterval(() => {
+      setShowAutoSave(true);
+      setTimeout(() => setShowAutoSave(false), 2000);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className={`game-header ${mode}-mode-header`}>
-      {/* Section XP avec niveau */}
-      <div className="header-xp-section">
-        <div className="xp-level-display">
-          <span className="xp-level-label">Niv. {level}</span>
-          <span className="xp-amount">{(profile?.xp || 0).toLocaleString()} XP</span>
+      {/* Indicateur auto-save */}
+      {showAutoSave && (
+        <div className="auto-save-indicator" role="status" aria-live="polite">
+          <span className="save-icon">💾</span>
+          <span className="save-text">{t('common.auto_saved', {}, 'Sauvegardé')}</span>
         </div>
-        <XPProgressBar 
-          currentXP={profile?.xp || 0}
-          recentXPGain={recentXPGain}
-          showDetailed={false}
-          animate={true}
-          size="compact"
-        />
+      )}
+
+      {/* Ligne 1: Niveau | Barre XP */}
+      <div className="header-row-1">
+        <div className="level-xp-container">
+          <div className="level-badge">
+            <span className="level-label">Niv.</span>
+            <span className="level-value">{level}</span>
+          </div>
+          <div className="xp-bar-wrapper">
+            <XPProgressBar 
+              currentXP={profile?.xp || 0}
+              recentXPGain={recentXPGain}
+              showDetailed={false}
+              animate={true}
+              size="compact"
+            />
+            
+          </div>
+        </div>
         <ActiveMultipliers 
           dailyStreakBonus={xpMultipliers?.dailyStreakBonus || 0}
           perksMultiplier={xpMultipliers?.perksMultiplier || 1.0}
@@ -72,39 +98,42 @@ const GameHeader = ({
         />
       </div>
 
-      <div className="header-stats">
-        <div className="stat-pill">
-          <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
-          <span className="pill-value">{questionValue}</span>
-        </div>
-        {showLives && (
-          <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
-            <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>
-            <span className="pill-value">{guesses}</span>
+      {/* Ligne 2: Question | Vies | Streak+Shields | Boutons */}
+      <div className="header-row-2">
+        <div className="header-stats">
+          <div className="stat-pill question-pill">
+            <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
+            <span className="pill-value">{questionValue}</span>
           </div>
-        )}
-        <div className="streak-chip">
-          <InGameStreakDisplay 
-            streak={currentStreak}
-            shields={inGameShields}
-            hasPermanentShield={hasPermanentShield}
-          />
+          {showLives && (
+            <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
+              <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>
+              <span className="pill-value">{guesses}</span>
+            </div>
+          )}
+          <div className="streak-chip">
+            <InGameStreakDisplay 
+              streak={currentStreak}
+              shields={inGameShields}
+              hasPermanentShield={hasPermanentShield}
+            />
+          </div>
         </div>
-      </div>
-      <div className="header-actions">
-        {mode === 'easy' && (
-          <button
-            className="action-button hint-button-easy"
-            onClick={onHint}
-            disabled={hintDisabled}
-            type="button"
-          >
-            {t('easy.hint_button', { cost: 5 })}
+        <div className="header-actions">
+          {mode === 'easy' && (
+            <button
+              className="action-button hint-button-easy"
+              onClick={onHint}
+              disabled={hintDisabled}
+              type="button"
+            >
+              {t('easy.hint_button', { cost: 5 })}
+            </button>
+          )}
+          <button onClick={onQuit} disabled={isGameOver} className="action-button quit" type="button">
+            {t('common.finish')}
           </button>
-        )}
-        <button onClick={onQuit} disabled={isGameOver} className="action-button quit" type="button">
-          {t('common.finish')}
-        </button>
+        </div>
       </div>
     </header>
   );

@@ -7,8 +7,7 @@ import RoundSummaryModal from './components/RoundSummaryModal';
 import GameHeader from './components/GameHeader';
 import LevelUpNotification from './components/LevelUpNotification';
 import './HardMode.css';
-import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
-import { computeScore } from './utils/scoring';
+import { getTaxonDetails } from './services/api';
 import { getDisplayName } from './utils/speciesUtils';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
@@ -16,7 +15,8 @@ import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 3;
-const REVEAL_HINT_COST = 1;
+const REVEAL_HINT_XP_COST = 20; // Coût en XP pour utiliser l'indice
+const MAX_HINTS = 1; // Un seul indice par question
 
 const SCORE_PER_RANK = {
   kingdom: 5,
@@ -51,6 +51,7 @@ function HardMode() {
   const [feedback, setFeedback] = useState(null);
   const [scoreInfo, setScoreInfo] = useState(null);
   const [panelEffect, setPanelEffect] = useState('');
+  const [currentScore, setCurrentScore] = useState(0);
   const [roundMeta, setRoundMeta] = useState({
     mode: 'hard',
     hintsUsed: false,
@@ -102,18 +103,18 @@ function HardMode() {
     setKnownTaxa({});
     setIncorrectGuessIds([]);
     setGuesses(INITIAL_GUESSES);
-    setCurrentScore(score);
     setRoundStatus('playing');
     setFeedback(null);
     setScoreInfo(null);
     setPanelEffect('');
+    setCurrentScore(0);
     setRoundMeta({
       mode: 'hard',
       hintsUsed: false,
       hintCount: 0,
     });
     setActiveRank(RANKS[0]);
-  }, [question, score]);
+  }, [question]);
 
   useEffect(() => {
     return () => {
@@ -183,7 +184,6 @@ function HardMode() {
       });
 
       const updatedScore = currentScore + gainedPoints;
-      const roundPoints = updatedScore - score;
       if (gainedPoints > 0) {
         setKnownTaxa(nextKnownTaxa);
         setCurrentScore(updatedScore);
@@ -194,26 +194,26 @@ function HardMode() {
 
       // --- Logique fin de partie ---
       if (isSpeciesGuessed) {
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: roundPoints,
-          guessesRemaining: updatedGuesses,
-          isCorrect: true
+        // Victoire: base XP + bonus progressif selon rangs trouvés
+        const ranksFound = Object.keys(nextKnownTaxa).length;
+        const progressionBonus = updatedGuesses > 0 ? updatedGuesses * 5 : 0; // Bonus pour vies restantes
+        const totalXP = updatedScore + progressionBonus;
+        setScoreInfo({ 
+          points: totalXP, 
+          bonus: progressionBonus, 
+          streakBonus: 0 
         });
-        const streakBonus = 2 * (currentStreak + 1);
-        setScoreInfo({ points, bonus, streakBonus });
         setRoundStatus('win');
         return;
       }
 
       if (updatedGuesses <= 0) {
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: roundPoints,
-          guessesRemaining: updatedGuesses,
-          isCorrect: false
+        // Défaite: cumul des rangs trouvés seulement
+        setScoreInfo({ 
+          points: updatedScore, 
+          bonus: 0, 
+          streakBonus: 0 
         });
-        setScoreInfo({ points, bonus, streakBonus: 0 });
         setRoundStatus('lose');
         return;
       }
@@ -232,14 +232,11 @@ function HardMode() {
       showFeedback(t('hard.feedback.error'), 'error');
       triggerPanelShake();
       if (updatedGuesses <= 0) {
-        const totalPoints = currentScore - score;
-        const { points, bonus } = computeScore({
-          mode: 'hard',
-          basePoints: totalPoints,
-          guessesRemaining: updatedGuesses,
-          isCorrect: false
+        setScoreInfo({ 
+          points: currentScore, 
+          bonus: 0, 
+          streakBonus: 0 
         });
-        setScoreInfo({ points, bonus, streakBonus: 0 });
         setRoundStatus('lose');
       }
     }
@@ -253,8 +250,8 @@ function HardMode() {
   
     const result = {
       points: scoreInfo?.points || 0,
-      bonus: scoreInfo?.bonus || 0,
-      streakBonus: scoreInfo?.streakBonus || 0,
+      bonus: 0,
+      streakBonus: 0,
       isCorrect,
     };
   
@@ -266,18 +263,21 @@ function HardMode() {
 
   const handleRevealNameHint = () => {
     if (roundStatus !== 'playing') return;
-    if (guesses < REVEAL_HINT_COST) {
-      showFeedback(t('hard.feedback.not_enough_guesses'), 'error');
+    // Vérifier qu'on a utilisé au maximum 1 indice
+    if (roundMeta.hintCount >= MAX_HINTS) {
+      showFeedback(t('hard.feedback.hint_limit', {}, 'Vous avez déjà utilisé votre indice'), 'error');
       triggerPanelShake();
       return;
     }
 
     if (firstUnknownRank) {
-      const newGuessesCount = guesses - REVEAL_HINT_COST;
-      setGuesses(newGuessesCount);
+      // L'indice coûte 20 XP au lieu d'une vie
+      const hintXPCost = REVEAL_HINT_XP_COST;
+      const updatedScore = Math.max(0, currentScore - hintXPCost);
+      setCurrentScore(updatedScore);
 
       const rankLabel = t(`ranks.${firstUnknownRank}`);
-      showFeedback(t('hard.feedback.hint_used', { rank: rankLabel }), 'info');
+      showFeedback(t('hard.feedback.hint_used', { rank: rankLabel, cost: hintXPCost }), 'info');
       
       const taxonData = targetLineage[firstUnknownRank];
 
@@ -292,43 +292,42 @@ function HardMode() {
 
         const isSpecies = firstUnknownRank === 'species';
         if (isSpecies) {
-          const roundPoints = currentScore - score;
-          const { points, bonus } = computeScore({
-            mode: 'hard',
-            basePoints: roundPoints,
-            guessesRemaining: newGuessesCount,
-            isCorrect: true
+          // L'indice déverrouille l'espèce: victoire avec pénalité XP
+          const totalXP = updatedScore;
+          const streakBonus = 0; // Pas de bonus streak si gagné par indice
+          setScoreInfo({ 
+            points: totalXP, 
+            bonus: 0, 
+            streakBonus 
           });
-          const streakBonus = 2 * (currentStreak + 1);
-          setScoreInfo({ points, bonus, streakBonus });
           setRoundStatus('win');
           return;
-        }
-
-        if (newGuessesCount <= 0) {
-          const roundPoints = currentScore - score;
-          const { points, bonus } = computeScore({
-            mode: 'hard',
-            basePoints: roundPoints,
-            guessesRemaining: newGuessesCount,
-            isCorrect: false
-          });
-          setScoreInfo({ points, bonus, streakBonus: 0 });
-          setRoundStatus('lose');
         }
       }
       setRoundMeta((prev) => {
         return {
           ...prev,
           hintsUsed: true,
-          hintCount: (prev.hintCount || 0) + 1,
+          hintCount: 1,
         };
       });
     }
   };
+
+  // Auto-end la question si 0 vies
+  useEffect(() => {
+    if (roundStatus === 'playing' && guesses <= 0) {
+      setScoreInfo({ 
+        points: currentScore, 
+        bonus: 0, 
+        streakBonus: 0 
+      });
+      setRoundStatus('lose');
+    }
+  }, [guesses, roundStatus, currentScore]);
   
   const isGameOver = roundStatus !== 'playing';
-  const canUseAnyHint = !!firstUnknownRank;
+  const canUseAnyHint = !!firstUnknownRank && roundMeta.hintCount < MAX_HINTS;
   const placeholderText = t('hard.single_guess_placeholder_species', {}, "Devinez l'espèce...");
 
   return (
@@ -393,12 +392,11 @@ function HardMode() {
                           onClick={handleRevealNameHint} 
                           disabled={
                             isGameOver ||
-                            !canUseAnyHint ||
-                            guesses < REVEAL_HINT_COST
+                            !canUseAnyHint
                           }
                           className="action-button hint"
                         >
-                          {t('hard.reveal_button', { cost: REVEAL_HINT_COST })}
+                          {t('hard.reveal_button', { cost: REVEAL_HINT_XP_COST })}
                         </button>
                       </div>
                     </div>

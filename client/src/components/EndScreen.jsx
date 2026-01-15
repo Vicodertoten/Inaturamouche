@@ -25,7 +25,8 @@ const EndScreen = ({
   const sessionXPGained = Math.max(0, currentXP - (initialSessionXP || 0));
   const startLevel = getLevelFromXp(initialSessionXP || 0);
   const endLevel = getLevelFromXp(currentXP);
-  const leveledUp = endLevel > startLevel;
+  // Level up seulement si on a vraiment gagné de l'XP ET que le niveau a changé
+  const leveledUp = sessionXPGained > 0 && endLevel > startLevel;
 
   useEffect(() => {
     if (sessionRewards && sessionRewards.length > 0) {
@@ -66,6 +67,14 @@ const EndScreen = ({
     return aFound ? -1 : 1;
   });
 
+  // Calculer le nombre de nouvelles découvertes
+  const newDiscoveries = sortedSpecies.filter(sp => {
+    const isFound = sessionCorrectSpecies.includes(sp.id);
+    return isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
+  });
+
+  const [showSpeciesList, setShowSpeciesList] = useState(false);
+
   return (
     <div className="screen end-screen">
       <div className="card">
@@ -76,41 +85,24 @@ const EndScreen = ({
             ))}
           </div>
         )}
-        <div className="summary">
-          <div className="xp-final-display">
-            <p className="xp-final-label">XP Total</p>
-            <p className="xp-final-value">{(profile?.xp || 0).toLocaleString()} XP</p>
-            <p className="xp-final-level">Niveau {endLevel}</p>
-          </div>
-          <div className="stats">
-            <span>{t('end.correct_count', { correct: correctCount, total: totalQuestions })}</span>
-            <span>{t('end.accuracy', { value: accuracy.toFixed(0) })}</span>
-          </div>
-        </div>
 
-        {/* Récapitulatif XP */}
-        {sessionXPGained > 0 && (
-          <div className="xp-summary-card">
-            <h3 className="xp-summary-title">
-              {leveledUp ? '🎉 Level Up!' : '📊 Progression XP'}
-            </h3>
-            
-            <div className="xp-summary-stats">
-              <div className="xp-stat-item">
-                <span className="xp-stat-label">XP total gagné</span>
-                <span className="xp-stat-value">+{sessionXPGained} XP</span>
-              </div>
-              
-              {leveledUp && (
-                <div className="xp-stat-item level-up-highlight">
-                  <span className="xp-stat-label">Nouveau niveau</span>
-                  <span className="xp-stat-value">
-                    {startLevel} → {endLevel}
-                  </span>
-                </div>
-              )}
+        {/* 1. XP et Progression fusionnés */}
+        <div className="xp-progress-unified-section">
+          {leveledUp ? (
+            <div className="level-up-header">
+              <div className="level-up-icon">🎉</div>
+              <h2 className="section-title">{t('end.level_up', {}, 'Passage au niveau')} {endLevel}!</h2>
             </div>
-
+          ) : (
+            <h2 className="section-title">{t('end.session_complete', {}, '✨ Session Terminée')}</h2>
+          )}
+          
+          {sessionXPGained > 0 && (
+            <div className="xp-gained-display">+{sessionXPGained} XP</div>
+          )}
+          
+          <div className="level-info">
+            <span className="current-level">Niveau {endLevel}</span>
             <XPProgressBar 
               currentXP={currentXP}
               recentXPGain={0}
@@ -119,73 +111,117 @@ const EndScreen = ({
               size="default"
             />
           </div>
-        )}
+        </div>
 
-        {sortedSpecies.length > 0 && (
-          <section className="played-species">
-            <h2>{t('end.species_seen')}</h2>
-            <ul className="species-list">
-              {sortedSpecies.map((sp) => {
-                const isFound = sessionCorrectSpecies.includes(sp.id);
+        {/* 2. Précision (plus dense) */}
+        <div className="accuracy-section">
+          <div className="accuracy-inline">
+            <span className="accuracy-label">📊 {t('end.precision', {}, 'Précision')}</span>
+            <span className="accuracy-value">{accuracy.toFixed(0)}%</span>
+            <span className="accuracy-details">({correctCount}/{totalQuestions})</span>
+          </div>
+        </div>
+
+        {/* 3. Nouvelles découvertes */}
+        {newDiscoveries.length > 0 && (
+          <div className="new-discoveries-section">
+            <h3 className="section-title">{t('end.new_discoveries', {}, '✨ Nouvelles Découvertes')}</h3>
+            <div className="discoveries-count">
+              {newDiscoveries.length} {t('end.species_added', {}, 'espèce(s) ajoutée(s) au guide')}
+            </div>
+            <ul className="discoveries-list">
+              {newDiscoveries.map((sp) => {
                 const { primary, secondary } = getTaxonDisplayNames(sp);
-                const isNewDiscovery = isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
-
                 return (
-                  <li
-                    key={sp.id}
-                    className={`species-item ${isFound ? 'found' : 'missed'}`}
-                  >
-                    <div className="species-info">
-                      <div>
-                        {primary && <span className="species-common">{primary}</span>}
-                        {secondary && <em>{secondary}</em>}
-                      </div>
-                      {isNewDiscovery && <span className="discovery-badge">{t('end.new_discovery')}</span>}
-                    </div>
-                    <div className="species-links">
-                      <span
-                        className="species-status"
-                        aria-label={isFound ? t('end.status.correct') : t('end.status.incorrect')}
-                      >
-                        {isFound ? '✅' : '❌'}
-                      </span>
-                      <div className="external-links-container">
-                        <a
-                          href={sp.inaturalist_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="external-link"
-                        >
-                          {t('end.links.inaturalist')}
-                        </a>
-                        {sp.wikipedia_url && (
-                          <a
-                            href={sp.wikipedia_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="external-link"
-                          >
-                            {t('end.links.wikipedia')}
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                  <li key={sp.id} className="discovery-item">
+                    {primary && <span className="species-common">{primary}</span>}
+                    {secondary && <em className="species-scientific">{secondary}</em>}
                   </li>
                 );
               })}
             </ul>
-          </section>
+          </div>
         )}
 
+        {/* 4. Achievements débloqués */}
         {newlyUnlocked.length > 0 && (
-          <section className="achievements">
-            <h2>{t('end.achievements')}</h2>
-            <ul>
+          <div className="achievements-section">
+            <h3 className="section-title">{t('end.achievements_unlocked', {}, '🏆 Achievements Débloqués')}</h3>
+            <ul className="achievements-list">
               {newlyUnlocked.map((id) => (
-                <li key={id}>{ACHIEVEMENTS[id]?.titleKey ? t(ACHIEVEMENTS[id].titleKey) : id}</li>
+                <li key={id} className="achievement-item">
+                  {ACHIEVEMENTS[id]?.titleKey ? t(ACHIEVEMENTS[id].titleKey) : id}
+                </li>
               ))}
             </ul>
-          </section>
+          </div>
+        )}
+
+        {/* 5. Liste détaillée des espèces (repliable) */}
+        {sortedSpecies.length > 0 && (
+          <div className="species-details-section">
+            <button 
+              className="species-toggle-button"
+              onClick={() => setShowSpeciesList(!showSpeciesList)}
+              type="button"
+            >
+              <span>{t('end.species_seen', {}, '📜 Liste détaillée des espèces')}</span>
+              <span className="toggle-icon">{showSpeciesList ? '▼' : '▶'}</span>
+            </button>
+            
+            {showSpeciesList && (
+              <ul className="species-list">
+                {sortedSpecies.map((sp) => {
+                  const isFound = sessionCorrectSpecies.includes(sp.id);
+                  const { primary, secondary } = getTaxonDisplayNames(sp);
+                  const isNewDiscovery = isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
+
+                  return (
+                    <li
+                      key={sp.id}
+                      className={`species-item ${isFound ? 'found' : 'missed'}`}
+                    >
+                      <div className="species-info">
+                        <div>
+                          {primary && <span className="species-common">{primary}</span>}
+                          {secondary && <em>{secondary}</em>}
+                        </div>
+                        {isNewDiscovery && <span className="discovery-badge">{t('end.new_discovery')}</span>}
+                      </div>
+                      <div className="species-links">
+                        <span
+                          className="species-status"
+                          aria-label={isFound ? t('end.status.correct') : t('end.status.incorrect')}
+                        >
+                          {isFound ? '✅' : '❌'}
+                        </span>
+                        <div className="external-links-container">
+                          <a
+                            href={sp.inaturalist_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="external-link"
+                          >
+                            {t('end.links.inaturalist')}
+                          </a>
+                          {sp.wikipedia_url && (
+                            <a
+                              href={sp.wikipedia_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="external-link"
+                            >
+                              {t('end.links.wikipedia')}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         )}
 
         <div className="end-actions">
