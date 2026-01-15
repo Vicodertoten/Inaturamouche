@@ -4,6 +4,7 @@ import AchievementModal from './AchievementModal';
 import HelpModal from './HelpModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
+import BottomNavigationBar from './BottomNavigationBar';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
@@ -65,7 +66,8 @@ const AppLayout = () => {
       )}
       <ToastContainer />
 
-      <nav className="main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
+      {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
+      <nav className="main-nav desktop-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">
           <button
             className="nav-pill nav-icon nav-elevated"
@@ -97,6 +99,9 @@ const AppLayout = () => {
           <PreferencesMenu />
         </div>
       </nav>
+
+      {/* Mobile Bottom Navigation - Hidden on Desktop */}
+      <BottomNavigationBar />
 
       <header className="app-header">
         <img

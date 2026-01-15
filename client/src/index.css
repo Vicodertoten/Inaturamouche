@@ -1,5 +1,10 @@
 /* --- VARIABLES DE COULEURS GLOBALES --- */
 
+/* === Import Mobile-First Styles === */
+@import './styles/BottomNavigationBar.css';
+@import './styles/MobileGameLayout.css';
+@import './styles/MobileGameModes.css';
+
 @font-face {
   font-family: 'Poppins';
   font-style: normal;

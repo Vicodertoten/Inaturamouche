@@ -19,10 +19,22 @@ em {
   gap: 0.75rem;
   align-items: center;
 }
+
+.main-nav.desktop-nav {
+  display: flex;
+}
+
 .main-nav .main-nav-items {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+/* Hide desktop nav on mobile */
+@media (max-width: 768px) {
+  .main-nav.desktop-nav {
+    display: none;
+  }
 }
 
 .sr-only {
@@ -144,52 +156,7 @@ select.nav-pill {
   }
 }
 
-@media (max-width: 768px) {
-  .main-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    z-index: 30;
-    margin: 0;
-    padding: 0.6rem clamp(1rem, 4vw, 1.3rem);
-    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom));
-    justify-content: center;
-    border-radius: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    background-color: rgba(12, 14, 12, 0.92);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.45);
-  }
-
-  .main-nav .main-nav-items {
-    width: 100%;
-    max-width: 640px;
-    justify-content: space-between;
-  }
-
-  .main-nav .main-nav-items > * {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-  }
-
-  button,
-  .nav-pill,
-  .preferences-trigger {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .nav-pill.nav-icon,
-  .preferences-trigger {
-    width: 44px;
-    height: 44px;
-    padding: 0.35rem;
-  }
-}
+/* OLD MOBILE NAV STYLES - REMOVED, Now using BottomNavigationBar component */
 
 /* Ensure minimum touch target sizes for interactive elements */
 .touch-target-helpers, .remove-btn, .suggestions-list button, .place-suggestion button, .language-chip, .format-option {
@@ -202,21 +169,23 @@ select.nav-pill {
 .App {
   position: relative;
   width: 100%;
-  height: 100%; /* Prend toute la hauteur du root */
+  height: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  /* On garde le padding mais on utilise border-box pour qu'il soit inclus dans le height */
-  padding: var(--space-3); 
+  padding: var(--space-3);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
-  box-sizing: border-box; 
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Important pour que les enfants scrollent */
+  overflow: hidden;
 }
 
+/* Mobile: Add padding for bottom navigation */
 @media (max-width: 768px) {
   .App {
-    padding-bottom: calc(var(--space-3) + 4.5rem + env(safe-area-inset-bottom));
+    padding: var(--space-2);
+    padding-top: 0.5rem;
+    padding-bottom: calc(5rem + var(--space-2) + env(safe-area-inset-bottom));
   }
 } 
 
@@ -255,6 +224,8 @@ select.nav-pill {
 @media (max-width: 768px) {
   .app-header {
     justify-content: flex-start;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
   }
 
   .app-title-wide {
@@ -263,13 +234,13 @@ select.nav-pill {
 
   .app-title-compact {
     display: block;
-    width: 10px;
-    max-width: 10px;
+    width: 45px;
+    max-width: 45px;
   }
 
   .app-title-image {
     width: auto;
-    max-width: 60px;
+    max-width: 45px;
   }
 }
 
