@@ -1,53 +1,226 @@
-# Inaturamouche – Le Quiz Naturaliste basé sur la Science
+# 🦋 Inaturamouche – Documentation
 
-Quiz photo temps réel fondé sur les données iNaturalist : algorithmes phylogénétiques pour choisir les leurres, filtres géographiques/ saisonniers, PWA prête pour le terrain.
+> **Quiz naturaliste temps réel basé sur la phylogénie et les données iNaturalist.**
 
-## Features clés
-- PWA avec cache différencié (quiz en `NetworkOnly`, métadonnées en `SWR`, photos iNat en `CacheFirst`).
-- Algorithme de leurres intelligent (proximité LCA near/mid/far, anti-répétition cible/observation).
-- Packs préconfigurés + mode filtres libres (taxons inclus/exclus, bbox ou place, période ou fenêtre saisonnière).
-- Modes de jeu facile/difficile, préchargement de la prochaine question, profils et achievements persistés côté client.
-- Observabilité intégrée : `Server-Timing`, `X-Lure-Buckets`, `X-Pool-*` pour inspecter les performances.
+Inaturamouche combine l'intelligence artificielle phylogénétique, la PWA offline-first et les données d'observation réelles pour créer une expérience de quiz unique et scientifiquement fondée.
 
-## Quick Start
+## 📑 Table des matières
+
+- **[Vue d'ensemble](#vue-densemble)** – Vision du projet et features clés
+- **[Quick Start](#quick-start)** – Démarrer en 5 min
+- **[Structure des guides](#structure-des-guides)** – Navigation dans la documentation
+- **[Architecture overview](#architecture-overview)** – Concepts clés
+- **[Stack technique](#stack-technique)**
+
+---
+
+## 🎯 Vue d'ensemble
+
+### Pourquoi Inaturamouche ?
+
+**Problème** : Les quizz d'identification botaniques/zoologiques existants sont limités : pas de données réelles, leurres aléatoires peu crédibles, pas de conscience de la phylogénie.
+
+**Solution** :
+- 🌍 **Données réelles** : Chaque question provient d'une **observation vérifiée iNaturalist**.
+- 🧬 **Phylogénie** : Les leurres sont sélectionnés par **proximité LCA** (Lowest Common Ancestor), créant un vrai défi pédagogique gradué.
+- 📱 **Offline-first PWA** : Quiz disponible partout, même sans connexion. Cache intelligent pour photos et métadonnées.
+- 🎮 **Modes adaptatifs** : Facile (labels texte + photos) ou Difficile (arbre phylogénétique + structure taxonomique).
+- 🌐 **Multilingue** : FR / EN / NL avec parity check automatisé en CI.
+
+### Features clés
+
+| Feature | Détail |
+|---------|--------|
+| **Pipeline LCA** | Sélection de leurres basée sur distance phylogénétique (near/mid/far) |
+| **Cache stratégié** | SmartCache (SWR + LRU) ; photos CacheFirst, quiz NetworkOnly |
+| **Anti-répétition** | Cooldown par taxon, historique observations, deck mélangé |
+| **Filtres libres** | Packs (mushrooms, trees) ou configurations custom (géo, période, taxa) |
+| **Observabilité** | Server-Timing, X-Lure-Buckets, X-Pool-*, debug headers |
+| **Achievements** | Système de progression/streaks persisté côté client (IndexedDB) |
+| **Offline mode** | Fonctionne sans réseau ; sync des scores à la reconnexion |
+
+---
+
+## ⚡ Quick Start
+
+### 1️⃣ Installation locale
+
+**Prérequis** : Node.js 20+, npm 10+
+
 ```bash
-# 1) Installer les dépendances serveur
+# Cloner le repo
+git clone https://github.com/user/inaturamouche.git
+cd inaturamouche
+
+# Installer dépendances (root + client)
 npm install
-
-# 2) Installer les dépendances client
 npm --prefix client install
-
-# 3) Démarrer en dev (2 terminaux)
-npm run dev              # API Express + nodemon (port 3001)
-npm --prefix client run dev   # Front Vite (port 5173, proxy /api)
-
-# 4) Build prod
-npm run build            # build client/ et copie dans l'image Docker
-npm start                # lance l'API en mode prod
 ```
-- **Docker** : `docker build -t inaturamouche .` puis `docker run -p 3001:3001 inaturamouche`.
-- **Tests** : `npm test` lance les tests Node + client (node --test).
-### Internationalisation (i18n) parity check ✅
-We added an automated i18n parity check that ensures all locale files (`client/src/locales/fr.js`, `en.js`, `nl.js`) contain the same translation keys.
 
-- Run locally: `npm run check:i18n` (prints key counts and any missing/extra keys).
-- CI: The project CI runs this check on push/PR and fails the build if parity is broken.
+### 2️⃣ Variables d'environnement
 
-If you add or rename keys, run `npm run check:i18n` and update the other locale files to keep translations in sync.
-## Architecture technique
-- **Backend** : Node/Express 5, Zod pour la validation, Pino pour les logs, caches LRU mémoire, appels iNaturalist avec retries/timeout.  
-- **Frontend** : React 19 + Vite + vite-plugin-pwa, routing React Router, contextes `GameContext`/`UserContext` pour l'état global.  
-- **Docs détaillées** :  
-  - `docs/ARCHITECTURE_BACKEND.md` (pipeline, caches, observabilité)  
-  - `docs/API_REFERENCE.md` (contrats de routes, paramètres, erreurs)  
-  - `docs/FRONTEND_GUIDE.md` (state machine, PWA, composants)
+Créer un fichier `.env` à la racine :
+```env
+# Server
+PORT=3001
+TRUST_PROXY_LIST=loopback,uniquelocal
+NODE_ENV=development
 
-## Variables d'environnement
-- `PORT` (défaut `3001`) : port HTTP de l'API.  
-- `TRUST_PROXY_LIST` (défaut `loopback,uniquelocal`) : liste Express trust proxy, CSV.  
-- `VITE_API_URL` (optionnel côté client) : base URL de l'API utilisée par le front ; sinon `http://localhost:3001` en dev, Render en prod.
+# Client (optionnel, défaut : http://localhost:3001 en dev)
+VITE_API_URL=http://localhost:3001
+```
 
-## Ressources utiles
-- Prod front : https://inaturamouche.netlify.app  
-- Prod API : https://inaturamouche-api.onrender.com  
-- Wiki technique : voir le dossier `docs/` pour les pipelines backend, les contrats API et l'architecture React.
+### 3️⃣ Démarrer en dev (deux terminaux)
+
+**Terminal 1 — Backend** :
+```bash
+npm run dev
+# ✅ API écoute http://localhost:3001
+```
+
+**Terminal 2 — Frontend** :
+```bash
+npm --prefix client run dev
+# ✅ Frontend http://localhost:5173 (proxy /api → :3001)
+```
+
+### 4️⃣ Build et production
+
+```bash
+# Build prod (client dans dist/ → copié dans Docker)
+npm run build
+
+# Lancer localement en prod
+npm start
+
+# Docker
+docker build -t inaturamouche .
+docker run -p 3001:3001 inaturamouche
+```
+
+### 5️⃣ Tests et vérifications
+
+```bash
+# Unit tests (Node + client)
+npm test
+
+# Vérifier parité i18n
+npm run check:i18n
+
+# Linting frontend
+npm --prefix client run lint
+
+# CI complet
+npm run ci
+```
+
+---
+
+## 📚 Structure des guides
+
+### 1. **[GETTING_STARTED.md](./GETTING_STARTED.md)**
+Installation détaillée, commandes dev/build, variables d'environnement, premiers pas.
+
+### 2. **[ARCHITECTURE.md](./ARCHITECTURE.md)** ⭐
+Vue d'ensemble unifiée du système avec diagrammes Mermaid :
+- Pipeline /api/quiz-question (étapes 1-11)
+- State machine GameContext
+- Stratégies cache et observabilité
+
+### 3. **[API_REFERENCE.md](./API_REFERENCE.md)**
+Contrats des routes : requêtes, réponses, erreurs, exemples cURL.
+
+### 4. **Guides thématiques** (dans `/guides/`)
+
+#### Backend
+- [QUIZ_PIPELINE.md](./guides/backend/QUIZ_PIPELINE.md) – Détail algorithmique, LCA buckets, anti-répétition
+- [CACHE_STRATEGY.md](./guides/backend/CACHE_STRATEGY.md) – SmartCache, TTL, circuit-breaker, limitations
+- [OBSERVABILITY.md](./guides/backend/OBSERVABILITY.md) – Headers debug, Server-Timing, monitoring
+
+#### Frontend
+- [GAME_STATE.md](./guides/frontend/GAME_STATE.md) – GameContext, lifecycle, AbortController
+- [PWA_OFFLINE.md](./guides/frontend/PWA_OFFLINE.md) – Service Worker, cache policies, offline-first
+- [COMPONENTS.md](./guides/frontend/COMPONENTS.md) – Catalogue des composants réutilisables
+- [STYLING.md](./guides/frontend/STYLING.md) – Architecture CSS, thèmes, responsive
+
+#### Ops
+- [DEPLOYMENT.md](./guides/ops/DEPLOYMENT.md) – Docker, Netlify, Render, env vars
+- [MONITORING.md](./guides/ops/MONITORING.md) – Logs Pino, alertes, performance
+
+### 5. **[CONTRIBUTING.md](./CONTRIBUTING.md)**
+Conventions de code, workflow i18n, tests, CI/CD.
+
+---
+
+## 🏗️ Architecture overview
+
+```mermaid
+graph TB
+    Client["🖥️ Frontend (React + Vite PWA)"]
+    API["🔌 Backend (Express.js + Node)"]
+    Cache["💾 SmartCache (LRU + SWR)"]
+    iNat["🌍 iNaturalist API"]
+    DB["📦 IndexedDB (client)"]
+    
+    Client -->|"POST /api/quiz-question"| API
+    Client -->|"GET /api/taxa/autocomplete"| API
+    API -->|"LRU lookup"| Cache
+    Cache -->|"fetch obs"| iNat
+    API -->|"scores, achievements"| DB
+    
+    Client -->|"offline cache"| DB
+    
+    style Client fill:#e1f5ff
+    style API fill:#fff3e0
+    style Cache fill:#f3e5f5
+    style iNat fill:#e8f5e9
+```
+
+**Points clés** :
+1. Le **Frontend** (React 19 + Vite) gère la UI, le PWA offline et l'état du jeu.
+2. L'**API** Express décide de la question via LCA, requête iNat et cache.
+3. Le **Cache** (SmartCache) réduit les appels iNat et améliore la latence.
+4. **IndexedDB** persiste les scores/achievements client et permet l'offline.
+
+---
+
+## 💻 Stack technique
+
+| Couche | Technos |
+|--------|---------|
+| **Frontend** | React 19, Vite, Vite-PWA, React Router, CSS Modules |
+| **Backend** | Node.js (ES modules), Express 5, Zod (validation) |
+| **Cache** | LRU (mémoire), SWR (Stale-While-Revalidate) |
+| **Logs** | Pino (JSON), Pino-HTTP (middleware) |
+| **Tests** | Node built-in test runner, Vitest (client) |
+| **i18n** | JSON locales + parity check automatisé |
+| **Deployment** | Docker, Netlify (front), Render (API) |
+| **Observabilité** | Server-Timing, headers X-*, DevTools |
+
+---
+
+## 🔗 Ressources
+
+- **Prod** :
+  - Frontend : https://inaturamouche.netlify.app
+  - API : https://inaturamouche-api.onrender.com
+
+- **Données** :
+  - iNaturalist : https://www.inaturalist.org
+  - Packs locaux : `shared/data/*.json`
+
+- **Communauté** :
+  - Issues : GitHub Issues
+  - Discussions : GitHub Discussions
+  - PR : Bienvenues ! Voir [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+---
+
+## 📝 Notes pour les développeurs
+
+- **Nouvelles features** : Consulter [ARCHITECTURE.md](./ARCHITECTURE.md) avant de modifier le pipeline.
+- **Translations** : Lancer `npm run check:i18n` après chaque changement i18n.
+- **Performance** : Les headers `Server-Timing` et `X-Lure-Buckets` aident à diagnostiquer les goulots.
+- **Tests** : À ajouter pour tout changement de logique métier ou API.
+
+**Besoin d'aide ?** → Ouvrir une issue ou consulter le guide pertinent dans `/guides/`.
