@@ -120,3 +120,50 @@
   padding: var(--space-2) calc(var(--space-2) + var(--space-1));
   font-size: 0.85rem;
 }
+/* ========================================
+   Section XP
+   ======================================== */
+
+.xp-section {
+  margin: var(--space-4, 1rem) 0;
+  padding: var(--space-3, 0.75rem);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.xp-gain-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-3, 0.75rem);
+  padding: var(--space-2, 0.5rem);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  border-radius: var(--radius-small, 6px);
+}
+
+.xp-gain-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xp-gain-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+}
+
+.xp-multiplier-badge {
+  padding: 0.25rem 0.5rem;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+}

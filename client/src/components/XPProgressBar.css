@@ -1,0 +1,274 @@
+/* ========================================
+   XP PROGRESS BAR - BASE
+   ======================================== */
+
+.xp-progress-container {
+  width: 100%;
+  padding: var(--space-3, 0.75rem);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-medium, 12px);
+  position: relative;
+}
+
+/* ========================================
+   HEADER - Niveau et XP
+   ======================================== */
+
+.xp-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2, 0.5rem);
+}
+
+.xp-level-badge {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-full, 999px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.xp-level-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xp-level-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.xp-details {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1, 0.25rem);
+  font-size: 0.875rem;
+}
+
+.xp-current {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.xp-separator {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.xp-total {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ========================================
+   BARRE DE PROGRESSION
+   ======================================== */
+
+.xp-progress-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.xp-progress-bar-track {
+  flex: 1;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-full, 999px);
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.xp-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-full, 999px);
+  position: relative;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+/* Effet de brillance animé seulement lors de changements */
+.xp-progress-bar-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: none;
+}
+
+.xp-progress-bar-fill.animating .xp-progress-bar-shine {
+  animation: shine 1s ease-out;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+.xp-next-level {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-small, 6px);
+}
+
+/* ========================================
+   POPUP "+X XP"
+   ======================================== */
+
+.xp-gain-popup {
+  position: absolute;
+  top: -30px;
+  right: 50%;
+  transform: translateX(50%);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: var(--radius-small, 6px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  pointer-events: none;
+  z-index: 10;
+  animation: xpGainPopup 2s ease-out forwards;
+}
+
+@keyframes xpGainPopup {
+  0% {
+    opacity: 0;
+    transform: translateX(50%) translateY(10px) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(50%) translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(50%) translateY(-10px) scale(0.9);
+  }
+}
+
+/* ========================================
+   VERSION COMPACTE
+   ======================================== */
+
+.xp-progress-compact {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  background: transparent;
+}
+
+.xp-progress-compact .xp-progress-bar-wrapper {
+  flex: 1;
+}
+
+.xp-progress-compact .xp-progress-bar-track {
+  height: 8px;
+}
+
+.xp-progress-compact .xp-progress-bar-fill {
+  box-shadow: 0 0 6px rgba(102, 126, 234, 0.4);
+}
+
+.xp-compact-details {
+  display: flex;
+  align-items: center;
+  min-width: 120px;
+}
+
+.xp-compact-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 640px) {
+  .xp-progress-container {
+    padding: var(--space-2, 0.5rem);
+  }
+
+  .xp-level-badge {
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  }
+
+  .xp-level-value {
+    font-size: 1rem;
+  }
+
+  .xp-details {
+    font-size: 0.75rem;
+  }
+
+  .xp-progress-bar-track {
+    height: 20px;
+  }
+
+  .xp-next-level {
+    font-size: 0.625rem;
+    padding: 0.125rem var(--space-1, 0.25rem);
+  }
+}
+
+/* ========================================
+   ACCESSIBILITÉ
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-progress-bar-fill {
+    transition: none;
+  }
+
+  .xp-progress-bar-shine {
+    animation: none;
+  }
+
+  .xp-gain-popup {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Amélioration du contraste */
+@media (prefers-contrast: high) {
+  .xp-progress-bar-track {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .xp-level-badge {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+}

@@ -5,6 +5,7 @@ import ImageViewer from './components/ImageViewer';
 import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
 import GameHeader from './components/GameHeader';
+import LevelUpNotification from './components/LevelUpNotification';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api'; // NOUVEL IMPORT
 import { computeScore } from './utils/scoring';
@@ -30,11 +31,11 @@ const SCORE_PER_RANK = {
 function HardMode() {
   const {
     question,
-    score,
     nextImageUrl,
     currentStreak,
     inGameShields,
     hasPermanentShield,
+    levelUpNotification,
     completeRound,
     endGame,
     mediaType,
@@ -44,7 +45,6 @@ function HardMode() {
   const [knownTaxa, setKnownTaxa] = useState({});
   const [activeRank, setActiveRank] = useState(RANKS[0]);
   const [guesses, setGuesses] = useState(INITIAL_GUESSES);
-  const [currentScore, setCurrentScore] = useState(score);
   const [incorrectGuessIds, setIncorrectGuessIds] = useState([]);
   
   const [roundStatus, setRoundStatus] = useState('playing');
@@ -333,6 +333,14 @@ function HardMode() {
 
   return (
     <>
+      {levelUpNotification && (
+        <LevelUpNotification 
+          oldLevel={levelUpNotification.oldLevel}
+          newLevel={levelUpNotification.newLevel}
+          onClose={() => {}}
+        />
+      )}
+      
       {isGameOver && (
         <RoundSummaryModal status={roundStatus} question={question} scoreInfo={scoreInfo} onNext={handleNext} />
       )}
@@ -341,7 +349,6 @@ function HardMode() {
         <div className="hard-mode-container">
           <GameHeader
             mode="hard"
-            score={currentScore}
             currentStreak={currentStreak}
             inGameShields={inGameShields}
             hasPermanentShield={hasPermanentShield}

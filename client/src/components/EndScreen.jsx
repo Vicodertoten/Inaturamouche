@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import XPProgressBar from './XPProgressBar';
+import { getLevelFromXp } from '../utils/scoring';
+import { useGameData } from '../context/GameContext';
 import { ACHIEVEMENTS } from '../achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { notify } from '../services/notifications';
@@ -16,6 +19,13 @@ const EndScreen = ({
   profile,
 }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
+  const { initialSessionXP } = useGameData();
+  
+  const currentXP = profile?.xp || 0;
+  const sessionXPGained = Math.max(0, currentXP - (initialSessionXP || 0));
+  const startLevel = getLevelFromXp(initialSessionXP || 0);
+  const endLevel = getLevelFromXp(currentXP);
+  const leveledUp = endLevel > startLevel;
 
   useEffect(() => {
     if (sessionRewards && sessionRewards.length > 0) {
@@ -67,14 +77,49 @@ const EndScreen = ({
           </div>
         )}
         <div className="summary">
-          <p className="score-line">
-            {t('end.final_score')} <span className="score">{score}</span>
-          </p>
+          <div className="xp-final-display">
+            <p className="xp-final-label">XP Total</p>
+            <p className="xp-final-value">{(profile?.xp || 0).toLocaleString()} XP</p>
+            <p className="xp-final-level">Niveau {endLevel}</p>
+          </div>
           <div className="stats">
             <span>{t('end.correct_count', { correct: correctCount, total: totalQuestions })}</span>
             <span>{t('end.accuracy', { value: accuracy.toFixed(0) })}</span>
           </div>
         </div>
+
+        {/* Récapitulatif XP */}
+        {sessionXPGained > 0 && (
+          <div className="xp-summary-card">
+            <h3 className="xp-summary-title">
+              {leveledUp ? '🎉 Level Up!' : '📊 Progression XP'}
+            </h3>
+            
+            <div className="xp-summary-stats">
+              <div className="xp-stat-item">
+                <span className="xp-stat-label">XP total gagné</span>
+                <span className="xp-stat-value">+{sessionXPGained} XP</span>
+              </div>
+              
+              {leveledUp && (
+                <div className="xp-stat-item level-up-highlight">
+                  <span className="xp-stat-label">Nouveau niveau</span>
+                  <span className="xp-stat-value">
+                    {startLevel} → {endLevel}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <XPProgressBar 
+              currentXP={currentXP}
+              recentXPGain={0}
+              showDetailed={true}
+              animate={false}
+              size="default"
+            />
+          </div>
+        )}
 
         {sortedSpecies.length > 0 && (
           <section className="played-species">

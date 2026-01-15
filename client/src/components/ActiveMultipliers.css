@@ -1,0 +1,250 @@
+/* ========================================
+   ACTIVE MULTIPLIERS
+   ======================================== */
+
+.active-multipliers {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+/* Badge principal */
+.multiplier-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: var(--radius-full, 999px);
+  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.active-multipliers:hover .multiplier-badge,
+.active-multipliers:focus .multiplier-badge {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.5);
+}
+
+.multiplier-icon {
+  font-size: 1rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.multiplier-value {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================
+   TOOLTIP
+   ======================================== */
+
+.multiplier-tooltip {
+  position: absolute;
+  top: calc(100% + var(--space-2, 0.5rem));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: var(--space-3, 0.75rem);
+  background: rgba(30, 30, 40, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-medium, 12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Flèche du tooltip */
+.multiplier-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: rgba(30, 30, 40, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Header du tooltip */
+.multiplier-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-3, 0.75rem);
+  padding-bottom: var(--space-2, 0.5rem);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.multiplier-tooltip-icon {
+  font-size: 1.125rem;
+}
+
+.multiplier-tooltip-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Contenu du tooltip */
+.multiplier-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.multiplier-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-small, 6px);
+}
+
+.multiplier-item-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.multiplier-item-label {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.multiplier-item-value {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #f093fb;
+}
+
+/* Total */
+.multiplier-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-2, 0.5rem);
+  padding-top: var(--space-2, 0.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.multiplier-total-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multiplier-total-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #f093fb;
+  text-shadow: 0 0 8px rgba(240, 147, 251, 0.5);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 640px) {
+  .multiplier-badge {
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  }
+
+  .multiplier-icon {
+    font-size: 0.875rem;
+  }
+
+  .multiplier-value {
+    font-size: 0.75rem;
+  }
+
+  .multiplier-tooltip {
+    width: 240px;
+    padding: var(--space-2, 0.5rem);
+  }
+
+  .multiplier-tooltip-title {
+    font-size: 0.75rem;
+  }
+
+  .multiplier-item-label,
+  .multiplier-item-value {
+    font-size: 0.75rem;
+  }
+
+  .multiplier-total-label {
+    font-size: 0.75rem;
+  }
+
+  .multiplier-total-value {
+    font-size: 0.875rem;
+  }
+}
+
+/* Position alternative sur mobile */
+@media (max-width: 480px) {
+  .multiplier-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+
+  .multiplier-tooltip::before {
+    left: auto;
+    right: var(--space-3, 0.75rem);
+    transform: rotate(45deg);
+  }
+}
+
+/* ========================================
+   ACCESSIBILITÉ
+   ======================================== */
+
+.active-multipliers:focus {
+  outline: 2px solid #f093fb;
+  outline-offset: 2px;
+  border-radius: var(--radius-full, 999px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .multiplier-badge {
+    transition: none;
+  }
+
+  .multiplier-tooltip {
+    animation: none;
+  }
+}
+
+/* Amélioration du contraste */
+@media (prefers-contrast: high) {
+  .multiplier-badge {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .multiplier-tooltip {
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+}

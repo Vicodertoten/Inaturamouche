@@ -18,6 +18,7 @@ import { active_session } from '../services/db';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
 import { usePacks } from './PacksContext.jsx';
+import { getLevelFromXp } from '../utils/scoring';
 
 export const DEFAULT_MAX_QUESTIONS = 5;
 const DEFAULT_MEDIA_TYPE = 'images';
@@ -100,6 +101,47 @@ const computeMultiplierFromPerks = (perks = []) =>
     .filter((perk) => perk.type === 'multiplier' && (perk.roundsRemaining ?? 0) > 0)
     .reduce((acc, perk) => acc * (perk.value || 1), 1);
 
+/**
+ * Calcule les multiplicateurs XP actifs
+ * @param {Object} profile - Profil du joueur
+ * @param {number} perksMultiplier - Multiplicateur des perks (issu de la winstreak)
+ * @param {number} currentWinStreak - Streak de victoires actuel
+ * @returns {Object} Détails des multiplicateurs
+ */
+const calculateXPMultipliers = (profile, perksMultiplier = 1.0, currentWinStreak = 0) => {
+  if (!profile) {
+    return {
+      dailyStreakBonus: 0,
+      perksMultiplier: 1.0,
+      winStreakBonus: 0,
+      timerBonus: 0,
+      totalMultiplier: 1.0,
+    };
+  }
+
+  // Bonus de streak quotidienne (jusqu'à +20% à 7 jours)
+  const dailyStreakCount = profile.dailyStreak?.current || 0;
+  const dailyStreakBonus = Math.min(0.2, dailyStreakCount * 0.03);
+
+  // Bonus de winstreak (5% par victoire consécutive, max 50%)
+  const winStreakBonus = Math.min(0.5, currentWinStreak * 0.05);
+
+  // Pas de timer bonus dans le contexte (géré par round)
+  const timerBonus = 0;
+
+  // Calcul du multiplicateur total : (1 + bonus) × perksMultiplier
+  const baseMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
+  const totalMultiplier = baseMultiplier * perksMultiplier;
+
+  return {
+    dailyStreakBonus,
+    perksMultiplier,
+    winStreakBonus,
+    timerBonus,
+    totalMultiplier,
+  };
+};
+
 const getBiomesForQuestion = (question, pack) => {
   if (Array.isArray(question?.biome_tags) && question.biome_tags.length > 0) {
     return question.biome_tags;
@@ -152,6 +194,11 @@ export function GameProvider({ children }) {
   const [activePerks, setActivePerks] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
+  
+  // États pour le système XP
+  const [recentXPGain, setRecentXPGain] = useState(0);
+  const [initialSessionXP, setInitialSessionXP] = useState(0);
+  const [levelUpNotification, setLevelUpNotification] = useState(null);
   const activePack = useMemo(
     () => {
       if (activePackId === 'review') {
@@ -219,8 +266,12 @@ export function GameProvider({ children }) {
     setNewlyUnlocked([]);
     // Réinitialiser les boucliers de partie (garder le permanent s'il existe)
     setInGameShields(hasPermanentShield ? 1 : 0);
+    // Réinitialiser les états XP
+    setRecentXPGain(0);
+    setInitialSessionXP(profile?.xp || 0);
+    setLevelUpNotification(null);
     clearAchievementsTimer();
-  }, [clearAchievementsTimer, hasPermanentShield]);
+  }, [clearAchievementsTimer, hasPermanentShield, profile?.xp]);
 
   /**
    * Supprime la session active de IndexedDB.
@@ -580,6 +631,7 @@ export function GameProvider({ children }) {
       setIsGameActive(true);
       setIsGameOver(false);
       setIsReviewMode(isDailyChallenge ? false : review);
+      setInitialSessionXP(profile?.xp || 0);
       setGameMode((prev) =>
         forcedGameMode === undefined ? prev : normalizeGameMode(forcedGameMode, prev)
       );
@@ -590,7 +642,7 @@ export function GameProvider({ children }) {
         nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)
       );
     },
-    [abortActiveFetch, abortPrefetchFetch, resetSessionState, clearSessionFromDB]
+    [abortActiveFetch, abortPrefetchFetch, resetSessionState, clearSessionFromDB, profile]
   );
 
   const nextImageUrl = useMemo(() => {
@@ -639,9 +691,7 @@ export function GameProvider({ children }) {
         ? speciesEntries.length
         : resolveTotalQuestions(maxQuestions, questionCount);
 
-      // Apply XP with streak bonus
-      const finalScoreWithBonus = applyXPWithStreakBonus(finalScore, profileClone);
-      profileClone.xp = (profileClone.xp || 0) + finalScoreWithBonus;
+      // XP already applied in completeRound - just update game stats
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
 
       if (gameMode === 'easy') {
@@ -783,6 +833,51 @@ export function GameProvider({ children }) {
       const adjustedBonus = Math.round(baseBonus * multiplier);
       const updatedScore = score + points + adjustedBonus;
       setScore(updatedScore);
+
+      // Calcul XP avec multiplicateurs (utiliser newStreak qui est la streak APRÈS ce round)
+      // Pas d'XP si la réponse est incorrecte
+      const baseXP = isCorrectFinal ? (points + adjustedBonus) : 0;
+      const xpMultipliers = calculateXPMultipliers(profile, multiplier, isCorrectFinal ? newStreak : 0);
+      const earnedXP = Math.floor(baseXP * xpMultipliers.totalMultiplier);
+      
+      // Mettre à jour le profil avec le nouvel XP
+      if (earnedXP > 0) {
+        const oldXP = profile?.xp || 0;
+        const newXP = oldXP + earnedXP;
+        const oldLevel = getLevelFromXp(oldXP);
+        const newLevel = getLevelFromXp(newXP);
+        
+        // Afficher le popup de gain XP
+        setRecentXPGain(earnedXP);
+        
+        // Réinitialiser après l'animation (2 secondes)
+        setTimeout(() => {
+          setRecentXPGain(0);
+        }, 2000);
+        
+        // Détecter le level up
+        if (newLevel > oldLevel) {
+          setLevelUpNotification({
+            oldLevel,
+            newLevel,
+            timestamp: Date.now(),
+          });
+          
+          // Cacher la notification après 4 secondes
+          setTimeout(() => {
+            setLevelUpNotification(null);
+          }, 4000);
+        }
+        
+        // Mettre à jour le profil
+        updateProfile((prev) => {
+          const base = prev ?? loadProfileWithDefaults();
+          return {
+            ...base,
+            xp: newXP,
+          };
+        });
+      }
 
       const now =
         typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -1020,6 +1115,11 @@ export function GameProvider({ children }) {
       currentMultiplier,
       newlyUnlocked,
       nextImageUrl,
+      // États XP
+      recentXPGain,
+      initialSessionXP,
+      levelUpNotification,
+      xpMultipliers: calculateXPMultipliers(profile, currentMultiplier, currentStreak),
       updateScore,
       completeRound,
       endGame,
@@ -1058,6 +1158,10 @@ export function GameProvider({ children }) {
       currentMultiplier,
       newlyUnlocked,
       nextImageUrl,
+      recentXPGain,
+      initialSessionXP,
+      levelUpNotification,
+      profile,
       updateScore,
       completeRound,
       endGame,

@@ -170,6 +170,60 @@
   color: #fff;
 }
 
+/* === Section XP === */
+.header-xp-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  width: 100%;
+  order: -1;
+}
+
+.xp-level-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: var(--radius-medium, 12px);
+  min-width: 100px;
+}
+
+.xp-level-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xp-amount {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 640px) {
+  .header-xp-section {
+    flex-wrap: wrap;
+  }
+  
+  .xp-level-display {
+    min-width: 80px;
+    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  }
+  
+  .xp-level-label {
+    font-size: 0.75rem;
+  }
+  
+  .xp-amount {
+    font-size: 0.625rem;
+  }
+}
+
 /* === Responsive === */
 @media (max-width: 991px) {
   .game-header {

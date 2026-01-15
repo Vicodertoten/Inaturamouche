@@ -1,16 +1,20 @@
 import React from 'react';
 import InGameStreakDisplay from './InGameStreakDisplay';
+import XPProgressBar from './XPProgressBar';
+import ActiveMultipliers from './ActiveMultipliers';
+import { useLevelProgress } from '../hooks/useLevelProgress';
+import { useUser } from '../context/UserContext';
+import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './GameHeader.css';
 
 /**
  * Composant de header réutilisable pour les modes de jeu.
- * Affiche les statistiques du jeu (score, question, vies/indice) et les actions disponibles.
+ * Affiche les statistiques du jeu (XP, niveau, question, vies/indice) et les actions disponibles.
  * Supporte les modes "hard" et "easy".
  *
  * @param {Object} props
  * @param {string} props.mode - 'hard' ou 'easy'
- * @param {number} props.score - Score actuel du joueur
  * @param {number} props.currentStreak - Streak actuel du joueur
  * @param {number} [props.inGameShields] - Nombre de boucliers disponibles
  * @param {boolean} [props.hasPermanentShield] - Si le bouclier permanent est débloqué
@@ -25,7 +29,6 @@ import './GameHeader.css';
  */
 const GameHeader = ({
   mode = 'hard',
-  score,
   currentStreak,
   inGameShields = 0,
   hasPermanentShield = false,
@@ -38,6 +41,9 @@ const GameHeader = ({
   hintDisabled = false,
 }) => {
   const { t } = useLanguage();
+  const { profile } = useUser();
+  const { recentXPGain, xpMultipliers } = useGameData();
+  const { level } = useLevelProgress(profile?.xp || 0);
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
 
   const questionValue = hasQuestionLimit ? `${questionCount}/${maxQuestions}` : questionCount;
@@ -45,11 +51,28 @@ const GameHeader = ({
 
   return (
     <header className={`game-header ${mode}-mode-header`}>
-      <div className="header-stats">
-        <div className="stat-pill score-pill">
-          <span className="pill-label">{t('hard.stats.score', {}, 'Score')}</span>
-          <span className="pill-value">{score}</span>
+      {/* Section XP avec niveau */}
+      <div className="header-xp-section">
+        <div className="xp-level-display">
+          <span className="xp-level-label">Niv. {level}</span>
+          <span className="xp-amount">{(profile?.xp || 0).toLocaleString()} XP</span>
         </div>
+        <XPProgressBar 
+          currentXP={profile?.xp || 0}
+          recentXPGain={recentXPGain}
+          showDetailed={false}
+          animate={true}
+          size="compact"
+        />
+        <ActiveMultipliers 
+          dailyStreakBonus={xpMultipliers?.dailyStreakBonus || 0}
+          perksMultiplier={xpMultipliers?.perksMultiplier || 1.0}
+          winStreakBonus={xpMultipliers?.winStreakBonus || 0}
+          timerBonus={xpMultipliers?.timerBonus || 0}
+        />
+      </div>
+
+      <div className="header-stats">
         <div className="stat-pill">
           <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
           <span className="pill-value">{questionValue}</span>
