@@ -50,10 +50,16 @@ const NAME_FORMAT_OPTIONS = [
   { value: 'scientific', Icon: FlaskIcon, labelKey: 'common.scientific_name_option' },
 ];
 
-function PreferencesMenu() {
+function PreferencesMenu({ isOpen: externalIsOpen, onToggle: externalOnToggle, isMobileControlled = false }) {
   const { language, setLanguage, nameFormat, toggleNameFormat, t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalOnToggle !== undefined
+    ? externalOnToggle
+    : setInternalIsOpen;
 
   const preferencesTitle = useMemo(
     () => t('common.preferences_title', {}, 'Settings'),
@@ -68,11 +74,28 @@ function PreferencesMenu() {
     [t]
   );
 
-  const closeMenu = useCallback(() => setIsOpen(false), []);
-  const toggleMenu = useCallback(() => setIsOpen((open) => !open), []);
+  const closeMenu = useCallback(() => {
+    if (externalOnToggle !== undefined) {
+      // If controlled externally, close by calling onToggle if currently open
+      if (externalIsOpen) externalOnToggle();
+    } else {
+      setInternalIsOpen(false);
+    }
+  }, [externalIsOpen, externalOnToggle]);
+  
+  const toggleMenu = useCallback(() => {
+    if (externalOnToggle !== undefined) {
+      externalOnToggle();
+    } else {
+      setInternalIsOpen((open) => !open);
+    }
+  }, [externalOnToggle]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
+    
+    // Don't auto-close when mobile-controlled (button is external)
+    if (isMobileControlled) return undefined;
 
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -93,7 +116,38 @@ function PreferencesMenu() {
       document.removeEventListener('touchstart', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [closeMenu, isOpen]);
+  }, [closeMenu, isOpen, isMobileControlled]);
+
+  // Mobile-specific: close on clicking backdrop (but keep ESC key)
+  useEffect(() => {
+    if (!isOpen || !isMobileControlled) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeMenu();
+    };
+
+    const handleBackdropClick = (event) => {
+      // Don't close if clicking on the settings button in bottom nav
+      const settingsButton = event.target.closest('.bottom-nav-item');
+      if (settingsButton) return;
+      
+      // Close if clicking outside the popover itself
+      const popover = menuRef.current?.querySelector('.preferences-popover');
+      if (popover && !popover.contains(event.target)) {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleBackdropClick);
+    document.addEventListener('touchstart', handleBackdropClick);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleBackdropClick);
+      document.removeEventListener('touchstart', handleBackdropClick);
+    };
+  }, [closeMenu, isOpen, isMobileControlled]);
 
   const handleLanguageChange = useCallback(
     (code) => {
@@ -113,17 +167,19 @@ function PreferencesMenu() {
 
   return (
     <div className="preferences-menu" ref={menuRef}>
-      <button
-        type="button"
-        className="preferences-trigger nav-pill nav-icon nav-elevated"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label={t('common.preferences_menu_label', {}, 'Open preferences')}
-        title={t('common.preferences_menu_label', {}, 'Open preferences')}
-        onClick={toggleMenu}
-      >
-        <GearIcon />
-      </button>
+      {!isMobileControlled && (
+        <button
+          type="button"
+          className="preferences-trigger nav-pill nav-icon nav-elevated"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label={t('common.preferences_menu_label', {}, 'Open preferences')}
+          title={t('common.preferences_menu_label', {}, 'Open preferences')}
+          onClick={toggleMenu}
+        >
+          <GearIcon />
+        </button>
+      )}
 
       {isOpen && (
         <div className="preferences-popover" role="menu" aria-label={preferencesTitle}>

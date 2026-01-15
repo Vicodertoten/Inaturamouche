@@ -37,6 +37,7 @@ const AppLayout = () => {
   const { achievementQueue, popAchievement } = useUser();
   const { t } = useLanguage();
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   const closeHelp = useCallback(() => {
     localStorage.setItem('home_intro_seen', '1');
@@ -55,6 +56,10 @@ const AppLayout = () => {
   const showProfile = useCallback(() => {
     if (location.pathname !== '/profile') navigate('/profile');
   }, [location.pathname, navigate]);
+
+  const togglePreferences = useCallback(() => {
+    setIsPreferencesOpen((prev) => !prev);
+  }, []);
 
   const outletContext = useMemo(() => ({ showHelp }), [showHelp]);
 
@@ -100,8 +105,11 @@ const AppLayout = () => {
         </div>
       </nav>
 
+      {/* Preferences Menu - Shared between desktop and mobile */}
+      <PreferencesMenu isOpen={isPreferencesOpen} onToggle={togglePreferences} isMobileControlled />
+
       {/* Mobile Bottom Navigation - Hidden on Desktop */}
-      <BottomNavigationBar />
+      <BottomNavigationBar onSettingsClick={togglePreferences} isSettingsOpen={isPreferencesOpen} />
 
       <header className="app-header">
         <img

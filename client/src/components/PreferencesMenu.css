@@ -188,9 +188,20 @@
 
 @media (max-width: 768px) {
   .preferences-popover {
+    position: fixed;
     top: auto;
-    bottom: calc(100% + 0.75rem);
-    right: 0;
+    bottom: calc(env(safe-area-inset-bottom) + 70px);
+    right: 1rem;
+    left: 1rem;
+    max-width: none;
+    width: auto;
+  }
+}
+
+/* Hide mobile-controlled preferences menu on desktop */
+@media (min-width: 769px) {
+  .preferences-menu:has(.preferences-popover):not(:has(.preferences-trigger)) {
+    display: none;
   }
 }
 
