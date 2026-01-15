@@ -1,4 +1,8 @@
 import React, { useEffect, useRef } from 'react';
+import XPProgressBar from './XPProgressBar';
+import { useLevelProgress } from '../hooks/useLevelProgress';
+import { useUser } from '../context/UserContext';
+import { useGameData } from '../context/GameContext';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -13,6 +17,9 @@ const supportsLazyLoading =
 // Affiche le récapitulatif d'une manche avec le résultat (victoire/défaite)
 const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
+  const { profile } = useUser();
+  const { recentXPGain, xpMultipliers } = useGameData();
+  const { level } = useLevelProgress(profile?.xp || 0);
 
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
@@ -50,14 +57,6 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
   const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
   const wikipediaUrl = bonne_reponse.wikipedia_url;
   const summaryTitle = removeEmojis(isWin ? t('summary.win_title') : t('summary.lose_title'));
-  const combinedBonus = scoreInfo ? (scoreInfo.bonus || 0) + (scoreInfo.streakBonus || 0) : 0;
-  const scoreSegments = scoreInfo
-    ? [
-        { id: 'points', label: t('summary.points'), value: `+${scoreInfo.points}` },
-        { id: 'bonus', label: t('summary.bonus'), value: `+${combinedBonus}` },
-        { id: 'total', label: t('summary.total'), value: `+${scoreInfo.points + combinedBonus}` },
-      ]
-    : [];
 
   return (
     <div className="modal-backdrop">
@@ -95,19 +94,7 @@ const RoundSummaryModal = ({ status, question, scoreInfo, onNext }) => {
           </div>
         </div>
 
-        {scoreInfo && (
-          <div className="score-section" aria-live="polite">
-            {scoreSegments.map((segment, index) => (
-              <React.Fragment key={segment.id}>
-                <span className="score-label">{segment.label}</span>
-                <span className="score-value">{segment.value}</span>
-                {index < scoreSegments.length - 1 && (
-                  <span className="score-divider" aria-hidden="true">•</span>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
+        {/* Pas d'affichage XP ici - uniquement progression de l'espèce dans la collection */}
         
         <button ref={buttonRef} onClick={onNext} className="btn btn--primary start-button-modal">
           {t('common.next_question')}

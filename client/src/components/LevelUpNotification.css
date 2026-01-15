@@ -1,0 +1,207 @@
+/* ========================================
+   LEVEL UP NOTIFICATION
+   ======================================== */
+
+.level-up-notification {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  cursor: pointer;
+  animation: levelUpSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes levelUpSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.level-up-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-4, 1rem) var(--space-5, 1.5rem);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-large, 16px);
+  box-shadow: 
+    0 8px 32px rgba(102, 126, 234, 0.5),
+    0 0 0 2px rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  min-width: 280px;
+}
+
+/* Effet de brillance en arrière-plan */
+.level-up-content::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 70%
+  );
+  animation: levelUpShine 2s ease-in-out infinite;
+}
+
+@keyframes levelUpShine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.level-up-icon {
+  font-size: 2.5rem;
+  animation: levelUpBounce 0.6s ease-in-out 0.3s;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes levelUpBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.level-up-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+}
+
+.level-up-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.level-up-levels {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Particules de célébration */
+.level-up-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.sparkle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ffffff;
+  animation: sparkleFloat 1.5s ease-out var(--delay, 0s) infinite;
+  opacity: 0;
+}
+
+.sparkle:nth-child(1) { top: 10%; left: 10%; }
+.sparkle:nth-child(2) { top: 20%; left: 90%; }
+.sparkle:nth-child(3) { top: 80%; left: 5%; }
+.sparkle:nth-child(4) { top: 70%; left: 95%; }
+.sparkle:nth-child(5) { top: 50%; left: 2%; }
+.sparkle:nth-child(6) { top: 50%; left: 98%; }
+.sparkle:nth-child(7) { top: 30%; left: 50%; }
+.sparkle:nth-child(8) { top: 90%; left: 50%; }
+
+@keyframes sparkleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0);
+  }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 640px) {
+  .level-up-notification {
+    top: 60px;
+    max-width: 90%;
+  }
+
+  .level-up-content {
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    min-width: auto;
+  }
+
+  .level-up-icon {
+    font-size: 2rem;
+  }
+
+  .level-up-title {
+    font-size: 1.25rem;
+  }
+
+  .level-up-levels {
+    font-size: 0.875rem;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITÉ
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .level-up-notification {
+    animation: none;
+    opacity: 1;
+  }
+
+  .level-up-content::before {
+    animation: none;
+  }
+
+  .level-up-icon {
+    animation: none;
+  }
+
+  .sparkle {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Amélioration du contraste */
+@media (prefers-contrast: high) {
+  .level-up-content {
+    border: 3px solid #ffffff;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.8),
+      0 0 0 2px rgba(255, 255, 255, 0.5);
+  }
+}

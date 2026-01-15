@@ -61,10 +61,19 @@ const mergeProfileWithDefaults = (loadedProfile = {}) => {
       ? loadedProfile
       : {};
   const defaultProfile = getDefaultProfile();
+  
+  // Migration : totalScore → xp
+  // Si totalScore existe mais pas xp, on migre
+  let migratedXP = safeProfile.xp || 0;
+  if (safeProfile.totalScore && !safeProfile.xp) {
+    migratedXP = safeProfile.totalScore;
+    console.log('[PlayerProfile] Migrating totalScore to xp:', safeProfile.totalScore);
+  }
+  
   const finalProfile = {
     ...defaultProfile,
     ...safeProfile,
-    xp: safeProfile.totalScore || safeProfile.xp || 0,
+    xp: migratedXP,
     stats: {
       ...defaultProfile.stats,
       ...(safeProfile.stats || {}),
@@ -114,7 +123,9 @@ const mergeProfileWithDefaults = (loadedProfile = {}) => {
     finalProfile.stats.missedSpecies = [];
   }
 
+  // Supprimer totalScore après migration
   delete finalProfile.totalScore;
+  
   return finalProfile;
 };
 

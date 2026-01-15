@@ -105,6 +105,28 @@ export const checkNewAchievements = (profile) => {
     unlocked.push('MASTER_5_SPECIES');
   }
 
+  // Vérifications des streaks (winstreak en jeu)
+  const currentStreak = stats.currentStreak || 0;
+  const longestStreak = stats.longestStreak || 0;
+  
+  if (longestStreak >= 3 && !achievements.includes('STREAK_STARTER_3')) {
+    unlocked.push('STREAK_STARTER_3');
+  }
+  if (longestStreak >= 5 && !achievements.includes('STREAK_MASTER_5')) {
+    unlocked.push('STREAK_MASTER_5');
+  }
+  if (longestStreak >= 10 && !achievements.includes('STREAK_LEGEND_10')) {
+    unlocked.push('STREAK_LEGEND_10');
+  }
+  if (longestStreak >= 20 && !achievements.includes('STREAK_TITAN_20')) {
+    unlocked.push('STREAK_TITAN_20');
+  }
+  
+  // STREAK_GUARDIAN : débloquer un bouclier permanent après 15 victoires consécutives
+  if (longestStreak >= 15 && !achievements.includes('STREAK_GUARDIAN')) {
+    unlocked.push('STREAK_GUARDIAN');
+  }
+
   return unlocked; // Retourne un tableau des IDs des nouveaux succès
 };
 

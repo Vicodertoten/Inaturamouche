@@ -2,6 +2,7 @@ import React, { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import GameHeader from './GameHeader';
+import LevelUpNotification from './LevelUpNotification';
 import { computeScore } from '../utils/scoring';
 import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
@@ -19,17 +20,16 @@ const HINT_COST_EASY = 5; // Pénalité de 5 points pour utiliser l'indice
 const EasyMode = () => {
   const {
     question,
-    score,
     questionCount,
     maxQuestions,
     mediaType,
     currentStreak,
     inGameShields,
     hasPermanentShield,
+    levelUpNotification,
     nextImageUrl,
     completeRound,
     endGame,
-    updateScore,
   } = useGameData();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
@@ -114,7 +114,15 @@ const EasyMode = () => {
     : false;
 
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
-  const scoreInfo = { ...computeScore({ mode: 'easy', isCorrect: isCorrectAnswer }), streakBonus };
+  const baseScoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
+  
+  // Appliquer la pénalité d'indice (-5 points par indice utilisé)
+  const hintPenalty = hintUsedThisQuestion ? -HINT_COST_EASY : 0;
+  const scoreInfo = { 
+    ...baseScoreInfo, 
+    points: baseScoreInfo.points + hintPenalty,
+    streakBonus 
+  };
 
 
 
@@ -149,7 +157,7 @@ const EasyMode = () => {
     newSet.add(String(toRemove.id));
     setRemovedIds(newSet);
     setHintUsed(true);
-    updateScore(-HINT_COST_EASY);
+    // L'indice coûte -5 XP (pénalité appliquée au moment du completeRound)
     setRoundMeta((prev) => {
       return {
         ...prev,
@@ -167,6 +175,14 @@ const EasyMode = () => {
 
   return (
     <>
+      {levelUpNotification && (
+        <LevelUpNotification 
+          oldLevel={levelUpNotification.oldLevel}
+          newLevel={levelUpNotification.newLevel}
+          onClose={() => {}}
+        />
+      )}
+      
       {showSummary && isCurrentQuestion && (
         <RoundSummaryModal
           status={isCorrectAnswer ? 'win' : 'lose'}
@@ -179,7 +195,6 @@ const EasyMode = () => {
       <div className="screen game-screen easy-mode">
         <GameHeader
           mode="easy"
-          score={score}
           currentStreak={currentStreak}
           inGameShields={inGameShields}
           hasPermanentShield={hasPermanentShield}

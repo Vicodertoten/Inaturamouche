@@ -42,23 +42,37 @@
   margin-bottom: var(--space-4);
 }
 
-.score-line {
-  font-size: var(--type-xl);
-  font-weight: 700;
+.xp-final-display {
   margin-bottom: var(--space-3);
-  color: var(--text-color);
 }
 
-.score {
-  display: block;
-  font-size: 4rem;
+.xp-final-label {
+  font-size: var(--type-md);
+  font-weight: 600;
+  color: var(--text-color-muted);
+  margin: 0 0 var(--space-2) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xp-final-value {
+  font-size: 3.5rem;
+  font-weight: 800;
   line-height: 1;
-  background: linear-gradient(135deg, var(--accent-color), var(--accent-strong));
+  background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-top: var(--space-2);
-  filter: drop-shadow(0 4px 10px rgba(238, 187, 77, 0.3));
+  margin: 0;
+  filter: drop-shadow(0 4px 10px rgba(102, 126, 234, 0.3));
+}
+
+.xp-final-level {
+  font-size: var(--type-lg);
+  font-weight: 700;
+  color: #667eea;
+  margin: var(--space-2) 0 0 0;
+  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
 }
 
 .stats {
@@ -72,6 +86,83 @@
   border-radius: var(--radius-pill);
   display: inline-flex;
   border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ========================================
+   Récapitulatif XP
+   ======================================== */
+
+.xp-summary-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-large, 16px);
+  padding: var(--space-4, 1rem);
+  margin: var(--space-4, 1rem) 0;
+  text-align: left;
+}
+
+.xp-summary-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 var(--space-3, 0.75rem) 0;
+  text-align: center;
+}
+
+.xp-summary-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-3, 0.75rem);
+  margin-bottom: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.xp-stat-item {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-3, 0.75rem);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-medium, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.xp-stat-item.level-up-highlight {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  border-color: #667eea;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.xp-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-1, 0.25rem);
+}
+
+.xp-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+}
+
+.level-up-highlight .xp-stat-value {
+  font-size: 1.75rem;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+  }
 }
 
 .played-species {
