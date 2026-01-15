@@ -307,19 +307,17 @@ function HardMode() {
         const isSpecies = firstUnknownRank === 'species';
         
         // Marquer l'indice comme utilisé AVANT de vérifier si c'est l'espèce
-        setRoundMeta((prev) => {
-          return {
-            ...prev,
-            hintsUsed: true,
-            hintCount: 1,
-          };
-        });
+        setRoundMeta((prev) => ({
+          ...prev,
+          hintsUsed: true,
+          hintCount: 1,
+        }));
         
         if (isSpecies) {
-          // L'indice déverrouille l'espèce: victoire avec pénalité XP
-          // Pas de bonus de vies restantes ni de streak bonus si gagné par indice
+          // L'indice déverrouille l'espèce: victoire sans bonus
+          // La pénalité d'indice (-20 XP) sera appliquée au bonus dans handleNext()
           setScoreInfo({ 
-            points: currentScore, // Score courant (pénalité sera appliquée dans handleNext)
+            points: currentScore, // Score de base (rangs trouvés)
             bonus: 0,  // Pas de bonus
             streakBonus: 0, // Pas de bonus streak si gagné par indice
             guessesRemaining: 0  // Pas de bonus de vies
