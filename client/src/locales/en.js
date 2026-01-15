@@ -62,6 +62,12 @@ const en = {
     recommended_pack_cta: 'Use this pack',
     recommended_pack_active: 'Pack selected',
     daily_challenge_label: '📅 Daily challenge',
+    resume_game_title: '▶ Resume your game',
+    resume_game_subtitle: 'You have a game in progress',
+    resume_game_meta: 'Question',
+    resume_game_button: '▶ Resume',
+    abandon_session: 'Abandon this game',
+    abandon_session_tooltip: 'Delete the game and start over',
   },
   configurator: {
     pack_label: 'Choose a game pack:',

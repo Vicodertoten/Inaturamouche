@@ -6,6 +6,28 @@ import en from '../locales/en.js';
 import nl from '../locales/nl.js';
 const MESSAGES = { fr, en, nl };
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
+const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
+
+/**
+ * Génère ou récupère un ID de session client unique et persistant.
+ * Utilisé pour identifier le client de manière unique au serveur,
+ * permettant la reprise de parties.
+ */
+function getClientSessionId() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return 'anon-' + Math.random().toString(36).slice(2, 8);
+  }
+  
+  let sessionId = localStorage.getItem(CLIENT_SESSION_ID_KEY);
+  if (!sessionId) {
+    // Générer un nouvel ID: timestamp + 8 caractères aléatoires
+    sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem(CLIENT_SESSION_ID_KEY, sessionId);
+    console.log('[API] Generated new client session ID:', sessionId);
+  }
+  return sessionId;
+}
+
 function getCurrentLanguage() {
   if (typeof window === 'undefined') return 'fr';
   const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -136,8 +158,16 @@ async function apiGet(path, params = {}, options = {}) {
 /**
  * Récupère une question de quiz en fonction des filtres.
  * Accepte objets ou URLSearchParams. Les arrays deviennent "a,b,c".
+ * Ajoute automatiquement le clientSessionId pour la persistance de session.
  */
-export const fetchQuizQuestion = (params, options) => apiGet("/api/quiz-question", params, options);
+export const fetchQuizQuestion = (params, options) => {
+  // Créer une copie des params et ajouter le clientSessionId
+  const paramsWithSession = new URLSearchParams(
+    typeof params === 'string' ? params : new URLSearchParams(params)
+  );
+  paramsWithSession.set('client_session_id', getClientSessionId());
+  return apiGet("/api/quiz-question", paramsWithSession, options);
+};
 
 /**
  * Détails complets pour un taxon.

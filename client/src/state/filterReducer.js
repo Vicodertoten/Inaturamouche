@@ -31,6 +31,9 @@ export function customFilterReducer(state, action) {
       return { ...state, geo: action.payload };
     case 'SET_FILTER':
       return { ...state, [action.payload.name]: action.payload.value };
+    case 'RESTORE':
+      // Restaurer l'état complet des filtres (utilisé pour la reprise de session)
+      return action.payload || state;
     default:
       return state;
   }

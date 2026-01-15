@@ -81,6 +81,21 @@ db.version(4).stores({
 });
 
 /**
+ * Version 5: Add active_session table for pause/resume functionality
+ * - Stores a single active game session (id: 1)
+ * - Contains: currentQuestionIndex, score, history, gameConfig, timestamp
+ */
+db.version(5).stores({
+  taxa: 'id,iconic_taxon_id,updatedAt,name',
+  stats: 'id,iconic_taxon_id,[iconic_taxon_id+masteryLevel],[iconic_taxon_id+lastSeenAt],lastSeenAt',
+  collection: 'taxon_id,masteryLevel',
+  species: 'id,iconic_taxon_id',
+  taxonomy_cache: 'id',
+  taxon_groups: 'id,parent_id',
+  active_session: 'id',
+});
+
+/**
  * Helper function to retrieve stats for a taxon.
  * @param {number} taxonId - The iNaturalist taxon ID.
  * @returns {Promise<Object|null>}
@@ -119,6 +134,7 @@ async function getTaxonWithStats(taxonId) {
 // Primary tables (new schema)
 export const taxa = db.taxa;
 export const stats = db.stats;
+export const active_session = db.active_session;
 
 // Legacy tables (kept for backward compatibility)
 export const collection = db.collection;

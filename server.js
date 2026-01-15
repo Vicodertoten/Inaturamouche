@@ -15,6 +15,7 @@ import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import { Mutex } from "async-mutex";
 import { findPackById, listPublicPacks } from "./server/packs/index.js";
 import {
   buildCacheKey,
@@ -219,6 +220,47 @@ const autocompleteCache = new SmartCache({
 const SELECTION_STATE_TTL = 1000 * 60 * 10;
 const MAX_SELECTION_STATES = 200;
 const selectionStateCache = new SmartCache({ max: MAX_SELECTION_STATES, ttl: SELECTION_STATE_TTL });
+
+/**
+ * Map de mutexes pour protéger l'accès concurrence à selectionStateCache par clientId.
+ * Chaque clientId (combinaison cacheKey|clientId) a son propre mutex.
+ * Cela prévient les race conditions lors de la lecture/modification de l'état.
+ */
+const selectionStateMutexes = new Map();
+
+/**
+ * Obtenir ou créer un mutex pour une clé de sélection d'état.
+ * @param {string} key - Clé unique pour le client (cacheKey|clientId)
+ * @returns {Mutex}
+ */
+function getOrCreateMutex(key) {
+  if (!selectionStateMutexes.has(key)) {
+    selectionStateMutexes.set(key, new Mutex());
+  }
+  return selectionStateMutexes.get(key);
+}
+
+/**
+ * Nettoyer les mutexes inutilisés.
+ * Appelée périodiquement pour éviter les fuites de mémoire.
+ * Supprime les mutexes dont les clés ne sont plus dans le cache.
+ */
+function pruneMutexes() {
+  const cacheKeys = new Set(
+    Object.keys(selectionStateCache._store || {})
+  );
+  for (const key of selectionStateMutexes.keys()) {
+    if (!cacheKeys.has(key)) {
+      selectionStateMutexes.delete(key);
+    }
+  }
+}
+
+// Nettoyer les mutexes toutes les 5 minutes
+setInterval(() => {
+  pruneMutexes();
+}, 1000 * 60 * 5);
+
 const taxonDetailsCache = new SmartCache({
   max: TAXON_DETAILS_CACHE_MAX,
   ttl: TAXON_DETAILS_CACHE_TTL,
@@ -419,6 +461,7 @@ function sanitizeObservation(obs) {
       preferred_common_name: taxon.preferred_common_name,
       ancestor_ids: Array.isArray(taxon.ancestor_ids) ? taxon.ancestor_ids : [],
       rank: taxon.rank,
+      iconic_taxon_id: taxon.iconic_taxon_id || null,
     },
   };
 }
@@ -853,42 +896,56 @@ async function buildQuizQuestion({
   marks.fetchedObs = performance.now();
   marks.builtIndex = marks.fetchedObs;
 
-  const { state: selectionState } = getSelectionStateForClient(
-    cacheKey,
-    clientId,
-    cacheEntry,
-    Date.now(),
-    rng
-  );
-  const questionIndex =
-    Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
-      ? selectionState.questionIndex
-      : 0;
-  const questionRng = hasSeed ? createSeededRandom(`${seed}|q|${questionIndex}`) : rng;
-  const excludeTaxaForTarget = new Set();
-  let targetTaxonId = nextEligibleTaxonId(
-    cacheEntry,
-    selectionState,
-    Date.now(),
-    excludeTaxaForTarget,
-    questionRng,
-    { seed: hasSeed ? seed : undefined, questionIndex }
-  );
-
-  let selectionMode = "normal";
-  if (!targetTaxonId) {
-    targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
-    selectionMode = "fallback_relax";
-    logger?.info(
-      { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
-      "Target fallback relax engaged"
+  // MUTEX-PROTECTED: Accès à selectionStateCache
+  const stateKey = `${cacheKey}|${clientId || "anon"}`;
+  const mutex = getOrCreateMutex(stateKey);
+  
+  const { selectionState, questionIndex, questionRng, excludeTaxaForTarget, targetTaxonId, selectionMode: initialSelectionMode } = await mutex.runExclusive(async () => {
+    const { state: selectionState, key } = getSelectionStateForClient(
+      cacheKey,
+      clientId,
+      cacheEntry,
+      Date.now(),
+      rng
     );
-  }
-  if (!targetTaxonId) {
-    const err = new Error("Pool d'observations indisponible, réessayez.");
-    err.status = 503;
-    throw err;
-  }
+    
+    const questionIndex =
+      Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
+        ? selectionState.questionIndex
+        : 0;
+    const questionRng = hasSeed ? createSeededRandom(`${seed}|q|${questionIndex}`) : rng;
+    const excludeTaxaForTarget = new Set();
+    let targetTaxonId = nextEligibleTaxonId(
+      cacheEntry,
+      selectionState,
+      Date.now(),
+      excludeTaxaForTarget,
+      questionRng,
+      { seed: hasSeed ? seed : undefined, questionIndex }
+    );
+
+    let selectionMode = "normal";
+    if (!targetTaxonId) {
+      targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
+      selectionMode = "fallback_relax";
+      logger?.info(
+        { cacheKey, mode: selectionMode, pool: cacheEntry.taxonList.length, recentT: cacheEntry.recentTargetTaxa.length },
+        "Target fallback relax engaged"
+      );
+    }
+    if (!targetTaxonId) {
+      const err = new Error("Pool d'observations indisponible, réessayez.");
+      err.status = 503;
+      throw err;
+    }
+
+    // Sauvegarder le state DANS le mutex avant de le retourner
+    selectionStateCache.set(key, selectionState);
+    
+    return { selectionState, questionIndex, questionRng, excludeTaxaForTarget, targetTaxonId, selectionMode };
+  });
+  
+  const selectionMode = initialSelectionMode;
 
   let targetObservation = pickObservationForTaxon(
     cacheEntry,
@@ -1002,7 +1059,14 @@ async function buildQuizQuestion({
   pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], Date.now());
 
   marks.end = performance.now();
-  selectionState.questionIndex = questionIndex + 1;
+  
+  // MUTEX-PROTECTED: Mise à jour de questionIndex
+  await mutex.runExclusive(async () => {
+    selectionState.questionIndex = questionIndex + 1;
+    const stateKey = `${cacheKey}|${clientId || "anon"}`;
+    selectionStateCache.set(stateKey, selectionState);
+  });
+  
   const { timing, serverTiming, xTiming } = buildTimingData(marks, { pagesFetched, poolObs, poolTaxa });
 
   logger?.info(
@@ -1317,9 +1381,26 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
     ? targetObservation.taxon.ancestor_ids
     : [];
   const targetDepth = Math.max(targetAnc.length, 1);
+  
+  // Récupérer l'iconic_taxon_id de la cible
+  const targetIconicTaxonId = targetObservation?.taxon?.iconic_taxon_id || null;
 
   const candidates = pool.taxonList
-    .filter((tid) => String(tid) !== targetId && pool.byTaxon.get(String(tid))?.length);
+    .filter((tid) => {
+      if (String(tid) === targetId) return false;
+      if (!pool.byTaxon.get(String(tid))?.length) return false;
+      
+      // CONTRAINTE : Le leurre doit avoir le même iconic_taxon_id que la cible
+      // Cela évite de mélanger des taxons de groupes complètement différents
+      if (targetIconicTaxonId) {
+        const rep = pool.byTaxon.get(String(tid))?.[0];
+        if (rep?.taxon?.iconic_taxon_id !== targetIconicTaxonId) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
 
   // Compute phylogenetic scores for all candidates
   const scored = candidates.map((tid) => {
@@ -1376,7 +1457,7 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
 
     const scoredMap = new Map(scored.map((s) => [s.tid, s]));
     
-    // Pick from similar species first (only if present in pool)
+    // Pick from similar species first (only if present in pool and has same iconic_taxon_id)
     for (const sid of similarIds) {
       if (out.length >= lureCount) break;
       if (!scoredMap.has(sid)) continue;
@@ -1389,7 +1470,8 @@ async function buildLures(pool, selectionState, targetTaxonId, targetObservation
       }
     }
     
-    // Complement remaining slots with phylogenetically close species (near bucket only)
+    // Complement remaining slots with phylogenetically close species (near bucket first)
+    // Prioriser les candidats avec même Genre (depth élevé)
     if (out.length < lureCount) {
       pickFromArr(near);
     }
@@ -1438,6 +1520,7 @@ const quizSchema = z.object({
   seed_session: z.string().optional(),
   locale: z.string().default("fr"),
   media_type: z.enum(["images", "sounds", "both"]).optional(),
+  client_session_id: z.string().optional(),
 });
 
 const autocompleteSchema = z.object({
@@ -1564,6 +1647,7 @@ app.get(
         seed_session,
         locale = "fr",
         media_type,
+        client_session_id,
       } = req.valid;
 
       const normalizedSeed = typeof seed === "string" ? seed.trim() : "";
@@ -1632,10 +1716,20 @@ app.get(
       selectionStateCache.prune();
       questionQueueCache.prune();
       const clientIp = getClientIp(req);
-      const clientKey =
-        hasSeed && normalizedSeedSession
-          ? `${clientIp || "anon"}|${normalizedSeedSession}`
-          : clientIp;
+      
+      // Construire une clé client persistante : d'abord le session ID, puis IP, puis anon
+      let clientKey;
+      if (hasSeed && normalizedSeedSession) {
+        // Jeux avec seed : incluent le seed dans la clé
+        clientKey = `${client_session_id || clientIp || "anon"}|${normalizedSeedSession}`;
+      } else {
+        // Jeux normaux : utiliser le session ID s'il existe, sinon l'IP
+        clientKey = client_session_id || clientIp || "anon";
+      }
+      
+      // Debug logging pour session persistence
+      console.log(`[SESSION] clientSessionId=${client_session_id || "none"}, clientIp=${clientIp}, clientKey=${clientKey}`);
+      
       const queueKey = `${cacheKey}|${clientKey || "anon"}`;
       const context = {
         params,

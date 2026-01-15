@@ -62,6 +62,12 @@ const fr = {
     recommended_pack_cta: 'Utiliser ce pack',
     recommended_pack_active: 'Pack sélectionné',
     daily_challenge_label: '📅 Défi du Jour',
+    resume_game_title: '▶ Reprendre votre partie',
+    resume_game_subtitle: 'Vous avez une partie en cours',
+    resume_game_meta: 'Question',
+    resume_game_button: '▶ Reprendre',
+    abandon_session: 'Abandonner cette partie',
+    abandon_session_tooltip: 'Supprimer la partie et recommencer',
   },
   configurator: {
     pack_label: 'Choisissez un pack de jeu :',

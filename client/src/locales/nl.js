@@ -62,6 +62,12 @@ const nl = {
     recommended_pack_cta: 'Gebruik dit pack',
     recommended_pack_active: 'Pack geselecteerd',
     daily_challenge_label: '📅 Dagelijkse uitdaging',
+    resume_game_title: '▶ Hervat je spel',
+    resume_game_subtitle: 'Je hebt een spel in uitvoering',
+    resume_game_meta: 'Vraag',
+    resume_game_button: '▶ Hervat',
+    abandon_session: 'Geef dit spel op',
+    abandon_session_tooltip: 'Verwijder het spel en begin opnieuw',
   },
   configurator: {
     pack_label: 'Kies een spelpack:',

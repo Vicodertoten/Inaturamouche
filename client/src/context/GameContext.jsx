@@ -13,6 +13,7 @@ import { checkNewAchievements, evaluateMicroChallenges } from '../achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
+import { active_session } from '../services/db';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
 import { usePacks } from './PacksContext.jsx';
@@ -213,8 +214,21 @@ export function GameProvider({ children }) {
     clearAchievementsTimer();
   }, [clearAchievementsTimer]);
 
+  /**
+   * Supprime la session active de IndexedDB.
+   * Appelée uniquement quand la partie est terminée (victoire/défaite) ou abandonnée.
+   */
+  const clearSessionFromDB = useCallback(async () => {
+    try {
+      await active_session.delete(1);
+      console.log('[GameContext] Active session cleared from DB');
+    } catch (err) {
+      console.error('[GameContext] Failed to clear active session:', err);
+    }
+  }, []);
+
   const resetToLobby = useCallback(
-    (clearSession = true) => {
+    async (clearSession = true) => {
       abortActiveFetch();
       abortPrefetchFetch();
       setIsGameActive(false);
@@ -224,14 +238,166 @@ export function GameProvider({ children }) {
       setNextQuestion(null);
       setError(null);
       setIsReviewMode(false);
-      if (clearSession) resetSessionState();
+      if (clearSession) {
+        resetSessionState();
+        // Nettoyer la session sauvegardée de Dexie
+        await clearSessionFromDB();
+      }
       setDailySeed(null);
       setDailySeedSession(null);
     },
-    [abortActiveFetch, abortPrefetchFetch, resetSessionState]
+    [abortActiveFetch, abortPrefetchFetch, resetSessionState, clearSessionFromDB]
   );
 
   const clearError = useCallback(() => setError(null), []);
+
+  /**
+   * Sérialise et sauvegarde l'état actuel du jeu vers IndexedDB (active_session).
+   * Appelée automatiquement avant unmount ou beforeunload.
+   */
+  const pauseGame = useCallback(async () => {
+    if (!isGameActive) return;
+
+    const sessionData = {
+      id: 1, // Clé unique
+      currentQuestionIndex: questionCount,
+      currentQuestion: question, // Sauvegarder la question complète pour la reprendre sans recharger du serveur
+      score,
+      sessionStats,
+      sessionCorrectSpecies,
+      sessionSpeciesData,
+      sessionMissedSpecies,
+      currentStreak,
+      streakTier,
+      activePerks,
+      gameConfig: {
+        activePackId,
+        customFilters,
+        gameMode,
+        maxQuestions,
+        mediaType,
+        dailySeed,
+        dailySeedSession,
+        isReviewMode,
+      },
+      timestamp: Date.now(),
+    };
+
+    try {
+      await active_session.put(sessionData);
+      console.log('[GameContext] Session paused and saved', sessionData);
+    } catch (err) {
+      console.error('[GameContext] Failed to pause game session:', err);
+    }
+  }, [
+    isGameActive,
+    questionCount,
+    score,
+    sessionStats,
+    sessionCorrectSpecies,
+    sessionSpeciesData,
+    sessionMissedSpecies,
+    currentStreak,
+    streakTier,
+    activePerks,
+    activePackId,
+    customFilters,
+    gameMode,
+    maxQuestions,
+    mediaType,
+    dailySeed,
+    dailySeedSession,
+    isReviewMode,
+  ]);
+
+  /**
+   * Restaure l'état du jeu depuis IndexedDB (active_session).
+   * Retourne les données de session ou null si aucune session n'existe.
+   */
+  const resumeGame = useCallback(async () => {
+    try {
+      console.log('[GameContext] resumeGame() - Starting restoration');
+      const sessionData = await active_session.get(1);
+      if (!sessionData) {
+        console.log('[GameContext] No active session found');
+        return null;
+      }
+
+      console.log('[GameContext] Session resumed from DB, data:', {
+        currentQuestionIndex: sessionData.currentQuestionIndex,
+        score: sessionData.score,
+        gameConfig: sessionData.gameConfig,
+      });
+
+      // Restaurer l'état depuis les données sauvegardées
+      const config = sessionData.gameConfig || {};
+      console.log('[GameContext] Restoring config:', config);
+      
+      setActivePackId(config.activePackId || 'custom');
+      if (config.customFilters) dispatchCustomFilters({ type: 'RESTORE', payload: config.customFilters });
+      setGameMode(config.gameMode || 'easy');
+      setMaxQuestions(config.maxQuestions ?? DEFAULT_MAX_QUESTIONS);
+      setMediaType(config.mediaType || DEFAULT_MEDIA_TYPE);
+      setDailySeed(config.dailySeed || null);
+      setDailySeedSession(config.dailySeedSession || null);
+      setIsReviewMode(config.isReviewMode || false);
+
+      setQuestionCount(sessionData.currentQuestionIndex || 0);
+      setScore(sessionData.score || 0);
+      setSessionStats(sessionData.sessionStats || { correctAnswers: 0 });
+      setSessionCorrectSpecies(sessionData.sessionCorrectSpecies || []);
+      setSessionSpeciesData(sessionData.sessionSpeciesData || []);
+      setSessionMissedSpecies(sessionData.sessionMissedSpecies || []);
+      setCurrentStreak(sessionData.currentStreak || 0);
+      setStreakTier(sessionData.streakTier || 0);
+      setActivePerks(sessionData.activePerks || []);
+
+      console.log('[GameContext] About to set isGameActive to true');
+      setIsGameActive(true);
+      setIsGameOver(false);
+      // Restaurer la question sauvegardée si elle existe
+      setQuestion(sessionData.currentQuestion || null);
+      setNextQuestion(null);
+
+      console.log('[GameContext] resumeGame() - Restoration complete');
+      return sessionData;
+    } catch (err) {
+      console.error('[GameContext] Failed to resume game session:', err);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Automatiquement pause le jeu au démontage du composant (unmount).
+   * Cette fonction ne s'exécute qu'une fois lors du cleanup du GameProvider.
+   */
+  useEffect(() => {
+    return () => {
+      // Le jeu est actif et on quitte le composant
+      if (isGameActive) {
+        pauseGame().catch((err) => console.error('[GameContext] Error pausing game on unmount:', err));
+      }
+    };
+  }, [isGameActive, pauseGame]);
+
+  /**
+   * Sauvegarder la session avant un rechargement de page (beforeunload).
+   */
+  useEffect(() => {
+    const handleBeforeUnload = async (e) => {
+      if (isGameActive) {
+        await pauseGame();
+        // Certains navigateurs demandent une confirmation
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [isGameActive, pauseGame]);
 
   const updateScore = useCallback((delta) => {
     setScore((prev) => prev + delta);
@@ -380,6 +546,8 @@ export function GameProvider({ children }) {
       abortActiveFetch();
       abortPrefetchFetch();
       resetSessionState();
+      // Nettoyer l'ancienne session sauvegardée de Dexie si elle existe
+      clearSessionFromDB().catch((err) => console.error('[GameContext] Error clearing session at game start:', err));
       setIsStartingNewGame(true);
       const normalizedSeed = typeof seed === 'string' ? seed.trim() : '';
       const isDailyChallenge = normalizedSeed.length > 0;
@@ -405,7 +573,7 @@ export function GameProvider({ children }) {
         nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)
       );
     },
-    [abortActiveFetch, abortPrefetchFetch, resetSessionState]
+    [abortActiveFetch, abortPrefetchFetch, resetSessionState, clearSessionFromDB]
   );
 
   const nextImageUrl = useMemo(() => {
@@ -524,11 +692,14 @@ export function GameProvider({ children }) {
       setIsGameActive(false);
       setIsGameOver(true);
       setNextQuestion(null);
+      // Effacer la session sauvegardée puisque la partie est terminée
+      clearSessionFromDB().catch((err) => console.error('[GameContext] Error clearing session after game end:', err));
     },
     [
       activePackId,
       clearAchievementsTimer,
       clearUnlockedLater,
+      clearSessionFromDB,
       gameMode,
       maxQuestions,
       profile,
@@ -790,6 +961,9 @@ export function GameProvider({ children }) {
       startGame,
       resetToLobby,
       canStartReview,
+      pauseGame,
+      resumeGame,
+      clearSessionFromDB,
     }),
     [
       activePackId,
@@ -822,6 +996,9 @@ export function GameProvider({ children }) {
       startGame,
       resetToLobby,
       canStartReview,
+      pauseGame,
+      resumeGame,
+      clearSessionFromDB,
     ]
   );
 
