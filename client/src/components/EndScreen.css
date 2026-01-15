@@ -3,7 +3,7 @@
   position: relative;
   overflow: hidden;
   padding: var(--space-5);
-  max-width: 600px; /* Focus on the content */
+  max-width: 600px;
   margin: auto;
   border: 1px solid var(--border-color);
   background: linear-gradient(180deg, var(--surface-color) 0%, rgba(20, 20, 20, 0.95) 100%);
@@ -33,29 +33,46 @@
   100% { transform: translateY(800px) rotate(720deg); opacity: 0; }
 }
 
-/* More confetti variation generation handled in JSX usually, but here are some defaults */
 .confetti-piece:nth-child(odd) { background: var(--primary-color); }
 .confetti-piece:nth-child(even) { background: var(--accent-strong); }
 .confetti-piece:nth-child(3n) { background: var(--success-color); }
 
-.summary {
-  margin-bottom: var(--space-4);
+/* ========================================
+   Hiérarchie des sections
+   ======================================== */
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: var(--space-4) 0 var(--space-3) 0;
+  text-align: center;
 }
 
-.xp-final-display {
+/* 1. XP et Progression fusionnés */
+.xp-progress-unified-section {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: var(--radius-large, 16px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.level-up-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
 }
 
-.xp-final-label {
-  font-size: var(--type-md);
-  font-weight: 600;
-  color: var(--text-color-muted);
-  margin: 0 0 var(--space-2) 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.level-up-icon {
+  font-size: 2rem;
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.xp-final-value {
+.xp-gained-display {
   font-size: 3.5rem;
   font-weight: 800;
   line-height: 1;
@@ -63,118 +80,176 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0;
+  margin: var(--space-3) 0;
+  text-align: center;
   filter: drop-shadow(0 4px 10px rgba(102, 126, 234, 0.3));
 }
 
-.xp-final-level {
-  font-size: var(--type-lg);
-  font-weight: 700;
-  color: #667eea;
-  margin: var(--space-2) 0 0 0;
-  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
-}
-
-.stats {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-4);
-  font-size: var(--type-md);
-  color: var(--text-color-muted);
-  background: rgba(255,255,255,0.05);
+/* 2. Accuracy Section - Plus dense */
+.accuracy-section {
+  margin-bottom: var(--space-4);
   padding: var(--space-3);
-  border-radius: var(--radius-pill);
-  display: inline-flex;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-medium, 12px);
 }
 
-/* ========================================
-   Récapitulatif XP
-   ======================================== */
-
-.xp-summary-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-large, 16px);
-  padding: var(--space-4, 1rem);
-  margin: var(--space-4, 1rem) 0;
-  text-align: left;
-}
-
-.xp-summary-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 var(--space-3, 0.75rem) 0;
-  text-align: center;
-}
-
-.xp-summary-stats {
+.accuracy-inline {
   display: flex;
-  justify-content: space-around;
-  gap: var(--space-3, 0.75rem);
-  margin-bottom: var(--space-3, 0.75rem);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
-.xp-stat-item {
-  flex: 1;
-  min-width: 140px;
+.accuracy-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color-muted);
+}
+
+.accuracy-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  text-shadow: 0 0 8px rgba(255, 120, 120, 0.4);
+}
+
+.accuracy-details {
+  font-size: 0.9rem;
+  color: var(--text-color-muted);
+}
+
+.level-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: var(--space-3, 0.75rem);
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--radius-medium, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
-.xp-stat-item.level-up-highlight {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-  border-color: #667eea;
-  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-}
-
-.xp-stat-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-1, 0.25rem);
-}
-
-.xp-stat-value {
+.current-level {
   font-size: 1.5rem;
   font-weight: 700;
   color: #667eea;
   text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
-}
-
-.level-up-highlight .xp-stat-value {
-  font-size: 1.75rem;
-  animation: pulse-glow 2s ease-in-out infinite;
+  text-align: center;
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
   }
   50% {
-    text-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
   }
 }
 
-.played-species {
-  margin-top: var(--space-4);
+/* 3. New Discoveries Section */
+.new-discoveries-section {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.discoveries-count {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  margin-bottom: var(--space-3);
+}
+
+.discoveries-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   text-align: left;
+}
+
+.discovery-item {
+  padding: var(--space-2) var(--space-3);
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: var(--radius, 8px);
+  margin-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.discovery-item .species-common {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.discovery-item .species-scientific {
+  font-size: 0.9em;
+  color: var(--text-color-muted);
+}
+
+/* 4. Achievements Section */
+.achievements-section {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.achievements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.achievement-item {
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius, 8px);
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  color: var(--text-color);
+  border-left: 3px solid var(--accent-color);
+}
+
+/* 5. Species Details Section - Collapsible */
+.species-details-section {
+  margin-bottom: var(--space-4);
+  text-align: left;
+}
+
+.species-toggle-button {
+  width: 100%;
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-medium, 12px);
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.species-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-color);
+}
+
+.toggle-icon {
+  font-size: 0.8em;
+  transition: transform 0.2s ease;
 }
 
 .species-list {
   list-style: none;
   padding: 0;
-  margin: 0;
-  max-height: 300px;
+  margin: var(--space-3) 0 0 0;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -220,6 +295,35 @@
   align-self: flex-start;
 }
 
+.species-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.species-status {
+  font-size: 1.2em;
+}
+
+.external-links-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.external-link {
+  font-size: 0.75em;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.external-link:hover {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+/* Action buttons at the bottom */
 .end-actions {
   display: flex;
   gap: var(--space-3);

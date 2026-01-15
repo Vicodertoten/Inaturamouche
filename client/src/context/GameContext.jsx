@@ -467,6 +467,24 @@ export function GameProvider({ children }) {
     }
   }, [isGameActive, pauseGame]);
 
+  /**
+   * Sauvegarder la session quand l'onglet devient invisible (visibilitychange).
+   * Utile pour les mobiles et les changements d'onglet.
+   */
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.hidden && isGameActive) {
+        await pauseGame();
+        console.log('[GameContext] Session paused due to visibility change');
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+  }, [isGameActive, pauseGame]);
+
   const updateScore = useCallback((delta) => {
     setScore((prev) => prev + delta);
   }, []);
