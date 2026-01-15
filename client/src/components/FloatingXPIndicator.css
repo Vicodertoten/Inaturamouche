@@ -18,6 +18,7 @@
     0 0 0 2px rgba(255, 255, 255, 0.2);
   pointer-events: none;
   z-index: 1000;
+  /* Default animation for non-center positions */
   animation: floatingXP 2s ease-out forwards;
 }
 
@@ -52,6 +53,8 @@
 }
 
 /* Animations */
+
+/* Default animation for non-center positions */
 @keyframes floatingXP {
   0% {
     opacity: 0;
@@ -73,7 +76,7 @@
   }
 }
 
-/* Center position animation override */
+/* Center position uses specialized animation with translate */
 .floating-xp-center {
   animation: floatingXPCenter 2s ease-out forwards;
 }

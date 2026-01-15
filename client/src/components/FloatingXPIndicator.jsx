@@ -13,6 +13,16 @@ const FloatingXPIndicator = ({ xpGain = 0, position = 'center' }) => {
   const timerRef = useRef(null);
 
   useEffect(() => {
+    // Cleanup function to clear timer on unmount or xpGain change
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (xpGain > 0) {
       // Clear any existing timer before setting a new one
       if (timerRef.current) {
@@ -26,13 +36,6 @@ const FloatingXPIndicator = ({ xpGain = 0, position = 'center' }) => {
         setVisible(false);
       }, 2000);
     }
-    
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
   }, [xpGain]);
 
   if (!visible || displayValue === 0) return null;

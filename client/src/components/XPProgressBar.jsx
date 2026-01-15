@@ -29,9 +29,9 @@ const XPProgressBar = ({
       setShowXPPopup(true);
       const timer = setTimeout(() => setShowXPPopup(false), 2000);
       return () => clearTimeout(timer);
-    } else {
-      setShowXPPopup(false);
     }
+    // Note: We don't explicitly set false here to avoid unnecessary re-renders
+    // The timeout handler will set it to false when needed
   }, [recentXPGain, animate]);
 
   // Animation progressive de la barre
