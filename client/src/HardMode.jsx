@@ -8,7 +8,7 @@ import GameHeader from './components/GameHeader';
 import LevelUpNotification from './components/LevelUpNotification';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api';
-import { getDisplayName } from './utils/speciesUtils';
+import { computeScore, computeInGameStreakBonus } from './utils/scoring';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
@@ -194,14 +194,13 @@ function HardMode() {
 
       // --- Logique fin de partie ---
       if (isSpeciesGuessed) {
-        // Victoire: base XP + bonus progressif selon rangs trouvés
-        const ranksFound = Object.keys(nextKnownTaxa).length;
-        const progressionBonus = updatedGuesses > 0 ? updatedGuesses * 5 : 0; // Bonus pour vies restantes
-        const totalXP = updatedScore + progressionBonus;
+        // Victoire: base XP (cumul des rangs trouvés)
+        // Le bonus sera calculé après avec computeScore + streak
         setScoreInfo({ 
-          points: totalXP, 
-          bonus: progressionBonus, 
-          streakBonus: 0 
+          points: updatedScore,  // Points des rangs seulement
+          bonus: 0,  // Sera calculé par computeScore avec guessesRemaining
+          streakBonus: 0,  // Sera calculé après
+          guessesRemaining: updatedGuesses  // Conserver les vies restantes pour le calcul du bonus
         });
         setRoundStatus('win');
         return;
@@ -244,19 +243,35 @@ function HardMode() {
 
   const handleNext = () => {
     setRoundStatus('playing');
+    const savedScoreInfo = scoreInfo; // Sauvegarder scoreInfo avant de le reset
     setScoreInfo(null);
   
     const isCorrect = roundStatus === 'win';
   
-    const result = {
-      points: scoreInfo?.points || 0,
-      bonus: 0,
-      streakBonus: 0,
-      isCorrect,
+    // Calculer le streak bonus exponentiel (seulement si victoire)
+    const streakBonusCalc = isCorrect ? computeInGameStreakBonus(currentStreak, 'hard') : 0;
+    
+    // Calculer le score de base avec computeScore
+    const baseScoreInfo = computeScore({ 
+      mode: 'hard', 
+      isCorrect: isCorrect,
+      basePoints: savedScoreInfo?.points || 0, // Points des rangs trouvés
+      guessesRemaining: savedScoreInfo?.guessesRemaining || 0 // Vies restantes pour bonus
+    });
+    
+    // Pénalité si indice utilisé
+    const hintPenalty = roundMeta.hintsUsed ? -REVEAL_HINT_XP_COST : 0;
+    
+    // Score final combinant tout
+    const finalScoreInfo = {
+      points: baseScoreInfo.points,
+      bonus: (baseScoreInfo.bonus || 0) + hintPenalty,
+      streakBonus: streakBonusCalc
     };
   
     completeRound({
-      ...result,
+      ...finalScoreInfo,
+      isCorrect,
       roundMeta: { ...roundMeta, wasCorrect: isCorrect },
     });
   };
@@ -271,10 +286,9 @@ function HardMode() {
     }
 
     if (firstUnknownRank) {
-      // L'indice coûte 20 XP au lieu d'une vie
+      // L'indice sera appliqué comme pénalité sur le bonus final (dans handleNext)
+      // On ne retire PAS de points ici, juste on marque qu'un indice a été utilisé
       const hintXPCost = REVEAL_HINT_XP_COST;
-      const updatedScore = Math.max(0, currentScore - hintXPCost);
-      setCurrentScore(updatedScore);
 
       const rankLabel = t(`ranks.${firstUnknownRank}`);
       showFeedback(t('hard.feedback.hint_used', { rank: rankLabel, cost: hintXPCost }), 'info');
@@ -291,26 +305,29 @@ function HardMode() {
         }));
 
         const isSpecies = firstUnknownRank === 'species';
+        
+        // Marquer l'indice comme utilisé AVANT de vérifier si c'est l'espèce
+        setRoundMeta((prev) => {
+          return {
+            ...prev,
+            hintsUsed: true,
+            hintCount: 1,
+          };
+        });
+        
         if (isSpecies) {
           // L'indice déverrouille l'espèce: victoire avec pénalité XP
-          const totalXP = updatedScore;
-          const streakBonus = 0; // Pas de bonus streak si gagné par indice
+          // Pas de bonus de vies restantes ni de streak bonus si gagné par indice
           setScoreInfo({ 
-            points: totalXP, 
-            bonus: 0, 
-            streakBonus 
+            points: currentScore, // Score courant (pénalité sera appliquée dans handleNext)
+            bonus: 0,  // Pas de bonus
+            streakBonus: 0, // Pas de bonus streak si gagné par indice
+            guessesRemaining: 0  // Pas de bonus de vies
           });
           setRoundStatus('win');
           return;
         }
       }
-      setRoundMeta((prev) => {
-        return {
-          ...prev,
-          hintsUsed: true,
-          hintCount: 1,
-        };
-      });
     }
   };
 
