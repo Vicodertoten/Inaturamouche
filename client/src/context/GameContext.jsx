@@ -354,6 +354,7 @@ export function GameProvider({ children }) {
   }, [
     isGameActive,
     questionCount,
+    question,
     score,
     sessionStats,
     sessionCorrectSpecies,

@@ -6,6 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import RoundSummaryModal from './components/RoundSummaryModal';
 import GameHeader from './components/GameHeader';
 import LevelUpNotification from './components/LevelUpNotification';
+import FloatingXPIndicator from './components/FloatingXPIndicator';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api';
 import { computeScore, computeInGameStreakBonus } from './utils/scoring';
@@ -53,6 +54,8 @@ function HardMode() {
   const [scoreInfo, setScoreInfo] = useState(null);
   const [panelEffect, setPanelEffect] = useState('');
   const [currentScore, setCurrentScore] = useState(0);
+  const [isGuessing, setIsGuessing] = useState(false); // Prevent concurrent guesses
+  const [liveXPGain, setLiveXPGain] = useState(0); // For floating XP indicator
   const [roundMeta, setRoundMeta] = useState({
     mode:  'hard',
     hintsUsed:  false,
@@ -120,6 +123,8 @@ function HardMode() {
     setScoreInfo(null);
     setPanelEffect('');
     setCurrentScore(0);
+    setIsGuessing(false); // Reset guessing lock
+    setLiveXPGain(0); // Reset XP indicator
     setRoundMeta({
       mode: 'hard',
       hintsUsed: false,
@@ -131,7 +136,7 @@ function HardMode() {
   // Cleanup des timers
   useEffect(() => {
     return () => {
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef. current);
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
       if (panelTimeoutRef.current) clearTimeout(panelTimeoutRef.current);
     };
   }, []);
@@ -203,8 +208,10 @@ function HardMode() {
   }, [calculateFinalScore]);
 
   const handleGuess = async (selection) => {
-    if (!selection?. id || roundStatus !== 'playing' || ! question?.bonne_reponse || guesses <= 0) return;
+    // Prevent concurrent guesses
+    if (!selection?.id || roundStatus !== 'playing' || !question?.bonne_reponse || guesses <= 0 || isGuessing) return;
 
+    setIsGuessing(true); // Lock guessing during async operation
     const updatedGuesses = guesses - 1;
     setGuesses(updatedGuesses);
 
@@ -234,6 +241,10 @@ function HardMode() {
       if (gainedPoints > 0) {
         setKnownTaxa(nextKnownTaxa);
         setCurrentScore(prev => prev + gainedPoints);
+        
+        // Live XP feedback: Show floating animation
+        setLiveXPGain(gainedPoints);
+        showFeedback(t('hard.feedback.branch', { points: gainedPoints }), 'success');
       }
 
       const isSpeciesGuessed = nextKnownTaxa.species?.id === question.bonne_reponse.id;
@@ -241,18 +252,20 @@ function HardMode() {
 
       // --- Logique de fin de partie ---
       if (isSpeciesGuessed) {
+        setIsGuessing(false);
         endRound(true, nextKnownTaxa, updatedGuesses);
         return;
       }
 
       if (updatedGuesses <= 0) {
+        setIsGuessing(false);
         endRound(false, nextKnownTaxa, 0);
         return;
       }
 
       // Feedback intermédiaire
       if (gainedPoints > 0) {
-        showFeedback(t('hard.feedback.branch', { points: gainedPoints }), 'success');
+        // Already shown above with XP feedback
       } else if (isSelectionCorrectAncestor) {
         showFeedback(t('hard.feedback.redundant'), 'info');
       } else {
@@ -260,11 +273,14 @@ function HardMode() {
         setIncorrectGuessIds(prev => [...prev, selection.id]);
         triggerPanelShake();
       }
+      
+      setIsGuessing(false); // Unlock guessing
 
     } catch (error) {
       console.error('[HardMode] Error in handleGuess:', error);
       showFeedback(t('hard.feedback.error'), 'error');
       triggerPanelShake();
+      setIsGuessing(false); // Unlock guessing on error
       
       if (updatedGuesses <= 0) {
         endRound(false, knownTaxa, 0);
@@ -373,6 +389,9 @@ function HardMode() {
           onClose={() => {}}
         />
       )}
+
+      {/* Floating XP indicator for live feedback */}
+      <FloatingXPIndicator xpGain={liveXPGain} position="center" />
 
       {isGameOver && isCurrentQuestion && (
         <RoundSummaryModal
