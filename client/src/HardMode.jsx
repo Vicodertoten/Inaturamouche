@@ -263,7 +263,7 @@ function HardMode() {
 
       // Feedback intermédiaire
       if (gainedPoints > 0) {
-        // Already shown above with XP feedback
+        // XP feedback already displayed at line 247
       } else if (isSelectionCorrectAncestor) {
         showFeedback(t('hard.feedback.redundant'), 'info');
       } else {

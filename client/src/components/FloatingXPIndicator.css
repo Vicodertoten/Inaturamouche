@@ -31,6 +31,7 @@
 .floating-xp-top-right {
   top: 6rem;
   right: 2rem;
+  transform: none; /* No centering transform needed */
 }
 
 .floating-xp-bottom-center {
@@ -52,6 +53,32 @@
 
 /* Animations */
 @keyframes floatingXP {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  20% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Center position animation override */
+.floating-xp-center {
+  animation: floatingXPCenter 2s ease-out forwards;
+}
+
+@keyframes floatingXPCenter {
   0% {
     opacity: 0;
     transform: translate(-50%, calc(-50% + 20px)) scale(0.8);

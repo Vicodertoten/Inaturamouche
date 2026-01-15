@@ -24,7 +24,6 @@ const FloatingXPIndicator = ({ xpGain = 0, position = 'center' }) => {
       
       timerRef.current = setTimeout(() => {
         setVisible(false);
-        timerRef.current = null;
       }, 2000);
     }
     
