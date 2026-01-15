@@ -325,6 +325,34 @@ const nl = {
         title: 'Snelstarter',
         description: 'Beantwoord correct in minder dan 8 seconden.',
       },
+      STREAK_STARTER_3: {
+        title: '🔥 Eerste Vlam',
+        description: 'Bereik een reeks van 3 correcte antwoorden',
+      },
+      STREAK_MASTER_5: {
+        title: '🔥🔥 Meester van het Vuur',
+        description: 'Bereik een reeks van 5 correcte antwoorden',
+      },
+      STREAK_LEGEND_10: {
+        title: '🔥🔥🔥 Gloeiende Legende',
+        description: 'Bereik een reeks van 10 correcte antwoorden',
+      },
+      STREAK_TITAN_20: {
+        title: '⚡ Dondertitan',
+        description: 'Bereik een reeks van 20 correcte antwoorden',
+      },
+      STREAK_GUARDIAN: {
+        title: '🛡️ Eeuwige Bewaker',
+        description: 'Bereik een reeks van 50 correcte antwoorden. Ontgrendelt een permanent schild!',
+      },
+      PERFECT_GAME: {
+        title: '💎 Perfect Spel',
+        description: 'Voltooi een 5-vragenspel zonder fouten (zonder schilden te gebruiken)',
+      },
+      FLAWLESS_HARD: {
+        title: '👑 Extreme Volmaaktheid',
+        description: 'Voltooi een 10-vragenmoeilijk spel zonder fouten of schilden',
+      },
     },
   },
   notifications: {

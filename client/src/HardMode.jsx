@@ -33,6 +33,8 @@ function HardMode() {
     score,
     nextImageUrl,
     currentStreak,
+    inGameShields,
+    hasPermanentShield,
     completeRound,
     endGame,
     mediaType,
@@ -341,6 +343,8 @@ function HardMode() {
             mode="hard"
             score={currentScore}
             currentStreak={currentStreak}
+            inGameShields={inGameShields}
+            hasPermanentShield={hasPermanentShield}
             questionCount={questionCount}
             maxQuestions={maxQuestions}
             guesses={guesses}

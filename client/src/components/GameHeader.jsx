@@ -1,5 +1,5 @@
 import React from 'react';
-import StreakBadge from './StreakBadge';
+import InGameStreakDisplay from './InGameStreakDisplay';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './GameHeader.css';
 
@@ -12,6 +12,8 @@ import './GameHeader.css';
  * @param {string} props.mode - 'hard' ou 'easy'
  * @param {number} props.score - Score actuel du joueur
  * @param {number} props.currentStreak - Streak actuel du joueur
+ * @param {number} [props.inGameShields] - Nombre de boucliers disponibles
+ * @param {boolean} [props.hasPermanentShield] - Si le bouclier permanent est débloqué
  * @param {number} props.questionCount - Numéro de la question actuelle
  * @param {number} [props.maxQuestions] - Nombre total de questions (optionnel)
  * @param {number} [props.guesses] - Nombre de vies restantes (mode hard uniquement)
@@ -25,6 +27,8 @@ const GameHeader = ({
   mode = 'hard',
   score,
   currentStreak,
+  inGameShields = 0,
+  hasPermanentShield = false,
   questionCount,
   maxQuestions,
   guesses,
@@ -57,7 +61,11 @@ const GameHeader = ({
           </div>
         )}
         <div className="streak-chip">
-          <StreakBadge streak={currentStreak} />
+          <InGameStreakDisplay 
+            streak={currentStreak}
+            shields={inGameShields}
+            hasPermanentShield={hasPermanentShield}
+          />
         </div>
       </div>
       <div className="header-actions">

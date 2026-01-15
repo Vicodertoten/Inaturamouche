@@ -325,6 +325,34 @@ const en = {
         title: 'Speedrunner',
         description: 'Answer correctly in under 8 seconds.',
       },
+      STREAK_STARTER_3: {
+        title: '🔥 First Flame',
+        description: 'Achieve a streak of 3 correct answers',
+      },
+      STREAK_MASTER_5: {
+        title: '🔥🔥 Fire Master',
+        description: 'Achieve a streak of 5 correct answers',
+      },
+      STREAK_LEGEND_10: {
+        title: '🔥🔥🔥 Incandescent Legend',
+        description: 'Achieve a streak of 10 correct answers',
+      },
+      STREAK_TITAN_20: {
+        title: '⚡ Thunderous Titan',
+        description: 'Achieve a streak of 20 correct answers',
+      },
+      STREAK_GUARDIAN: {
+        title: '🛡️ Eternal Guardian',
+        description: 'Achieve a streak of 50 correct answers. Unlocks a permanent shield!',
+      },
+      PERFECT_GAME: {
+        title: '💎 Perfect Game',
+        description: 'Complete a 5-question game without errors (without using shields)',
+      },
+      FLAWLESS_HARD: {
+        title: '👑 Extreme Flawless',
+        description: 'Complete a 10-question Hard mode game without errors or shields',
+      },
     },
   },
   notifications: {

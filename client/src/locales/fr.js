@@ -325,6 +325,34 @@ const fr = {
         title: 'Réflexe éclair',
         description: 'Répondre correctement en moins de 8 secondes.',
       },
+      STREAK_STARTER_3: {
+        title: '🔥 Première Flamme',
+        description: 'Atteindre un streak de 3 réponses correctes',
+      },
+      STREAK_MASTER_5: {
+        title: '🔥🔥 Maître du Feu',
+        description: 'Atteindre un streak de 5 réponses correctes',
+      },
+      STREAK_LEGEND_10: {
+        title: '🔥🔥🔥 Légende Incandescente',
+        description: 'Atteindre un streak de 10 réponses correctes',
+      },
+      STREAK_TITAN_20: {
+        title: '⚡ Titan Foudroyant',
+        description: 'Atteindre un streak de 20 réponses correctes',
+      },
+      STREAK_GUARDIAN: {
+        title: '🛡️ Gardien Éternel',
+        description: 'Atteindre un streak de 50 réponses correctes. Déverrouille un bouclier permanent !',
+      },
+      PERFECT_GAME: {
+        title: '💎 Partie Parfaite',
+        description: 'Terminer une partie de 5 questions sans erreur (sans utiliser de bouclier)',
+      },
+      FLAWLESS_HARD: {
+        title: '👑 Sans Faute Extrême',
+        description: 'Terminer une partie de 10 questions en mode Difficile sans erreur ni bouclier',
+      },
     },
   },
   notifications: {

@@ -142,7 +142,12 @@ export function GameProvider({ children }) {
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
-  const [currentStreak, setCurrentStreak] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(profile?.stats?.currentStreak || 0);
+  const [longestStreak, setLongestStreak] = useState(profile?.stats?.longestStreak || 0);
+  const [inGameShields, setInGameShields] = useState(0);
+  const [hasPermanentShield, setHasPermanentShield] = useState(
+    profile?.achievements?.includes('STREAK_GUARDIAN') || false
+  );
   const [streakTier, setStreakTier] = useState(0);
   const [activePerks, setActivePerks] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
@@ -208,12 +213,14 @@ export function GameProvider({ children }) {
     setSessionCorrectSpecies([]);
     setSessionSpeciesData([]);
     setSessionMissedSpecies([]);
-    setCurrentStreak(0);
+    // NE PAS RESET la streak actuelle - elle persiste entre les parties
     setStreakTier(0);
     setActivePerks([]);
     setNewlyUnlocked([]);
+    // Réinitialiser les boucliers de partie (garder le permanent s'il existe)
+    setInGameShields(hasPermanentShield ? 1 : 0);
     clearAchievementsTimer();
-  }, [clearAchievementsTimer]);
+  }, [clearAchievementsTimer, hasPermanentShield]);
 
   /**
    * Supprime la session active de IndexedDB.
@@ -269,6 +276,9 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionMissedSpecies,
       currentStreak,
+      longestStreak,
+      inGameShields,
+      hasPermanentShield,
       streakTier,
       activePerks,
       gameConfig: {
@@ -299,6 +309,9 @@ export function GameProvider({ children }) {
     sessionSpeciesData,
     sessionMissedSpecies,
     currentStreak,
+    longestStreak,
+    inGameShields,
+    hasPermanentShield,
     streakTier,
     activePerks,
     activePackId,
@@ -350,6 +363,9 @@ export function GameProvider({ children }) {
       setSessionSpeciesData(sessionData.sessionSpeciesData || []);
       setSessionMissedSpecies(sessionData.sessionMissedSpecies || []);
       setCurrentStreak(sessionData.currentStreak || 0);
+      setLongestStreak(sessionData.longestStreak || 0);
+      setInGameShields(sessionData.inGameShields || 0);
+      setHasPermanentShield(sessionData.hasPermanentShield || false);
       setStreakTier(sessionData.streakTier || 0);
       setActivePerks(sessionData.activePerks || []);
 
@@ -693,6 +709,10 @@ export function GameProvider({ children }) {
 
       // Update daily streak after completing a game
       const profileWithStreakUpdate = updateDailyStreak(profileClone);
+      
+      // Save in-game streak stats to profile
+      profileWithStreakUpdate.stats.currentStreak = currentStreak;
+      profileWithStreakUpdate.stats.longestStreak = longestStreak;
 
       updateProfile(profileWithStreakUpdate);
       setIsGameActive(false);
@@ -721,7 +741,41 @@ export function GameProvider({ children }) {
 
       const currentQuestionId = question.bonne_reponse.id;
       const isCorrectFinal = typeof isCorrect === 'boolean' ? isCorrect : points > 0;
-      const newStreak = isCorrectFinal ? currentStreak + 1 : 0;
+      
+      // NEW: Handle shields on incorrect answer
+      let newStreak = currentStreak;
+      if (!isCorrectFinal) {
+        // Check if a shield is available
+        if (inGameShields > 0) {
+          // Use the shield to preserve streak
+          setInGameShields((prev) => prev - 1);
+          // Streak is preserved, no change to newStreak
+        } else {
+          // No shield - reset streak
+          const finalStreak = currentStreak;
+          
+          // Track longest streak
+          if (finalStreak > longestStreak) {
+            setLongestStreak(finalStreak);
+          }
+          
+          newStreak = 0;
+        }
+      } else {
+        // Correct answer - increment streak
+        newStreak = currentStreak + 1;
+        
+        // Track longest streak
+        if (newStreak > longestStreak) {
+          setLongestStreak(newStreak);
+        }
+        
+        // Earn a shield every 5 streaks (max 3)
+        if (newStreak % 5 === 0 && inGameShields < 3) {
+          setInGameShields((prev) => Math.min(prev + 1, 3));
+        }
+      }
+      
       setCurrentStreak(newStreak);
 
       const multiplier = computeMultiplierFromPerks(activePerks);
@@ -884,6 +938,8 @@ export function GameProvider({ children }) {
       activePack,
       addSpeciesToCollection,
       currentStreak,
+      inGameShields,
+      longestStreak,
       evaluatePerksForStreak,
       fetchQuestion,
       finalizeGame,
@@ -956,6 +1012,9 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionMissedSpecies,
       currentStreak,
+      longestStreak,
+      inGameShields,
+      hasPermanentShield,
       streakTier,
       activePerks,
       currentMultiplier,
@@ -991,6 +1050,9 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionMissedSpecies,
       currentStreak,
+      longestStreak,
+      inGameShields,
+      hasPermanentShield,
       streakTier,
       activePerks,
       currentMultiplier,
