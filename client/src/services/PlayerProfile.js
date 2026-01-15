@@ -38,6 +38,19 @@ export const getDefaultProfile = () => ({
   },
   achievements: [],
   pokedex: {},
+  dailyStreak: {
+    current: 0,
+    longest: 0,
+    lastPlayedDate: null,
+    shields: 0,
+    shieldUsedToday: false,
+    streakBonusXP: 0,
+    streakMilestones: {
+      7: false,
+      14: false,
+      30: false,
+    },
+  },
 });
 
 const mergeProfileWithDefaults = (loadedProfile = {}) => {
@@ -55,6 +68,10 @@ const mergeProfileWithDefaults = (loadedProfile = {}) => {
       ...(safeProfile.stats || {}),
     },
     pokedex: safeProfile.pokedex || {},
+    dailyStreak: {
+      ...defaultProfile.dailyStreak,
+      ...(safeProfile.dailyStreak || {}),
+    },
   };
 
   if (finalProfile.stats.packsPlayed) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
+import DailyStreakBadge from '../components/DailyStreakBadge';
 
 const Configurator = lazy(() => import('../Configurator'));
 
@@ -158,6 +159,10 @@ const HomePage = () => {
   return (
     <div className="screen configurator-screen">
       <div className="home-dashboard card">
+        <div className="home-header-bar">
+          <DailyStreakBadge compact />
+        </div>
+
         {/* Afficher le bouton "Reprendre la partie" si une session est active */}
         {hasActiveSession && !isCheckingSession && resumeSessionData && (
           <section className="resume-session-cta">

@@ -13,6 +13,7 @@ import { checkNewAchievements, evaluateMicroChallenges } from '../achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
+import { updateDailyStreak, applyXPWithStreakBonus } from '../services/StreakService';
 import { active_session } from '../services/db';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
@@ -622,7 +623,9 @@ export function GameProvider({ children }) {
         ? speciesEntries.length
         : resolveTotalQuestions(maxQuestions, questionCount);
 
-      profileClone.xp = (profileClone.xp || 0) + finalScore;
+      // Apply XP with streak bonus
+      const finalScoreWithBonus = applyXPWithStreakBonus(finalScore, profileClone);
+      profileClone.xp = (profileClone.xp || 0) + finalScoreWithBonus;
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
 
       if (gameMode === 'easy') {
@@ -688,7 +691,10 @@ export function GameProvider({ children }) {
         clearAchievementsTimer();
       }
 
-      updateProfile(profileClone);
+      // Update daily streak after completing a game
+      const profileWithStreakUpdate = updateDailyStreak(profileClone);
+
+      updateProfile(profileWithStreakUpdate);
       setIsGameActive(false);
       setIsGameOver(true);
       setNextQuestion(null);

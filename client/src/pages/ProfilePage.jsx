@@ -5,6 +5,7 @@ import { useUser } from '../context/UserContext';
 import { getTaxaByIds } from '../services/api';
 import { notify } from '../services/notifications.js';
 import { resetProfile } from '../services/PlayerProfile';
+import DailyStreakBadge from '../components/DailyStreakBadge';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
@@ -296,6 +297,8 @@ const ProfilePage = () => {
               aria-live="polite"
               aria-labelledby="tab-summary-trigger"
             >
+              <DailyStreakBadge />
+
               <div className="profile-section">
                 <h3>{t('profile.summary_title')}</h3>
                 <div className="stats-grid summary-grid stat-cards">

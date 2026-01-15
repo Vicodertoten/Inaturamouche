@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../services/PlayerProfile';
+import { checkDailyStreak } from '../services/StreakService';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
 import { stats as statsTable, taxa as taxaTable } from '../services/db';
@@ -91,9 +92,18 @@ export function UserProvider({ children }) {
         console.error('Failed to migrate legacy collection', migrationError);
       }
       try {
-        const loadedProfile = await loadProfileFromStore();
+        let loadedProfile = await loadProfileFromStore();
+        
+        // Check daily streak on app load
+        loadedProfile = checkDailyStreak(loadedProfile);
+        
         if (!isMounted) return;
         setProfile(sanitizeProfile(loadedProfile));
+        
+        // Save updated profile if streak check made changes
+        if (loadedProfile !== await loadProfileFromStore()) {
+          await saveProfile(loadedProfile);
+        }
       } catch (loadError) {
         console.error('Failed to load profile', loadError);
         if (isMounted) {
