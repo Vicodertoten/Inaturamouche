@@ -29,6 +29,8 @@ const XPProgressBar = ({
       setShowXPPopup(true);
       const timer = setTimeout(() => setShowXPPopup(false), 2000);
       return () => clearTimeout(timer);
+    } else {
+      setShowXPPopup(false);
     }
   }, [recentXPGain, animate]);
 

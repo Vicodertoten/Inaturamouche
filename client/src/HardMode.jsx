@@ -252,13 +252,11 @@ function HardMode() {
 
       // --- Logique de fin de partie ---
       if (isSpeciesGuessed) {
-        setIsGuessing(false);
         endRound(true, nextKnownTaxa, updatedGuesses);
         return;
       }
 
       if (updatedGuesses <= 0) {
-        setIsGuessing(false);
         endRound(false, nextKnownTaxa, 0);
         return;
       }
@@ -273,18 +271,18 @@ function HardMode() {
         setIncorrectGuessIds(prev => [...prev, selection.id]);
         triggerPanelShake();
       }
-      
-      setIsGuessing(false); // Unlock guessing
 
     } catch (error) {
       console.error('[HardMode] Error in handleGuess:', error);
       showFeedback(t('hard.feedback.error'), 'error');
       triggerPanelShake();
-      setIsGuessing(false); // Unlock guessing on error
       
       if (updatedGuesses <= 0) {
         endRound(false, knownTaxa, 0);
       }
+    } finally {
+      // Always unlock guessing, regardless of success or error
+      setIsGuessing(false);
     }
   };
 

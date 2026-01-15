@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './FloatingXPIndicator.css';
 
 /**
@@ -10,14 +10,30 @@ import './FloatingXPIndicator.css';
 const FloatingXPIndicator = ({ xpGain = 0, position = 'center' }) => {
   const [visible, setVisible] = useState(false);
   const [displayValue, setDisplayValue] = useState(0);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (xpGain > 0) {
+      // Clear any existing timer before setting a new one
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      
       setDisplayValue(xpGain);
       setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 2000);
-      return () => clearTimeout(timer);
+      
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
+        timerRef.current = null;
+      }, 2000);
     }
+    
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [xpGain]);
 
   if (!visible || displayValue === 0) return null;
