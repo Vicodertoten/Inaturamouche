@@ -1,0 +1,427 @@
+/* === MOBILE OPTIMIZATION FOR GAME MODES === */
+
+/* --- Responsive Hard Mode Layout --- */
+@media (max-width: 768px) {
+  .hard-mode-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    gap: 0;
+    display: block;
+  }
+
+  .hard-mode-layout {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: unset;
+    gap: 0;
+    align-items: stretch;
+    min-height: 0;
+    height: auto;
+  }
+
+  .media-column {
+    position: static !important;
+    top: auto !important;
+    align-self: unset !important;
+    max-width: 100% !important;
+    height: auto !important;
+    flex-grow: 1;
+    min-height: 280px;
+    max-height: calc(100dvh - 400px);
+  }
+
+  .left-stack {
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 100% !important;
+    overflow: visible !important;
+    width: 100%;
+  }
+
+  .media-panel {
+    width: 100%;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    flex: 1;
+    padding: 0.75rem;
+  }
+
+  /* Hide tree on mobile, show bottom summary */
+  .tree-column {
+    display: none;
+    min-height: 0 !important;
+    max-height: unset !important;
+  }
+
+  /* Proposition panel becomes bottom sheet style */
+  .proposition-panel,
+  .guess-panel {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.75rem;
+    border-radius: 12px 12px 0 0;
+    margin: 0;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .guess-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .guess-row {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .guess-row input,
+  .guess-row [role="combobox"] {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .guess-actions-inline {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .guess-actions-inline button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .action-button.hint {
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  .feedback-bar {
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+  }
+
+  .feedback-bar.success {
+    border-color: var(--success-color);
+    background: rgba(76, 175, 106, 0.15);
+    color: var(--success-color);
+  }
+
+  .feedback-bar.error {
+    border-color: var(--error-color);
+    background: rgba(201, 74, 72, 0.15);
+    color: var(--error-color);
+  }
+}
+
+/* --- Easy Mode Mobile Optimization --- */
+@media (max-width: 768px) {
+  .game-screen.easy-mode {
+    gap: 0;
+    padding: 0;
+  }
+
+  .game-screen.easy-mode .card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border-radius: 0;
+    max-width: 100%;
+    height: auto;
+    min-height: calc(100dvh - 140px);
+  }
+
+  .game-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .image-section {
+    flex: 1.2;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0;
+  }
+
+  .audio-panel {
+    padding: 0.75rem;
+    margin: 0;
+  }
+
+  .image-viewer {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  /* Choices become full-width bottom area */
+  .choices {
+    flex: 0.8;
+    gap: 0.4rem;
+    padding: 0.75rem;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    border-radius: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .choices button {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 8px;
+  }
+
+  .choice-label {
+    gap: 0.2rem;
+  }
+
+  .choice-primary {
+    font-size: 0.9rem;
+  }
+
+  .choice-secondary {
+    font-size: 0.75rem;
+  }
+}
+
+/* --- Tablet (Medium devices) --- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hard-mode-layout {
+    grid-template-columns: 1fr 0.8fr;
+  }
+
+  .media-column {
+    max-height: calc(100dvh - 180px) !important;
+  }
+
+  .tree-column {
+    max-height: calc(100dvh - 180px) !important;
+  }
+
+  .guess-bar {
+    gap: 0.5rem;
+  }
+
+  .guess-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .guess-actions-inline {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .guess-actions-inline button {
+    flex: 1;
+  }
+}
+
+/* === MICRO INTERACTIONS & ANIMATIONS === */
+
+/* Smooth transitions for answer reveal */
+@keyframes answerReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.choices button.correct,
+.choices button.incorrect {
+  animation: answerReveal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Panel shake animation for wrong answers */
+@keyframes panelShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+.proposition-panel.panel-shake,
+.guess-panel.panel-shake {
+  animation: panelShake 0.4s cubic-bezier(0.36, 0, 0.66, 1);
+}
+
+/* Pulse for feedback */
+@keyframes feedbackPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.feedback-bar {
+  animation: feedbackPulse 0.4s ease-out;
+}
+
+/* === TOUCH FEEDBACK === */
+
+.choices button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.action-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.fab:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* Prevent layout shift with focus ring */
+.choices button:focus-visible,
+.action-button:focus-visible,
+.fab:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+/* === SCROLLING OPTIMIZATION === */
+
+/* Smooth scroll for choices on mobile */
+@supports (scroll-behavior: smooth) {
+  .choices {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Momentum scrolling for iOS */
+.choices,
+.tree-column,
+.left-stack {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* === GESTURE OPTIMIZATION === */
+
+/* Prevent accidental text selection */
+.choices button,
+.action-button,
+.fab {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* === HUD Elements (Floating Info) === */
+
+/* Floating stats (sticky header) */
+.game-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 35;
+}
+
+@media (max-width: 768px) {
+  .game-header {
+    position: fixed !important;
+    top: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+}
+
+/* === Color contrast for accessibility === */
+
+.choices button {
+  color: var(--text-color);
+  background: var(--surface-color);
+}
+
+.choices button:hover:not(:disabled) {
+  color: var(--text-color);
+  background: var(--surface-2);
+}
+
+/* === Reduce clutter on small screens === */
+
+@media (max-width: 600px) {
+  .stat-pill {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+  }
+
+  .pill-label {
+    font-size: 0.7rem;
+  }
+
+  .pill-value {
+    font-size: 1rem;
+  }
+
+  .header-stats {
+    gap: 0.3rem;
+  }
+
+  .guess-row {
+    flex-wrap: wrap;
+  }
+
+  .guess-actions-inline {
+    width: 100%;
+  }
+
+  .guess-actions-inline button {
+    flex: 1;
+    min-width: 50%;
+  }
+}
+
+/* === Thumb-friendly zone (Bottom area) === */
+
+/* Make bottom interactive area comfortable for thumb */
+.choices {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.choices button {
+  /* Ensure adequate spacing between buttons */
+  margin-bottom: 0.1rem;
+}
+
+.choices button:last-child {
+  margin-bottom: 0;
+}
+
+/* === Dark mode text optimization === */
+
+@media (prefers-color-scheme: dark) {
+  .feedback-bar {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .choices {
+    background: var(--surface-color);
+  }
+}
