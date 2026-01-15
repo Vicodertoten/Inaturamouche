@@ -1,0 +1,116 @@
+/* ========================================
+   FLOATING XP INDICATOR
+   ======================================== */
+
+.floating-xp-indicator {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.125rem;
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 16px rgba(102, 126, 234, 0.5),
+    0 0 0 2px rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  z-index: 1000;
+  animation: floatingXP 2s ease-out forwards;
+}
+
+/* Position variants */
+.floating-xp-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.floating-xp-top-right {
+  top: 6rem;
+  right: 2rem;
+}
+
+.floating-xp-bottom-center {
+  bottom: 4rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Icon styling */
+.xp-icon {
+  font-size: 1.5rem;
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+
+.xp-value {
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+}
+
+/* Animations */
+@keyframes floatingXP {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 20px)) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 30px)) scale(0.9);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.2);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .floating-xp-indicator {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  .xp-icon {
+    font-size: 1.25rem;
+  }
+
+  .xp-value {
+    font-size: 1rem;
+  }
+
+  .floating-xp-top-right {
+    top: 5rem;
+    right: 1rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .floating-xp-indicator {
+    animation: none;
+    opacity: 1;
+  }
+
+  .xp-icon {
+    animation: none;
+  }
+}
