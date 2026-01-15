@@ -35,6 +35,8 @@ export const getDefaultProfile = () => ({
     speciesMastery: {},
     missedSpecies: [],
     packsPlayed: {},
+    currentStreak: 0,
+    longestStreak: 0,
   },
   achievements: [],
   pokedex: {},

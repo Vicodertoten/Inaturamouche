@@ -32,6 +32,43 @@ export function computeScore({
   return { points, bonus };
 }
 
+/**
+ * Compute exponential in-game streak bonus points.
+ * Encourages long streaks with increasing rewards.
+ * 
+ * @param {number} streak - Current streak value
+ * @param {'easy'|'hard'} mode - Game mode
+ * @returns {number} Bonus points for the streak
+ */
+export function computeInGameStreakBonus(streak, mode) {
+  if (streak === 0) return 0;
+
+  // Cap streak at 15 to prevent extreme values
+  const cappedStreak = Math.min(streak, 15);
+
+  if (mode === 'easy') {
+    // Formula: 5 * 1.4^(streak-1)
+    // Streak 1:   5 pts
+    // Streak 3:  10 pts
+    // Streak 5:  19 pts
+    // Streak 10: 77 pts
+    // Streak 15: 289 pts
+    return Math.floor(5 * Math.pow(1.4, cappedStreak - 1));
+  }
+
+  if (mode === 'hard') {
+    // Formula: 10 * 1.5^(streak-1)
+    // Streak 1:  10 pts
+    // Streak 3:  23 pts
+    // Streak 5:  51 pts
+    // Streak 10: 383 pts
+    // Streak 15: 2176 pts
+    return Math.floor(10 * Math.pow(1.5, cappedStreak - 1));
+  }
+
+  return 0;
+}
+
 export const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
 
 export const getXpForLevel = (level) => {

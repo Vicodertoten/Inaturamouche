@@ -24,6 +24,8 @@ const EasyMode = () => {
     maxQuestions,
     mediaType,
     currentStreak,
+    inGameShields,
+    hasPermanentShield,
     nextImageUrl,
     completeRound,
     endGame,
@@ -179,6 +181,8 @@ const EasyMode = () => {
           mode="easy"
           score={score}
           currentStreak={currentStreak}
+          inGameShields={inGameShields}
+          hasPermanentShield={hasPermanentShield}
           questionCount={questionCount}
           maxQuestions={maxQuestions}
           onQuit={endGame}

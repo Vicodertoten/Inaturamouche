@@ -1,0 +1,101 @@
+/* ProfileStreakCard.css */
+.profile-streak-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 107, 53, 0.1),
+    rgba(247, 147, 30, 0.1)
+  );
+  border: 2px solid var(--accent-color, #ff6b35);
+  border-radius: 16px;
+  padding: var(--space-4, 2rem);
+  margin: var(--space-3, 1rem) 0;
+}
+
+.streak-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3, 1rem);
+}
+
+.streak-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.permanent-badge {
+  background: linear-gradient(135deg, gold, orange);
+  color: var(--bg-color, #1a1a1a);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  animation: shimmer-badge 3s infinite;
+  display: inline-block;
+}
+
+@keyframes shimmer-badge {
+  0%,
+  100% {
+    box-shadow: 0 0 10px gold;
+  }
+  50% {
+    box-shadow: 0 0 20px gold;
+  }
+}
+
+.streak-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 1rem);
+  margin-bottom: var(--space-3, 1rem);
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-3, 1rem);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+.stat-box .label {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #888);
+  margin-bottom: 0.5rem;
+}
+
+.stat-box .value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent-color, #ff6b35);
+}
+
+.stat-box.record .value {
+  color: gold;
+}
+
+.streak-progress {
+  margin-top: var(--space-3, 1rem);
+}
+
+.progress-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #888);
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color, #ff6b35), gold);
+  transition: width 0.5s ease;
+}

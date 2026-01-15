@@ -42,6 +42,35 @@ export const ACHIEVEMENTS = {
     titleKey: 'achievements.list.SKILL_SPEEDRUN.title',
     descriptionKey: 'achievements.list.SKILL_SPEEDRUN.description',
   },
+  // Streak Achievements
+  STREAK_STARTER_3: {
+    titleKey: 'achievements.list.STREAK_STARTER_3.title',
+    descriptionKey: 'achievements.list.STREAK_STARTER_3.description',
+  },
+  STREAK_MASTER_5: {
+    titleKey: 'achievements.list.STREAK_MASTER_5.title',
+    descriptionKey: 'achievements.list.STREAK_MASTER_5.description',
+  },
+  STREAK_LEGEND_10: {
+    titleKey: 'achievements.list.STREAK_LEGEND_10.title',
+    descriptionKey: 'achievements.list.STREAK_LEGEND_10.description',
+  },
+  STREAK_TITAN_20: {
+    titleKey: 'achievements.list.STREAK_TITAN_20.title',
+    descriptionKey: 'achievements.list.STREAK_TITAN_20.description',
+  },
+  STREAK_GUARDIAN: {
+    titleKey: 'achievements.list.STREAK_GUARDIAN.title',
+    descriptionKey: 'achievements.list.STREAK_GUARDIAN.description',
+  },
+  PERFECT_GAME: {
+    titleKey: 'achievements.list.PERFECT_GAME.title',
+    descriptionKey: 'achievements.list.PERFECT_GAME.description',
+  },
+  FLAWLESS_HARD: {
+    titleKey: 'achievements.list.FLAWLESS_HARD.title',
+    descriptionKey: 'achievements.list.FLAWLESS_HARD.description',
+  },
 };
 
 // Fonction qui vérifie si de nouveaux succès sont débloqués
