@@ -1,4 +1,4 @@
-// src/HardMode.jsx (Version corrigée et optimisée)
+// src/HardMode.jsx (Version corrigée - BUG FIX:  question change auto-complete)
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ImageViewer from './components/ImageViewer';
@@ -54,23 +54,26 @@ function HardMode() {
   const [panelEffect, setPanelEffect] = useState('');
   const [currentScore, setCurrentScore] = useState(0);
   const [roundMeta, setRoundMeta] = useState({
-    mode: 'hard',
-    hintsUsed: false,
-    hintCount: 0,
+    mode:  'hard',
+    hintsUsed:  false,
+    hintCount:  0,
   });
 
   const { t, language } = useLanguage();
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
+  
+  // FIX: Référence pour tracker la question actuelle (comme EasyMode)
+  const questionRef = useRef(question);
 
   // Computed values
-  const soundUrl = question?. sounds?.[0]?.file_url;
+  const soundUrl = question?.sounds?.[0]?.file_url;
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
 
   const imageAlt = useMemo(() => {
     const taxon = question?.bonne_reponse;
-    const common = taxon?.preferred_common_name || taxon?.common_name;
+    const common = taxon?. preferred_common_name || taxon?.common_name;
     const scientific = taxon?.name;
     if (common && scientific && common !== scientific) return `${common} (${scientific})`;
     return common || scientific || t('hard.image_alt');
@@ -103,8 +106,12 @@ function HardMode() {
 
   const firstUnknownRank = useMemo(() => RANKS.find((rank) => !knownTaxa[rank]), [knownTaxa]);
 
+  // FIX: Vérifier si c'est toujours la même question
+  const isCurrentQuestion = questionRef.current === question;
+
   // Reset à chaque nouvelle question
   useEffect(() => {
+    questionRef.current = question; // FIX: Mettre à jour la référence
     setKnownTaxa({});
     setIncorrectGuessIds([]);
     setGuesses(INITIAL_GUESSES);
@@ -140,22 +147,23 @@ function HardMode() {
     }
   }, [activeRank, firstUnknownRank, knownTaxa]);
 
-  // Auto-défaite si 0 vies (FIX: dépendances optimisées)
+  // FIX: Auto-défaite si 0 vies (avec vérification de la question actuelle)
   useEffect(() => {
-    if (roundStatus === 'playing' && guesses <= 0) {
+    // ✅ Seulement si on est toujours sur la même question
+    if (isCurrentQuestion && roundStatus === 'playing' && guesses <= 0) {
       setScoreInfo({
         points: currentScore,
-        bonus:  0,
+        bonus: 0,
         streakBonus: 0,
         guessesRemaining: 0
       });
       setRoundStatus('lose');
     }
-  }, [guesses, roundStatus]); // Retiré currentScore des dépendances
+  }, [guesses, roundStatus, isCurrentQuestion, currentScore]);
 
   const showFeedback = useCallback((message, type = 'info') => {
     setFeedback({ message, type });
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef. current);
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     feedbackTimeoutRef.current = setTimeout(() => setFeedback(null), 3200);
   }, []);
 
@@ -166,7 +174,7 @@ function HardMode() {
   }, []);
 
   /**
-   * FIX: Calcul unifié des points finaux incluant tous les rangs découverts
+   * Calcul unifié des points finaux incluant tous les rangs découverts
    */
   const calculateFinalScore = useCallback((knownTaxaObj) => {
     let totalPoints = 0;
@@ -179,7 +187,7 @@ function HardMode() {
   }, []);
 
   /**
-   * FIX:  Fin de partie unifiée pour éviter les incohérences
+   * Fin de partie unifiée pour éviter les incohérences
    */
   const endRound = useCallback((isVictory, finalKnownTaxa, remainingGuesses) => {
     const finalScore = calculateFinalScore(finalKnownTaxa);
@@ -195,17 +203,17 @@ function HardMode() {
   }, [calculateFinalScore]);
 
   const handleGuess = async (selection) => {
-    if (!selection?.id || roundStatus !== 'playing' || !question?.bonne_reponse || guesses <= 0) return;
+    if (!selection?. id || roundStatus !== 'playing' || ! question?.bonne_reponse || guesses <= 0) return;
 
     const updatedGuesses = guesses - 1;
     setGuesses(updatedGuesses);
 
     try {
       const guessedTaxonHierarchy = await getTaxonDetails(selection.id, language);
-      if (!guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
+      if (! guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
 
       const guessedLineage = [
-        ...(Array.isArray(guessedTaxonHierarchy?. ancestors) ? guessedTaxonHierarchy.ancestors : []),
+        ...(Array.isArray(guessedTaxonHierarchy?.ancestors) ? guessedTaxonHierarchy.ancestors : []),
         guessedTaxonHierarchy,
       ];
 
@@ -216,7 +224,7 @@ function HardMode() {
         const rank = taxon.rank;
         const targetTaxon = targetLineage[rank];
         if (! rank || !targetTaxon) return;
-        if (targetTaxon.id === taxon.id && !nextKnownTaxa[rank]) {
+        if (targetTaxon.id === taxon.id && ! nextKnownTaxa[rank]) {
           nextKnownTaxa[rank] = { id: taxon.id, taxon };
           gainedPoints += SCORE_PER_RANK[rank] || 0;
         }
@@ -228,10 +236,10 @@ function HardMode() {
         setCurrentScore(prev => prev + gainedPoints);
       }
 
-      const isSpeciesGuessed = nextKnownTaxa. species?.id === question.bonne_reponse. id;
+      const isSpeciesGuessed = nextKnownTaxa.species?.id === question.bonne_reponse.id;
       const isSelectionCorrectAncestor = targetIds.has(guessedTaxonHierarchy.id);
 
-      // --- Logique de fin de partie (FIX: utilisation de endRound unifié) ---
+      // --- Logique de fin de partie ---
       if (isSpeciesGuessed) {
         endRound(true, nextKnownTaxa, updatedGuesses);
         return;
@@ -255,10 +263,9 @@ function HardMode() {
 
     } catch (error) {
       console.error('[HardMode] Error in handleGuess:', error);
-      showFeedback(t('hard. feedback.error'), 'error');
+      showFeedback(t('hard.feedback.error'), 'error');
       triggerPanelShake();
       
-      // FIX: En cas d'erreur, décrémenter quand même les vies
       if (updatedGuesses <= 0) {
         endRound(false, knownTaxa, 0);
       }
@@ -272,7 +279,7 @@ function HardMode() {
 
     const isCorrect = roundStatus === 'win';
 
-    // FIX: Pas de streak bonus si indice utilisé
+    // Pas de streak bonus si indice utilisé
     const streakBonusCalc = (isCorrect && !roundMeta.hintsUsed) 
       ? computeInGameStreakBonus(currentStreak, 'hard') 
       : 0;
@@ -280,12 +287,12 @@ function HardMode() {
     // Calcul du score de base avec bonus de vies
     const baseScoreInfo = computeScore({
       mode: 'hard',
-      isCorrect:  isCorrect,
-      basePoints: savedScoreInfo?. points || 0,
+      isCorrect: isCorrect,
+      basePoints: savedScoreInfo?.points || 0,
       guessesRemaining: savedScoreInfo?.guessesRemaining || 0
     });
 
-    // FIX: Pénalité d'indice seulement si bonus positif
+    // Pénalité d'indice seulement si bonus positif
     let finalBonus = baseScoreInfo.bonus || 0;
     if (roundMeta.hintsUsed) {
       finalBonus = Math.max(0, finalBonus - REVEAL_HINT_XP_COST);
@@ -316,7 +323,7 @@ function HardMode() {
     if (! firstUnknownRank) return;
 
     const taxonData = targetLineage[firstUnknownRank];
-    if (! taxonData) return;
+    if (!taxonData) return;
 
     const rankLabel = t(`ranks.${firstUnknownRank}`);
     showFeedback(t('hard.feedback.hint_used', { rank: rankLabel, cost: REVEAL_HINT_XP_COST }), 'info');
@@ -328,7 +335,7 @@ function HardMode() {
       hintCount: 1,
     }));
 
-    // FIX: Ajouter le taxon révélé ET calculer les points immédiatement
+    // Ajouter le taxon révélé ET calculer les points immédiatement
     const nextKnownTaxa = {
       ...knownTaxa,
       [firstUnknownRank]: { id: taxonData.id, taxon: taxonData }
@@ -336,7 +343,7 @@ function HardMode() {
 
     setKnownTaxa(nextKnownTaxa);
 
-    // FIX: Calculer les points du rang dévoilé
+    // Calculer les points du rang dévoilé
     const rankPoints = SCORE_PER_RANK[firstUnknownRank] || 0;
     const updatedScore = currentScore + rankPoints;
     setCurrentScore(updatedScore);
@@ -344,8 +351,8 @@ function HardMode() {
     // Si c'était l'espèce, victoire sans bonus
     if (firstUnknownRank === 'species') {
       setScoreInfo({
-        points:  updatedScore, // FIX: Inclut les points de l'espèce
-        bonus: 0,
+        points:  updatedScore,
+        bonus:  0,
         streakBonus: 0,
         guessesRemaining: 0
       });
@@ -367,7 +374,7 @@ function HardMode() {
         />
       )}
 
-      {isGameOver && (
+      {isGameOver && isCurrentQuestion && (
         <RoundSummaryModal
           status={roundStatus}
           question={question}
@@ -401,7 +408,7 @@ function HardMode() {
                   )}
                   {showImage && (
                     <ImageViewer
-                      imageUrls={question. image_urls || [question.image_url]}
+                      imageUrls={question.image_urls || [question.image_url]}
                       photoMeta={question.image_meta}
                       alt={imageAlt}
                       nextImageUrl={nextImageUrl}
@@ -422,7 +429,7 @@ function HardMode() {
                       <div className="guess-actions-inline">
                         <button
                           onClick={handleRevealNameHint}
-                          disabled={isGameOver || ! canUseAnyHint}
+                          disabled={isGameOver || !canUseAnyHint}
                           className="action-button hint"
                           aria-label={t('hard.reveal_button', { cost: REVEAL_HINT_XP_COST })}
                         >
@@ -431,7 +438,7 @@ function HardMode() {
                       </div>
                     </div>
                   </div>
-                  {feedback?. message && (
+                  {feedback?.message && (
                     <div className={`feedback-bar ${feedback.type}`} aria-live="polite">
                       {feedback.message}
                     </div>
@@ -444,7 +451,7 @@ function HardMode() {
               <div className="proposition-panel tree-panel">
                 <PhylogeneticTree
                   knownTaxa={knownTaxa}
-                  targetTaxon={question?. bonne_reponse}
+                  targetTaxon={question?.bonne_reponse}
                   activeRank={activeRank}
                 />
               </div>
