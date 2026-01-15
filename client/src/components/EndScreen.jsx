@@ -102,7 +102,7 @@ const EndScreen = ({
           )}
           
           <div className="level-info">
-            <span className="current-level">Niveau {endLevel}</span>
+            
             <XPProgressBar 
               currentXP={currentXP}
               recentXPGain={0}

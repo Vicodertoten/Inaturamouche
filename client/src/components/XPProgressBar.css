@@ -3,7 +3,6 @@
    ======================================== */
 
 .xp-progress-container {
-  width: 100%;
   padding: var(--space-3, 0.75rem);
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-medium, 12px);
