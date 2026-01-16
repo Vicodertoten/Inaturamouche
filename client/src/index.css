@@ -4,6 +4,9 @@
 @import './styles/BottomNavigationBar.css';
 @import './styles/MobileGameLayout.css';
 @import './styles/MobileGameModes.css';
+@import './styles/MobileAnimations.css';
+@import './styles/TouchOptimization.css';
+@import './styles/Feedback.css';
 
 @font-face {
   font-family: 'Poppins';

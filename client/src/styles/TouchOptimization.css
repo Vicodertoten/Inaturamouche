@@ -1,0 +1,168 @@
+/* === TOUCH TARGET OPTIMIZATION === */
+
+/**
+ * Ensure all interactive elements meet WCAG 2.1 AAA standards
+ * Minimum touch target: 44x44px (iOS), 48x48px (Android Material Design)
+ * We use 48px as the standard for maximum compatibility.
+ */
+
+@media (max-width: 768px) {
+  /* === All interactive elements: minimum 48x48px === */
+  button,
+  [role="button"],
+  a.btn,
+  input[type="submit"],
+  input[type="button"],
+  .fab,
+  .action-button,
+  .choices button {
+    min-width: 48px;
+    min-height: 48px;
+    /* Prevent accidental zooming */
+    touch-action: manipulation;
+  }
+  
+  /* === Specific component overrides === */
+  
+  /* Choice buttons in Easy Mode */
+  .choices button {
+    min-height: 52px; /* Slightly larger for better thumb access */
+    padding: 0.75rem 1rem;
+    /* Adequate spacing between buttons */
+    margin-bottom: 0.25rem;
+  }
+  
+  /* Last choice button - add safe area padding */
+  .choices button:last-child {
+    margin-bottom: max(0.25rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Action buttons in header */
+  .header-actions button,
+  .action-button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* FAB (Floating Action Button) */
+  .fab {
+    min-width: 56px;
+    min-height: 56px;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* === Spacing for easy tapping === */
+  
+  /* Ensure adequate spacing between interactive elements */
+  .header-actions {
+    gap: max(0.5rem, 8px);
+  }
+  
+  .header-stats {
+    gap: max(0.4rem, 6px);
+  }
+  
+  .choices {
+    gap: max(0.4rem, 6px);
+  }
+  
+  /* === Input fields === */
+  input,
+  select,
+  textarea,
+  [role="combobox"] {
+    min-height: 48px;
+    padding: 0.75rem;
+    font-size: 16px; /* Prevent zoom on focus in iOS */
+  }
+  
+  /* === Links === */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+  }
+  
+  /* External links in modals */
+  .external-link {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* === Prevent text selection during interaction === */
+  button,
+  [role="button"],
+  .choices button,
+  .fab,
+  .action-button {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* === Tap highlight === */
+  * {
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+  }
+  
+  /* === Safe area support === */
+  @supports (padding: max(0px)) {
+    /* Bottom safe area for iPhone home indicator */
+    .choices,
+    .bottom-nav,
+    .game-main {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    
+    /* Top safe area for notch */
+    .game-screen {
+      padding-top: max(5rem, calc(4.5rem + env(safe-area-inset-top)));
+    }
+    
+    /* Side safe areas */
+    .game-header-mobile {
+      left: max(0.5rem, env(safe-area-inset-left));
+      right: max(0.5rem, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* === Tablets (larger touch targets acceptable) === */
+@media (min-width: 769px) and (max-width: 1024px) {
+  button,
+  [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* === Prevent double-tap zoom during gameplay === */
+@media (max-width: 768px) {
+  /* Game screen should not be zoomable */
+  .game-screen,
+  .game-main,
+  .image-section,
+  .choices {
+    touch-action: manipulation;
+  }
+  
+  /* But allow pinch-zoom on images for accessibility */
+  .image-viewer img {
+    touch-action: pinch-zoom;
+  }
+}
+
+/* === Focus visible for keyboard navigation === */
+@media (max-width: 768px) {
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 3px solid var(--accent-color, #ff6b35);
+    outline-offset: 2px;
+  }
+}
