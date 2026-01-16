@@ -7,12 +7,13 @@ import RoundSummaryModal from './components/RoundSummaryModal';
 import GameHeader from './components/GameHeader';
 import LevelUpNotification from './components/LevelUpNotification';
 import FloatingXPIndicator from './components/FloatingXPIndicator';
+import PhylogeneticTree from './components/PhylogeneticTree.jsx';
+import PhyloProgressMobile from './components/PhyloProgressMobile.jsx';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api';
 import { computeScore, computeInGameStreakBonus } from './utils/scoring';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
-import PhylogeneticTree from './components/PhylogeneticTree.jsx';
 import { vibrateSuccess, vibrateError } from './utils/haptics';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
@@ -479,6 +480,12 @@ function HardMode() {
                 />
               </div>
             </div>
+            
+            {/* Mobile Phylo Progress - Shown only on mobile */}
+            <PhyloProgressMobile
+              discoveredTaxa={knownTaxa}
+              currentRank={activeRank}
+            />
           </div>
         </div>
       </div>

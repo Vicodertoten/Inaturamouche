@@ -34,6 +34,90 @@
   overflow-y: auto;
 }
 
+/* === MOBILE: BOTTOM SHEET STYLE === */
+@media (max-width: 768px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+  
+  .modal-content.summary-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 24px 24px 0 0;
+    padding: 1.5rem 1rem;
+    animation: slide-up-mobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  @keyframes slide-up-mobile {
+    from { 
+      transform: translateY(100%); 
+      opacity: 0; 
+    }
+    to { 
+      transform: translateY(0); 
+      opacity: 1; 
+    }
+  }
+  
+  /* Add handle indicator for swipe gesture */
+  .modal-content.summary-modal::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    margin: -0.5rem auto 1rem;
+  }
+  
+  /* Simplify content on mobile */
+  .summary-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .answer-image {
+    max-height: 180px;
+  }
+  
+  .answer-name {
+    font-size: 1.1rem;
+    margin: 0.75rem 0 0.5rem 0;
+  }
+  
+  .answer-scientific-name {
+    font-size: 0.85rem;
+  }
+  
+  .modal-links {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .modal-links .external-link {
+    width: 100%;
+    padding: 0.75rem;
+  }
+  
+  .start-button-modal {
+    margin-top: 0.5rem;
+    min-height: 52px;
+    font-size: 1rem;
+  }
+  
+  /* Support safe area */
+  @supports (padding: max(0px)) {
+    .modal-content.summary-modal {
+      padding-bottom: max(1.5rem, calc(1rem + env(safe-area-inset-bottom)));
+    }
+  }
+}
+
 @keyframes slide-up {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

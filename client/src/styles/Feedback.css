@@ -1,0 +1,209 @@
+/* === IMMEDIATE VISUAL FEEDBACK === */
+
+/**
+ * Provide instant visual feedback on all interactive elements.
+ * Mobile users expect immediate response to touch.
+ */
+
+/* === Base button feedback === */
+.choices button {
+  transition: transform 0.1s ease, 
+              background 0.15s ease, 
+              border-color 0.15s ease,
+              box-shadow 0.15s ease;
+}
+
+.choices button:active:not(:disabled) {
+  transform: scale(0.98);
+  background: var(--surface-2, rgba(255, 255, 255, 0.08));
+}
+
+/* === Action buttons === */
+.action-button,
+.fab,
+button {
+  transition: transform 0.1s ease,
+              background 0.15s ease,
+              border-color 0.15s ease;
+}
+
+.action-button:active:not(:disabled),
+.fab:active:not(:disabled),
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* === Specific feedback states === */
+
+/* Correct answer - immediate green feedback */
+.choices button.correct {
+  animation: successPulse 0.4s ease-out;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(76, 175, 106, 0.7);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(76, 175, 106, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(76, 175, 106, 0);
+  }
+}
+
+/* Incorrect answer - immediate red feedback */
+.choices button.incorrect {
+  animation: errorShake 0.4s ease-out;
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* === Ripple effect for touch === */
+@media (max-width: 768px) {
+  button,
+  .choices button,
+  .action-button,
+  .fab {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Ripple animation would be added via JS, this is the base style */
+  button::after,
+  .choices button::after,
+  .action-button::after,
+  .fab::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  
+  button:active::after,
+  .choices button:active::after,
+  .action-button:active::after,
+  .fab:active::after {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+    transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+  }
+}
+
+/* === Hover states (for devices with pointer) === */
+@media (hover: hover) and (pointer: fine) {
+  .choices button:hover:not(:disabled) {
+    border-color: var(--accent-color);
+    background: var(--surface-2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .action-button:hover:not(:disabled),
+  .fab:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--primary-color);
+  }
+}
+
+/* === Loading state feedback === */
+button[disabled],
+.choices button[disabled],
+.action-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* === Focus feedback === */
+button:focus-visible,
+.choices button:focus-visible,
+.action-button:focus-visible {
+  outline: 3px solid var(--accent-color);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+/* === Subtle pressed state === */
+@media (max-width: 768px) {
+  .mobile-quit-button:active {
+    transform: scale(0.9);
+    background: rgba(255, 72, 72, 0.3);
+  }
+  
+  .stat-pill:active {
+    transform: scale(0.98);
+  }
+}
+
+/* === Haptic feedback indicator (visual) === */
+/* When haptic feedback fires, add a subtle visual indicator */
+.haptic-feedback {
+  animation: hapticPulse 0.2s ease-out;
+}
+
+@keyframes hapticPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* === Success/Error visual feedback overlays === */
+.feedback-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.feedback-flash.success {
+  background: rgba(76, 175, 106, 0.1);
+  animation: flashSuccess 0.4s ease-out;
+}
+
+.feedback-flash.error {
+  background: rgba(201, 74, 72, 0.1);
+  animation: flashError 0.4s ease-out;
+}
+
+@keyframes flashSuccess {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes flashError {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* === Prevent lag on touch === */
+@media (max-width: 768px) {
+  button,
+  .choices button,
+  .action-button,
+  .fab {
+    /* Use hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+  }
+}
