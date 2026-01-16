@@ -502,6 +502,13 @@
   box-shadow: 0 0 0 3px var(--accent-color-transparent);
 }
 
+/* Disabled state for form inputs */
+.pack-select-dropdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--surface-color);
+}
+
 .skeleton-line {
   height: 12px;
   border-radius: var(--radius-pill);

@@ -68,10 +68,10 @@
   --accent-glow: rgba(238, 187, 77, 0.4);
   
   --success-color: #4caf6a;
-  --error-color: #c94a48;
+  --error-color: #e05550;     /* Improved contrast for accessibility */
 
   --text-color: #f1f5e9;      /* Blanc cassé (coquille d'oeuf) plus doux pour les yeux */
-  --text-color-muted: #aab3a5;
+  --text-color-muted: #c4c9bf; /* Improved contrast ratio ~5:1 for WCAG AA */
   --border-color: rgba(255,255,255,0.08);
 
   /* --- SPACING --- */
@@ -93,6 +93,7 @@
   /* Z-INDEX LAYERS */
   --z-modal: 1000;
   --z-toast: 1200;
+  --z-offline-indicator: 1300;  /* Higher than toast for critical network status */
 
   /* --- BREAKPOINTS --- */
   --bp-xs: 480px;

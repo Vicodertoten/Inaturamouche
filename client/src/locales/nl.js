@@ -383,6 +383,10 @@ const nl = {
     pool_unavailable: 'Geen waarnemingen gevonden voor deze criteria. Verbreed het geografisch gebied, de periode, of probeer later opnieuw.',
     taxonomy_not_found: 'Taxon niet gevonden.',
   },
+  offline: {
+    no_connection: 'Geen internetverbinding',
+    back_online: 'Verbinding hersteld',
+  },
   profile: {
     back: '← Terug',
     title: 'Spelersprofiel',

@@ -31,13 +31,20 @@
     max-height: 60vh;
 }
 
-/* --- IMAGE BOX (Le contenu zoomable) --- */
 .image-box {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Reserve space before image loads to prevent layout shift */
+    min-height: 200px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.3s ease;
+}
+
+.image-box.loaded {
+    background: transparent;
 }
 
 .image-main, .image-lqip {
@@ -136,14 +143,26 @@
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.4);
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    padding: 0;
+    position: relative;
+}
+
+/* Expand touch area using pseudo-element for better accessibility */
+.dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
 }
 
 .dot.active {

@@ -13,6 +13,7 @@ import { computeScore, computeInGameStreakBonus } from './utils/scoring';
 import { useGameData } from './context/GameContext';
 import { useLanguage } from './context/LanguageContext.jsx';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
+import { vibrateSuccess, vibrateError } from './utils/haptics';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 3;
@@ -242,6 +243,9 @@ function HardMode() {
         setKnownTaxa(nextKnownTaxa);
         setCurrentScore(prev => prev + gainedPoints);
         
+        // Haptic feedback for correct guess
+        vibrateSuccess();
+        
         // Live XP feedback: Show floating animation
         setLiveXPGain(gainedPoints);
         showFeedback(t('hard.feedback.branch', { points: gainedPoints }), 'success');
@@ -267,6 +271,8 @@ function HardMode() {
       } else if (isSelectionCorrectAncestor) {
         showFeedback(t('hard.feedback.redundant'), 'info');
       } else {
+        // Haptic feedback for incorrect guess
+        vibrateError();
         showFeedback(t('hard.feedback.wrong_branch'), 'error');
         setIncorrectGuessIds(prev => [...prev, selection.id]);
         triggerPanelShake();
