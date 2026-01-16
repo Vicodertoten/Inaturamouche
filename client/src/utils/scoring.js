@@ -36,9 +36,12 @@ export function computeScore({
  * Compute exponential in-game streak bonus points.
  * Encourages long streaks with increasing rewards.
  * 
+ * FIX #2: Returns floating point value to be accumulated.
+ * Rounding should be done once at the end to avoid cumulative precision loss.
+ * 
  * @param {number} streak - Current streak value
  * @param {'easy'|'hard'} mode - Game mode
- * @returns {number} Bonus points for the streak
+ * @returns {number} Bonus points for the streak (floating point)
  */
 export function computeInGameStreakBonus(streak, mode) {
   if (streak === 0) return 0;
@@ -53,7 +56,8 @@ export function computeInGameStreakBonus(streak, mode) {
     // Streak 5:  19 pts
     // Streak 10: 77 pts
     // Streak 15: 289 pts
-    return Math.floor(5 * Math.pow(1.4, cappedStreak - 1));
+    // FIX #2: Return exact value without rounding
+    return 5 * Math.pow(1.4, cappedStreak - 1);
   }
 
   if (mode === 'hard') {
@@ -63,16 +67,36 @@ export function computeInGameStreakBonus(streak, mode) {
     // Streak 5:  51 pts
     // Streak 10: 383 pts
     // Streak 15: 2176 pts
-    return Math.floor(10 * Math.pow(1.5, cappedStreak - 1));
+    // FIX #2: Return exact value without rounding
+    return 10 * Math.pow(1.5, cappedStreak - 1);
   }
 
   return 0;
 }
 
-export const getLevelFromXp = (xp) => 1 + Math.floor(Math.sqrt(xp || 0) / 10);
+/**
+ * Get level from XP.
+ * FIX #6: Handle edge cases for negative XP and level 0.
+ * 
+ * @param {number} xp - Total XP
+ * @returns {number} Current level (minimum 1)
+ */
+export const getLevelFromXp = (xp) => {
+  // Handle edge cases: negative XP, NaN, or invalid values
+  const safeXP = Number.isFinite(xp) && xp >= 0 ? xp : 0;
+  return 1 + Math.floor(Math.sqrt(safeXP) / 10);
+};
 
+/**
+ * Get XP required for a specific level.
+ * FIX #6: Handle edge cases for level 0 and negative levels.
+ * 
+ * @param {number} level - Target level
+ * @returns {number} XP required to reach that level
+ */
 export const getXpForLevel = (level) => {
-  if (level <= 1) return 0;
+  // Handle edge cases: negative level, NaN, or invalid values
+  if (!Number.isFinite(level) || level <= 1) return 0;
   return Math.pow((level - 1) * 10, 2);
 };
 
