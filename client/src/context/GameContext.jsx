@@ -332,6 +332,9 @@ export function GameProvider({ children }) {
       hasPermanentShield,
       streakTier,
       activePerks,
+      // FIX #8: Save timer and prefetched question to maintain accurate timing
+      questionStartTime: questionStartTimeRef.current,
+      nextQuestion: nextQuestion,
       gameConfig: {
         activePackId,
         customFilters,
@@ -366,6 +369,7 @@ export function GameProvider({ children }) {
     hasPermanentShield,
     streakTier,
     activePerks,
+    nextQuestion,
     activePackId,
     customFilters,
     gameMode,
@@ -420,13 +424,19 @@ export function GameProvider({ children }) {
       setHasPermanentShield(sessionData.hasPermanentShield || false);
       setStreakTier(sessionData.streakTier || 0);
       setActivePerks(sessionData.activePerks || []);
+      
+      // FIX #8: Restore timer and prefetched question
+      if (typeof sessionData.questionStartTime === 'number') {
+        questionStartTimeRef.current = sessionData.questionStartTime;
+      }
 
       console.log('[GameContext] About to set isGameActive to true');
       setIsGameActive(true);
       setIsGameOver(false);
       // Restaurer la question sauvegardée si elle existe
       setQuestion(sessionData.currentQuestion || null);
-      setNextQuestion(null);
+      // Restore prefetched next question to avoid latency
+      setNextQuestion(sessionData.nextQuestion || null);
 
       console.log('[GameContext] resumeGame() - Restoration complete');
       return sessionData;
@@ -783,12 +793,24 @@ export function GameProvider({ children }) {
       profileWithStreakUpdate.stats.currentStreak = currentStreak;
       profileWithStreakUpdate.stats.longestStreak = longestStreak;
 
-      updateProfile(profileWithStreakUpdate);
-      setIsGameActive(false);
-      setIsGameOver(true);
-      setNextQuestion(null);
-      // Effacer la session sauvegardée puisque la partie est terminée
-      clearSessionFromDB().catch((err) => console.error('[GameContext] Error clearing session after game end:', err));
+      // FIX #7: Clear session BEFORE changing game state to prevent restoration of finished game
+      // This ensures if clearSessionFromDB fails, the session won't be restored as a finished game
+      clearSessionFromDB()
+        .then(() => {
+          // Only after successful cleanup, update game state
+          updateProfile(profileWithStreakUpdate);
+          setIsGameActive(false);
+          setIsGameOver(true);
+          setNextQuestion(null);
+        })
+        .catch((err) => {
+          console.error('[GameContext] Error clearing session after game end:', err);
+          // Even if cleanup fails, update state to avoid stuck game
+          updateProfile(profileWithStreakUpdate);
+          setIsGameActive(false);
+          setIsGameOver(true);
+          setNextQuestion(null);
+        });
     },
     [
       activePackId,
@@ -861,11 +883,6 @@ export function GameProvider({ children }) {
       
       // Mettre à jour le profil avec le nouvel XP
       if (earnedXP > 0) {
-        const oldXP = profile?.xp || 0;
-        const newXP = oldXP + earnedXP;
-        const oldLevel = getLevelFromXp(oldXP);
-        const newLevel = getLevelFromXp(newXP);
-        
         // Afficher le popup de gain XP
         setRecentXPGain(earnedXP);
         
@@ -874,23 +891,29 @@ export function GameProvider({ children }) {
           setRecentXPGain(0);
         }, 2000);
         
-        // Détecter le level up
-        if (newLevel > oldLevel) {
-          setLevelUpNotification({
-            oldLevel,
-            newLevel,
-            timestamp: Date.now(),
-          });
-          
-          // Cacher la notification après 4 secondes
-          setTimeout(() => {
-            setLevelUpNotification(null);
-          }, 4000);
-        }
-        
-        // Mettre à jour le profil
+        // FIX #1: Use functional update to prevent race conditions on double-tap
+        // Calculate oldXP, newXP, and level changes INSIDE the update function
         updateProfile((prev) => {
           const base = prev ?? loadProfileWithDefaults();
+          const oldXP = base.xp || 0;
+          const newXP = oldXP + earnedXP;
+          const oldLevel = getLevelFromXp(oldXP);
+          const newLevel = getLevelFromXp(newXP);
+          
+          // Détecter le level up
+          if (newLevel > oldLevel) {
+            setLevelUpNotification({
+              oldLevel,
+              newLevel,
+              timestamp: Date.now(),
+            });
+            
+            // Cacher la notification après 4 secondes
+            setTimeout(() => {
+              setLevelUpNotification(null);
+            }, 4000);
+          }
+          
           return {
             ...base,
             xp: newXP,
