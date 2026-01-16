@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import CustomFilter from './CustomFilter';
-import ErrorModal from './components/ErrorModal';
-import './configurator.css';
-import { useGameData, useGameUI } from './context/GameContext';
-import { useLanguage } from './context/LanguageContext.jsx';
-import { usePacks } from './context/PacksContext.jsx';
-import { useUser } from './context/UserContext.jsx';
+import CustomFilter from './components/CustomFilter';
+import ErrorModal from '../../components/ErrorModal';
+import './Configurator.css';
+import { useGameData, useGameUI } from '../../context/GameContext';
+import { useLanguage } from '../../context/LanguageContext.jsx';
+import { usePacks } from '../../context/PacksContext.jsx';
+import { useUser } from '../../context/UserContext.jsx';
 
 const ModeVisual = ({ variant }) => {
   const gradientId = useMemo(

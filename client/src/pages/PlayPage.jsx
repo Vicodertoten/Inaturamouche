@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HardMode from '../HardMode';
+import HardMode from '../features/quiz/components/HardMode';
 import EasyMode from '../components/Easymode';
 import QuestionSkeleton from '../components/QuestionSkeleton';
 import { useGameData, useGameUI } from '../context/GameContext';

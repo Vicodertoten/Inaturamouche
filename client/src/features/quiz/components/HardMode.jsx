@@ -1,19 +1,19 @@
-// src/HardMode.jsx (Version corrigée - BUG FIX:  question change auto-complete)
+// src/features/quiz/components/HardMode.jsx (Version corrigée - BUG FIX:  question change auto-complete)
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import ImageViewer from './components/ImageViewer';
-import AutocompleteInput from './AutocompleteInput';
-import RoundSummaryModal from './components/RoundSummaryModal';
-import GameHeader from './components/GameHeader';
-import LevelUpNotification from './components/LevelUpNotification';
-import FloatingXPIndicator from './components/FloatingXPIndicator';
-import PhylogeneticTree from './components/PhylogeneticTree.jsx';
+import ImageViewer from '../../../components/ImageViewer';
+import AutocompleteInput from '../../../shared/ui/AutocompleteInput';
+import RoundSummaryModal from '../../../components/RoundSummaryModal';
+import GameHeader from '../../../components/GameHeader';
+import LevelUpNotification from '../../../components/LevelUpNotification';
+import FloatingXPIndicator from '../../../components/FloatingXPIndicator';
+import PhylogeneticTree from '../../../components/PhylogeneticTree.jsx';
 import './HardMode.css';
-import { getTaxonDetails } from './services/api';
-import { computeScore, computeInGameStreakBonus } from './utils/scoring';
-import { useGameData } from './context/GameContext';
-import { useLanguage } from './context/LanguageContext.jsx';
-import { vibrateSuccess, vibrateError } from './utils/haptics';
+import { getTaxonDetails } from '../../../services/api';
+import { computeScore, computeInGameStreakBonus } from '../../../utils/scoring';
+import { useGameData } from '../../../context/GameContext';
+import { useLanguage } from '../../../context/LanguageContext.jsx';
+import { vibrateSuccess, vibrateError } from '../../../utils/haptics';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 3;
