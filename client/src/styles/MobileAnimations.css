@@ -1,0 +1,76 @@
+/* === MOBILE: REDUCE ANIMATION NOISE === */
+
+/**
+ * On mobile, disable infinite decorative animations to reduce cognitive load.
+ * Keep only essential feedback animations for user actions.
+ */
+
+@media (max-width: 768px) {
+  /* === Disable infinite decorative animations === */
+  
+  /* Flame flicker animation */
+  .streak-count .flame,
+  .mobile-streak .streak-flame {
+    animation: none !important;
+  }
+  
+  /* Tier active pulse-glow */
+  .in-game-streak.tier-active {
+    animation: none !important;
+    /* Keep the visual style but remove animation */
+    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+  }
+  
+  /* Permanent shield shimmer */
+  .shield.permanent {
+    animation: none !important;
+    /* Keep gold glow but static */
+    filter: drop-shadow(0 0 8px gold);
+  }
+  
+  /* Auto-save indicator - keep but reduce frequency would be in component */
+  
+  /* === Keep critical animations === */
+  
+  /* Lives critical state - KEEP this one as it's important feedback */
+  .lives-pill.critical,
+  .mobile-lives.critical {
+    /* Animation is defined in component CSS and should remain */
+  }
+  
+  /* XP gain popup - allow but ensure it's brief */
+  .xp-gain-popup {
+    /* Keep animation but ensure duration is short */
+  }
+  
+  /* === Reduce motion for users who prefer it === */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* === Touch feedback animations - KEEP === */
+  /* These are immediate feedback, not infinite loops */
+  .choices button:active:not(:disabled),
+  .action-button:active:not(:disabled),
+  .fab:active:not(:disabled),
+  .mobile-quit-button:active {
+    /* Keep scale feedback */
+  }
+  
+  /* === Answer reveal animation - KEEP === */
+  .choices button.correct,
+  .choices button.incorrect {
+    /* Keep this as it's important feedback */
+  }
+}
+
+/* === Desktop: Keep all animations === */
+@media (min-width: 769px) {
+  /* On desktop, animations are fine - screen is larger, less cognitive load */
+}

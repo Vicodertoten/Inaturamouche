@@ -1,0 +1,193 @@
+/* === MOBILE-ONLY MINIMAL HEADER === */
+.game-header-mobile {
+  display: none; /* Hidden by default, shown on mobile */
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop header on mobile */
+  .game-header:not(.game-header-mobile) {
+    display: none !important;
+  }
+  
+  /* Show mobile header */
+  .game-header-mobile {
+    display: block;
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    z-index: 100;
+    background: rgba(20, 25, 20, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  
+  .mobile-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 44px; /* Ensure minimum touch target height */
+  }
+  
+  /* === Left: Question Counter === */
+  .mobile-question-counter {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-color);
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  
+  /* === Center: Streak and Lives === */
+  .mobile-center-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .mobile-streak {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 107, 53, 0.15);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 999px;
+  }
+  
+  .streak-flame {
+    font-size: 1.25rem;
+    line-height: 1;
+    /* NO infinite animation on mobile */
+  }
+  
+  .streak-number {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--accent-color, #ff6b35);
+    line-height: 1;
+  }
+  
+  /* === Lives Display === */
+  .mobile-lives {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+  }
+  
+  .mobile-lives.critical {
+    border-color: var(--error-color, #ff4848);
+    background: rgba(255, 72, 72, 0.15);
+    /* Only animate when critical (1 life remaining) */
+    animation: pulse-critical 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-critical {
+    0%, 100% { 
+      box-shadow: 0 0 0 0 rgba(255, 72, 72, 0.5); 
+    }
+    50% { 
+      box-shadow: 0 0 0 8px rgba(255, 72, 72, 0); 
+    }
+  }
+  
+  .heart {
+    font-size: 1rem;
+    line-height: 1;
+  }
+  
+  .heart.filled {
+    opacity: 1;
+  }
+  
+  .heart.empty {
+    opacity: 0.3;
+    font-size: 0.9rem;
+  }
+  
+  /* === Right: Quit Button === */
+  .mobile-quit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: var(--text-color);
+    font-size: 1.75rem;
+    font-weight: 300;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  
+  .mobile-quit-button:hover {
+    background: rgba(255, 72, 72, 0.2);
+    border-color: var(--error-color, #ff4848);
+    color: var(--error-color, #ff4848);
+  }
+  
+  .mobile-quit-button:active {
+    transform: scale(0.95);
+  }
+}
+
+/* === Support for notch/safe areas === */
+@supports (padding: max(0px)) {
+  @media (max-width: 768px) {
+    .game-header-mobile {
+      top: max(0.5rem, env(safe-area-inset-top));
+      left: max(0.5rem, env(safe-area-inset-left));
+      right: max(0.5rem, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* === Very small screens (iPhone SE) === */
+@media (max-width: 375px) {
+  .game-header-mobile {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .mobile-header-content {
+    gap: 0.75rem;
+  }
+  
+  .mobile-question-counter {
+    font-size: 1rem;
+    min-width: 50px;
+  }
+  
+  .mobile-center-group {
+    gap: 0.75rem;
+  }
+  
+  .streak-flame {
+    font-size: 1.1rem;
+  }
+  
+  .streak-number {
+    font-size: 1rem;
+  }
+  
+  .mobile-quit-button {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.5rem;
+  }
+}

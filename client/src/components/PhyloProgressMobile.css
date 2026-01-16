@@ -1,0 +1,116 @@
+.phylo-progress-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .phylo-progress-mobile {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin: 0.5rem 0;
+    backdrop-filter: blur(8px);
+  }
+  
+  .phylo-track {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .phylo-track::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+  
+  .phylo-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+    flex-shrink: 0;
+    min-width: 40px;
+  }
+  
+  .phylo-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+  }
+  
+  .phylo-step.discovered .phylo-dot {
+    background: rgba(76, 175, 106, 0.2);
+    border-color: var(--success-color, #4caf6a);
+    color: var(--success-color, #4caf6a);
+  }
+  
+  .phylo-step.current .phylo-dot {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: var(--primary-color, #667eea);
+    color: var(--primary-color, #667eea);
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
+  }
+  
+  .phylo-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  
+  .phylo-step.discovered .phylo-label,
+  .phylo-step.current .phylo-label {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .phylo-connector {
+    position: absolute;
+    top: 16px;
+    left: calc(100% - 4px);
+    width: 12px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    transition: background 0.3s ease;
+  }
+  
+  .phylo-connector.active {
+    background: var(--success-color, #4caf6a);
+  }
+}
+
+/* Very small screens */
+@media (max-width: 375px) {
+  .phylo-progress-mobile {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .phylo-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+  
+  .phylo-label {
+    font-size: 0.6rem;
+  }
+  
+  .phylo-step {
+    min-width: 36px;
+  }
+}

@@ -253,6 +253,7 @@ const EasyMode = () => {
                     onClick={() => handleSelectAnswer(idx)}
                     disabled={answeredThisQuestion}
                   >
+                    <span className="choice-number">{idx + 1}</span>
                     {(() => {
                       const { primary, secondary } = getTaxonDisplayNames(p.detail, p.label);
                       return (
