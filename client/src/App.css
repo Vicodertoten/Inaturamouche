@@ -375,6 +375,35 @@ button:active:not(:disabled),
   cursor: not-allowed;
   transform: none;
 }
+
+/* Loading state for buttons */
+.action-button.btn--loading,
+.btn--loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.action-button.btn--loading::after,
+.btn--loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid currentColor;
+  border-color: var(--text-color) transparent var(--text-color) transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 .action-button:not(:disabled):hover {
   transform: translateY(-2px);
 }
