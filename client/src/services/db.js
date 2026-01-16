@@ -150,5 +150,70 @@ export const helpers = {
   getTaxonWithStats,
 };
 
+/**
+ * FIX #13: Check available storage quota
+ * Returns quota information to prevent silent failures
+ * @returns {Promise<{usage: number, quota: number, percentage: number, available: number}>}
+ */
+export async function checkStorageQuota() {
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    try {
+      const estimate = await navigator.storage.estimate();
+      const usage = estimate.usage || 0;
+      const quota = estimate.quota || 0;
+      const percentage = quota > 0 ? (usage / quota) * 100 : 0;
+      const available = quota - usage;
+      
+      return {
+        usage,
+        quota,
+        percentage,
+        available,
+      };
+    } catch (error) {
+      console.warn('[DB] Failed to estimate storage quota:', error);
+      return {
+        usage: 0,
+        quota: 0,
+        percentage: 0,
+        available: 0,
+      };
+    }
+  }
+  
+  // Storage API not supported
+  return {
+    usage: 0,
+    quota: 0,
+    percentage: 0,
+    available: 0,
+  };
+}
+
+/**
+ * FIX #13: Check if there's enough space before a write operation
+ * @param {number} estimatedSize - Estimated size of the write in bytes
+ * @returns {Promise<{hasSpace: boolean, quotaInfo: Object}>}
+ */
+export async function checkSpaceBeforeWrite(estimatedSize = 0) {
+  const quotaInfo = await checkStorageQuota();
+  
+  // If quota is 0, we can't determine, so assume it's ok
+  if (quotaInfo.quota === 0) {
+    return { hasSpace: true, quotaInfo };
+  }
+  
+  // Check if we have enough space (with 10% safety margin)
+  const safetyMargin = quotaInfo.quota * 0.1;
+  const hasSpace = quotaInfo.available > (estimatedSize + safetyMargin);
+  
+  // Warn if running low on space (>80% used)
+  if (quotaInfo.percentage > 80) {
+    console.warn(`[DB] Storage usage high: ${quotaInfo.percentage.toFixed(1)}%`);
+  }
+  
+  return { hasSpace, quotaInfo };
+}
+
 // Export the db instance itself
 export default db;

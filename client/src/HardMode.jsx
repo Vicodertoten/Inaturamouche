@@ -8,7 +8,6 @@ import GameHeader from './components/GameHeader';
 import LevelUpNotification from './components/LevelUpNotification';
 import FloatingXPIndicator from './components/FloatingXPIndicator';
 import PhylogeneticTree from './components/PhylogeneticTree.jsx';
-import PhyloProgressMobile from './components/PhyloProgressMobile.jsx';
 import './HardMode.css';
 import { getTaxonDetails } from './services/api';
 import { computeScore, computeInGameStreakBonus } from './utils/scoring';
@@ -480,12 +479,6 @@ function HardMode() {
                 />
               </div>
             </div>
-            
-            {/* Mobile Phylo Progress - Shown only on mobile */}
-            <PhyloProgressMobile
-              discoveredTaxa={knownTaxa}
-              currentRank={activeRank}
-            />
           </div>
         </div>
       </div>

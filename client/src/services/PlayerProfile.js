@@ -166,12 +166,21 @@ export const loadProfileFromStore = async () => {
   }
 };
 
+/**
+ * Save profile to IndexedDB.
+ * FIX #3: Returns success status to allow caller to handle errors.
+ * 
+ * @param {Object} profile - Profile to save
+ * @returns {Promise<{success: boolean, error?: Error}>}
+ */
 export const saveProfile = async (profile) => {
   try {
     const db = await getDb();
     await db.put(STORE_NAME, profile, PROFILE_STORE_KEY);
+    return { success: true };
   } catch (error) {
     notify('Impossible de sauvegarder le profil.', { type: 'error' });
+    return { success: false, error };
   }
 };
 
