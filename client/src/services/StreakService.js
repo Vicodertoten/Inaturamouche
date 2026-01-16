@@ -140,43 +140,63 @@ export const updateDailyStreak = (profile) => {
     }
 
     // Unlock milestones and XP bonuses
+    // FIX #4: Add timestamp check to prevent duplicate milestone notifications
+    const now = Date.now();
+    const milestoneKey = `milestone_${newStreak}_timestamp`;
+    const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
+    const ONE_MINUTE = 60 * 1000;
+    
     if (
       newStreak === 7 &&
       !updatedProfile.dailyStreak.streakMilestones[7]
     ) {
-      updatedProfile.dailyStreak.streakMilestones[7] = true;
-      updatedProfile.dailyStreak.streakBonusXP = 0.1;
+      // Only trigger if not recently triggered (within last minute)
+      if (now - lastMilestoneTime > ONE_MINUTE) {
+        updatedProfile.dailyStreak.streakMilestones[7] = true;
+        updatedProfile.dailyStreak.streakBonusXP = 0.1;
+        updatedProfile.dailyStreak[milestoneKey] = now;
 
-      notify('🔥 Streak 7 jours! +10% XP permanent activé', {
-        type: 'success',
-        duration: 5000,
-      });
+        notify('🔥 Streak 7 jours! +10% XP permanent activé', {
+          type: 'success',
+          duration: 5000,
+        });
+      }
     }
 
     if (
       newStreak === 14 &&
       !updatedProfile.dailyStreak.streakMilestones[14]
     ) {
-      updatedProfile.dailyStreak.streakMilestones[14] = true;
-      updatedProfile.dailyStreak.streakBonusXP = 0.2;
+      const milestoneKey14 = `milestone_${newStreak}_timestamp`;
+      const lastMilestoneTime14 = updatedProfile.dailyStreak[milestoneKey14] || 0;
+      if (now - lastMilestoneTime14 > ONE_MINUTE) {
+        updatedProfile.dailyStreak.streakMilestones[14] = true;
+        updatedProfile.dailyStreak.streakBonusXP = 0.2;
+        updatedProfile.dailyStreak[milestoneKey14] = now;
 
-      notify('🔥🔥 Streak 14 jours! +20% XP permanent activé', {
-        type: 'success',
-        duration: 5000,
-      });
+        notify('🔥🔥 Streak 14 jours! +20% XP permanent activé', {
+          type: 'success',
+          duration: 5000,
+        });
+      }
     }
 
     if (
       newStreak === 30 &&
       !updatedProfile.dailyStreak.streakMilestones[30]
     ) {
-      updatedProfile.dailyStreak.streakMilestones[30] = true;
-      updatedProfile.dailyStreak.streakBonusXP = 0.3;
+      const milestoneKey30 = `milestone_${newStreak}_timestamp`;
+      const lastMilestoneTime30 = updatedProfile.dailyStreak[milestoneKey30] || 0;
+      if (now - lastMilestoneTime30 > ONE_MINUTE) {
+        updatedProfile.dailyStreak.streakMilestones[30] = true;
+        updatedProfile.dailyStreak.streakBonusXP = 0.3;
+        updatedProfile.dailyStreak[milestoneKey30] = now;
 
-      notify('🔥🔥🔥 Streak 30 jours! +30% XP permanent activé', {
-        type: 'success',
-        duration: 6000,
-      });
+        notify('🔥🔥🔥 Streak 30 jours! +30% XP permanent activé', {
+          type: 'success',
+          duration: 6000,
+        });
+      }
     }
   }
 
