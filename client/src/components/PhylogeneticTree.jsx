@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from 'react';
 import * as d3 from 'd3';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
