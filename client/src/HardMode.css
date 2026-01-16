@@ -239,6 +239,19 @@
   position: relative;
 }
 
+/* Subtle scroll indicator */
+.phylo-scroll::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--surface-color));
+  pointer-events: none;
+  opacity: 0.8;
+}
+
 .phylo-svg {
   width: 100%;
   min-height: 260px;
