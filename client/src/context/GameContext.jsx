@@ -13,7 +13,7 @@ import { checkNewAchievements, evaluateMicroChallenges } from '../achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
-import { updateDailyStreak, applyXPWithStreakBonus } from '../services/StreakService';
+import { updateDailyStreak } from '../services/StreakService';
 import { active_session } from '../services/db';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
@@ -817,7 +817,9 @@ export function GameProvider({ children }) {
       clearAchievementsTimer,
       clearUnlockedLater,
       clearSessionFromDB,
+      currentStreak,
       gameMode,
+      longestStreak,
       maxQuestions,
       profile,
       questionCount,
@@ -1082,7 +1084,7 @@ export function GameProvider({ children }) {
       finalizeGame,
       gameMode,
       nextQuestion,
-      profile?.achievements,
+      profile,
       question,
       questionCount,
       queueAchievements,
