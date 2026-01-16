@@ -5,7 +5,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
 import DailyStreakBadge from '../components/DailyStreakBadge';
 
-const Configurator = lazy(() => import('../Configurator'));
+const Configurator = lazy(() => import('../features/configurator/Configurator'));
 
 // dailyChallengeLabel moved inside component to use translations
 
