@@ -142,14 +142,14 @@ export const updateDailyStreak = (profile) => {
     // Unlock milestones and XP bonuses
     // FIX #4: Add timestamp check to prevent duplicate milestone notifications
     const nowTimestamp = Date.now();
-    const milestoneKey = `milestone_${newStreak}_timestamp`;
-    const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
     const ONE_MINUTE = 60 * 1000;
     
     if (
       newStreak === 7 &&
       !updatedProfile.dailyStreak.streakMilestones[7]
     ) {
+      const milestoneKey = `milestone_7_timestamp`;
+      const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
       // Only trigger if not recently triggered (within last minute)
       if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[7] = true;
@@ -167,12 +167,12 @@ export const updateDailyStreak = (profile) => {
       newStreak === 14 &&
       !updatedProfile.dailyStreak.streakMilestones[14]
     ) {
-      const milestoneKey14 = `milestone_${newStreak}_timestamp`;
-      const lastMilestoneTime14 = updatedProfile.dailyStreak[milestoneKey14] || 0;
-      if (nowTimestamp - lastMilestoneTime14 > ONE_MINUTE) {
+      const milestoneKey = `milestone_14_timestamp`;
+      const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
+      if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[14] = true;
         updatedProfile.dailyStreak.streakBonusXP = 0.2;
-        updatedProfile.dailyStreak[milestoneKey14] = nowTimestamp;
+        updatedProfile.dailyStreak[milestoneKey] = nowTimestamp;
 
         notify('🔥🔥 Streak 14 jours! +20% XP permanent activé', {
           type: 'success',
@@ -185,12 +185,12 @@ export const updateDailyStreak = (profile) => {
       newStreak === 30 &&
       !updatedProfile.dailyStreak.streakMilestones[30]
     ) {
-      const milestoneKey30 = `milestone_${newStreak}_timestamp`;
-      const lastMilestoneTime30 = updatedProfile.dailyStreak[milestoneKey30] || 0;
-      if (nowTimestamp - lastMilestoneTime30 > ONE_MINUTE) {
+      const milestoneKey = `milestone_30_timestamp`;
+      const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
+      if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[30] = true;
         updatedProfile.dailyStreak.streakBonusXP = 0.3;
-        updatedProfile.dailyStreak[milestoneKey30] = nowTimestamp;
+        updatedProfile.dailyStreak[milestoneKey] = nowTimestamp;
 
         notify('🔥🔥🔥 Streak 30 jours! +30% XP permanent activé', {
           type: 'success',
