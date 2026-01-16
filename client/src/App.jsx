@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from './components/AppLayout';
 import Spinner from './components/Spinner';
+import OfflineIndicator from './components/OfflineIndicator';
 import './App.css';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -13,6 +14,7 @@ const CollectionPage = lazy(() => import('./pages/CollectionPage'));
 function App() {
   return (
     <BrowserRouter>
+      <OfflineIndicator />
       <Suspense fallback={<Spinner />}>
         <Routes>
           <Route element={<AppLayout />}>

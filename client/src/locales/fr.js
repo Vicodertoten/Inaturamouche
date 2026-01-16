@@ -385,6 +385,10 @@ const fr = {
     pool_unavailable: 'Aucune observation trouvée pour ces critères. Veuillez élargir la zone géographique, la période, ou réessayer plus tard.',
     taxonomy_not_found: 'Taxon non trouvé.',
   },
+  offline: {
+    no_connection: 'Aucune connexion Internet',
+    back_online: 'Connexion rétablie',
+  },
   profile: {
     back: '← Retour',
     title: 'Profil du joueur',

@@ -101,12 +101,17 @@ const GameHeader = ({
       {/* Ligne 2: Question | Vies | Streak+Shields | Boutons */}
       <div className="header-row-2">
         <div className="header-stats">
-          <div className="stat-pill question-pill">
+          <div className="stat-pill question-pill" role="status" aria-label={t('hard.aria.question_counter', { current: questionCount, total: maxQuestions }, `Question ${questionValue}`)}>
             <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
             <span className="pill-value">{questionValue}</span>
           </div>
           {showLives && (
-            <div className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}>
+            <div 
+              className={`stat-pill lives-pill ${guesses <= 1 ? 'critical' : ''}`}
+              role="status"
+              aria-label={t('hard.aria.lives_remaining', { count: guesses }, `${guesses} tentatives restantes`)}
+              aria-live="polite"
+            >
               <span className="pill-label">{t('hard.stats.guesses', {}, 'Vies')}</span>
               <span className="pill-value">{guesses}</span>
             </div>
