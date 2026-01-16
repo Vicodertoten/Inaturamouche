@@ -7,6 +7,7 @@ import { computeScore } from '../utils/scoring';
 import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { vibrateSuccess, vibrateError } from '../utils/haptics';
 
 const HINT_COST_XP = 5; // Coût en XP pour utiliser l'indice
 
@@ -130,6 +131,16 @@ const EasyMode = () => {
     if (answeredThisQuestion) return;
     setSelectedIndex(idx);
     setAnswered(true);
+    
+    // Haptic feedback based on correctness
+    const pair = remainingPairs[idx];
+    const isCorrect = pair && correctPair && pair.id.toString() === correctPair.id.toString();
+    if (isCorrect) {
+      vibrateSuccess();
+    } else {
+      vibrateError();
+    }
+    
     const answeredQuestion = questionRef.current;
     setTimeout(() => {
       if (questionRef.current === answeredQuestion) {
