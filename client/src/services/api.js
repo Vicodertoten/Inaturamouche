@@ -47,6 +47,11 @@ const API_BASE_URL =
 const DEFAULT_TIMEOUT = 15000;
 const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff in ms
+const RETRYABLE_ERRORS = ['Failed to fetch', 'NetworkError', 'Timeout', 'AbortError'];
+
 const inatFetcher =
   typeof window !== "undefined" && typeof window.fetch === "function"
     ? window.fetch.bind(window)
@@ -104,53 +109,93 @@ export function buildSearchParams(params = {}) {
   return sp;
 }
 
+/**
+ * Check if an error is retryable (network issues, timeouts)
+ */
+function isRetryableError(error) {
+  if (!error) return false;
+  const message = error.message || '';
+  const name = error.name || '';
+  
+  // Don't retry 4xx errors (client errors)
+  if (error.status >= 400 && error.status < 500) return false;
+  
+  // Retry network errors, timeouts, and 5xx errors
+  return RETRYABLE_ERRORS.some(retryable => 
+    message.includes(retryable) || name.includes(retryable)
+  ) || (error.status >= 500);
+}
+
+/**
+ * Sleep utility for retry delays
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function apiGet(path, params = {}, options = {}) {
-  const { signal, timeout = DEFAULT_TIMEOUT } = options;
-  const url = new URL(path, API_BASE_URL);
-  url.search = buildSearchParams(params).toString();
+  const { signal, timeout = DEFAULT_TIMEOUT, maxRetries = MAX_RETRIES } = options;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const url = new URL(path, API_BASE_URL);
+    url.search = buildSearchParams(params).toString();
 
-  const controller = new AbortController();
-  const abortHandler = () => controller.abort(signal?.reason);
-  const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout", "AbortError")), timeout);
-  if (signal) {
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-    } else {
-      signal.addEventListener("abort", abortHandler, { once: true });
-    }
-  }
-
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { Accept: "application/json" },
-    });
-    let data = {};
-    try {
-      data = await res.json();
-    } catch (_) {
-      // Pas de JSON → laisser data = {}
-    }
-    if (!res.ok) {
-      const apiError = data && data.error ? data.error : null;
-      const message = (apiError && apiError.message) || (typeof apiError === 'string' ? apiError : 'Network error');
-      const error = new Error(message);
-      error.status = res.status;
-      if (apiError && apiError.code) error.code = apiError.code;
-      error.raw = apiError;
-      if (!options?.silent) {
-        notifyApiError(error);
+    const controller = new AbortController();
+    const abortHandler = () => controller.abort(signal?.reason);
+    const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout", "AbortError")), timeout);
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort(signal.reason);
+      } else {
+        signal.addEventListener("abort", abortHandler, { once: true });
       }
-      throw error;
     }
-    return data;
-  } catch (error) {
-    if (!options?.silent && !error?.notified) notifyApiError(error);
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-    if (signal && !signal.aborted) {
-      signal.removeEventListener("abort", abortHandler);
+
+    try {
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        // Pas de JSON → laisser data = {}
+      }
+      if (!res.ok) {
+        const apiError = data && data.error ? data.error : null;
+        const message = (apiError && apiError.message) || (typeof apiError === 'string' ? apiError : 'Network error');
+        const error = new Error(message);
+        error.status = res.status;
+        if (apiError && apiError.code) error.code = apiError.code;
+        error.raw = apiError;
+        
+        // Check if we should retry
+        if (attempt < maxRetries && isRetryableError(error)) {
+          await sleep(RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1]);
+          continue; // Retry
+        }
+        
+        if (!options?.silent) {
+          notifyApiError(error);
+        }
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      // Check if we should retry
+      if (attempt < maxRetries && isRetryableError(error)) {
+        await sleep(RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1]);
+        continue; // Retry
+      }
+      
+      if (!options?.silent && !error?.notified) notifyApiError(error);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      if (signal && !signal.aborted) {
+        signal.removeEventListener("abort", abortHandler);
+      }
     }
   }
 }

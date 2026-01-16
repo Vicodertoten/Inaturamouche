@@ -383,6 +383,10 @@ const en = {
     pool_unavailable: 'No observations found for these criteria. Please broaden the geographic area, time period, or try again later.',
     taxonomy_not_found: 'Taxon not found.',
   },
+  offline: {
+    no_connection: 'No internet connection',
+    back_online: 'Connection restored',
+  },
   profile: {
     back: '← Back',
     title: 'Player profile',

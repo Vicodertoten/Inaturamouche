@@ -156,7 +156,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
         onClick={handleImageClick}
       >
         {/* L'IMAGE (Zoomable Content) */}
-        <div className="image-box">
+        <div className={`image-box ${isHighResLoaded ? 'loaded' : ''}`}>
           <img
             loading={supportsLazyLoading ? 'lazy' : undefined}
             className={`image-lqip ${isLowResLoaded ? 'is-ready' : ''} ${isHighResLoaded ? 'is-hidden' : ''}`}
