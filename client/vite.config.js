@@ -16,7 +16,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
-        // ajoute ici tes favicons si besoin
+        'fonts/*.woff2', // Include fonts for caching
       ],
       manifest: {
         name: "Inaturamouche",
@@ -37,6 +37,16 @@ export default defineConfig({
         // Ne jamais faire tomber /api/ dans la navigation fallback SPA
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          // 0) Fonts: CacheFirst for performance
+          {
+            urlPattern: /\.woff2$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "fonts-cache",
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }, // 1 year
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           // 1) META-API en SWR (autocomplete + species_counts)
           {
             urlPattern: ({ url }) =>
