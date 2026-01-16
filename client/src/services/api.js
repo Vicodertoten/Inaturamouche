@@ -173,7 +173,8 @@ async function apiGet(path, params = {}, options = {}) {
         // Check if we should retry
         if (attempt < maxRetries && isRetryableError(error)) {
           // Use exponential backoff: attempt is always 0-2 for maxRetries=3
-          await sleep(RETRY_DELAYS[attempt]);
+          const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
+          await sleep(RETRY_DELAYS[delayIndex]);
           continue; // Retry
         }
         
@@ -187,7 +188,8 @@ async function apiGet(path, params = {}, options = {}) {
       // Check if we should retry
       if (attempt < maxRetries && isRetryableError(error)) {
         // Use exponential backoff: attempt is always 0-2 for maxRetries=3
-        await sleep(RETRY_DELAYS[attempt]);
+        const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
+        await sleep(RETRY_DELAYS[delayIndex]);
         continue; // Retry
       }
       

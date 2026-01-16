@@ -55,12 +55,12 @@ export function OfflineIndicator() {
         {isOnline ? (
           <>
             <span className="offline-icon">✓</span>
-            <span>{t('offline.back_online') || 'Connexion rétablie'}</span>
+            <span>{t('offline.back_online', {}, 'Connection restored')}</span>
           </>
         ) : (
           <>
             <span className="offline-icon">⚠</span>
-            <span>{t('offline.no_connection') || 'Aucune connexion Internet'}</span>
+            <span>{t('offline.no_connection', {}, 'No internet connection')}</span>
           </>
         )}
       </div>
