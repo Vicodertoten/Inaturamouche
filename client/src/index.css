@@ -93,6 +93,7 @@
   /* Z-INDEX LAYERS */
   --z-modal: 1000;
   --z-toast: 1200;
+  --z-offline-indicator: 1300;  /* Higher than toast for critical network status */
 
   /* --- BREAKPOINTS --- */
   --bp-xs: 480px;

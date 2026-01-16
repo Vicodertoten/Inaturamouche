@@ -150,9 +150,19 @@
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    /* Expand touch area without visual change */
-    padding: 17px;
-    margin: -17px;
+    position: relative;
+}
+
+/* Expand touch area using pseudo-element for better accessibility */
+.dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
 }
 
 .dot.active {

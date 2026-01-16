@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import '../styles/OfflineIndicator.css';
 
@@ -6,18 +6,27 @@ export function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [wasOffline, setWasOffline] = useState(false);
   const { t } = useLanguage();
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       setWasOffline(true);
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       // Hide "back online" message after 3 seconds
-      setTimeout(() => setWasOffline(false), 3000);
+      timeoutRef.current = setTimeout(() => setWasOffline(false), 3000);
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setWasOffline(false);
+      // Clear timeout when going offline
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
 
     window.addEventListener('online', handleOnline);
@@ -26,6 +35,10 @@ export function OfflineIndicator() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      // Cleanup timeout on unmount
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
