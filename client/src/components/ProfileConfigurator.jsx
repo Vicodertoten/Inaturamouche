@@ -146,7 +146,7 @@ const ProfileConfigurator = ({
       <div className="profile-configurator">
         {/* Header with live preview */}
         <div className="configurator-header">
-          <h2 className="configurator-title">{t('profile.edit_profile')}</h2>
+          
           
           {/* Live preview */}
           <div className="configurator-preview">
