@@ -158,9 +158,7 @@ const HomePage = () => {
 
   return (
     <div className="screen configurator-screen">
-      <div className="home-streak-badge-top-left">
-        <DailyStreakBadge compact />
-      </div>
+      
       
       <div className="home-dashboard card">
         {/* Afficher le bouton "Reprendre la partie" si une session est active */}
