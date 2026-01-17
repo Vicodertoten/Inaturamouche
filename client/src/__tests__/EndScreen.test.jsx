@@ -2,8 +2,10 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import EndScreen from '../components/EndScreen.jsx';
 
-vi.mock('../context/LanguageContext.jsx', () => ({
-  useLanguage: () => ({ t: (k) => k, getTaxonDisplayNames: (s) => ({ primary: s.name, secondary: s.name })) }),
+vi.mock('../context/LanguageContext.jsx', () => {
+  return {
+    useLanguage: () => ({ t: (k) => k, getTaxonDisplayNames: (s) => ({ primary: s.name, secondary: s.name }) }),
+  };
 });
 
 vi.mock('../context/GameContext.jsx', () => ({

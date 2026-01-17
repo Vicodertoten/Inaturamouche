@@ -8,6 +8,8 @@ import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../utils/haptics';
+import { useUser } from '../context/UserContext';
+import { notify } from '../services/notifications';
 
 const HINT_COST_XP = 5; // Coût en XP pour utiliser l'indice
 
@@ -32,6 +34,7 @@ const EasyMode = () => {
     completeRound,
     endGame,
   } = useGameData();
+  const { profile, updateProfile } = useUser();
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
@@ -121,13 +124,15 @@ const EasyMode = () => {
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
   const baseScoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
   
-  // L'indice réduit l'XP gagné de -5 XP
-  const hintPenalty = hintUsedThisQuestion ? -HINT_COST_XP : 0;
+  // Hint cost is now deducted directly from profile XP, not from bonus
   const scoreInfo = { 
     ...baseScoreInfo, 
-    bonus: (baseScoreInfo.bonus || 0) + hintPenalty, // Appliquer au bonus XP
     streakBonus 
   };
+
+  // Check if user has enough XP to use a hint
+  const userXP = profile?.xp || 0;
+  const canAffordHint = userXP >= HINT_COST_XP;
 
 
 
@@ -164,6 +169,15 @@ const EasyMode = () => {
   const handleHint = () => {
     if (hintUsedThisQuestion || answeredThisQuestion) return;
 
+    // Check if user has enough XP
+    if (!canAffordHint) {
+      notify(t('hints.not_enough_xp', { cost: HINT_COST_XP }, `XP insuffisant (${HINT_COST_XP} XP requis)`), {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
     // On choisit au hasard un leurre restant (≠ correct) parmi les non-supprimés
     const incorrectRemaining = remainingPairs.filter(p => p.id.toString() !== correctPair.id.toString());
     if (incorrectRemaining.length <= 1) return; // garder au moins 1 leurre
@@ -172,7 +186,18 @@ const EasyMode = () => {
     newSet.add(String(toRemove.id));
     setRemovedIds(newSet);
     setHintUsed(true);
-    // L'indice coûte 5 XP (réduit le bonus XP)
+    
+    // Déduire le coût XP du profil utilisateur
+    updateProfile((prev) => ({
+      ...prev,
+      xp: Math.max(0, (prev?.xp || 0) - HINT_COST_XP),
+    }));
+    
+    notify(t('hints.used', { cost: HINT_COST_XP }, `-${HINT_COST_XP} XP`), {
+      type: 'info',
+      duration: 2000,
+    });
+    
     setRoundMeta((prev) => {
       return {
         ...prev,
@@ -221,8 +246,11 @@ const EasyMode = () => {
           hintDisabled={
             hintUsedThisQuestion ||
             answeredThisQuestion ||
-            remainingPairs.length <= 2
+            remainingPairs.length <= 2 ||
+            !canAffordHint
           }
+          hintCost={HINT_COST_XP}
+          userXP={userXP}
         />
         <div className="card">
           <main className="game-main">

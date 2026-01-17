@@ -145,16 +145,7 @@ const EndScreen = ({
           </div>
         </div>
 
-        {/* 2. Précision (plus dense) */}
-        <div className="accuracy-section">
-          <div className="accuracy-inline">
-            <span className="accuracy-label">📊 {t('end.precision', {}, 'Précision')}</span>
-            <span className="accuracy-value">{accuracy.toFixed(0)}%</span>
-            <span className="accuracy-details">({correctCount}/{totalQuestions})</span>
-          </div>
-        </div>
-
-        {/* 3. Nouvelles découvertes */}
+        {/* 2. Nouvelles découvertes */}
         {newDiscoveries.length > 0 && (
           <div className="new-discoveries-section">
             <h3 className="section-title">{t('end.new_discoveries', {}, '✨ Nouvelles Découvertes')}</h3>
@@ -175,21 +166,31 @@ const EndScreen = ({
           </div>
         )}
 
-        {/* 4. Achievements débloqués */}
+        {/* 3. Achievements débloqués */}
         {newlyUnlocked.length > 0 && (
           <div className="achievements-section">
             <h3 className="section-title">{t('end.achievements_unlocked', {}, '🏆 Achievements Débloqués')}</h3>
             <ul className="achievements-list">
-              {newlyUnlocked.map((id) => (
-                <li key={id} className="achievement-item">
-                  {ACHIEVEMENTS[id]?.titleKey ? t(ACHIEVEMENTS[id].titleKey) : id}
-                </li>
-              ))}
+              {newlyUnlocked.map((id) => {
+                const achievement = ACHIEVEMENTS[id];
+                return (
+                  <li key={id} className="achievement-item">
+                    <span className="achievement-title">
+                      {achievement?.titleKey ? t(achievement.titleKey) : id}
+                    </span>
+                    {achievement?.descriptionKey && (
+                      <span className="achievement-description">
+                        {t(achievement.descriptionKey)}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
 
-        {/* 5. Liste détaillée des espèces (repliable) */}
+        {/* 4. Liste détaillée des espèces (repliable) */}
         {sortedSpecies.length > 0 && (
           <div className="species-details-section">
             <button 

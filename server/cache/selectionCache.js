@@ -53,6 +53,6 @@ export function pruneMutexes() {
 // Nettoyer les mutexes toutes les 5 minutes
 setInterval(() => {
   pruneMutexes();
-}, 1000 * 60 * 5);
+}, 1000 * 60 * 5).unref();
 
 export default selectionStateCache;

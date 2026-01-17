@@ -118,12 +118,6 @@ export function GameProvider({ children }) {
     setInGameShields,
     hasPermanentShield,
     setHasPermanentShield,
-    streakTier,
-    setStreakTier,
-    activePerks,
-    setActivePerks,
-    computeMultiplierFromPerks,
-    evaluatePerksForStreak,
   } = useStreak();
 
   const { newlyUnlocked, setNewlyUnlocked, clearAchievementsTimer, clearUnlockedLater } = useAchievement();
@@ -160,14 +154,14 @@ export function GameProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // initialize streak/xp/achievement related state from profile
+    // Initialize achievement-related state from profile
+    // NOTE: In-game streak (combo) starts at 0 for each new game session
+    // profile.stats.longestStreak is the ALL-TIME record, not session state
     if (profile) {
-      setCurrentStreak(profile?.stats?.currentStreak || 0);
-      setLongestStreak(profile?.stats?.longestStreak || 0);
       setHasPermanentShield(profile?.achievements?.includes('STREAK_GUARDIAN') || false);
       setInitialSessionXP(profile?.xp || 0);
     }
-  }, [profile, setCurrentStreak, setLongestStreak, setHasPermanentShield, setInitialSessionXP]);
+  }, [profile, setHasPermanentShield, setInitialSessionXP]);
 
   const abortActiveFetch = useCallback(() => {
     if (activeRequestController.current) {
@@ -189,11 +183,10 @@ export function GameProvider({ children }) {
     setSessionCorrectSpecies([]);
     setSessionSpeciesData([]);
     setSessionMissedSpecies([]);
-    // NE PAS RESET la streak actuelle - elle persiste entre les parties
-    setStreakTier(0);
-    setActivePerks([]);
+    // IMPORTANT: NE PAS réinitialiser currentStreak et longestStreak
+    // Les streaks de partie persistent entre les sessions pour encourager le jeu continu
+    // Seul le bouclier est réinitialisé (garder le permanent s'il existe)
     setNewlyUnlocked([]);
-    // Réinitialiser les boucliers de partie (garder le permanent s'il existe)
     setInGameShields(hasPermanentShield ? 1 : 0);
     // Réinitialiser les états XP
     setRecentXPGain(0);
@@ -259,8 +252,6 @@ export function GameProvider({ children }) {
       longestStreak,
       inGameShields,
       hasPermanentShield,
-      streakTier,
-      activePerks,
       // FIX #8: Save timer and prefetched question to maintain accurate timing
       questionStartTime: questionStartTimeRef.current,
       nextQuestion: nextQuestion,
@@ -296,8 +287,6 @@ export function GameProvider({ children }) {
     longestStreak,
     inGameShields,
     hasPermanentShield,
-    streakTier,
-    activePerks,
     nextQuestion,
     activePackId,
     customFilters,
@@ -351,8 +340,6 @@ export function GameProvider({ children }) {
       setLongestStreak(sessionData.longestStreak || 0);
       setInGameShields(sessionData.inGameShields || 0);
       setHasPermanentShield(sessionData.hasPermanentShield || false);
-      setStreakTier(sessionData.streakTier || 0);
-      setActivePerks(sessionData.activePerks || []);
       
       // FIX #8: Restore timer and prefetched question
       if (typeof sessionData.questionStartTime === 'number') {
@@ -625,12 +612,10 @@ export function GameProvider({ children }) {
     }
   }, [nextImageUrl]);
 
-  const currentMultiplier = useMemo(
-    () => computeMultiplierFromPerks(activePerks),
-    [activePerks]
-  );
+  // Perks system removed - multiplier is now always 1.0
+  const currentMultiplier = 1.0;
 
-  // `clearUnlockedLater` and `evaluatePerksForStreak` are provided by Achievement and Streak contexts
+  // `clearUnlockedLater` is provided by Achievement context
 
   const finalizeGame = useCallback(
     ({
@@ -716,9 +701,14 @@ export function GameProvider({ children }) {
       // Update daily streak after completing a game
       const profileWithStreakUpdate = updateDailyStreak(profileClone);
       
-      // Save in-game streak stats to profile
-      profileWithStreakUpdate.stats.currentStreak = currentStreak;
-      profileWithStreakUpdate.stats.longestStreak = longestStreak;
+      // Save in-game streak records to profile for achievements tracking
+      // NOTE: These are session-based combo stats, NOT daily streak
+      // - currentStreak: The final combo streak achieved this session
+      // - longestStreak: All-time best combo streak record
+      profileWithStreakUpdate.stats.lastSessionStreak = currentStreak;
+      if (longestStreak > (profileWithStreakUpdate.stats.longestStreak || 0)) {
+        profileWithStreakUpdate.stats.longestStreak = longestStreak;
+      }
 
       // FIX #7: Clear session BEFORE changing game state to prevent restoration of finished game
       // This ensures if clearSessionFromDB fails, the session won't be restored as a finished game
@@ -798,16 +788,17 @@ export function GameProvider({ children }) {
       
       setCurrentStreak(newStreak);
 
-      const multiplier = computeMultiplierFromPerks(activePerks);
+      // Perks system removed - no multiplier on score bonus
       const baseBonus = (bonus || 0) + (streakBonus || 0);
-      const adjustedBonus = Math.round(baseBonus * multiplier);
+      const adjustedBonus = baseBonus;
       const updatedScore = score + points + adjustedBonus;
       setScore(updatedScore);
 
       // Calcul XP avec multiplicateurs (utiliser newStreak qui est la streak APRÈS ce round)
       // Pas d'XP si la réponse est incorrecte
       const baseXP = isCorrectFinal ? (points + adjustedBonus) : 0;
-      const xpMultipliers = calculateXPMultipliers(profile, multiplier, isCorrectFinal ? newStreak : 0);
+      // No perks multiplier - pass 1.0 as base multiplier
+      const xpMultipliers = calculateXPMultipliers(profile, isCorrectFinal ? newStreak : 0);
       const earnedXP = Math.floor(baseXP * xpMultipliers.totalMultiplier);
       
       // Mettre à jour le profil avec le nouvel XP
@@ -911,7 +902,7 @@ export function GameProvider({ children }) {
         genusId: genusEntry?.id || null,
         genusName: genusEntry?.name || null,
         wasCorrect: isCorrectFinal,
-        multiplierApplied: multiplier,
+        multiplierApplied: xpMultipliers?.totalMultiplier ?? 1.0,
       };
       if (addSpeciesToCollection) {
         void addSpeciesToCollection(taxonPayload, isCorrectFinal, fallbackImageUrl);
@@ -948,30 +939,7 @@ export function GameProvider({ children }) {
         }
       }
 
-      let nextPerksState = activePerks.map((perk) => {
-        if (perk.type !== 'multiplier') return perk;
-        return {
-          ...perk,
-          roundsRemaining: Math.max(0, (perk.roundsRemaining ?? 1) - 1),
-        };
-      });
-      nextPerksState = nextPerksState.filter(
-        (perk) => perk.type !== 'multiplier' || (perk.roundsRemaining ?? 0) > 0
-      );
-
-      if (!isCorrectFinal) {
-        setStreakTier(0);
-        nextPerksState = nextPerksState.filter((perk) => perk.persistOnMiss !== false);
-      } else {
-        const { tierReached, minted } = evaluatePerksForStreak(newStreak);
-        if (tierReached !== streakTier) {
-          setStreakTier(tierReached);
-        }
-        if (minted.length) {
-          nextPerksState = [...nextPerksState, ...minted];
-        }
-      }
-      setActivePerks(nextPerksState);
+      // Perks system removed - no perks state management needed
 
       setSessionStats({ correctAnswers: finalCorrectAnswers });
       setSessionCorrectSpecies(finalCorrectSpecies);
@@ -1000,13 +968,11 @@ export function GameProvider({ children }) {
       }
     },
     [
-      activePerks,
       activePack,
       addSpeciesToCollection,
       currentStreak,
       inGameShields,
       longestStreak,
-      evaluatePerksForStreak,
       fetchQuestion,
       finalizeGame,
       gameMode,
@@ -1020,7 +986,6 @@ export function GameProvider({ children }) {
       sessionMissedSpecies,
       sessionSpeciesData,
       sessionStats.correctAnswers,
-      streakTier,
       maxQuestions,
       updateProfile,
     ]
@@ -1081,8 +1046,6 @@ export function GameProvider({ children }) {
       longestStreak,
       inGameShields,
       hasPermanentShield,
-      streakTier,
-      activePerks,
       currentMultiplier,
       newlyUnlocked,
       nextImageUrl,
@@ -1090,7 +1053,7 @@ export function GameProvider({ children }) {
       recentXPGain,
       initialSessionXP,
       levelUpNotification,
-      xpMultipliers: calculateXPMultipliers(profile, currentMultiplier, currentStreak),
+      xpMultipliers: calculateXPMultipliers(profile, currentStreak),
       updateScore,
       completeRound,
       endGame,
@@ -1124,8 +1087,6 @@ export function GameProvider({ children }) {
       longestStreak,
       inGameShields,
       hasPermanentShield,
-      streakTier,
-      activePerks,
       currentMultiplier,
       newlyUnlocked,
       nextImageUrl,

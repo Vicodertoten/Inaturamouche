@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useLevelProgress } from '../hooks/useLevelProgress';
 import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
@@ -26,28 +26,20 @@ const XPProgressBar = ({
   // If a startXP is provided we will animate the bar from startXP -> currentXP
   const initialXP = startXP == null ? currentXP : startXP;
   const [displayedXP, setDisplayedXP] = useState(initialXP);
+  const [displayedLevel, setDisplayedLevel] = useState(getLevelFromXp(initialXP));
   const { level, nextLevel, xpProgress, xpNeeded, progressPercent } = useLevelProgress(displayedXP);
   const [showXPPopup, setShowXPPopup] = useState(false);
   const [displayedProgress, setDisplayedProgress] = useState(progressPercent);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [currentLevel, setCurrentLevel] = useState(getLevelFromXp(initialXP));
-  const [levelUpQueue, setLevelUpQueue] = useState([]);
-
-  // Détecter les level-ups et les ajouter à la queue
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
+  const [shakingBar, setShakingBar] = useState(false);
+  const animationRef = useRef(null);
+  const levelUpCallbackRef = useRef(onLevelUp);
+  
+  // Keep callback ref up to date
   useEffect(() => {
-    if (!animate || startXP == null) return;
-    
-    const startLevel = getLevelFromXp(startXP);
-    const endLevel = getLevelFromXp(currentXP);
-    
-    if (endLevel > startLevel) {
-      const newLevels = [];
-      for (let lvl = startLevel + 1; lvl <= endLevel; lvl++) {
-        newLevels.push(lvl);
-      }
-      setLevelUpQueue(newLevels);
-    }
-  }, [startXP, currentXP, animate]);
+    levelUpCallbackRef.current = onLevelUp;
+  }, [onLevelUp]);
 
   // Animation du popup "+X XP"
   useEffect(() => {
@@ -58,7 +50,6 @@ const XPProgressBar = ({
     }
   }, [recentXPGain, animate]);
 
-  // Animation progressive de la barre
   // Sync displayedProgress when progressPercent for displayedXP changes
   useEffect(() => {
     if (animate && Math.abs(displayedProgress - progressPercent) > 0.1) {
@@ -71,65 +62,139 @@ const XPProgressBar = ({
     }
   }, [progressPercent, animate, displayedProgress]);
 
-  // Si startXP est fourni, animer displayedXP de start -> currentXP
-  // Avec gestion multi-level: remplir jusqu'au niveau suivant, reset, etc.
+  // Multi-level animation: animate from startXP to currentXP with level-up effects
   useEffect(() => {
     if (startXP == null || !animate) {
       setDisplayedXP(currentXP);
-      setCurrentLevel(getLevelFromXp(currentXP));
+      setDisplayedLevel(getLevelFromXp(currentXP));
       return;
     }
 
     if (currentXP === startXP) return;
 
-    let rafId = null;
-    let isRunning = true;
-    const duration = 1200;
-    const startTime = performance.now();
-    const from = startXP;
-    const to = currentXP;
+    // Cancel any existing animation
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
 
-    const step = (now) => {
+    const startLevel = getLevelFromXp(startXP);
+    const endLevel = getLevelFromXp(currentXP);
+    const levelsToGain = endLevel - startLevel;
+    
+    // Simple animation if no level ups
+    if (levelsToGain <= 0) {
+      let isRunning = true;
+      const duration = 1200;
+      const startTime = performance.now();
+      
+      const step = (now) => {
+        if (!isRunning) return;
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const nextXP = Math.round(startXP + (currentXP - startXP) * eased);
+        setDisplayedXP(nextXP);
+        
+        if (t < 1) {
+          animationRef.current = requestAnimationFrame(step);
+        }
+      };
+      
+      animationRef.current = requestAnimationFrame(step);
+      return () => {
+        isRunning = false;
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      };
+    }
+
+    // Multi-level animation with pauses at each level-up
+    let isRunning = true;
+    let currentAnimXP = startXP;
+    let currentAnimLevel = startLevel;
+
+    const animateToLevel = (targetXP, callback) => {
+      const from = currentAnimXP;
+      const duration = 800;
+      const startTime = performance.now();
+      
+      const step = (now) => {
+        if (!isRunning) return;
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const nextXP = Math.round(from + (targetXP - from) * eased);
+        setDisplayedXP(nextXP);
+        currentAnimXP = nextXP;
+        
+        if (t < 1) {
+          animationRef.current = requestAnimationFrame(step);
+        } else {
+          callback?.();
+        }
+      };
+      
+      animationRef.current = requestAnimationFrame(step);
+    };
+
+    const processNextLevel = () => {
       if (!isRunning) return;
       
-      const t = Math.min(1, (now - startTime) / duration);
-      // easeOutCubic
-      const eased = 1 - Math.pow(1 - t, 3);
-      const nextXP = Math.round(from + (to - from) * eased);
-      const nextLevel = getLevelFromXp(nextXP);
-      
-      // Trigger level-up callback si on vient de changer de niveau
-      if (nextLevel > currentLevel && onLevelUp) {
-        onLevelUp(nextLevel);
-        setCurrentLevel(nextLevel);
-      } else if (nextLevel !== currentLevel) {
-        setCurrentLevel(nextLevel);
-      }
-      
-      setDisplayedXP(nextXP);
-      
-      if (t < 1) {
-        rafId = requestAnimationFrame(step);
+      if (currentAnimLevel < endLevel) {
+        // Animate to next level threshold
+        const nextLevelXP = getXpForLevel(currentAnimLevel + 1);
+        
+        animateToLevel(nextLevelXP, () => {
+          if (!isRunning) return;
+          
+          // Trigger level-up effects
+          currentAnimLevel++;
+          setDisplayedLevel(currentAnimLevel);
+          setIsLevelingUp(true);
+          setShakingBar(true);
+          
+          // Notify parent of level-up
+          if (levelUpCallbackRef.current) {
+            levelUpCallbackRef.current(currentAnimLevel);
+          }
+          
+          // Shake for 500ms, then continue
+          setTimeout(() => {
+            if (!isRunning) return;
+            setShakingBar(false);
+            setIsLevelingUp(false);
+            
+            // Brief pause before continuing
+            setTimeout(() => {
+              if (!isRunning) return;
+              processNextLevel();
+            }, 200);
+          }, 500);
+        });
+      } else {
+        // Animate remaining XP within final level
+        animateToLevel(currentXP, () => {
+          // Animation complete
+        });
       }
     };
 
-    rafId = requestAnimationFrame(step);
-    return () => { 
+    // Start the animation chain
+    processNextLevel();
+
+    return () => {
       isRunning = false;
-      if (rafId) cancelAnimationFrame(rafId); 
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [startXP, currentXP, animate, currentLevel, onLevelUp]);
+  }, [startXP, currentXP, animate]);
 
   const isCompact = size === 'compact';
 
   return (
-    <div className={`xp-progress-container ${isCompact ? 'xp-progress-compact' : ''}`}>
+    <div className={`xp-progress-container ${isCompact ? 'xp-progress-compact' : ''} ${isLevelingUp ? 'level-up-active' : ''}`}>
       {/* Header avec niveau et XP */}
       {showDetailed && (
         <div className="xp-progress-header">
-          <div className="xp-level-badge">
+          <div className={`xp-level-badge ${isLevelingUp ? 'leveling-up' : ''}`}>
             <span className="xp-level-label">Niveau</span>
-            <span className="xp-level-value">{level}</span>
+            <span className="xp-level-value">{displayedLevel}</span>
           </div>
           <div className="xp-details">
             <span className="xp-current">{xpProgress.toLocaleString()}</span>
@@ -150,9 +215,9 @@ const XPProgressBar = ({
 
       {/* Barre de progression */}
       <div className="xp-progress-bar-wrapper">
-        <div className="xp-progress-bar-track">
+        <div className={`xp-progress-bar-track ${shakingBar ? 'shaking' : ''}`}>
           <div 
-            className={`xp-progress-bar-fill ${isAnimating ? 'animating' : ''}`}
+            className={`xp-progress-bar-fill ${isAnimating ? 'animating' : ''} ${isLevelingUp ? 'level-up-glow' : ''}`}
             style={{ width: `${displayedProgress}%` }}
           >
             <div className="xp-progress-bar-shine"></div>
@@ -167,8 +232,6 @@ const XPProgressBar = ({
         )}
       </div>
 
-
-
       {/* Popup "+X XP" */}
       {showXPPopup && recentXPGain > 0 && (
         <div className="xp-gain-popup">
@@ -181,10 +244,12 @@ const XPProgressBar = ({
 
 XPProgressBar.propTypes = {
   currentXP: PropTypes.number,
+  startXP: PropTypes.number,
   recentXPGain: PropTypes.number,
   showDetailed: PropTypes.bool,
   animate: PropTypes.bool,
   size: PropTypes.oneOf(['default', 'compact']),
+  onLevelUp: PropTypes.func,
 };
 
 export default XPProgressBar;

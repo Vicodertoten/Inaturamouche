@@ -7,11 +7,10 @@ export function XPProvider({ children }) {
   const [initialSessionXP, setInitialSessionXP] = useState(0);
   const [levelUpNotification, setLevelUpNotification] = useState(null);
 
-  const calculateXPMultipliers = (profile, perksMultiplier = 1.0, currentWinStreak = 0) => {
+  const calculateXPMultipliers = (profile, currentWinStreak = 0) => {
     if (!profile) {
       return {
         dailyStreakBonus: 0,
-        perksMultiplier: 1.0,
         winStreakBonus: 0,
         timerBonus: 0,
         totalMultiplier: 1.0,
@@ -22,12 +21,10 @@ export function XPProvider({ children }) {
     const dailyStreakBonus = Math.min(0.2, dailyStreakCount * 0.03);
     const winStreakBonus = Math.min(0.5, currentWinStreak * 0.05);
     const timerBonus = 0;
-    const baseMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
-    const totalMultiplier = baseMultiplier * perksMultiplier;
+    const totalMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
 
     return {
       dailyStreakBonus,
-      perksMultiplier,
       winStreakBonus,
       timerBonus,
       totalMultiplier,

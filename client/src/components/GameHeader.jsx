@@ -40,6 +40,8 @@ const GameHeader = ({
   isGameOver = false,
   onHint,
   hintDisabled = false,
+  hintCost = 5,
+  userXP = 0,
 }) => {
   const { t } = useLanguage();
   const { profile } = useUser();
@@ -140,12 +142,13 @@ const GameHeader = ({
           <div className="header-actions">
             {mode === 'easy' && (
               <button
-                className="action-button hint-button-easy"
+                className={`action-button hint-button-easy ${userXP < hintCost ? 'insufficient-xp' : ''}`}
                 onClick={onHint}
                 disabled={hintDisabled}
                 type="button"
+                title={userXP < hintCost ? t('hints.not_enough_xp_tooltip', { cost: hintCost, current: userXP }, `XP insuffisant (${userXP}/${hintCost})`) : ''}
               >
-                {t('easy.hint_button', { cost: 5 })}
+                {t('easy.hint_button_xp', { cost: hintCost }, `Indice (-${hintCost} XP)`)}
               </button>
             )}
             <button onClick={onQuit} disabled={isGameOver} className="action-button quit" type="button">

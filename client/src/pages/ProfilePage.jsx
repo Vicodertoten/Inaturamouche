@@ -301,7 +301,7 @@ const ProfilePage = () => {
               <DailyStreakBadge />
 
               <ProfileStreakCard
-                currentStreak={profile.stats.currentStreak || 0}
+                currentStreak={profile.stats.lastSessionStreak || 0}
                 longestStreak={profile.stats.longestStreak || 0}
               />
 

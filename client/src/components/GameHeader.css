@@ -254,6 +254,20 @@
   cursor: not-allowed;
 }
 
+/* Insufficient XP state for hint buttons */
+.hint-button-easy.insufficient-xp,
+.action-button.hint.insufficient-xp {
+  border-color: var(--warning-color, #f59e0b);
+  color: var(--warning-color, #f59e0b);
+  opacity: 0.7;
+}
+
+.hint-button-easy.insufficient-xp::after,
+.action-button.hint.insufficient-xp::after {
+  content: '⚠️';
+  margin-left: 0.25rem;
+}
+
 .action-button {
   padding: 0.5rem 1rem;
   border-radius: 12px;

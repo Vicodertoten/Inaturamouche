@@ -11,20 +11,15 @@ import './ActiveMultipliers.css';
  */
 const ActiveMultipliers = ({ 
   dailyStreakBonus = 0, 
-  perksMultiplier = 1.0,
   winStreakBonus = 0,
   timerBonus = 0 
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Calcul du multiplicateur total
-  const baseMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
-  const totalMultiplier = baseMultiplier * perksMultiplier;
+  // Calcul du multiplicateur total (sans perks)
+  const totalMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
 
-  // Ne pas afficher si multiplicateur = 1.0 (aucun bonus)
-  if (totalMultiplier <= 1.0) {
-    return null;
-  }
+  // Toujours afficher le multiplicateur
 
   const handleMouseEnter = () => setShowTooltip(true);
   const handleMouseLeave = () => setShowTooltip(false);
@@ -66,19 +61,9 @@ const ActiveMultipliers = ({
             {winStreakBonus > 0 && (
               <div className="multiplier-item">
                 <span className="multiplier-item-icon">🏆</span>
-                <span className="multiplier-item-label">Victoires consécutives</span>
+                <span className="multiplier-item-label">Combo streak</span>
                 <span className="multiplier-item-value">
                   +{(winStreakBonus * 100).toFixed(0)}%
-                </span>
-              </div>
-            )}
-
-            {perksMultiplier > 1.0 && (
-              <div className="multiplier-item">
-                <span className="multiplier-item-icon">🎯</span>
-                <span className="multiplier-item-label">Perks</span>
-                <span className="multiplier-item-value">
-                  x{perksMultiplier.toFixed(2)}
                 </span>
               </div>
             )}
@@ -90,6 +75,13 @@ const ActiveMultipliers = ({
                 <span className="multiplier-item-value">
                   +{(timerBonus * 100).toFixed(0)}%
                 </span>
+              </div>
+            )}
+
+            {totalMultiplier === 1.0 && (
+              <div className="multiplier-item no-bonus">
+                <span className="multiplier-item-icon">💡</span>
+                <span className="multiplier-item-label">Aucun bonus actif</span>
               </div>
             )}
 
@@ -108,7 +100,6 @@ const ActiveMultipliers = ({
 
 ActiveMultipliers.propTypes = {
   dailyStreakBonus: PropTypes.number,
-  perksMultiplier: PropTypes.number,
   winStreakBonus: PropTypes.number,
   timerBonus: PropTypes.number,
 };

@@ -278,9 +278,22 @@
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius, 8px);
   margin-bottom: var(--space-2);
-  font-weight: 600;
   color: var(--text-color);
   border-left: 3px solid var(--accent-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.achievement-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.achievement-description {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  font-weight: 400;
 }
 
 /* 5. Species Details Section - Collapsible */

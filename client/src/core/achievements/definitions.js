@@ -105,8 +105,8 @@ export const checkNewAchievements = (profile) => {
     unlocked.push('MASTER_5_SPECIES');
   }
 
-  // Vérifications des streaks (winstreak en jeu)
-  const currentStreak = stats.currentStreak || 0;
+  // Vérifications des streaks (combo streak - in-game consecutive correct answers)
+  // Only longestStreak is used for achievements (all-time record)
   const longestStreak = stats.longestStreak || 0;
   
   if (longestStreak >= 3 && !achievements.includes('STREAK_STARTER_3')) {

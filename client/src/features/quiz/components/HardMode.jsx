@@ -12,8 +12,10 @@ import './HardMode.css';
 import { getTaxonDetails } from '../../../services/api';
 import { computeScore, computeInGameStreakBonus } from '../../../utils/scoring';
 import { useGameData } from '../../../context/GameContext';
+import { useUser } from '../../../context/UserContext';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../../../utils/haptics';
+import { notify } from '../../../services/notifications';
 
 const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 3;
@@ -44,6 +46,7 @@ function HardMode() {
     questionCount,
     maxQuestions,
   } = useGameData();
+  const { profile, updateProfile } = useUser();
 
   // États principaux
   const [knownTaxa, setKnownTaxa] = useState({});
@@ -317,15 +320,10 @@ function HardMode() {
       guessesRemaining: savedScoreInfo?.guessesRemaining || 0
     });
 
-    // Pénalité d'indice seulement si bonus positif
-    let finalBonus = baseScoreInfo.bonus || 0;
-    if (roundMeta.hintsUsed) {
-      finalBonus = Math.max(0, finalBonus - REVEAL_HINT_XP_COST);
-    }
-
+    // Hint cost is now deducted from profile XP, not from bonus
     const finalScoreInfo = {
       points:  baseScoreInfo.points,
-      bonus: finalBonus,
+      bonus: baseScoreInfo.bonus || 0,
       streakBonus: streakBonusCalc
     };
 
@@ -336,6 +334,10 @@ function HardMode() {
     });
   };
 
+  // Check if user has enough XP to use a hint
+  const userXP = profile?.xp || 0;
+  const canAffordHint = userXP >= REVEAL_HINT_XP_COST;
+
   const handleRevealNameHint = () => {
     if (roundStatus !== 'playing') return;
     
@@ -345,13 +347,31 @@ function HardMode() {
       return;
     }
 
+    // Check if user has enough XP
+    if (!canAffordHint) {
+      showFeedback(t('hints.not_enough_xp', { cost: REVEAL_HINT_XP_COST }, `XP insuffisant (${REVEAL_HINT_XP_COST} XP requis)`), 'error');
+      triggerPanelShake();
+      return;
+    }
+
     if (! firstUnknownRank) return;
 
     const taxonData = targetLineage[firstUnknownRank];
     if (!taxonData) return;
 
+    // Déduire le coût XP du profil utilisateur
+    updateProfile((prev) => ({
+      ...prev,
+      xp: Math.max(0, (prev?.xp || 0) - REVEAL_HINT_XP_COST),
+    }));
+
     const rankLabel = t(`ranks.${firstUnknownRank}`);
     showFeedback(t('hard.feedback.hint_used', { rank: rankLabel, cost: REVEAL_HINT_XP_COST }), 'info');
+    
+    notify(t('hints.used', { cost: REVEAL_HINT_XP_COST }, `-${REVEAL_HINT_XP_COST} XP`), {
+      type: 'info',
+      duration: 2000,
+    });
 
     // Marquer l'indice comme utilisé
     setRoundMeta(prev => ({
@@ -386,7 +406,7 @@ function HardMode() {
   };
 
   const isGameOver = roundStatus !== 'playing';
-  const canUseAnyHint = !!firstUnknownRank && roundMeta.hintCount < MAX_HINTS;
+  const canUseAnyHint = !!firstUnknownRank && roundMeta.hintCount < MAX_HINTS && canAffordHint;
   const placeholderText = t('hard.single_guess_placeholder_species', {}, "Devinez l'espèce.. .");
 
   return (
@@ -458,10 +478,11 @@ function HardMode() {
                         <button
                           onClick={handleRevealNameHint}
                           disabled={isGameOver || !canUseAnyHint}
-                          className="action-button hint"
-                          aria-label={t('hard.reveal_button', { cost: REVEAL_HINT_XP_COST })}
+                          className={`action-button hint ${!canAffordHint ? 'insufficient-xp' : ''}`}
+                          aria-label={t('hard.reveal_button_xp', { cost: REVEAL_HINT_XP_COST }, `Révéler (-${REVEAL_HINT_XP_COST} XP)`)}
+                          title={!canAffordHint ? t('hints.not_enough_xp_tooltip', { cost: REVEAL_HINT_XP_COST, current: userXP }, `XP insuffisant (${userXP}/${REVEAL_HINT_XP_COST})`) : ''}
                         >
-                          {t('hard.reveal_button', { cost: REVEAL_HINT_XP_COST })}
+                          {t('hard.reveal_button_xp', { cost: REVEAL_HINT_XP_COST }, `Révéler (-${REVEAL_HINT_XP_COST} XP)`)}
                         </button>
                       </div>
                     </div>
