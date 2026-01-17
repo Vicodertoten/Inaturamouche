@@ -581,8 +581,8 @@
 .autocomplete-container { 
   position: relative; 
   width: 100%; 
-  z-index: 30;
-  overflow: visible;
+  z-index: 50;
+  overflow: visible !important;
 }
 
 .spinner-autocomplete {
@@ -596,6 +596,7 @@
   top: 50%; 
   transform: translateY(-50%);
   animation: rotation 1s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes rotation {
@@ -613,10 +614,12 @@
   width: 100%;
   max-height: 220px; 
   overflow-y: auto; 
-  z-index: 9999; 
+  z-index: 10000 !important; 
   border-radius: 8px;
   bottom: calc(100% + 8px);
   top: auto;
+  left: 0;
+  right: 0;
   box-shadow: 0 14px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.08);
 }
 

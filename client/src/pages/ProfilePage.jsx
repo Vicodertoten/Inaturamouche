@@ -6,6 +6,7 @@ import { getTaxaByIds } from '../services/api';
 import { notify } from '../services/notifications.js';
 import { resetProfile } from '../services/PlayerProfile';
 import DailyStreakBadge from '../components/DailyStreakBadge';
+import ProfileStreakCard from '../components/ProfileStreakCard';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
@@ -298,6 +299,11 @@ const ProfilePage = () => {
               aria-labelledby="tab-summary-trigger"
             >
               <DailyStreakBadge />
+
+              <ProfileStreakCard
+                currentStreak={profile.stats.currentStreak || 0}
+                longestStreak={profile.stats.longestStreak || 0}
+              />
 
               <div className="profile-section">
                 <h3>{t('profile.summary_title')}</h3>

@@ -52,12 +52,12 @@
 
 /* Full Streak Card */
 .daily-streak-card {
-  background: var(--card-bg, #ffffff);
-  border: 2px solid var(--border-color, #e0e0e0);
-  border-radius: var(--radius-medium, 12px);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(247, 147, 30, 0.05) 100%);
+  border: 2px solid var(--accent-color, #ff6b35);
+  border-radius: 14px;
   padding: var(--space-4, 1.5rem);
   margin: var(--space-3, 1rem) 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.15);
 }
 
 .streak-header {
@@ -66,39 +66,64 @@
   align-items: center;
   margin-bottom: var(--space-3, 1rem);
   padding-bottom: var(--space-2, 0.75rem);
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--accent-color, #ff6b35);
 }
 
 .streak-header h3 {
   margin: 0;
   font-size: 1.3rem;
-  color: var(--text-color, #000);
+  color: var(--accent-color, #ff6b35);
+  font-weight: 700;
 }
 
 .xp-bonus {
-  background: var(--accent-color, #ff6b35);
-  color: white;
+  background: var(--primary-color, #2a4b37);
+  color: var(--accent-color, #ff6b35);
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-weight: 700;
   font-size: 0.85rem;
   white-space: nowrap;
+  border: 1px solid var(--accent-color, #ff6b35);
 }
 
 .streak-display {
   text-align: center;
   margin: var(--space-4, 1.5rem) 0;
   padding: var(--space-3, 1rem);
-  background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(247, 147, 30, 0.05) 100%);
-  border-radius: var(--radius-small, 8px);
+  background: var(--surface-color, rgba(0, 0, 0, 0.15));
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .flame-animation {
-  font-size: 4rem;
+  font-size: 3rem;
   line-height: 1;
-  margin-bottom: 0.5rem;
   display: inline-block;
   animation: flicker 1.5s infinite alternate;
+}
+
+.streak-count-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.count-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--accent-color, #ff6b35);
+  line-height: 1;
+}
+
+.count-label {
+  color: var(--text-color-muted, #666);
+  font-size: 0.95rem;
 }
 
 .streak-count {
@@ -125,9 +150,9 @@
   text-align: center;
   margin: var(--space-3, 1rem) 0;
   padding: var(--space-3, 1rem);
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: var(--radius-small, 8px);
-  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--surface-color, rgba(0, 0, 0, 0.15));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 53, 0.2);
 }
 
 .shields-label {

@@ -119,11 +119,6 @@
       padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
     
-    /* Top safe area for notch */
-    .game-screen {
-      padding-top: max(5rem, calc(4.5rem + env(safe-area-inset-top)));
-    }
-    
     /* Side safe areas */
     .game-header-mobile {
       left: max(0.5rem, env(safe-area-inset-left));
