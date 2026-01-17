@@ -280,6 +280,13 @@ const fr = {
   },
   achievements: {
     modal_title: 'Succès débloqué !',
+    reward_label: 'Récompense',
+    categories: {
+      taxonomy: 'Spécialisation',
+      collection: 'Collection',
+      skill: 'Performance',
+      habit: 'Habitudes',
+    },
     list: {
       first_game: {
         title: 'Premier Pas',
@@ -555,7 +562,33 @@ const fr = {
     mastery_empty: 'Aucune espèce maîtrisée.',
     mastery_count: 'Maîtrisé {count} fois',
     achievements_title: 'Succès ({count} / {total})',
+    customize_profile: 'Personnaliser',
+    select_title: 'Choisir un titre',
+    select_border: 'Choisir une bordure',
     loading: 'Chargement du profil…',
+  },
+  rewards: {
+    all_species: 'toutes espèces',
+    permanent_bonus: 'Bonus permanent',
+    new_title: 'Nouveau titre',
+    new_border: 'Nouvelle bordure',
+    title: 'Titre',
+    border: 'Bordure',
+  },
+  titles: {
+    default: 'Aucun titre',
+    explorateur_marin: 'Explorateur Marin',
+    professeur: 'Professeur',
+    flash: 'Flash',
+    gardien_du_temps: 'Gardien du Temps',
+  },
+  borders: {
+    default: 'Standard',
+    scales_theme: 'Écailles',
+    silver_frame: 'Cadre Argent',
+    gold_book_frame: 'Livre Doré',
+    hardened_steel: 'Acier Trempé',
+    platinum_ring: 'Anneau Platine',
   },
   ranks: {
     kingdom: 'Règne',

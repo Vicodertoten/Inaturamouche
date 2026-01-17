@@ -8,6 +8,11 @@
   padding: 1.5rem;
   max-width: 350px;
   margin: 0 auto;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(238, 187, 77, 0.1) 0%,
+    transparent 50%
+  );
 }
 
 .achievement-header {
@@ -19,21 +24,32 @@
 }
 
 .achievement-icon {
-  font-size: 3rem;
-  animation: achievement-bounce 0.6s ease-out;
+  font-size: 4rem;
+  animation: achievement-bounce 0.6s ease-out, achievement-glow 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(238, 187, 77, 0.5));
 }
 
 @keyframes achievement-bounce {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% { transform: scale(0) rotate(-15deg); }
+  50% { transform: scale(1.3) rotate(5deg); }
+  70% { transform: scale(0.95) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes achievement-glow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(238, 187, 77, 0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(238, 187, 77, 0.8)); }
 }
 
 .achievement-modal .modal-title {
   margin: 0;
   font-size: 1.25rem;
-  color: var(--color-primary, #4CAF50);
-  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent-color, #eebb4d) 0%, var(--accent-strong, #ffb86b) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .achievement-body {
@@ -41,45 +57,74 @@
 }
 
 .achievement-name {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: var(--color-text-primary, #333);
+  color: var(--text-color, #f1f5e9);
 }
 
 .achievement-description {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary, #666);
+  font-size: 0.9rem;
+  color: var(--text-color-muted, #c4c9bf);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* Reward Display */
 .achievement-reward {
   width: 100%;
-  background: var(--color-surface-secondary, #f8f9fa);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-top: 0.5rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-top: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.achievement-reward::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(238, 187, 77, 0.5),
+    transparent
+  );
 }
 
 .reward-heading {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-tertiary, #999);
-  margin: 0 0 0.75rem 0;
+  letter-spacing: 0.1em;
+  color: var(--text-color-muted, #c4c9bf);
+  margin: 0 0 1rem 0;
+  opacity: 0.8;
 }
 
 .reward-display {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .reward-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  animation: reward-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes reward-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .reward-content {
@@ -89,44 +134,52 @@
 }
 
 .reward-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   line-height: 1.2;
 }
 
 .reward-label {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary, #666);
+  font-size: 0.8rem;
+  color: var(--text-color-muted, #c4c9bf);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 0.125rem;
 }
 
 .reward-filter {
   font-weight: 600;
-  color: var(--color-primary, #4CAF50);
-  margin-top: 0.125rem;
+  color: var(--primary-color, #7b8c48);
 }
 
 /* XP Reward */
 .reward-xp .reward-value {
-  color: var(--color-xp, #FFD700);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3));
 }
 
 /* Multiplier Reward */
 .reward-multiplier .reward-value {
-  color: var(--color-success, #4CAF50);
+  background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Title Reward */
 .reward-title .reward-value {
-  color: var(--color-primary, #2196F3);
-  font-size: 1.125rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, #9C27B0 0%, #E040FB 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgba(156, 39, 176, 0.3);
+  border-radius: var(--radius-pill, 9999px);
 }
 
 /* Border Reward */
@@ -135,20 +188,20 @@
 }
 
 .reward-border-preview {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: var(--color-surface, #fff);
-  border: 3px solid var(--color-border, #e0e0e0);
-  margin-bottom: 0.25rem;
+  background: var(--surface-color, #263321);
+  margin-bottom: 0.5rem;
+  position: relative;
 }
 
 .reward-border-sample {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
 }
 
 /* Border theme classes */
@@ -179,54 +232,94 @@
 
 /* Close Button */
 .achievement-close-btn {
-  margin-top: 1.25rem;
-  padding: 0.75rem 2rem;
+  margin-top: 1.5rem;
+  padding: 0.875rem 2.5rem;
   font-size: 1rem;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
-  background: var(--color-primary, #4CAF50);
-  color: white;
+  border-radius: var(--radius-pill, 9999px);
+  background: linear-gradient(135deg, var(--accent-color, #eebb4d) 0%, var(--accent-strong, #ffb86b) 100%);
+  color: var(--bg-color, #1a2015);
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .achievement-close-btn:hover {
-  background: var(--color-primary-dark, #388E3C);
-  transform: scale(1.02);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(238, 187, 77, 0.4);
 }
 
 .achievement-close-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(238, 187, 77, 0.3);
 }
 
 /* Animations d'entrée */
 .achievement-modal {
-  animation: modal-slide-in 0.3s ease-out;
+  animation: modal-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes modal-slide-in {
   0% {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-30px) scale(0.9);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
+}
+
+/* Confetti effect background */
+.achievement-modal::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(238, 187, 77, 0.1) 0%, transparent 8%),
+    radial-gradient(circle at 80% 40%, rgba(124, 77, 255, 0.08) 0%, transparent 6%),
+    radial-gradient(circle at 40% 70%, rgba(76, 175, 80, 0.08) 0%, transparent 7%),
+    radial-gradient(circle at 60% 20%, rgba(255, 87, 34, 0.06) 0%, transparent 5%);
+  animation: confetti-float 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes confetti-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .achievement-reward {
-    background: var(--color-surface-dark, #2a2a2a);
-  }
-  
-  .achievement-name {
-    color: var(--color-text-primary-dark, #f0f0f0);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
   }
   
   .reward-border-preview {
-    background: var(--color-surface-dark, #333);
+    background: var(--surface-2, #34422d);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .achievement-icon,
+  .reward-icon,
+  .achievement-modal,
+  .achievement-modal::before {
+    animation: none;
+  }
+  
+  .achievement-icon {
+    filter: drop-shadow(0 0 10px rgba(238, 187, 77, 0.5));
   }
 }

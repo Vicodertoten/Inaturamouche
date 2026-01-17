@@ -280,6 +280,13 @@ const en = {
   },
   achievements: {
     modal_title: 'Achievement unlocked!',
+    reward_label: 'Reward',
+    categories: {
+      taxonomy: 'Specialization',
+      collection: 'Collection',
+      skill: 'Performance',
+      habit: 'Habits',
+    },
     list: {
       first_game: {
         title: 'First Steps',
@@ -553,7 +560,33 @@ const en = {
     mastery_empty: 'No mastered species yet.',
     mastery_count: 'Mastered {count} times',
     achievements_title: 'Achievements ({count} / {total})',
+    customize_profile: 'Customize',
+    select_title: 'Select a title',
+    select_border: 'Select a border',
     loading: 'Loading profile…',
+  },
+  rewards: {
+    all_species: 'all species',
+    permanent_bonus: 'Permanent bonus',
+    new_title: 'New title',
+    new_border: 'New border',
+    title: 'Title',
+    border: 'Border',
+  },
+  titles: {
+    default: 'No title',
+    explorateur_marin: 'Marine Explorer',
+    professeur: 'Professor',
+    flash: 'Flash',
+    gardien_du_temps: 'Time Guardian',
+  },
+  borders: {
+    default: 'Standard',
+    scales_theme: 'Scales',
+    silver_frame: 'Silver Frame',
+    gold_book_frame: 'Golden Book',
+    hardened_steel: 'Hardened Steel',
+    platinum_ring: 'Platinum Ring',
   },
   ranks: {
     kingdom: 'Kingdom',

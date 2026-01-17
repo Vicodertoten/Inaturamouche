@@ -7,6 +7,7 @@
 @import './styles/MobileAnimations.css';
 @import './styles/TouchOptimization.css';
 @import './styles/Feedback.css';
+@import './styles/ProfileBorders.css';
 
 @font-face {
   font-family: 'Poppins';

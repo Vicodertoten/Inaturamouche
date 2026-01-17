@@ -548,3 +548,104 @@
     padding: var(--space-3);
   }
 }
+
+/* ===========================================
+   ACHIEVEMENT CATEGORIES & REWARDS
+   =========================================== */
+
+.achievements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.achievements-header h3 {
+  margin: 0;
+}
+
+.customize-button {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-strong));
+  color: var(--bg-color);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.customize-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.achievement-category {
+  margin-bottom: var(--space-4);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3) 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.category-icon {
+  font-size: 1.25rem;
+}
+
+/* Reward Badges */
+.reward-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  margin-top: var(--space-1);
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.reward-badge-icon {
+  font-size: 0.875rem;
+}
+
+.reward-badge-xp_flat {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 193, 7, 0.1));
+  border-color: rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+}
+
+.reward-badge-perm_multiplier {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(129, 199, 132, 0.1));
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #81C784;
+}
+
+.reward-badge-title {
+  background: linear-gradient(135deg, rgba(103, 58, 183, 0.15), rgba(156, 39, 176, 0.1));
+  border-color: rgba(156, 39, 176, 0.3);
+  color: #CE93D8;
+}
+
+.reward-badge-border {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(100, 181, 246, 0.1));
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #64B5F6;
+}
+
+/* Locked achievement card reward badge */
+.achievement-card.locked .reward-badge {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
