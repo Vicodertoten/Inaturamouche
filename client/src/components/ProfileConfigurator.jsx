@@ -151,31 +151,30 @@ const ProfileConfigurator = ({
           {/* Live preview */}
           <div className="configurator-preview">
   <div className={`preview-avatar-ring ${borderCss}`}>
-    
-    {/* AJOUT : Wrapper div avec la classe "avatar-letter" pour capter les effets CSS */}
-    <div 
-      className="avatar-letter" 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'transparent'
-      }}
-    >
-      {avatarDisplay.type === 'emoji' && (
-        <span className="preview-emoji">{avatarDisplay.value}</span>
-      )}
-      {avatarDisplay.type === 'image' && (
-        <img src={avatarDisplay.value} alt="Avatar" className="preview-image" />
-      )}
-      {avatarDisplay.type === 'letter' && (
-        <span className="preview-letter">{avatarDisplay.value}</span>
-      )}
-    </div>
-
+  {/* AJOUT : Wrapper avec la classe "avatar-letter" pour capter les effets CSS */}
+  <div 
+    className="avatar-letter" 
+    style={{ 
+      width: '100%', 
+      height: '100%', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: 'transparent', // Important pour voir les effets derrière
+      borderRadius: '50%'
+    }}
+  >
+    {avatarDisplay.type === 'emoji' && (
+      <span className="preview-emoji">{avatarDisplay.value}</span>
+    )}
+    {avatarDisplay.type === 'image' && (
+      <img src={avatarDisplay.value} alt="Avatar" className="preview-image" />
+    )}
+    {avatarDisplay.type === 'letter' && (
+      <span className="preview-letter">{avatarDisplay.value}</span>
+    )}
   </div>
+</div>
   <div className="preview-info">
     {/* ... reste du code ... */}
   </div>
@@ -302,12 +301,15 @@ const ProfileConfigurator = ({
   disabled={!isUnlocked}
   aria-label={t(border.nameKey)}
 >
-  {/* MODIFICATION ICI : Ajout des styles de contexte et changement de classe interne */}
+  {/* MODIFICATION ICI : Ajout de l'isolation et changement de classe */}
   <div 
     className={`border-option-preview ${border.css || ''}`}
-    style={{ position: 'relative', isolation: 'isolate' }} 
+    style={{ position: 'relative', isolation: 'isolate' }}
   >
-    <span className="avatar-letter">A</span> {/* Remplace "border-option-letter" */}
+    {/* Remplacer "border-option-letter" par "avatar-letter" */}
+    <span className="avatar-letter" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+      A
+    </span>
   </div>
   
   <span className="border-option-name">
