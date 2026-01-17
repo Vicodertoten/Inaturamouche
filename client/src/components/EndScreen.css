@@ -77,16 +77,82 @@
 }
 
 .xp-gained-display {
-  font-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: var(--radius, 8px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.xp-gained-icon {
+  font-size: 1.5rem;
+  animation: spin-pulse 2s ease-in-out infinite;
+}
+
+.xp-gained-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color-muted);
+}
+
+.xp-gained-value {
+  font-size: 2rem;
   font-weight: 800;
-  line-height: 1;
   background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: var(--space-3) 0;
-  text-align: center;
-  filter: drop-shadow(0 4px 10px rgba(102, 126, 234, 0.3));
+  filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.3));
+}
+
+.level-progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  flex-wrap: wrap;
+}
+
+.level-from,
+.level-to {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+.level-arrow {
+  font-size: 1.2rem;
+  color: var(--text-color-muted);
+}
+
+.multi-level-badge {
+  padding: var(--space-1) var(--space-2);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--radius, 8px);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes spin-pulse {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(10deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(0deg) scale(1);
+  }
+  75% {
+    transform: rotate(-10deg) scale(1.1);
+  }
 }
 
 /* 2. Accuracy Section - Plus dense */

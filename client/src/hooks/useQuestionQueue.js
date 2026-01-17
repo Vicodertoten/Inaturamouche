@@ -4,6 +4,8 @@
  * Optimise la latence ressentie en préchargeant la question N+1 dès que la question N
  * est affichée, plutôt que d'attendre la fin du round.
  * 
+ * Aussi précharge les images de la question N+1 pour une expérience plus fluide.
+ * 
  * Usage:
  * ```jsx
  * const { currentQuestion, nextQuestion, isLoading, error, prefetchNext } = useQuestionQueue(filters);
@@ -19,6 +21,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchQuizQuestion } from '../services/api';
+import { preloadQuestionImages } from '../utils/imagePreload';
 
 /**
  * Hook pour gérer une file de questions avec prefetch automatique
@@ -46,6 +49,7 @@ export function useQuestionQueue(filters = {}, options = {}) {
 
   /**
    * Charge une nouvelle question et l'ajoute à la file
+   * Précharge aussi les images de la question pour optimiser l'affichage
    */
   const fetchAndEnqueue = useCallback(async (signal) => {
     if (inflightRef.current) return;
@@ -58,6 +62,11 @@ export function useQuestionQueue(filters = {}, options = {}) {
       const question = await fetchQuizQuestion(filtersRef.current, { signal });
       
       if (!signal?.aborted) {
+        // Précharger les images en parallèle (ne pas bloquer l'ajout à la file)
+        preloadQuestionImages(question).catch(() => {
+          // Les erreurs de préchargement sont loggées mais ne bloquent pas
+        });
+        
         setQueue(prev => [...prev, question]);
       }
     } catch (err) {
@@ -205,6 +214,11 @@ export function useQuizQuestion(filters = {}, options = {}) {
       });
       
       if (!signal.aborted) {
+        // Précharger les images de la question courante
+        preloadQuestionImages(question).catch(() => {
+          // Les erreurs de préchargement sont loggées mais ne bloquent pas
+        });
+        
         setCurrentQuestion(question);
       }
     } catch (err) {

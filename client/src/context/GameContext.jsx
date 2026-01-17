@@ -22,6 +22,7 @@ import { getLevelFromXp } from '../utils/scoring';
 import { useXP } from './XPContext.jsx';
 import { useStreak } from './StreakContext.jsx';
 import { useAchievement } from './AchievementContext.jsx';
+import { preloadQuestionImages } from '../utils/imagePreload';
 
 export const DEFAULT_MAX_QUESTIONS = 5;
 const DEFAULT_MEDIA_TYPE = 'images';
@@ -509,8 +510,16 @@ export function GameProvider({ children }) {
         const questionData = await fetchQuizQuestion(params, { signal: controller.signal });
 
         if (prefetchOnly) {
+          // Précharger les images de la prochaine question en arrière-plan
+          preloadQuestionImages(questionData).catch(() => {
+            // Les erreurs de préchargement sont silencieuses
+          });
           setNextQuestion(questionData);
         } else {
+          // Précharger les images de la question courante
+          preloadQuestionImages(questionData).catch(() => {
+            // Les erreurs de préchargement sont silencieuses
+          });
           setQuestion(questionData);
           fetchQuestion(true);
         }

@@ -28,6 +28,21 @@ const EndScreen = ({
   // Level up seulement si on a vraiment gagné de l'XP ET que le niveau a changé
   const leveledUp = sessionXPGained > 0 && endLevel > startLevel;
 
+  const [levelUpsDetected, setLevelUpsDetected] = useState([]);
+
+  // Callback pour les level-ups détectés lors de l'animation XP
+  const handleLevelUp = (newLevel) => {
+    setLevelUpsDetected(prev => {
+      const updated = [...prev, newLevel];
+      // Notification pour ce level-up
+      notify(t('notifications.level_up', { level: newLevel }, `Niveau ${newLevel} atteint!`), { 
+        type: 'success', 
+        duration: 4000 
+      });
+      return updated;
+    });
+  };
+
   useEffect(() => {
     if (sessionRewards && sessionRewards.length > 0) {
       sessionRewards.forEach((reward, index) => {
@@ -98,7 +113,22 @@ const EndScreen = ({
           )}
           
           {sessionXPGained > 0 && (
-            <div className="xp-gained-display">+{sessionXPGained} XP</div>
+            <div className="xp-gained-display">
+              <span className="xp-gained-icon">⭐</span>
+              <span className="xp-gained-label">{t('end.xp_earned', {}, 'XP gagné cette session')}</span>
+              <span className="xp-gained-value">+{sessionXPGained}</span>
+            </div>
+          )}
+          
+          {leveledUp && (
+            <div className="level-progress-info">
+              <span className="level-from">Niveau {startLevel}</span>
+              <span className="level-arrow">→</span>
+              <span className="level-to">Niveau {endLevel}</span>
+              {(endLevel - startLevel) > 1 && (
+                <span className="multi-level-badge">{endLevel - startLevel} niveaux! 🚀</span>
+              )}
+            </div>
           )}
           
           <div className="level-info">
@@ -110,6 +140,7 @@ const EndScreen = ({
                 showDetailed={true}
                 animate={true}
                 size="default"
+                onLevelUp={handleLevelUp}
               />
           </div>
         </div>
