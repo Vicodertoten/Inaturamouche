@@ -150,24 +150,36 @@ const ProfileConfigurator = ({
           
           {/* Live preview */}
           <div className="configurator-preview">
-            <div className={`preview-avatar-ring ${borderCss}`}>
-              {avatarDisplay.type === 'emoji' && (
-                <span className="preview-emoji">{avatarDisplay.value}</span>
-              )}
-              {avatarDisplay.type === 'image' && (
-                <img src={avatarDisplay.value} alt="Avatar" className="preview-image" />
-              )}
-              {avatarDisplay.type === 'letter' && (
-                <span className="preview-letter">{avatarDisplay.value}</span>
-              )}
-            </div>
-            <div className="preview-info">
-              <span className="preview-name">{previewName || displayName || t('profile.title')}</span>
-              {titleDisplay && (
-                <span className="preview-title-badge">{titleDisplay}</span>
-              )}
-            </div>
-          </div>
+  <div className={`preview-avatar-ring ${borderCss}`}>
+    
+    {/* AJOUT : Wrapper div avec la classe "avatar-letter" pour capter les effets CSS */}
+    <div 
+      className="avatar-letter" 
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'transparent'
+      }}
+    >
+      {avatarDisplay.type === 'emoji' && (
+        <span className="preview-emoji">{avatarDisplay.value}</span>
+      )}
+      {avatarDisplay.type === 'image' && (
+        <img src={avatarDisplay.value} alt="Avatar" className="preview-image" />
+      )}
+      {avatarDisplay.type === 'letter' && (
+        <span className="preview-letter">{avatarDisplay.value}</span>
+      )}
+    </div>
+
+  </div>
+  <div className="preview-info">
+    {/* ... reste du code ... */}
+  </div>
+</div>
         </div>
 
         {/* Tab navigation */}
@@ -284,20 +296,25 @@ const ProfileConfigurator = ({
                     const isUnlocked = border.unlocked;
                     return (
                       <button
-                        key={border.id}
-                        className={`border-option ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`}
-                        onClick={() => handleSelectBorder(border.id, isUnlocked)}
-                        disabled={!isUnlocked}
-                        aria-label={t(border.nameKey)}
-                      >
-                        <div className={`border-option-preview ${border.css || ''}`}>
-                          <span className="border-option-letter">A</span>
-                        </div>
-                        <span className="border-option-name">
-                          {t(border.nameKey)}
-                        </span>
-                        {!isUnlocked && <span className="lock-badge">🔒</span>}
-                      </button>
+  key={border.id}
+  className={`border-option ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`}
+  onClick={() => handleSelectBorder(border.id, isUnlocked)}
+  disabled={!isUnlocked}
+  aria-label={t(border.nameKey)}
+>
+  {/* MODIFICATION ICI : Ajout des styles de contexte et changement de classe interne */}
+  <div 
+    className={`border-option-preview ${border.css || ''}`}
+    style={{ position: 'relative', isolation: 'isolate' }} 
+  >
+    <span className="avatar-letter">A</span> {/* Remplace "border-option-letter" */}
+  </div>
+  
+  <span className="border-option-name">
+    {t(border.nameKey)}
+  </span>
+  {!isUnlocked && <span className="lock-badge">🔒</span>}
+</button>
                     );
                   })}
                 </div>
