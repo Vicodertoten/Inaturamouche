@@ -7,6 +7,7 @@
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-medium, 12px);
   position: relative;
+  overflow: visible; /* Allow popups to escape parent with overflow:hidden ancestors */
 }
 
 /* ========================================
@@ -150,7 +151,7 @@
   border-radius: var(--radius-small, 6px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   pointer-events: none;
-  z-index: 10;
+  z-index: 9999;
   animation: xpGainPopup 2s ease-out forwards;
 }
 

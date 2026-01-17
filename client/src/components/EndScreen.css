@@ -59,6 +59,10 @@
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
 }
 
+.xp-progress-unified-section {
+  overflow: visible; /* Allow XP popup to render above parent.card which may be overflow:hidden */
+}
+
 .level-up-header {
   display: flex;
   align-items: center;

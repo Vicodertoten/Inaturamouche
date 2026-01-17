@@ -14,6 +14,7 @@ const EndPage = () => {
     newlyUnlocked,
     startGame,
     resetToLobby,
+    clearSessionFromDB,
     dailySeed,
   } = useGameData();
   const { profile } = useUser();
@@ -28,9 +29,10 @@ const EndPage = () => {
   }, [navigate, startGame, dailySeed]);
 
   const handleReturnHome = useCallback(() => {
-    resetToLobby(true);
+    // Ensure the saved session is removed so it cannot be resumed later
+    clearSessionFromDB().catch((err) => console.error('[EndPage] Failed to clear session:', err));
     navigate('/');
-  }, [navigate, resetToLobby]);
+  }, [navigate, clearSessionFromDB]);
 
   if (!isGameOver) return null;
 

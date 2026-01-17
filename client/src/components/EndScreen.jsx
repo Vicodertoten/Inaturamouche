@@ -104,12 +104,13 @@ const EndScreen = ({
           <div className="level-info">
             
             <XPProgressBar 
-              currentXP={currentXP}
-              recentXPGain={0}
-              showDetailed={true}
-              animate={false}
-              size="default"
-            />
+                currentXP={currentXP}
+                startXP={initialSessionXP || 0}
+                recentXPGain={sessionXPGained}
+                showDetailed={true}
+                animate={true}
+                size="default"
+              />
           </div>
         </div>
 

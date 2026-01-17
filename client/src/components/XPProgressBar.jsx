@@ -13,12 +13,16 @@ import './XPProgressBar.css';
  */
 const XPProgressBar = ({ 
   currentXP = 0, 
+  startXP = null,
   recentXPGain = 0, 
   showDetailed = true,
   animate = true,
   size = 'default'
 }) => {
-  const { level, nextLevel, xpProgress, xpNeeded, progressPercent } = useLevelProgress(currentXP);
+  // If a startXP is provided we will animate the bar from startXP -> currentXP
+  const initialXP = startXP == null ? currentXP : startXP;
+  const [displayedXP, setDisplayedXP] = useState(initialXP);
+  const { level, nextLevel, xpProgress, xpNeeded, progressPercent } = useLevelProgress(displayedXP);
   const [showXPPopup, setShowXPPopup] = useState(false);
   const [displayedProgress, setDisplayedProgress] = useState(progressPercent);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -30,28 +34,50 @@ const XPProgressBar = ({
       const timer = setTimeout(() => setShowXPPopup(false), 2000);
       return () => clearTimeout(timer);
     }
-    // Note: We don't explicitly set false here to avoid unnecessary re-renders
-    // The timeout handler will set it to false when needed
   }, [recentXPGain, animate]);
 
   // Animation progressive de la barre
+  // Sync displayedProgress when progressPercent for displayedXP changes
   useEffect(() => {
     if (animate && Math.abs(displayedProgress - progressPercent) > 0.1) {
       setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setDisplayedProgress(progressPercent);
-      }, 100);
-      const animTimer = setTimeout(() => {
-        setIsAnimating(false);
-      }, 1000);
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(animTimer);
-      };
+      const timer = setTimeout(() => setDisplayedProgress(progressPercent), 100);
+      const animTimer = setTimeout(() => setIsAnimating(false), 1000);
+      return () => { clearTimeout(timer); clearTimeout(animTimer); };
     } else if (!animate) {
       setDisplayedProgress(progressPercent);
     }
   }, [progressPercent, animate, displayedProgress]);
+
+  // If startXP is provided, animate displayedXP from start -> currentXP
+  useEffect(() => {
+    if (startXP == null || !animate) {
+      setDisplayedXP(currentXP);
+      return;
+    }
+
+    if (currentXP === startXP) return;
+
+    let rafId = null;
+    const duration = 1200;
+    const startTime = performance.now();
+    const from = startXP;
+    const to = currentXP;
+
+    const step = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      const nextXP = Math.round(from + (to - from) * eased);
+      setDisplayedXP(nextXP);
+      if (t < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => { if (rafId) cancelAnimationFrame(rafId); };
+  }, [startXP, currentXP, animate]);
 
   const isCompact = size === 'compact';
 
