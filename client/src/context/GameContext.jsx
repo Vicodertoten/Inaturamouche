@@ -32,6 +32,8 @@ import { useStreak } from './StreakContext.jsx';
 import { useAchievement } from './AchievementContext.jsx';
 import { preloadQuestionImages } from '../utils/imagePreload';
 import { notify } from '../services/notifications.js';
+import { getSpeciesDueForReview } from '../services/CollectionService.js';
+import { notifyApiError } from '../services/api.js';
 
 export const DEFAULT_MAX_QUESTIONS = 5;
 const DEFAULT_MEDIA_TYPE = 'images';
@@ -106,6 +108,7 @@ export function GameProvider({ children }) {
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [reviewSpecies, setReviewSpecies] = useState([]);
 
   // XP, streak and achievement state moved to separate contexts
   const {
@@ -228,6 +231,7 @@ export function GameProvider({ children }) {
       setNextQuestion(null);
       setError(null);
       setIsReviewMode(false);
+      setReviewSpecies([]);
       if (clearSession) {
         resetSessionState();
         // Nettoyer la session sauvegardée de Dexie
@@ -607,6 +611,65 @@ export function GameProvider({ children }) {
     [abortActiveFetch, abortPrefetchFetch, resetSessionState, clearSessionFromDB, profile]
   );
 
+  /**
+   * Start review mode (Spaced Repetition).
+   * Fetches species due for review and starts a custom game session.
+   */
+  const startReviewMode = useCallback(async () => {
+    try {
+      const speciesToReview = await getSpeciesDueForReview(10);
+      
+      if (speciesToReview.length === 0) {
+        notify('Aucune espèce à réviser aujourd\'hui ! 🎉', { 
+          type: 'success',
+          duration: 3000 
+        });
+        return;
+      }
+      
+      // Store review species for tracking
+      setReviewSpecies(speciesToReview);
+      
+      // Configure the session
+      setActivePackId('custom');
+      setGameMode('easy'); // Default to Easy mode
+      setMaxQuestions(speciesToReview.length);
+      
+      // Configure custom filters to target specific taxon IDs
+      // Reset filters first
+      dispatchCustomFilters({ type: 'TOGGLE_TAXA' }); // Enable if not already
+      
+      // Add each taxon to included taxa
+      speciesToReview.forEach(({ taxon }) => {
+        if (taxon) {
+          dispatchCustomFilters({
+            type: 'ADD_INCLUDED_TAXON',
+            payload: { id: taxon.id, name: taxon.name }
+          });
+        }
+      });
+      
+      // Start the game with review mode enabled
+      startGame({ review: true });
+      
+      // Fetch first question
+      await fetchQuestion();
+      
+      notify(`📚 ${speciesToReview.length} espèce${speciesToReview.length > 1 ? 's' : ''} à réviser`, {
+        type: 'info',
+        duration: 3000
+      });
+      
+    } catch (error) {
+      console.error('Failed to start review mode:', error);
+      if (typeof notifyApiError === 'function') {
+        notifyApiError(error, 'Impossible de démarrer le mode révision');
+      } else {
+        notify('Impossible de démarrer le mode révision', { type: 'error' });
+      }
+    }
+  }, [startGame, fetchQuestion]);
+
   const nextImageUrl = useMemo(() => {
     if (mediaType === 'sounds') return null;
     if (!nextQuestion) return null;
@@ -845,7 +908,22 @@ export function GameProvider({ children }) {
 
       // Calcul XP avec multiplicateurs (utiliser newStreak qui est la streak APRÈS ce round)
       // Pas d'XP si la réponse est incorrecte
-      const baseXP = isCorrectFinal ? (points + adjustedBonus) : 0;
+      let baseXP = isCorrectFinal ? (points + adjustedBonus) : 0;
+      
+      // Bonus révision : +25% XP
+      if (isReviewMode && baseXP > 0) {
+        const reviewBonus = Math.floor(baseXP * 0.25);
+        baseXP += reviewBonus;
+        
+        // Notification si première question de la session de révision
+        if (questionCount === 1) {
+          notify('📚 Mode Révision : +25% XP', { 
+            type: 'info',
+            duration: 3000 
+          });
+        }
+      }
+      
       // No perks multiplier - pass 1.0 as base multiplier
       const xpMultipliers = calculateXPMultipliers(profile, isCorrectFinal ? newStreak : 0);
       const earnedXP = Math.floor(baseXP * xpMultipliers.totalMultiplier);
@@ -1091,6 +1169,8 @@ export function GameProvider({ children }) {
       sessionCorrectSpecies,
       sessionSpeciesData,
       sessionMissedSpecies,
+      isReviewMode,
+      reviewSpecies,
       currentStreak,
       longestStreak,
       inGameShields,
@@ -1107,6 +1187,7 @@ export function GameProvider({ children }) {
       completeRound,
       endGame,
       startGame,
+      startReviewMode,
       resetToLobby,
       canStartReview,
       pauseGame,
@@ -1132,6 +1213,8 @@ export function GameProvider({ children }) {
       sessionCorrectSpecies,
       sessionSpeciesData,
       sessionMissedSpecies,
+      isReviewMode,
+      reviewSpecies,
       currentStreak,
       longestStreak,
       inGameShields,
@@ -1147,6 +1230,7 @@ export function GameProvider({ children }) {
       completeRound,
       endGame,
       startGame,
+      startReviewMode,
       resetToLobby,
       canStartReview,
       pauseGame,

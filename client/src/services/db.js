@@ -96,6 +96,22 @@ db.version(5).stores({
 });
 
 /**
+ * Version 6: Add Spaced Repetition fields to stats
+ * - nextReviewDate: ISO date when species should be reviewed next
+ * - reviewInterval: Current interval in days (1, 2, 4, 8, 16, 32, 64, 90)
+ * - easeFactor: Difficulty factor (inspired by Anki, 1.3 to 3.0)
+ */
+db.version(6).stores({
+  taxa: 'id,iconic_taxon_id,updatedAt,name',
+  stats: 'id,iconic_taxon_id,[iconic_taxon_id+masteryLevel],[iconic_taxon_id+lastSeenAt],lastSeenAt,nextReviewDate',
+  collection: 'taxon_id,masteryLevel',
+  species: 'id,iconic_taxon_id',
+  taxonomy_cache: 'id',
+  taxon_groups: 'id,parent_id',
+  active_session: 'id',
+});
+
+/**
  * Helper function to retrieve stats for a taxon.
  * @param {number} taxonId - The iNaturalist taxon ID.
  * @returns {Promise<Object|null>}

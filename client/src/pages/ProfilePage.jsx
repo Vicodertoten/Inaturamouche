@@ -23,6 +23,7 @@ import { usePacks } from '../context/PacksContext.jsx';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
+import { getReviewStats } from '../services/CollectionService';
 
 const MasteryItem = ({ taxon, count, getDisplayNames, t }) => {
   if (!taxon) return null;
@@ -106,6 +107,8 @@ const ProfilePage = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   // Profile configurator modal state
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
+  // Review stats
+  const [reviewStats, setReviewStats] = useState(null);
 
   const sortedMastery = useMemo(
     () =>
@@ -199,6 +202,16 @@ const ProfilePage = () => {
 
     loadMastery();
   }, [activeTab, language, masteryDetails.length, profile, sortedMastery]);
+
+  // Load review stats
+  useEffect(() => {
+    const loadReviewStats = async () => {
+      const stats = await getReviewStats();
+      setReviewStats(stats);
+    };
+    
+    loadReviewStats();
+  }, []);
 
   const handleResetProfile = useCallback(() => {
     setIsResetModalOpen(true);
@@ -480,6 +493,24 @@ const ProfilePage = () => {
                     <p className="empty-state">{t('profile.no_pack_stats')}</p>
                   )}
                 </ul>
+              </div>
+
+              <div className="profile-section">
+                <h3>📚 {t('profile.review_stats_title', {}, 'Système de Révision')}</h3>
+                <div className="stats-grid stat-cards">
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{reviewStats?.dueToday || 0}</span>
+                    <span className="stat-label">{t('profile.review_due_today', {}, 'À réviser aujourd\'hui')}</span>
+                  </div>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{reviewStats?.totalInReviewSystem || 0}</span>
+                    <span className="stat-label">{t('profile.review_in_system', {}, 'Espèces en révision')}</span>
+                  </div>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{profile?.stats?.reviewSessionsCompleted || 0}</span>
+                    <span className="stat-label">{t('profile.review_sessions', {}, 'Sessions de révision')}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="profile-section">

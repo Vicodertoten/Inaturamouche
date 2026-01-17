@@ -4,6 +4,7 @@ import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
 import DailyStreakBadge from '../components/DailyStreakBadge';
+import ReviewCard from '../components/ReviewCard';
 
 const Configurator = lazy(() => import('../features/configurator/Configurator'));
 
@@ -42,32 +43,6 @@ const LobbyPillars = ({ t, onSelectReview, canStartReview, missedCount }) => (
           </div>
         )}
       </div>
-    </div>
-  </div>
-);
-
-const ReviewCard = ({ canStartReview, missedCount, onStartReview, t }) => (
-  <div className="review-card">
-    <div className="review-copy">
-      <p className="review-label">{t('home.learn_pillar_title')}</p>
-      <h3>{t('home.learn_action_review')}</h3>
-      <p className="review-meta">
-        {canStartReview ? t('home.learn_pillar_desc') : t('home.learn_action_review_disabled')}
-      </p>
-      <div className="review-chip">
-        <p className="review-count">{missedCount}</p>
-        <span className="review-label">{t('common.review_mistakes')}</span>
-      </div>
-    </div>
-    <div className="review-actions">
-      <button
-        className="start-review-button"
-        disabled={!canStartReview}
-        onClick={onStartReview}
-        type="button"
-      >
-        {t('common.review_mistakes')}
-      </button>
     </div>
   </div>
 );
@@ -201,6 +176,11 @@ const HomePage = () => {
         {/* Afficher le mode normal si pas de session active */}
         {!hasActiveSession && !isCheckingSession && (
           <>
+            {/* Zone prioritaire : Révision */}
+            <section className="priority-section">
+              <ReviewCard />
+            </section>
+
             <section className="daily-challenge-cta">
               <button
                 type="button"

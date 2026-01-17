@@ -291,6 +291,11 @@ export async function recordEncounter(taxonData, encounter = {}) {
         // accuracy (legacy) kept for analytics but not used for mastery calculation
         accuracy: 0,
         masteryLevel: MASTERY_LEVELS.NONE, // Will be calculated below
+        
+        // Spaced Repetition fields
+        nextReviewDate: calculateNextReviewDate(existing, isCorrect, occurredTime),
+        reviewInterval: calculateReviewInterval(existing, isCorrect),
+        easeFactor: calculateEaseFactor(existing, isCorrect),
       };
 
       // Legacy accuracy (keep for analytics)
@@ -706,6 +711,175 @@ export async function getSimilarSpecies(taxonId, ancestors = []) {
   } catch (error) {
     console.error('❌ Failed to get similar species:', error);
     return [];
+  }
+}
+
+// ============== SPACED REPETITION SYSTEM ==============
+
+/**
+ * Calculate the next review date based on Spaced Repetition algorithm.
+ * First encounter → review in 1 day
+ * Correct answer → double interval (max 90 days)
+ * Wrong answer → reset to 1 day
+ * @param {Object} existing - Existing stats object
+ * @param {boolean} isCorrect - Whether the answer was correct
+ * @param {string} now - Current timestamp (ISO string)
+ * @returns {string} Next review date (ISO string)
+ */
+function calculateNextReviewDate(existing, isCorrect, now) {
+  const currentDate = new Date(now);
+  
+  if (!existing) {
+    // First encounter → review in 1 day
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+    return nextDate.toISOString();
+  }
+  
+  const currentInterval = existing.reviewInterval || 1;
+  let newInterval;
+  
+  if (isCorrect) {
+    // Correct answer → double interval (max 90 days)
+    newInterval = Math.min(currentInterval * 2, 90);
+  } else {
+    // Wrong answer → reset to 1 day
+    newInterval = 1;
+  }
+  
+  const nextDate = new Date(currentDate);
+  nextDate.setDate(nextDate.getDate() + newInterval);
+  return nextDate.toISOString();
+}
+
+/**
+ * Calculate the review interval in days.
+ * @param {Object} existing - Existing stats object
+ * @param {boolean} isCorrect - Whether the answer was correct
+ * @returns {number} Review interval in days
+ */
+function calculateReviewInterval(existing, isCorrect) {
+  if (!existing) return 1;
+  
+  const current = existing.reviewInterval || 1;
+  
+  if (isCorrect) {
+    return Math.min(current * 2, 90);
+  } else {
+    return 1;
+  }
+}
+
+/**
+ * Calculate ease factor (inspired by Anki algorithm).
+ * This represents subjective difficulty.
+ * @param {Object} existing - Existing stats object
+ * @param {boolean} isCorrect - Whether the answer was correct
+ * @returns {number} Ease factor (1.3 to 3.0)
+ */
+function calculateEaseFactor(existing, isCorrect) {
+  const currentEase = existing?.easeFactor || 2.5;
+  
+  if (isCorrect) {
+    // Increase ease slightly (max 3.0)
+    return Math.min(currentEase + 0.1, 3.0);
+  } else {
+    // Decrease ease (min 1.3)
+    return Math.max(currentEase - 0.2, 1.3);
+  }
+}
+
+/**
+ * Get species that are due for review.
+ * Filters by nextReviewDate <= now and sorts by priority:
+ * 1. Species with short review intervals (difficult ones)
+ * 2. Species not seen recently (by lastSeenAt)
+ * @param {number} limit - Maximum number of species to return (default: 10)
+ * @returns {Promise<Array<{stat, taxon}>>} Species due for review
+ */
+export async function getSpeciesDueForReview(limit = 10) {
+  try {
+    const now = new Date();
+    const allStats = await statsTable.toArray();
+    
+    // Filter species where nextReviewDate <= now
+    const dueForReview = allStats.filter(stat => {
+      if (!stat.nextReviewDate) return false;
+      const reviewDate = new Date(stat.nextReviewDate);
+      return reviewDate <= now;
+    });
+    
+    // Sort by priority:
+    // 1. Species with short intervals (difficult)
+    // 2. Species not seen recently
+    dueForReview.sort((a, b) => {
+      // Priority to short intervals (difficult species)
+      if (a.reviewInterval !== b.reviewInterval) {
+        return a.reviewInterval - b.reviewInterval;
+      }
+      // Then by oldest lastSeenAt
+      return new Date(a.lastSeenAt) - new Date(b.lastSeenAt);
+    });
+    
+    // Limit the number
+    const selected = dueForReview.slice(0, limit);
+    
+    // Enrich with taxon data
+    const enriched = await Promise.all(
+      selected.map(async (stat) => {
+        const taxon = await taxaTable.get(stat.id);
+        return { stat, taxon };
+      })
+    );
+    
+    // Filter out missing taxa
+    return enriched.filter(item => item.taxon);
+  } catch (error) {
+    console.error('Failed to get species due for review:', error);
+    return [];
+  }
+}
+
+/**
+ * Get review system statistics.
+ * Returns counts for today, tomorrow, and total in review system.
+ * @returns {Promise<{dueToday, dueTomorrow, totalInReviewSystem}>}
+ */
+export async function getReviewStats() {
+  try {
+    const now = new Date();
+    const allStats = await statsTable.toArray();
+    
+    const dueToday = allStats.filter(stat => {
+      if (!stat.nextReviewDate) return false;
+      const reviewDate = new Date(stat.nextReviewDate);
+      return reviewDate <= now;
+    }).length;
+    
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999); // End of tomorrow
+    
+    const dueTomorrow = allStats.filter(stat => {
+      if (!stat.nextReviewDate) return false;
+      const reviewDate = new Date(stat.nextReviewDate);
+      return reviewDate > now && reviewDate <= tomorrow;
+    }).length;
+    
+    const totalInReviewSystem = allStats.filter(stat => stat.nextReviewDate).length;
+    
+    return {
+      dueToday,
+      dueTomorrow,
+      totalInReviewSystem,
+    };
+  } catch (error) {
+    console.error('Failed to get review stats:', error);
+    return {
+      dueToday: 0,
+      dueTomorrow: 0,
+      totalInReviewSystem: 0,
+    };
   }
 }
 

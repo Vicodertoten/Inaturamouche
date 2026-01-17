@@ -45,7 +45,7 @@ const GameHeader = ({
 }) => {
   const { t } = useLanguage();
   const { profile } = useUser();
-  const { recentXPGain, xpMultipliers } = useGameData();
+  const { recentXPGain, xpMultipliers, isReviewMode } = useGameData();
   const { level, xpProgress = 0, xpNeeded = 1 } = useLevelProgress(profile?.xp || 0);
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
 
@@ -119,6 +119,7 @@ const GameHeader = ({
             <div className="stat-pill question-pill" role="status" aria-label={t('hard.aria.question_counter', { current: questionCount, total: maxQuestions }, `Question ${questionValue}`)}>
               <span className="pill-label">{t('hard.stats.question', {}, 'Question')}</span>
               <span className="pill-value">{questionValue}</span>
+              {isReviewMode && <span className="review-badge">📚 Révision</span>}
             </div>
             {showLives && (
               <div 

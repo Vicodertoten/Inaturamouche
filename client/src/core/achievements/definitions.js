@@ -622,6 +622,31 @@ export const ACHIEVEMENTS = {
     icon: '💪',
     reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
   },
+  
+  // ============================================
+  // SUCCÈS SYSTÈME DE RÉVISION (Spaced Repetition)
+  // ============================================
+  FIRST_REVIEW: {
+    titleKey: 'achievements.list.FIRST_REVIEW.title',
+    descriptionKey: 'achievements.list.FIRST_REVIEW.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '📚',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 50 },
+  },
+  DEDICATED_LEARNER: {
+    titleKey: 'achievements.list.DEDICATED_LEARNER.title',
+    descriptionKey: 'achievements.list.DEDICATED_LEARNER.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '🎓',
+    reward: { type: REWARD_TYPES.PERM_MULTIPLIER, value: 0.25, filter: 'all', context: 'review' },
+  },
+  MASTER_REVIEWER: {
+    titleKey: 'achievements.list.MASTER_REVIEWER.title',
+    descriptionKey: 'achievements.list.MASTER_REVIEWER.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '📖',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Maître Réviseur' },
+  },
 };
 
 // ============================================
@@ -933,6 +958,28 @@ export const checkNewAchievements = (profile, collectionStats = {}, sessionConte
   // PACK_EXPLORER_5: 5 packs différents joués
   const packsPlayedCount = Object.keys(stats?.packsPlayed || {}).length;
   if (packsPlayedCount >= 5 && !owned.has('PACK_EXPLORER_5')) unlocked.push('PACK_EXPLORER_5');
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - SYSTÈME DE RÉVISION
+  // ============================================
+
+  // FIRST_REVIEW: Compléter la première session de révision
+  const reviewSessionsCompleted = stats?.reviewSessionsCompleted || 0;
+  if (reviewSessionsCompleted >= 1 && !owned.has('FIRST_REVIEW')) {
+    unlocked.push('FIRST_REVIEW');
+  }
+
+  // DEDICATED_LEARNER: 7 sessions de révision consécutives (7 jours)
+  const consecutiveReviewDays = stats?.consecutiveReviewDays || 0;
+  if (consecutiveReviewDays >= 7 && !owned.has('DEDICATED_LEARNER')) {
+    unlocked.push('DEDICATED_LEARNER');
+  }
+
+  // MASTER_REVIEWER: 50+ espèces dans le système de révision
+  const totalInReviewSystem = collectionStats?.totalInReviewSystem || 0;
+  if (totalInReviewSystem >= 50 && !owned.has('MASTER_REVIEWER')) {
+    unlocked.push('MASTER_REVIEWER');
+  }
 
   return unlocked;
 };
