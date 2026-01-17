@@ -208,31 +208,32 @@ select.nav-pill {
 } 
 
 .app-header {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   z-index: 60;
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  padding: var(--space-1) 0;
-  margin-bottom: var(--space-2);
+  padding: 0.5rem;
   flex-shrink: 0;
 }
 
 .app-title-image {
-  max-width: 200px;
-  width: 60%;
+  max-width: 180px;
+  width: auto;
   height: auto;
 }
 
 .app-title-wide {
   display: block;
-  margin-left: var(--space-2);
+  margin-left: 0;
 }
 
 .app-title-compact {
   display: none;
-  width: 140px;
-  max-width: 140px;
+  width: 50px;
+  max-width: 50px;
 }
 
 .app-title-image.clickable {
@@ -245,8 +246,11 @@ select.nav-pill {
 
 @media (max-width: 768px) {
   .app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
     justify-content: flex-start;
-    margin-bottom: 0.75rem;
+    padding: 0.25rem;
     flex-shrink: 0;
   }
 
@@ -255,14 +259,14 @@ select.nav-pill {
   }
 
   .app-title-compact {
-    display: none;
-    width: 45px;
-    max-width: 45px;
+    display: block;
+    width: 40px;
+    max-width: 40px;
   }
 
   .app-title-image {
     width: auto;
-    max-width: 45px;
+    max-width: 40px;
   }
 }
 
@@ -272,6 +276,7 @@ select.nav-pill {
   flex-direction: column;
   min-height: 0; /* CRITIQUE : Permet au flex item de rétrécir sous son contenu minimum */
   overflow: hidden;
+  padding-top: 0; /* Pas de padding, on veut que le contenu remonte */
 }
 
 /* Décalage pour éviter que le contenu soit masqué par l'en-tête sticky sur desktop */
@@ -284,6 +289,8 @@ select.nav-pill {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start; /* Contenu aligné vers le haut */
+  gap: 1rem;
   gap: 1.5rem;
   flex-grow: 1;
   min-height: 0;

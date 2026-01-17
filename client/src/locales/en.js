@@ -464,6 +464,130 @@ const en = {
         title: 'Weekend Warrior',
         description: 'Play on Saturday AND Sunday.',
       },
+      // --- NEW ACHIEVEMENTS: ORDERS & FAMILIES ---
+      TAXON_LEPIDOPTERA: {
+        title: 'Butterfly Effect',
+        description: 'Identify 20 Butterflies (Lepidoptera).',
+      },
+      TAXON_COLEOPTERA: {
+        title: 'Golden Beetle',
+        description: 'Identify 20 Beetles.',
+      },
+      TAXON_HYMENOPTERA: {
+        title: 'The Hive',
+        description: 'Identify 20 Bees, Wasps or Ants.',
+      },
+      TAXON_ODONATA: {
+        title: 'The Red Baron',
+        description: 'Identify 10 Dragonflies (Odonata).',
+      },
+      TAXON_CARNIVORA: {
+        title: 'Apex Predator',
+        description: 'Identify 15 Carnivores.',
+      },
+      TAXON_RODENTIA: {
+        title: 'Little Mouse',
+        description: 'Identify 15 Rodents.',
+      },
+      TAXON_ROSACEAE: {
+        title: 'In the Name of the Rose',
+        description: 'Identify 10 Rosaceae species.',
+      },
+      TAXON_ASTERACEAE: {
+        title: 'Loves Me, Loves Me Not',
+        description: 'Identify 10 Asteraceae (Daisies, etc.).',
+      },
+      TAXON_FAGACEAE: {
+        title: 'The Oak and the Reed',
+        description: 'Identify 5 trees from the Fagaceae family.',
+      },
+      TAXON_AMPHIBIA: {
+        title: 'Prince Charming',
+        description: 'Identify 10 Amphibians.',
+      },
+      // --- NEW ACHIEVEMENTS: MASTERY & ENDURANCE ---
+      XP_HOARDER_50K: {
+        title: 'Demigod',
+        description: 'Reach 50,000 Total XP.',
+      },
+      XP_HOARDER_100K: {
+        title: 'Nature Deity',
+        description: 'Reach 100,000 Total XP.',
+      },
+      QUIZ_MASTER_500: {
+        title: 'Quiz Maniac',
+        description: 'Answer 500 questions (Total).',
+      },
+      QUIZ_MASTER_1000: {
+        title: 'Living Encyclopedia',
+        description: 'Answer 1000 questions (Total).',
+      },
+      MASTER_SAGE_50: {
+        title: 'Sage',
+        description: 'Fully master 50 species.',
+      },
+      SEEN_OBSERVER_500: {
+        title: 'Ultimate Observer',
+        description: 'Encounter 500 different species.',
+      },
+      STREAK_UNSTOPPABLE_30: {
+        title: 'Unstoppable',
+        description: 'Streak record of 30 correct answers.',
+      },
+      STREAK_INVINCIBLE_50: {
+        title: 'Invincible',
+        description: 'Streak record of 50 correct answers.',
+      },
+      HARD_SPARTAN_50: {
+        title: 'Spartan',
+        description: 'Complete 50 games in Hard Mode.',
+      },
+      // --- NEW ACHIEVEMENTS: TIME & CALENDAR ---
+      WEEKLY_RITUAL_7: {
+        title: 'Week of Nature',
+        description: '7-day daily streak.',
+      },
+      TWO_WEEKS_NOTICE: {
+        title: 'Anchored Habit',
+        description: '14-day daily streak.',
+      },
+      LUNCH_BREAK: {
+        title: 'Nature Break',
+        description: 'Complete a game between 12pm and 2pm.',
+      },
+      TEA_TIME: {
+        title: 'Five O\'Clock',
+        description: 'Complete a game between 4pm and 6pm.',
+      },
+      MIDNIGHT_CLUB: {
+        title: 'Insomniac',
+        description: 'Complete a game between Midnight and 2am.',
+      },
+      // --- NEW ACHIEVEMENTS: MICRO-CHALLENGES ---
+      SPEED_CHEETAH: {
+        title: 'Cheetah',
+        description: 'Average < 2s/question on a game (>10 Q).',
+      },
+      SIXTH_SENSE: {
+        title: 'Sixth Sense',
+        description: 'Perfect game (>10 Q) without using any hints.',
+      },
+      PACK_EXPLORER_5: {
+        title: 'Globe-trotter V2',
+        description: 'Play 5 different question packs.',
+      },
+      DIVERSITY_CHAMP: {
+        title: 'Eclectic',
+        description: 'Identify 5 different Classes in a single game.',
+      },
+      HIGH_SCORE_5K: {
+        title: 'Legendary Score',
+        description: 'Get 5000+ XP in a single game.',
+      },
+      RECOVERY_KING: {
+        title: 'Resilience',
+        description: 'Finish a game with 100% on the last 5 questions after an error.',
+      },
     },
     reward_label: 'Reward',
   },
@@ -580,6 +704,12 @@ const en = {
     professeur: 'Professor',
     flash: 'Flash',
     gardien_du_temps: 'Time Guardian',
+    alpha: 'Alpha',
+    batracien: 'Batrachian',
+    oracle: 'Oracle',
+    immortel: 'Immortal',
+    vampire: 'Vampire',
+    medium: 'Medium',
   },
   borders: {
     default: 'Standard',
@@ -588,6 +718,13 @@ const en = {
     gold_book_frame: 'Golden Book',
     hardened_steel: 'Hardened Steel',
     platinum_ring: 'Platinum Ring',
+    butterfly_wings: 'Butterfly Wings',
+    floral_crown: 'Floral Crown',
+    mythic_bronze: 'Mythic Bronze',
+    mythic_gold: 'Mythic Gold',
+    binoculars_lens: 'Observer Lens',
+    spartan_helmet: 'Spartan Helmet',
+    diamond_frame: 'Diamond Frame',
   },
   ranks: {
     kingdom: 'Kingdom',

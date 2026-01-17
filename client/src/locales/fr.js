@@ -464,6 +464,130 @@ const fr = {
         title: 'Guerrier du Dimanche',
         description: 'Jouer Samedi ET Dimanche.',
       },
+      // --- NOUVEAUX SUCCÈS : ORDRES & FAMILLES ---
+      TAXON_LEPIDOPTERA: {
+        title: 'Effet Papillon',
+        description: 'Identifier 20 Papillons (Lepidoptera).',
+      },
+      TAXON_COLEOPTERA: {
+        title: 'Scarabée Doré',
+        description: 'Identifier 20 Coléoptères.',
+      },
+      TAXON_HYMENOPTERA: {
+        title: 'La Ruche',
+        description: 'Identifier 20 Abeilles, Guêpes ou Fourmis.',
+      },
+      TAXON_ODONATA: {
+        title: 'Le Baron Rouge',
+        description: 'Identifier 10 Libellules (Odonata).',
+      },
+      TAXON_CARNIVORA: {
+        title: 'Super Prédateur',
+        description: 'Identifier 15 Carnivores.',
+      },
+      TAXON_RODENTIA: {
+        title: 'Petite Souris',
+        description: 'Identifier 15 Rongeurs.',
+      },
+      TAXON_ROSACEAE: {
+        title: 'Au Nom de la Rose',
+        description: 'Identifier 10 espèces de Rosacées.',
+      },
+      TAXON_ASTERACEAE: {
+        title: 'Je t\'aime, un peu...',
+        description: 'Identifier 10 Astéracées (Marguerites, etc.).',
+      },
+      TAXON_FAGACEAE: {
+        title: 'Le Chêne et le Roseau',
+        description: 'Identifier 5 arbres de la famille Fagaceae.',
+      },
+      TAXON_AMPHIBIA: {
+        title: 'Prince Charmant',
+        description: 'Identifier 10 Amphibiens.',
+      },
+      // --- NOUVEAUX SUCCÈS : MAÎTRISE & ENDURANCE ---
+      XP_HOARDER_50K: {
+        title: 'Demi-Dieu',
+        description: 'Atteindre 50,000 XP Total.',
+      },
+      XP_HOARDER_100K: {
+        title: 'Divinité de la Nature',
+        description: 'Atteindre 100,000 XP Total.',
+      },
+      QUIZ_MASTER_500: {
+        title: 'Quizzeur Fou',
+        description: 'Répondre à 500 questions (Total).',
+      },
+      QUIZ_MASTER_1000: {
+        title: 'Encyclopédie Vivante',
+        description: 'Répondre à 1000 questions (Total).',
+      },
+      MASTER_SAGE_50: {
+        title: 'Savant',
+        description: 'Maîtriser totalement 50 espèces.',
+      },
+      SEEN_OBSERVER_500: {
+        title: 'Observateur Ultime',
+        description: 'Rencontrer 500 espèces différentes.',
+      },
+      STREAK_UNSTOPPABLE_30: {
+        title: 'Inarrêtable',
+        description: 'Record de série (Streak) de 30 bonnes réponses.',
+      },
+      STREAK_INVINCIBLE_50: {
+        title: 'Invincible',
+        description: 'Record de série (Streak) de 50 bonnes réponses.',
+      },
+      HARD_SPARTAN_50: {
+        title: 'Spartiate',
+        description: 'Jouer 50 parties complètes en Mode Difficile.',
+      },
+      // --- NOUVEAUX SUCCÈS : TEMPS & CALENDRIER ---
+      WEEKLY_RITUAL_7: {
+        title: 'Une Semaine de Nature',
+        description: 'Série journalière de 7 jours.',
+      },
+      TWO_WEEKS_NOTICE: {
+        title: 'Habitude Ancrée',
+        description: 'Série journalière de 14 jours.',
+      },
+      LUNCH_BREAK: {
+        title: 'Pause Nature',
+        description: 'Terminer une partie entre 12h00 et 14h00.',
+      },
+      TEA_TIME: {
+        title: 'Five O\'Clock',
+        description: 'Terminer une partie entre 16h00 et 18h00.',
+      },
+      MIDNIGHT_CLUB: {
+        title: 'Insomniaque',
+        description: 'Terminer une partie entre Minuit et 2h00.',
+      },
+      // --- NOUVEAUX SUCCÈS : MICRO-CHALLENGES ---
+      SPEED_CHEETAH: {
+        title: 'Guépard',
+        description: 'Moyenne < 2s/question sur une partie (>10 Q).',
+      },
+      SIXTH_SENSE: {
+        title: 'Sixième Sens',
+        description: 'Partie parfaite (>10 Q) sans utiliser aucun indice.',
+      },
+      PACK_EXPLORER_5: {
+        title: 'Globe-trotter V2',
+        description: 'Avoir joué à 5 packs de questions différents.',
+      },
+      DIVERSITY_CHAMP: {
+        title: 'Éclectique',
+        description: 'Identifier 5 Classes différentes dans une seule partie.',
+      },
+      HIGH_SCORE_5K: {
+        title: 'Score Légendaire',
+        description: 'Obtenir 5000+ XP en une seule partie.',
+      },
+      RECOVERY_KING: {
+        title: 'Résilience',
+        description: 'Finir une partie avec 100% sur les 5 dernières questions après une erreur.',
+      },
     },
     reward_label: 'Récompense',
   },
@@ -582,6 +706,12 @@ const fr = {
     professeur: 'Professeur',
     flash: 'Flash',
     gardien_du_temps: 'Gardien du Temps',
+    alpha: 'Alpha',
+    batracien: 'Batracien',
+    oracle: 'Oracle',
+    immortel: 'Immortel',
+    vampire: 'Vampire',
+    medium: 'Médium',
   },
   borders: {
     default: 'Standard',
@@ -590,6 +720,13 @@ const fr = {
     gold_book_frame: 'Livre Doré',
     hardened_steel: 'Acier Trempé',
     platinum_ring: 'Anneau Platine',
+    butterfly_wings: 'Ailes de Papillon',
+    floral_crown: 'Couronne Florale',
+    mythic_bronze: 'Bronze Mythique',
+    mythic_gold: 'Or Mythique',
+    binoculars_lens: 'Jumelles d\'Observateur',
+    spartan_helmet: 'Casque Spartiate',
+    diamond_frame: 'Cadre Diamant',
   },
   ranks: {
     kingdom: 'Règne',

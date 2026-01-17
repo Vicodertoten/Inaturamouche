@@ -47,6 +47,14 @@ export const AVAILABLE_BORDERS = Object.freeze({
   gold_book_frame: { id: 'gold_book_frame', nameKey: 'borders.gold_book_frame', css: 'border-gold-book' },
   hardened_steel: { id: 'hardened_steel', nameKey: 'borders.hardened_steel', css: 'border-steel' },
   platinum_ring: { id: 'platinum_ring', nameKey: 'borders.platinum_ring', css: 'border-platinum' },
+  // Nouvelles bordures
+  butterfly_wings: { id: 'butterfly_wings', nameKey: 'borders.butterfly_wings', css: 'border-butterfly' },
+  floral_crown: { id: 'floral_crown', nameKey: 'borders.floral_crown', css: 'border-floral' },
+  mythic_bronze: { id: 'mythic_bronze', nameKey: 'borders.mythic_bronze', css: 'border-mythic-bronze' },
+  mythic_gold: { id: 'mythic_gold', nameKey: 'borders.mythic_gold', css: 'border-mythic-gold' },
+  binoculars_lens: { id: 'binoculars_lens', nameKey: 'borders.binoculars_lens', css: 'border-binoculars' },
+  spartan_helmet: { id: 'spartan_helmet', nameKey: 'borders.spartan_helmet', css: 'border-spartan' },
+  diamond_frame: { id: 'diamond_frame', nameKey: 'borders.diamond_frame', css: 'border-diamond' },
 });
 
 /**
@@ -58,6 +66,13 @@ export const AVAILABLE_TITLES = Object.freeze({
   professeur: { id: 'professeur', nameKey: 'titles.professeur', value: 'Professeur' },
   flash: { id: 'flash', nameKey: 'titles.flash', value: 'Flash' },
   gardien_du_temps: { id: 'gardien_du_temps', nameKey: 'titles.gardien_du_temps', value: 'Gardien du Temps' },
+  // Nouveaux titres
+  Alpha: { id: 'Alpha', nameKey: 'titles.alpha', value: 'Alpha' },
+  Batracien: { id: 'Batracien', nameKey: 'titles.batracien', value: 'Batracien' },
+  Oracle: { id: 'Oracle', nameKey: 'titles.oracle', value: 'Oracle' },
+  Immortel: { id: 'Immortel', nameKey: 'titles.immortel', value: 'Immortel' },
+  Vampire: { id: 'Vampire', nameKey: 'titles.vampire', value: 'Vampire' },
+  Medium: { id: 'Medium', nameKey: 'titles.medium', value: 'Médium' },
 });
 
 /** @type {Record<string, Achievement>} */
@@ -376,6 +391,232 @@ export const ACHIEVEMENTS = {
     icon: '⚔️',
     reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
   },
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - CATÉGORIE : ORDRES & FAMILLES (Taxonomie Précise)
+  // ============================================
+  TAXON_LEPIDOPTERA: {
+    titleKey: 'achievements.list.TAXON_LEPIDOPTERA.title',
+    descriptionKey: 'achievements.list.TAXON_LEPIDOPTERA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🦋',
+    reward: { type: REWARD_TYPES.BORDER, value: 'butterfly_wings' },
+  },
+  TAXON_COLEOPTERA: {
+    titleKey: 'achievements.list.TAXON_COLEOPTERA.title',
+    descriptionKey: 'achievements.list.TAXON_COLEOPTERA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🪲',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 750 },
+  },
+  TAXON_HYMENOPTERA: {
+    titleKey: 'achievements.list.TAXON_HYMENOPTERA.title',
+    descriptionKey: 'achievements.list.TAXON_HYMENOPTERA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🐝',
+    reward: { type: REWARD_TYPES.PERM_MULTIPLIER, value: 0.03, filter: 'Hymenoptera' },
+  },
+  TAXON_ODONATA: {
+    titleKey: 'achievements.list.TAXON_ODONATA.title',
+    descriptionKey: 'achievements.list.TAXON_ODONATA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🪰',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  TAXON_CARNIVORA: {
+    titleKey: 'achievements.list.TAXON_CARNIVORA.title',
+    descriptionKey: 'achievements.list.TAXON_CARNIVORA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🦁',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Alpha' },
+  },
+  TAXON_RODENTIA: {
+    titleKey: 'achievements.list.TAXON_RODENTIA.title',
+    descriptionKey: 'achievements.list.TAXON_RODENTIA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🐭',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  TAXON_ROSACEAE: {
+    titleKey: 'achievements.list.TAXON_ROSACEAE.title',
+    descriptionKey: 'achievements.list.TAXON_ROSACEAE.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🌹',
+    reward: { type: REWARD_TYPES.BORDER, value: 'floral_crown' },
+  },
+  TAXON_ASTERACEAE: {
+    titleKey: 'achievements.list.TAXON_ASTERACEAE.title',
+    descriptionKey: 'achievements.list.TAXON_ASTERACEAE.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🌼',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  TAXON_FAGACEAE: {
+    titleKey: 'achievements.list.TAXON_FAGACEAE.title',
+    descriptionKey: 'achievements.list.TAXON_FAGACEAE.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🌳',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  TAXON_AMPHIBIA: {
+    titleKey: 'achievements.list.TAXON_AMPHIBIA.title',
+    descriptionKey: 'achievements.list.TAXON_AMPHIBIA.description',
+    category: ACHIEVEMENT_CATEGORIES.TAXONOMY,
+    icon: '🐸',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Batracien' },
+  },
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - CATÉGORIE : MAÎTRISE & ENDURANCE
+  // ============================================
+  XP_HOARDER_50K: {
+    titleKey: 'achievements.list.XP_HOARDER_50K.title',
+    descriptionKey: 'achievements.list.XP_HOARDER_50K.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🏛️',
+    reward: { type: REWARD_TYPES.BORDER, value: 'mythic_bronze' },
+  },
+  XP_HOARDER_100K: {
+    titleKey: 'achievements.list.XP_HOARDER_100K.title',
+    descriptionKey: 'achievements.list.XP_HOARDER_100K.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '⚡',
+    reward: { type: REWARD_TYPES.BORDER, value: 'mythic_gold' },
+  },
+  QUIZ_MASTER_500: {
+    titleKey: 'achievements.list.QUIZ_MASTER_500.title',
+    descriptionKey: 'achievements.list.QUIZ_MASTER_500.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '❓',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 1000 },
+  },
+  QUIZ_MASTER_1000: {
+    titleKey: 'achievements.list.QUIZ_MASTER_1000.title',
+    descriptionKey: 'achievements.list.QUIZ_MASTER_1000.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '📖',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Oracle' },
+  },
+  MASTER_SAGE_50: {
+    titleKey: 'achievements.list.MASTER_SAGE_50.title',
+    descriptionKey: 'achievements.list.MASTER_SAGE_50.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🧙',
+    reward: { type: REWARD_TYPES.PERM_MULTIPLIER, value: 0.05, filter: 'all' },
+  },
+  SEEN_OBSERVER_500: {
+    titleKey: 'achievements.list.SEEN_OBSERVER_500.title',
+    descriptionKey: 'achievements.list.SEEN_OBSERVER_500.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🔭',
+    reward: { type: REWARD_TYPES.BORDER, value: 'binoculars_lens' },
+  },
+  STREAK_UNSTOPPABLE_30: {
+    titleKey: 'achievements.list.STREAK_UNSTOPPABLE_30.title',
+    descriptionKey: 'achievements.list.STREAK_UNSTOPPABLE_30.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🔥',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 2000 },
+  },
+  STREAK_INVINCIBLE_50: {
+    titleKey: 'achievements.list.STREAK_INVINCIBLE_50.title',
+    descriptionKey: 'achievements.list.STREAK_INVINCIBLE_50.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '👑',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Immortel' },
+  },
+  HARD_SPARTAN_50: {
+    titleKey: 'achievements.list.HARD_SPARTAN_50.title',
+    descriptionKey: 'achievements.list.HARD_SPARTAN_50.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🛡️',
+    reward: { type: REWARD_TYPES.BORDER, value: 'spartan_helmet' },
+  },
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - CATÉGORIE : TEMPS & CALENDRIER
+  // ============================================
+  WEEKLY_RITUAL_7: {
+    titleKey: 'achievements.list.WEEKLY_RITUAL_7.title',
+    descriptionKey: 'achievements.list.WEEKLY_RITUAL_7.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '📅',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  TWO_WEEKS_NOTICE: {
+    titleKey: 'achievements.list.TWO_WEEKS_NOTICE.title',
+    descriptionKey: 'achievements.list.TWO_WEEKS_NOTICE.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '📆',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 1000 },
+  },
+  LUNCH_BREAK: {
+    titleKey: 'achievements.list.LUNCH_BREAK.title',
+    descriptionKey: 'achievements.list.LUNCH_BREAK.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '🍽️',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 250 },
+  },
+  TEA_TIME: {
+    titleKey: 'achievements.list.TEA_TIME.title',
+    descriptionKey: 'achievements.list.TEA_TIME.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '🍵',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 250 },
+  },
+  MIDNIGHT_CLUB: {
+    titleKey: 'achievements.list.MIDNIGHT_CLUB.title',
+    descriptionKey: 'achievements.list.MIDNIGHT_CLUB.description',
+    category: ACHIEVEMENT_CATEGORIES.HABIT,
+    icon: '🌙',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Vampire' },
+  },
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - CATÉGORIE : MICRO-CHALLENGES & SKILL
+  // ============================================
+  SPEED_CHEETAH: {
+    titleKey: 'achievements.list.SPEED_CHEETAH.title',
+    descriptionKey: 'achievements.list.SPEED_CHEETAH.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🐆',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 1500 },
+  },
+  SIXTH_SENSE: {
+    titleKey: 'achievements.list.SIXTH_SENSE.title',
+    descriptionKey: 'achievements.list.SIXTH_SENSE.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '👁️',
+    reward: { type: REWARD_TYPES.TITLE, value: 'Medium' },
+  },
+  PACK_EXPLORER_5: {
+    titleKey: 'achievements.list.PACK_EXPLORER_5.title',
+    descriptionKey: 'achievements.list.PACK_EXPLORER_5.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🗺️',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 1000 },
+  },
+  DIVERSITY_CHAMP: {
+    titleKey: 'achievements.list.DIVERSITY_CHAMP.title',
+    descriptionKey: 'achievements.list.DIVERSITY_CHAMP.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🌈',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
+  HIGH_SCORE_5K: {
+    titleKey: 'achievements.list.HIGH_SCORE_5K.title',
+    descriptionKey: 'achievements.list.HIGH_SCORE_5K.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '💎',
+    reward: { type: REWARD_TYPES.BORDER, value: 'diamond_frame' },
+  },
+  RECOVERY_KING: {
+    titleKey: 'achievements.list.RECOVERY_KING.title',
+    descriptionKey: 'achievements.list.RECOVERY_KING.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '💪',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 500 },
+  },
 };
 
 // ============================================
@@ -418,6 +659,16 @@ export const TAXON_GROUP_FILTERS = Object.freeze({
   Mammalia: [40151],
   Actinopterygii: [47178],
   Marine: [47178, 47115], // Poissons + Mollusques marins
+  // Nouveaux filtres pour ordres/familles spécifiques
+  Lepidoptera: [47157],    // Papillons
+  Coleoptera: [47208],     // Coléoptères
+  Hymenoptera: [47201],    // Abeilles, Guêpes, Fourmis
+  Odonata: [47792],        // Libellules
+  Carnivora: [41573],      // Carnivores
+  Rodentia: [43698],       // Rongeurs
+  Rosaceae: [47347],       // Rosacées
+  Asteraceae: [47604],     // Astéracées
+  Fagaceae: [47853],       // Fagacées (Chênes, Hêtres)
   all: null, // Appliqué à tout
 });
 
@@ -581,6 +832,103 @@ export const checkNewAchievements = (profile, collectionStats = {}, sessionConte
     unlocked.push('SPEC_DIVER');
   }
 
+  // ============================================
+  // NOUVEAUX SUCCÈS - TAXONOMIE PRÉCISE (Ordres/Familles)
+  // ============================================
+
+  // TAXON_LEPIDOPTERA: 20 Papillons
+  if ((taxCounts.Lepidoptera || 0) >= 20 && !owned.has('TAXON_LEPIDOPTERA')) {
+    unlocked.push('TAXON_LEPIDOPTERA');
+  }
+
+  // TAXON_COLEOPTERA: 20 Coléoptères
+  if ((taxCounts.Coleoptera || 0) >= 20 && !owned.has('TAXON_COLEOPTERA')) {
+    unlocked.push('TAXON_COLEOPTERA');
+  }
+
+  // TAXON_HYMENOPTERA: 20 Abeilles/Guêpes/Fourmis
+  if ((taxCounts.Hymenoptera || 0) >= 20 && !owned.has('TAXON_HYMENOPTERA')) {
+    unlocked.push('TAXON_HYMENOPTERA');
+  }
+
+  // TAXON_ODONATA: 10 Libellules
+  if ((taxCounts.Odonata || 0) >= 10 && !owned.has('TAXON_ODONATA')) {
+    unlocked.push('TAXON_ODONATA');
+  }
+
+  // TAXON_CARNIVORA: 15 Carnivores
+  if ((taxCounts.Carnivora || 0) >= 15 && !owned.has('TAXON_CARNIVORA')) {
+    unlocked.push('TAXON_CARNIVORA');
+  }
+
+  // TAXON_RODENTIA: 15 Rongeurs
+  if ((taxCounts.Rodentia || 0) >= 15 && !owned.has('TAXON_RODENTIA')) {
+    unlocked.push('TAXON_RODENTIA');
+  }
+
+  // TAXON_ROSACEAE: 10 Rosacées
+  if ((taxCounts.Rosaceae || 0) >= 10 && !owned.has('TAXON_ROSACEAE')) {
+    unlocked.push('TAXON_ROSACEAE');
+  }
+
+  // TAXON_ASTERACEAE: 10 Astéracées
+  if ((taxCounts.Asteraceae || 0) >= 10 && !owned.has('TAXON_ASTERACEAE')) {
+    unlocked.push('TAXON_ASTERACEAE');
+  }
+
+  // TAXON_FAGACEAE: 5 Fagacées
+  if ((taxCounts.Fagaceae || 0) >= 5 && !owned.has('TAXON_FAGACEAE')) {
+    unlocked.push('TAXON_FAGACEAE');
+  }
+
+  // TAXON_AMPHIBIA: 10 Amphibiens (distinct du spécialiste)
+  if ((taxCounts.Amphibia || 0) >= 10 && !owned.has('TAXON_AMPHIBIA')) {
+    unlocked.push('TAXON_AMPHIBIA');
+  }
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - MAÎTRISE & ENDURANCE
+  // ============================================
+
+  // XP_HOARDER_50K, XP_HOARDER_100K
+  const totalXP = xp || 0;
+  if (totalXP >= 50000 && !owned.has('XP_HOARDER_50K')) unlocked.push('XP_HOARDER_50K');
+  if (totalXP >= 100000 && !owned.has('XP_HOARDER_100K')) unlocked.push('XP_HOARDER_100K');
+
+  // QUIZ_MASTER_500, QUIZ_MASTER_1000: Total questions répondues
+  const totalQuestionsAnswered = stats?.totalQuestionsAnswered || 0;
+  if (totalQuestionsAnswered >= 500 && !owned.has('QUIZ_MASTER_500')) unlocked.push('QUIZ_MASTER_500');
+  if (totalQuestionsAnswered >= 1000 && !owned.has('QUIZ_MASTER_1000')) unlocked.push('QUIZ_MASTER_1000');
+
+  // MASTER_SAGE_50: 50 espèces maîtrisées totalement
+  const masteredFullCount = collectionStats?.fullyMasteredCount || masteredSpeciesCount;
+  if (masteredFullCount >= 50 && !owned.has('MASTER_SAGE_50')) unlocked.push('MASTER_SAGE_50');
+
+  // SEEN_OBSERVER_500: 500 espèces différentes
+  if (pokedexCount >= 500 && !owned.has('SEEN_OBSERVER_500')) unlocked.push('SEEN_OBSERVER_500');
+
+  // STREAK_UNSTOPPABLE_30, STREAK_INVINCIBLE_50: Streak records (in-game)
+  if (longestStreak >= 30 && !owned.has('STREAK_UNSTOPPABLE_30')) unlocked.push('STREAK_UNSTOPPABLE_30');
+  if (longestStreak >= 50 && !owned.has('STREAK_INVINCIBLE_50')) unlocked.push('STREAK_INVINCIBLE_50');
+
+  // HARD_SPARTAN_50: 50 parties complètes en mode difficile
+  const hardGamesPlayed = stats?.hardGamesCompleted || 0;
+  if (hardGamesPlayed >= 50 && !owned.has('HARD_SPARTAN_50')) unlocked.push('HARD_SPARTAN_50');
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - TEMPS & CALENDRIER
+  // ============================================
+
+  // WEEKLY_RITUAL_7: Série journalière de 7 jours
+  if (dailyStreakCurrent >= 7 && !owned.has('WEEKLY_RITUAL_7')) unlocked.push('WEEKLY_RITUAL_7');
+
+  // TWO_WEEKS_NOTICE: Série journalière de 14 jours
+  if (dailyStreakCurrent >= 14 && !owned.has('TWO_WEEKS_NOTICE')) unlocked.push('TWO_WEEKS_NOTICE');
+
+  // PACK_EXPLORER_5: 5 packs différents joués
+  const packsPlayedCount = Object.keys(stats?.packsPlayed || {}).length;
+  if (packsPlayedCount >= 5 && !owned.has('PACK_EXPLORER_5')) unlocked.push('PACK_EXPLORER_5');
+
   return unlocked;
 };
 
@@ -736,6 +1084,10 @@ export const checkEndOfGameAchievements = (sessionData = {}, alreadyUnlocked = [
     shieldsUsed = 0,
     gameMode = 'easy',
     gameWon = false,
+    averageResponseTimeMs = null,
+    uniqueClassesInGame = 0,
+    hadErrorBeforeLast5 = false,
+    last5AllCorrect = false,
   } = sessionData;
 
   // SCORING_JACKPOT
@@ -782,6 +1134,64 @@ export const checkEndOfGameAchievements = (sessionData = {}, alreadyUnlocked = [
     shieldsUsed === 0
   ) {
     unlocked.push('FLAWLESS_HARD');
+  }
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - TEMPS & CALENDRIER
+  // ============================================
+
+  // LUNCH_BREAK: Partie entre 12h et 14h
+  if (!owned.has('LUNCH_BREAK') && gameHour >= 12 && gameHour < 14 && gameWon) {
+    unlocked.push('LUNCH_BREAK');
+  }
+
+  // TEA_TIME: Partie entre 16h et 18h
+  if (!owned.has('TEA_TIME') && gameHour >= 16 && gameHour < 18 && gameWon) {
+    unlocked.push('TEA_TIME');
+  }
+
+  // MIDNIGHT_CLUB: Partie entre 0h et 2h
+  if (!owned.has('MIDNIGHT_CLUB') && gameHour >= 0 && gameHour < 2 && gameWon) {
+    unlocked.push('MIDNIGHT_CLUB');
+  }
+
+  // ============================================
+  // NOUVEAUX SUCCÈS - MICRO-CHALLENGES
+  // ============================================
+
+  // SPEED_CHEETAH: Moyenne < 2s/question (>10 Q)
+  if (
+    !owned.has('SPEED_CHEETAH') &&
+    totalQuestions > 10 &&
+    averageResponseTimeMs !== null &&
+    averageResponseTimeMs < 2000
+  ) {
+    unlocked.push('SPEED_CHEETAH');
+  }
+
+  // SIXTH_SENSE: Partie parfaite (>10 Q) sans indices
+  if (
+    !owned.has('SIXTH_SENSE') &&
+    totalQuestions > 10 &&
+    correctAnswers === totalQuestions &&
+    hintsUsed === 0
+  ) {
+    unlocked.push('SIXTH_SENSE');
+  }
+
+  // DIVERSITY_CHAMP: 5 classes différentes dans une seule partie
+  if (!owned.has('DIVERSITY_CHAMP') && uniqueClassesInGame >= 5) {
+    unlocked.push('DIVERSITY_CHAMP');
+  }
+
+  // HIGH_SCORE_5K: 5000+ XP en une seule partie
+  if (!owned.has('HIGH_SCORE_5K') && sessionXP >= 5000) {
+    unlocked.push('HIGH_SCORE_5K');
+  }
+
+  // RECOVERY_KING: 100% sur les 5 dernières questions après une erreur
+  if (!owned.has('RECOVERY_KING') && hadErrorBeforeLast5 && last5AllCorrect) {
+    unlocked.push('RECOVERY_KING');
   }
 
   return unlocked;

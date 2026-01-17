@@ -682,3 +682,594 @@
     animation: none;
   }
 }
+
+/* ===========================================
+   BORDER: BUTTERFLY WINGS (Effet Papillon - Lepidoptera)
+   Effet ailes de papillon IRIDESCENT magique
+   =========================================== */
+
+.border-butterfly {
+  --butterfly-pink: #FF69B4;
+  --butterfly-purple: #9B59B6;
+  --butterfly-blue: #3498DB;
+  --butterfly-teal: #1ABC9C;
+  --butterfly-orange: #E67E22;
+  --butterfly-glow: rgba(155, 89, 182, 0.7);
+}
+
+.border-butterfly::before {
+  inset: -6px;
+  background: 
+    conic-gradient(
+      from 0deg,
+      var(--butterfly-pink) 0deg,
+      var(--butterfly-purple) 60deg,
+      var(--butterfly-blue) 120deg,
+      var(--butterfly-teal) 180deg,
+      var(--butterfly-blue) 240deg,
+      var(--butterfly-purple) 300deg,
+      var(--butterfly-pink) 360deg
+    );
+  animation: butterfly-shimmer 4s linear infinite;
+  box-shadow: 
+    0 0 20px var(--butterfly-glow),
+    0 0 40px rgba(255, 105, 180, 0.4),
+    inset 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.border-butterfly::after {
+  content: '🦋';
+  position: absolute;
+  top: -16px;
+  right: -12px;
+  font-size: 1.5rem;
+  z-index: 10;
+  animation: butterfly-flutter 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--butterfly-glow));
+}
+
+/* Ailes scintillantes */
+.border-butterfly .avatar-letter::before {
+  content: '✨';
+  position: absolute;
+  top: -18px;
+  left: -12px;
+  font-size: 0.8rem;
+  animation: sparkle-float 1.5s ease-in-out infinite;
+}
+
+.border-butterfly .avatar-letter::after {
+  content: '✨';
+  position: absolute;
+  bottom: -15px;
+  right: -10px;
+  font-size: 0.7rem;
+  animation: sparkle-float 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes butterfly-shimmer {
+  0% { transform: rotate(0deg); filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(20deg) brightness(1.1); }
+  100% { transform: rotate(360deg); filter: hue-rotate(0deg); }
+}
+
+@keyframes butterfly-flutter {
+  0%, 100% { transform: translateY(0) rotate(-5deg) scale(1); }
+  25% { transform: translateY(-4px) rotate(5deg) scale(1.1); }
+  50% { transform: translateY(-2px) rotate(-3deg) scale(1.05); }
+  75% { transform: translateY(-6px) rotate(8deg) scale(1.1); }
+}
+
+@keyframes sparkle-float {
+  0%, 100% { opacity: 0.5; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+}
+
+/* ===========================================
+   BORDER: FLORAL CROWN (Au Nom de la Rose - Rosaceae)
+   Effet couronne de fleurs ROMANTIQUE
+   =========================================== */
+
+.border-floral {
+  --floral-rose: #E91E63;
+  --floral-pink: #F8BBD9;
+  --floral-green: #4CAF50;
+  --floral-white: #FFFFFF;
+  --floral-gold: #FFD700;
+  --floral-glow: rgba(233, 30, 99, 0.6);
+}
+
+.border-floral::before {
+  inset: -6px;
+  background: 
+    repeating-conic-gradient(
+      from 0deg,
+      var(--floral-rose) 0deg 20deg,
+      var(--floral-pink) 20deg 40deg,
+      var(--floral-white) 40deg 50deg,
+      var(--floral-green) 50deg 60deg
+    );
+  animation: floral-bloom 6s ease-in-out infinite;
+  box-shadow: 
+    0 0 25px var(--floral-glow),
+    0 0 50px rgba(248, 187, 217, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+.border-floral::after {
+  content: '🌹';
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  font-size: 1.5rem;
+  z-index: 10;
+  animation: rose-sway 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--floral-glow));
+}
+
+/* Pétales décoratifs */
+.border-floral .avatar-letter::before {
+  content: '🌸';
+  position: absolute;
+  top: -14px;
+  left: -10px;
+  font-size: 0.9rem;
+  animation: petal-fall 4s ease-in-out infinite;
+}
+
+.border-floral .avatar-letter::after {
+  content: '🌺';
+  position: absolute;
+  bottom: -12px;
+  right: -8px;
+  font-size: 0.8rem;
+  animation: petal-fall 3s ease-in-out infinite 1s;
+}
+
+@keyframes floral-bloom {
+  0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+  50% { transform: rotate(180deg) scale(1.02); filter: brightness(1.15); }
+}
+
+@keyframes rose-sway {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes petal-fall {
+  0%, 100% { opacity: 0.7; transform: translateY(0) rotate(0deg); }
+  50% { opacity: 1; transform: translateY(-8px) rotate(15deg); }
+}
+
+/* ===========================================
+   BORDER: MYTHIC BRONZE (Demi-Dieu - 50K XP)
+   Effet bronze antique HÉROÏQUE
+   =========================================== */
+
+.border-mythic-bronze {
+  --bronze-light: #CD9B5A;
+  --bronze-mid: #B87333;
+  --bronze-dark: #8B4513;
+  --bronze-patina: #2E8B57;
+  --bronze-glow: rgba(184, 115, 51, 0.7);
+}
+
+.border-mythic-bronze::before {
+  inset: -6px;
+  background: 
+    linear-gradient(
+      45deg,
+      var(--bronze-dark) 0%,
+      var(--bronze-mid) 25%,
+      var(--bronze-light) 50%,
+      var(--bronze-mid) 75%,
+      var(--bronze-dark) 100%
+    );
+  background-size: 300% 300%;
+  animation: bronze-gleam 5s ease-in-out infinite;
+  box-shadow: 
+    0 0 20px var(--bronze-glow),
+    0 0 40px rgba(139, 69, 19, 0.4),
+    inset 0 0 12px rgba(205, 155, 90, 0.5);
+  border: 2px solid var(--bronze-patina);
+}
+
+.border-mythic-bronze::after {
+  content: '🏛️';
+  position: absolute;
+  top: -18px;
+  right: -14px;
+  font-size: 1.4rem;
+  z-index: 10;
+  animation: temple-glow 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--bronze-glow));
+}
+
+/* Lauriers */
+.border-mythic-bronze .avatar-letter::before {
+  content: '🏆';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  animation: trophy-shine 2s ease-in-out infinite;
+}
+
+@keyframes bronze-gleam {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes temple-glow {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px var(--bronze-glow)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 15px var(--bronze-glow)); }
+}
+
+@keyframes trophy-shine {
+  0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+}
+
+/* ===========================================
+   BORDER: MYTHIC GOLD (Divinité - 100K XP)
+   Effet or divin LÉGENDAIRE avec aura céleste
+   =========================================== */
+
+.border-mythic-gold {
+  --divine-gold: #FFD700;
+  --divine-white: #FFFACD;
+  --divine-amber: #FFBF00;
+  --divine-orange: #FF8C00;
+  --divine-glow: rgba(255, 215, 0, 0.8);
+}
+
+.border-mythic-gold::before {
+  inset: -8px;
+  background: 
+    conic-gradient(
+      from 0deg,
+      var(--divine-gold) 0deg,
+      var(--divine-white) 30deg,
+      var(--divine-amber) 60deg,
+      var(--divine-gold) 90deg,
+      var(--divine-orange) 120deg,
+      var(--divine-amber) 150deg,
+      var(--divine-white) 180deg,
+      var(--divine-gold) 210deg,
+      var(--divine-amber) 240deg,
+      var(--divine-orange) 270deg,
+      var(--divine-white) 300deg,
+      var(--divine-amber) 330deg,
+      var(--divine-gold) 360deg
+    );
+  animation: divine-spin 3s linear infinite;
+  box-shadow: 
+    0 0 40px var(--divine-glow),
+    0 0 80px rgba(255, 191, 0, 0.6),
+    0 0 120px rgba(255, 140, 0, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.6);
+}
+
+.border-mythic-gold::after {
+  content: '👑';
+  position: absolute;
+  top: -20px;
+  right: -16px;
+  font-size: 1.8rem;
+  z-index: 10;
+  animation: crown-radiance 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 15px var(--divine-glow));
+}
+
+/* Halo divin */
+.border-mythic-gold .avatar-letter::before {
+  content: '';
+  position: absolute;
+  inset: -25px;
+  border-radius: 50%;
+  background: 
+    radial-gradient(
+      circle,
+      transparent 40%,
+      rgba(255, 215, 0, 0.3) 60%,
+      transparent 80%
+    );
+  animation: divine-halo 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.border-mythic-gold .avatar-letter::after {
+  content: '⚡';
+  position: absolute;
+  top: -22px;
+  left: -15px;
+  font-size: 1rem;
+  animation: lightning-flash 1.5s ease-in-out infinite;
+}
+
+@keyframes divine-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes crown-radiance {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg); 
+    filter: drop-shadow(0 0 15px var(--divine-glow)) brightness(1);
+  }
+  50% { 
+    transform: scale(1.15) rotate(5deg); 
+    filter: drop-shadow(0 0 25px var(--divine-glow)) brightness(1.3);
+  }
+}
+
+@keyframes divine-halo {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+@keyframes lightning-flash {
+  0%, 70%, 100% { opacity: 0; }
+  75%, 85% { opacity: 1; }
+}
+
+/* ===========================================
+   BORDER: BINOCULARS LENS (Observateur Ultime - 500 espèces)
+   Effet jumelles d'EXPLORATEUR naturaliste
+   =========================================== */
+
+.border-binoculars {
+  --lens-dark: #1a1a2e;
+  --lens-blue: #16213e;
+  --lens-cyan: #0f3460;
+  --lens-light: #e94560;
+  --lens-glass: rgba(66, 165, 245, 0.6);
+  --lens-glow: rgba(14, 165, 233, 0.7);
+}
+
+.border-binoculars::before {
+  inset: -6px;
+  background: 
+    radial-gradient(
+      circle at 50% 50%,
+      var(--lens-glass) 30%,
+      var(--lens-cyan) 50%,
+      var(--lens-blue) 70%,
+      var(--lens-dark) 100%
+    );
+  animation: lens-focus 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 25px var(--lens-glow),
+    0 0 50px rgba(15, 52, 96, 0.5),
+    inset 0 0 20px rgba(66, 165, 245, 0.4);
+  border: 3px solid var(--lens-cyan);
+}
+
+.border-binoculars::after {
+  content: '🔭';
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  font-size: 1.5rem;
+  z-index: 10;
+  animation: telescope-scan 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--lens-glow));
+}
+
+/* Réticule de visée */
+.border-binoculars .avatar-letter::before {
+  content: '⊕';
+  position: absolute;
+  font-size: 3rem;
+  color: rgba(233, 69, 96, 0.3);
+  animation: reticle-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes lens-focus {
+  0%, 100% { filter: brightness(1) blur(0px); }
+  50% { filter: brightness(1.2) blur(0.5px); }
+}
+
+@keyframes telescope-scan {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+}
+
+@keyframes reticle-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* ===========================================
+   BORDER: SPARTAN HELMET (Spartiate - 50 Hard)
+   Effet casque GUERRIER spartiate
+   =========================================== */
+
+.border-spartan {
+  --spartan-bronze: #CD7F32;
+  --spartan-red: #8B0000;
+  --spartan-black: #1a1a1a;
+  --spartan-silver: #C0C0C0;
+  --spartan-glow: rgba(139, 0, 0, 0.7);
+}
+
+.border-spartan::before {
+  inset: -6px;
+  background: 
+    linear-gradient(
+      180deg,
+      var(--spartan-bronze) 0%,
+      var(--spartan-red) 30%,
+      var(--spartan-black) 50%,
+      var(--spartan-red) 70%,
+      var(--spartan-bronze) 100%
+    );
+  background-size: 100% 200%;
+  animation: spartan-forge 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 20px var(--spartan-glow),
+    0 0 40px rgba(205, 127, 50, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--spartan-bronze);
+}
+
+.border-spartan::after {
+  content: '🛡️';
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  font-size: 1.5rem;
+  z-index: 10;
+  animation: shield-ready 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--spartan-glow));
+}
+
+/* Épée */
+.border-spartan .avatar-letter::before {
+  content: '⚔️';
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  animation: sword-flash 3s ease-in-out infinite;
+}
+
+@keyframes spartan-forge {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+}
+
+@keyframes shield-ready {
+  0%, 100% { transform: rotate(-10deg) scale(1); }
+  50% { transform: rotate(10deg) scale(1.1); }
+}
+
+@keyframes sword-flash {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+
+/* ===========================================
+   BORDER: DIAMOND FRAME (Score Légendaire - 5K XP)
+   Effet diamant BRILLANT multifacette
+   =========================================== */
+
+.border-diamond {
+  --diamond-white: #FFFFFF;
+  --diamond-ice: #E0F7FA;
+  --diamond-blue: #4DD0E1;
+  --diamond-purple: #CE93D8;
+  --diamond-pink: #F8BBD9;
+  --diamond-glow: rgba(77, 208, 225, 0.8);
+}
+
+.border-diamond::before {
+  inset: -8px;
+  background: 
+    conic-gradient(
+      from 0deg,
+      var(--diamond-white) 0deg,
+      var(--diamond-ice) 30deg,
+      var(--diamond-blue) 60deg,
+      var(--diamond-purple) 90deg,
+      var(--diamond-pink) 120deg,
+      var(--diamond-white) 150deg,
+      var(--diamond-ice) 180deg,
+      var(--diamond-blue) 210deg,
+      var(--diamond-purple) 240deg,
+      var(--diamond-pink) 270deg,
+      var(--diamond-ice) 300deg,
+      var(--diamond-white) 330deg,
+      var(--diamond-ice) 360deg
+    );
+  animation: diamond-refract 2.5s linear infinite;
+  box-shadow: 
+    0 0 35px var(--diamond-glow),
+    0 0 70px rgba(206, 147, 216, 0.5),
+    0 0 100px rgba(248, 187, 217, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+.border-diamond::after {
+  content: '💎';
+  position: absolute;
+  top: -18px;
+  right: -16px;
+  font-size: 1.7rem;
+  z-index: 10;
+  animation: diamond-sparkle 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px var(--diamond-glow));
+}
+
+/* Éclats lumineux */
+.border-diamond .avatar-letter::before {
+  content: '✦';
+  position: absolute;
+  top: -15px;
+  left: -10px;
+  font-size: 0.8rem;
+  color: var(--diamond-white);
+  animation: crystal-twinkle 1s ease-in-out infinite;
+  text-shadow: 0 0 10px var(--diamond-glow);
+}
+
+.border-diamond .avatar-letter::after {
+  content: '✧';
+  position: absolute;
+  bottom: -12px;
+  right: -8px;
+  font-size: 0.7rem;
+  color: var(--diamond-ice);
+  animation: crystal-twinkle 1.2s ease-in-out infinite 0.3s;
+  text-shadow: 0 0 8px var(--diamond-purple);
+}
+
+@keyframes diamond-refract {
+  0% { transform: rotate(0deg); filter: hue-rotate(0deg); }
+  100% { transform: rotate(360deg); filter: hue-rotate(15deg); }
+}
+
+@keyframes diamond-sparkle {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg); 
+    filter: drop-shadow(0 0 12px var(--diamond-glow)) brightness(1);
+  }
+  25% { transform: scale(1.1) rotate(-5deg); }
+  50% { 
+    transform: scale(1.2) rotate(0deg); 
+    filter: drop-shadow(0 0 20px var(--diamond-glow)) brightness(1.4);
+  }
+  75% { transform: scale(1.1) rotate(5deg); }
+}
+
+@keyframes crystal-twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ===========================================
+   REDUCED MOTION SUPPORT FOR NEW BORDERS
+   =========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .border-butterfly::before,
+  .border-butterfly::after,
+  .border-floral::before,
+  .border-floral::after,
+  .border-mythic-bronze::before,
+  .border-mythic-bronze::after,
+  .border-mythic-gold::before,
+  .border-mythic-gold::after,
+  .border-binoculars::before,
+  .border-binoculars::after,
+  .border-spartan::before,
+  .border-spartan::after,
+  .border-diamond::before,
+  .border-diamond::after {
+    animation: none;
+  }
+}
