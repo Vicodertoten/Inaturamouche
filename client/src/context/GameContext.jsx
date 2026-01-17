@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { checkNewAchievements, evaluateMicroChallenges } from '../achievements';
+import { checkNewAchievements, evaluateMicroChallenges } from '../core/achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
