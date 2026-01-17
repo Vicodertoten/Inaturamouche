@@ -19,6 +19,7 @@
     align-items: stretch;
     min-height: 0;
     height: auto;
+    padding-top: 3.5rem;
   }
 
   .media-column {
@@ -143,6 +144,7 @@
     max-width: 100%;
     height: auto;
     min-height: calc(100dvh - 140px);
+    padding-top: 3.5rem;
   }
 
   .game-main {

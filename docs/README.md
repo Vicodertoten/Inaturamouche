@@ -11,6 +11,9 @@ Documentation spécifique aux implémentations et détails techniques :
 - **[API_REFERENCE.md](API_REFERENCE.md)** – Contrats d'API complets (requêtes, réponses, erreurs)
 - **[ARCHITECTURE_BACKEND.md](ARCHITECTURE_BACKEND.md)** – Architecture backend détaillée (pipeline, cache, observabilité)
 - **[FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)** – Guide frontend détaillé (GameContext, composants, PWA)
+- **[COMPONENTS.md](COMPONENTS.md)** ✨ – Catalogue de composants React avec props et exemples
+- **[STYLING.md](STYLING.md)** ✨ – Architecture CSS et stratégie de migration vers CSS Modules
+- **[MONITORING.md](MONITORING.md)** ✨ – Logging Pino, observabilité et debugging de performance
 - **[REFONTE_GENERATION_QUESTIONS.md](REFONTE_GENERATION_QUESTIONS.md)** – Notes sur la refonte du système de génération
 - **[architecture/](architecture/)** – Détails d'implémentation par système
   - `XP_SYSTEM_IMPLEMENTATION.md` – Système d'XP et progression
@@ -41,8 +44,10 @@ Documentation pour comprendre et utiliser le projet :
 | Intégrer l'API backend | [API_REFERENCE.md](API_REFERENCE.md) |
 | Modifier le pipeline de questions | [ARCHITECTURE_BACKEND.md](ARCHITECTURE_BACKEND.md) + [QUIZ_PIPELINE.md](../wiki/guides/backend/QUIZ_PIPELINE.md) |
 | Travailler sur le frontend | [FRONTEND_GUIDE.md](FRONTEND_GUIDE.md) + guides frontend |
+| Comprendre les composants React | [COMPONENTS.md](COMPONENTS.md) |
+| Organiser/modifier le CSS | [STYLING.md](STYLING.md) |
 | Déployer l'application | [DEPLOYMENT.md](../wiki/guides/ops/DEPLOYMENT.md) |
-| Déboguer/monitorer | [OBSERVABILITY.md](../wiki/guides/backend/OBSERVABILITY.md) |
+| Déboguer/monitorer | [MONITORING.md](MONITORING.md) + [OBSERVABILITY.md](../wiki/guides/backend/OBSERVABILITY.md) |
 | Contribuer au code | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ## 🔍 Différence `/docs/` vs `/wiki/`

@@ -13,4 +13,4 @@ RUN npm install --omit=dev
 COPY . .
 COPY --from=client-build /app/client/dist ./client/dist
 EXPOSE 3001
-CMD ["node", "server.js"]
+CMD ["node", "server/index.js"]

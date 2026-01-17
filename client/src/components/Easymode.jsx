@@ -38,13 +38,17 @@ const EasyMode = () => {
   const soundUrl = question?.sounds?.[0]?.file_url;
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
-  const imageAlt = useMemo(() => {
+  // `imageAltRaw` may contain the answer — do not expose it as `alt` to
+  // prevent long-press/context menu from revealing the answer on Android.
+  const imageAltRaw = useMemo(() => {
     const taxon = question?.bonne_reponse;
     const common = taxon?.preferred_common_name || taxon?.common_name;
     const scientific = taxon?.name;
     if (common && scientific && common !== scientific) return `${common} (${scientific})`;
     return common || scientific || t('easy.image_alt');
   }, [question?.bonne_reponse, t]);
+
+  const imageAlt = t('easy.image_alt');
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);

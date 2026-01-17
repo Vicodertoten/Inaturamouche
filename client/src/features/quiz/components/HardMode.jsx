@@ -75,13 +75,18 @@ function HardMode() {
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
 
-  const imageAlt = useMemo(() => {
+  // `imageAltRaw` may contain the answer (used elsewhere). Do NOT pass it
+  // directly to the image `alt` attribute to avoid revealing the answer
+  // on long-press/context menu on mobile. Use a generic alt for the image.
+  const imageAltRaw = useMemo(() => {
     const taxon = question?.bonne_reponse;
     const common = taxon?. preferred_common_name || taxon?.common_name;
     const scientific = taxon?.name;
     if (common && scientific && common !== scientific) return `${common} (${scientific})`;
     return common || scientific || t('hard.image_alt');
   }, [question?.bonne_reponse, t]);
+
+  const imageAlt = t('hard.image_alt');
 
   const targetLineage = useMemo(() => {
     const lineage = {};
