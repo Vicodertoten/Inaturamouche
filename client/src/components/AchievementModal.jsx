@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
-import { ACHIEVEMENTS } from '../achievements';
+import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
 function AchievementModal({ achievementId, onClose }) {

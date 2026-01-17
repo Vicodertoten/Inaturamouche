@@ -1,7 +1,7 @@
 import React from 'react';
-import AutocompleteInput from './AutocompleteInput';
-import GeoFilter from './components/GeoFilter.jsx';
-import { useLanguage } from './context/LanguageContext.jsx';
+import AutocompleteInput from '../../../shared/ui/AutocompleteInput';
+import GeoFilter from '../../../components/GeoFilter.jsx';
+import { useLanguage } from '../../../context/LanguageContext.jsx';
 
 const TaxonPill = React.memo(({ onRemove, label, removeLabel }) => (
   <div className="taxon-pill">
