@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import XPProgressBar from './XPProgressBar';
 import { getLevelFromXp } from '../utils/scoring';
 import { useGameData } from '../context/GameContext';
-import { ACHIEVEMENTS } from '../achievements';
+import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { notify } from '../services/notifications';
 import { MASTERY_NAMES } from '../services/CollectionService';

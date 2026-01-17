@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ACHIEVEMENTS } from '../achievements';
+import { ACHIEVEMENTS } from '../core/achievements';
 import { useUser } from '../context/UserContext';
 import { getTaxaByIds } from '../services/api';
 import { notify } from '../services/notifications.js';

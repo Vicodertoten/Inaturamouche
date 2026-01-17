@@ -1,5 +1,5 @@
-// src/achievements.js
-import { getLevelFromXp } from './utils/scoring';
+// src/core/achievements/definitions.js
+import { getLevelFromXp } from '../../utils/scoring';
 
 export const ACHIEVEMENTS = {
   first_game: {
