@@ -532,6 +532,7 @@ const en = {
     back: '← Back',
     title: 'Player profile',
     edit_name: 'Edit name',
+    edit_profile: 'Edit profile',
     tabs: {
       summary: 'Overview',
       stats: 'Stats',

@@ -103,9 +103,11 @@ const ProfilePage = () => {
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [isEditingName, setIsEditingName] = useState(false);
+  // Unified edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editedName, setEditedName] = useState('');
-  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState(null);
+  const [previewBorder, setPreviewBorder] = useState(null);
 
   const sortedMastery = useMemo(
     () =>
@@ -217,54 +219,46 @@ const ProfilePage = () => {
     else navigate('/', { replace: true });
   }, [navigate]);
 
-  const handleStartEditName = useCallback(() => {
+  // Unified edit modal handlers
+  const handleOpenEditModal = useCallback(() => {
     setEditedName(profile?.name || profile?.username || '');
-    setIsEditingName(true);
-  }, [profile?.name, profile?.username]);
+    setPreviewTitle(profile?.rewards?.equippedTitle || 'default');
+    setPreviewBorder(profile?.rewards?.equippedBorder || 'default');
+    setIsEditModalOpen(true);
+  }, [profile?.name, profile?.username, profile?.rewards]);
 
-  const handleCancelEditName = useCallback(() => {
-    setEditedName(profile?.name || profile?.username || '');
-    setIsEditingName(false);
-  }, [profile?.name, profile?.username]);
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setPreviewTitle(null);
+    setPreviewBorder(null);
+  }, []);
 
-  const handleSaveName = useCallback(() => {
+  const handleSaveProfile = useCallback(() => {
     const trimmedName = (editedName || '').trim();
-    if (!trimmedName) {
-      handleCancelEditName();
-      return;
-    }
-    updateProfile((prev) => ({ ...prev, name: trimmedName }));
-    setIsEditingName(false);
-  }, [editedName, handleCancelEditName, updateProfile]);
-
-  // Gestion de la personnalisation (titres et bordures)
-  const handleOpenCustomize = useCallback(() => {
-    setIsCustomizeModalOpen(true);
-  }, []);
-
-  const handleCloseCustomize = useCallback(() => {
-    setIsCustomizeModalOpen(false);
-  }, []);
-
-  const handleEquipTitle = useCallback((titleId) => {
     updateProfile((prev) => ({
       ...prev,
+      name: trimmedName || prev.name,
       rewards: {
         ...prev.rewards,
-        equippedTitle: titleId,
+        equippedTitle: previewTitle || prev.rewards?.equippedTitle || 'default',
+        equippedBorder: previewBorder || prev.rewards?.equippedBorder || 'default',
       },
     }));
-  }, [updateProfile]);
+    setIsEditModalOpen(false);
+    setPreviewTitle(null);
+    setPreviewBorder(null);
+  }, [editedName, previewTitle, previewBorder, updateProfile]);
 
-  const handleEquipBorder = useCallback((borderId) => {
-    updateProfile((prev) => ({
-      ...prev,
-      rewards: {
-        ...prev.rewards,
-        equippedBorder: borderId,
-      },
-    }));
-  }, [updateProfile]);
+  // Preview selection handlers (for modal preview)
+  const handleSelectTitle = useCallback((titleId, isUnlocked) => {
+    // Allow preview even if locked (will show grayed out)
+    setPreviewTitle(titleId);
+  }, []);
+
+  const handleSelectBorder = useCallback((borderId, isUnlocked) => {
+    // Allow preview even if locked (will show grayed out)
+    setPreviewBorder(borderId);
+  }, []);
 
   // Regrouper les succès par catégorie
   const achievementsByCategory = useMemo(() => {
@@ -321,72 +315,53 @@ const ProfilePage = () => {
         </button>
 
         <div className="profile-hero sticky-hero">
-          <div className="hero-left">
+          {/* Edit button - top left */}
+          <button
+            type="button"
+            className="profile-edit-btn"
+            onClick={handleOpenEditModal}
+            aria-label={t('profile.edit_profile')}
+            title={t('profile.edit_profile')}
+          >
+            ✏️
+          </button>
+
+          {/* Main hero content - centered layout */}
+          <div className="hero-content">
+            {/* Avatar */}
             <div className={`avatar-ring ${borderCss}`} aria-label={t('profile.title')}>
               <span className="avatar-letter">{avatarLetter}</span>
             </div>
-            <div className="hero-meta">
-              {/* Titre équipé */}
-              {titleDetails && equippedTitle !== 'default' && (
-                <p className="equipped-title">{titleDetails.value || t(titleDetails.nameKey)}</p>
-              )}
-              <p className="eyebrow">{t('common.profile')}</p>
-              {isEditingName ? (
-                <div className="name-editor">
-                  <input
-                    type="text"
-                    className="name-input"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    placeholder={t('profile.title')}
-                    aria-label={t('profile.edit_name')}
-                    autoFocus
-                  />
-                  <div className="name-actions">
-                    <button className="action-button name-action-button" onClick={handleSaveName}>
-                      {t('common.save')}
-                    </button>
-                    <button
-                      className="action-button name-action-button ghost"
-                      onClick={handleCancelEditName}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="name-row">
-                  <h2 className="player-name">{displayName}</h2>
-                  <button
-                    type="button"
-                    className="edit-name-button nav-pill nav-icon nav-elevated"
-                    onClick={handleStartEditName}
-                    aria-label={t('profile.edit_name')}
-                    title={t('profile.edit_name')}
-                  >
-                    ✎
-                  </button>
-                </div>
-              )}
-              <div className="level-chip">
-                <span className="level-label">{t('profile.level', { level: levelInfo.level })}</span>
-                <span className="level-number">#{levelInfo.level}</span>
+
+            {/* Name */}
+            <h2 className="player-name">{displayName}</h2>
+
+            {/* Equipped title */}
+            {titleDetails && equippedTitle !== 'default' && (
+              <p className="equipped-title">{titleDetails.value || t(titleDetails.nameKey)}</p>
+            )}
+
+            {/* Level chip */}
+            <div className="level-chip">
+              <span className="level-label">{t('profile.level', { level: levelInfo.level })}</span>
+              <span className="level-number">#{levelInfo.level}</span>
+            </div>
+
+            {/* XP Progress */}
+            <div className="hero-progress">
+              <div className="xp-bar-container xp-bar-hero" aria-label={t('profile.xp_counter', { current: formatNumber(levelInfo.xpProgress), total: formatNumber(levelInfo.xpNeededForLevel) })}>
+                <div className="xp-bar" style={{ width: `${levelInfo.progressPercentage}%` }}></div>
+                <div className="xp-shine" />
               </div>
-            </div>
-          </div>
-          <div className="hero-progress">
-            <div className="xp-bar-container xp-bar-hero" aria-label={t('profile.xp_counter', { current: formatNumber(levelInfo.xpProgress), total: formatNumber(levelInfo.xpNeededForLevel) })}>
-              <div className="xp-bar" style={{ width: `${levelInfo.progressPercentage}%` }}></div>
-              <div className="xp-shine" />
-            </div>
-            <div className="xp-label hero-xp-label">
-              <span>
-                {t('profile.xp_counter', {
-                  current: formatNumber(levelInfo.xpProgress),
-                  total: formatNumber(levelInfo.xpNeededForLevel),
-                })}
-              </span>
-              <span className="xp-total">XP: {formatNumber(profile.xp)}</span>
+              <div className="xp-label hero-xp-label">
+                <span>
+                  {t('profile.xp_counter', {
+                    current: formatNumber(levelInfo.xpProgress),
+                    total: formatNumber(levelInfo.xpNeededForLevel),
+                  })}
+                </span>
+                <span className="xp-total">XP: {formatNumber(profile.xp)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -553,13 +528,6 @@ const ProfilePage = () => {
                     total: Object.keys(ACHIEVEMENTS).length,
                   })}
                 </h3>
-                <button 
-                  className="action-button customize-button"
-                  onClick={handleOpenCustomize}
-                  aria-label={t('profile.customize_profile')}
-                >
-                  ✨ {t('profile.customize_profile')}
-                </button>
               </div>
 
               {/* Catégorie: Taxonomie */}
@@ -666,65 +634,99 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Modal de personnalisation */}
-      {isCustomizeModalOpen && (
-        <Modal onClose={handleCloseCustomize}>
-          <div className="customization-modal">
-            <h3 className="modal-title">{t('profile.customize_profile')}</h3>
+      {/* Unified Edit Profile Modal */}
+      {isEditModalOpen && (
+        <Modal onClose={handleCloseEditModal}>
+          <div className="edit-profile-modal">
+            <h3 className="modal-title">{t('profile.edit_profile')}</h3>
+
+            {/* Live preview */}
+            <div className="edit-preview">
+              <div className={`avatar-ring-preview ${previewBorder && !titlesWithStatus.find(t => t.id === previewTitle)?.unlocked ? '' : ''} ${getBorderDetails(previewBorder)?.css || ''} ${!bordersWithStatus.find(b => b.id === previewBorder)?.unlocked ? 'preview-locked' : ''}`}>
+                <span className="preview-letter-large">{(editedName || 'E').charAt(0).toUpperCase()}</span>
+              </div>
+              {previewTitle && previewTitle !== 'default' && (
+                <p className={`equipped-title-preview ${!titlesWithStatus.find(t => t.id === previewTitle)?.unlocked ? 'preview-locked' : ''}`}>
+                  {getTitleDetails(previewTitle)?.value || t(getTitleDetails(previewTitle)?.nameKey)}
+                </p>
+              )}
+            </div>
             
-            {/* Sélection du titre */}
-            <div className="customization-section">
-              <h4>{t('profile.select_title')}</h4>
-              <div className="options-grid">
-                {titlesWithStatus.map((title) => (
-                  <div
-                    key={title.id}
-                    className={`option-item ${title.id === equippedTitle ? 'selected' : ''} ${!title.unlocked ? 'locked' : ''}`}
-                    onClick={() => title.unlocked && handleEquipTitle(title.id)}
-                    role="button"
-                    tabIndex={title.unlocked ? 0 : -1}
-                    aria-selected={title.id === equippedTitle}
-                    aria-disabled={!title.unlocked}
-                  >
-                    <span className="title-preview">
-                      {title.value || t(title.nameKey)}
-                    </span>
-                    <span className="option-label">
-                      {title.value || t(title.nameKey)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            {/* Username input */}
+            <div className="edit-section">
+              <label htmlFor="edit-username" className="edit-label">{t('profile.edit_name')}</label>
+              <input
+                id="edit-username"
+                type="text"
+                className="edit-input"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                placeholder={t('profile.title')}
+              />
             </div>
 
-            {/* Sélection de la bordure */}
-            <div className="customization-section">
-              <h4>{t('profile.select_border')}</h4>
-              <div className="options-grid">
-                {bordersWithStatus.map((border) => (
-                  <div
-                    key={border.id}
-                    className={`option-item ${border.id === equippedBorder ? 'selected' : ''} ${!border.unlocked ? 'locked' : ''}`}
-                    onClick={() => border.unlocked && handleEquipBorder(border.id)}
-                    role="button"
-                    tabIndex={border.unlocked ? 0 : -1}
-                    aria-selected={border.id === equippedBorder}
-                    aria-disabled={!border.unlocked}
-                  >
-                    <div className={`border-preview ${border.css || ''}`}>
-                      <span className="preview-letter">{avatarLetter}</span>
+            {/* Title selection */}
+            <div className="edit-section">
+              <label className="edit-label">{t('profile.select_title')}</label>
+              <div className="options-grid options-grid-compact">
+                {titlesWithStatus.map((title) => {
+                  const isSelected = previewTitle === title.id;
+                  return (
+                    <div
+                      key={title.id}
+                      className={`option-item-flat ${isSelected ? 'selected' : ''} ${!title.unlocked ? 'locked-preview' : ''}`}
+                      onClick={() => handleSelectTitle(title.id, title.unlocked)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <span className="option-text">
+                        {title.value || t(title.nameKey)}
+                      </span>
+                      {!title.unlocked && <span className="lock-icon">🔒</span>}
                     </div>
-                    <span className="option-label">
-                      {t(border.nameKey)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            <button className="action-button" onClick={handleCloseCustomize}>
-              {t('common.ok')}
-            </button>
+            {/* Border selection */}
+            <div className="edit-section">
+              <label className="edit-label">{t('profile.select_border')}</label>
+              <div className="options-grid options-grid-borders">
+                {bordersWithStatus.map((border) => {
+                  const isSelected = previewBorder === border.id;
+                  return (
+                    <div
+                      key={border.id}
+                      className={`option-item-border ${isSelected ? 'selected' : ''} ${!border.unlocked ? 'locked-preview' : ''}`}
+                      onClick={() => handleSelectBorder(border.id, border.unlocked)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className={`border-preview-mini ${border.css || ''}`}>
+                        <span className="preview-letter-mini">{avatarLetter}</span>
+                      </div>
+                      <span className="option-text-small">{t(border.nameKey)}</span>
+                      {!border.unlocked && <span className="lock-icon-small">🔒</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="edit-actions">
+              <button 
+                className="action-button save-button" 
+                onClick={handleSaveProfile}
+                disabled={previewTitle && !titlesWithStatus.find(t => t.id === previewTitle)?.unlocked || previewBorder && !bordersWithStatus.find(b => b.id === previewBorder)?.unlocked}
+              >
+                {t('common.save')}
+              </button>
+              <button className="action-button cancel-button" onClick={handleCloseEditModal}>
+                {t('common.cancel')}
+              </button>
+            </div>
           </div>
         </Modal>
       )}

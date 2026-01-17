@@ -208,17 +208,13 @@ select.nav-pill {
 } 
 
 .app-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   z-index: 60;
   display: flex;
-  justify-content: flex-start; /* Aligne le titre à gauche sur desktop */
+  justify-content: flex-start;
   align-items: center;
-  padding: var(--space-2) 0;
-  margin-bottom: var(--space-4);
-  /* Transparent background: keep content visible underneath */
+  padding: var(--space-1) 0;
+  margin-bottom: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -280,9 +276,7 @@ select.nav-pill {
 
 /* Décalage pour éviter que le contenu soit masqué par l'en-tête sticky sur desktop */
 @media (min-width: 769px) {
-  .screen-container {
-    padding-top: 3.5rem; /* Espace suffisant pour l'en-tête fixe */
-  }
+  
 }
 
 .screen {
@@ -618,7 +612,8 @@ button:active:not(:disabled),
 .home-dashboard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  margin-top: 0;
 }
 
 .home-streak-badge-top-left {

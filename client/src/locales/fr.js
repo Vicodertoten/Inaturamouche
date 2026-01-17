@@ -534,6 +534,7 @@ const fr = {
     back: '← Retour',
     title: 'Profil du joueur',
     edit_name: 'Modifier le nom',
+    edit_profile: 'Modifier le profil',
     tabs: {
       summary: 'Résumé',
       stats: 'Statistiques',
