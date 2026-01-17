@@ -19,6 +19,9 @@ import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
 import { usePacks } from './PacksContext.jsx';
 import { getLevelFromXp } from '../utils/scoring';
+import { useXP } from './XPContext.jsx';
+import { useStreak } from './StreakContext.jsx';
+import { useAchievement } from './AchievementContext.jsx';
 
 export const DEFAULT_MAX_QUESTIONS = 5;
 const DEFAULT_MEDIA_TYPE = 'images';
@@ -46,101 +49,9 @@ const hasQuestionLimit = (value) => Number.isInteger(value) && value > 0;
 const resolveTotalQuestions = (maxQuestions, questionCount) =>
   hasQuestionLimit(maxQuestions) ? maxQuestions : questionCount || 0;
 
-const STREAK_PERKS = [
-  {
-    tier: 1,
-    threshold: 3,
-    rewards: [
-      {
-        type: 'multiplier',
-        value: 1.2,
-        rounds: 2,
-        persistOnMiss: false,
-      },
-    ],
-  },
-  {
-    tier: 2,
-    threshold: 5,
-    rewards: [
-      {
-        type: 'multiplier',
-        value: 1.5,
-        rounds: 3,
-        persistOnMiss: false,
-      },
-    ],
-  },
-];
-
-const generatePerkId = (prefix) =>
-  `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 const createSeedSessionId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-const mintPerkRewards = (config) => {
-  if (!config?.rewards) return [];
-  const minted = [];
-  config.rewards.forEach((reward, rewardIndex) => {
-    if (reward.type === 'multiplier') {
-      minted.push({
-        id: generatePerkId(`multiplier-${config.tier}-${rewardIndex}`),
-        type: 'multiplier',
-        persistOnMiss: reward.persistOnMiss ?? false,
-        value: reward.value || 1.2,
-        roundsRemaining: reward.rounds || 2,
-      });
-    }
-  });
-  return minted;
-};
-
-const computeMultiplierFromPerks = (perks = []) =>
-  perks
-    .filter((perk) => perk.type === 'multiplier' && (perk.roundsRemaining ?? 0) > 0)
-    .reduce((acc, perk) => acc * (perk.value || 1), 1);
-
-/**
- * Calcule les multiplicateurs XP actifs
- * @param {Object} profile - Profil du joueur
- * @param {number} perksMultiplier - Multiplicateur des perks (issu de la winstreak)
- * @param {number} currentWinStreak - Streak de victoires actuel
- * @returns {Object} Détails des multiplicateurs
- */
-const calculateXPMultipliers = (profile, perksMultiplier = 1.0, currentWinStreak = 0) => {
-  if (!profile) {
-    return {
-      dailyStreakBonus: 0,
-      perksMultiplier: 1.0,
-      winStreakBonus: 0,
-      timerBonus: 0,
-      totalMultiplier: 1.0,
-    };
-  }
-
-  // Bonus de streak quotidienne (jusqu'à +20% à 7 jours)
-  const dailyStreakCount = profile.dailyStreak?.current || 0;
-  const dailyStreakBonus = Math.min(0.2, dailyStreakCount * 0.03);
-
-  // Bonus de winstreak (5% par victoire consécutive, max 50%)
-  const winStreakBonus = Math.min(0.5, currentWinStreak * 0.05);
-
-  // Pas de timer bonus dans le contexte (géré par round)
-  const timerBonus = 0;
-
-  // Calcul du multiplicateur total : (1 + bonus) × perksMultiplier
-  const baseMultiplier = 1.0 + dailyStreakBonus + winStreakBonus + timerBonus;
-  const totalMultiplier = baseMultiplier * perksMultiplier;
-
-  return {
-    dailyStreakBonus,
-    perksMultiplier,
-    winStreakBonus,
-    timerBonus,
-    totalMultiplier,
-  };
-};
 
 const getBiomesForQuestion = (question, pack) => {
   if (Array.isArray(question?.biome_tags) && question.biome_tags.length > 0) {
@@ -184,21 +95,37 @@ export function GameProvider({ children }) {
   const [sessionCorrectSpecies, setSessionCorrectSpecies] = useState([]);
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
-  const [currentStreak, setCurrentStreak] = useState(profile?.stats?.currentStreak || 0);
-  const [longestStreak, setLongestStreak] = useState(profile?.stats?.longestStreak || 0);
-  const [inGameShields, setInGameShields] = useState(0);
-  const [hasPermanentShield, setHasPermanentShield] = useState(
-    profile?.achievements?.includes('STREAK_GUARDIAN') || false
-  );
-  const [streakTier, setStreakTier] = useState(0);
-  const [activePerks, setActivePerks] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [newlyUnlocked, setNewlyUnlocked] = useState([]);
-  
-  // États pour le système XP
-  const [recentXPGain, setRecentXPGain] = useState(0);
-  const [initialSessionXP, setInitialSessionXP] = useState(0);
-  const [levelUpNotification, setLevelUpNotification] = useState(null);
+
+  // XP, streak and achievement state moved to separate contexts
+  const {
+    recentXPGain,
+    setRecentXPGain,
+    initialSessionXP,
+    setInitialSessionXP,
+    levelUpNotification,
+    setLevelUpNotification,
+    calculateXPMultipliers,
+  } = useXP();
+
+  const {
+    currentStreak,
+    setCurrentStreak,
+    longestStreak,
+    setLongestStreak,
+    inGameShields,
+    setInGameShields,
+    hasPermanentShield,
+    setHasPermanentShield,
+    streakTier,
+    setStreakTier,
+    activePerks,
+    setActivePerks,
+    computeMultiplierFromPerks,
+    evaluatePerksForStreak,
+  } = useStreak();
+
+  const { newlyUnlocked, setNewlyUnlocked, clearAchievementsTimer, clearUnlockedLater } = useAchievement();
   const activePack = useMemo(
     () => {
       if (activePackId === 'review') {
@@ -220,25 +147,26 @@ export function GameProvider({ children }) {
     }
   }, [activePack, activePackId, packsLoading]);
 
-  const achievementsTimerRef = useRef(null);
   const activeRequestController = useRef(null);
   const prefetchRequestController = useRef(null);
   const questionStartTimeRef = useRef(null);
-
   useEffect(() => {
     return () => {
-      if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+      // controllers only; achievement timers are handled by AchievementProvider
       activeRequestController.current?.abort();
       prefetchRequestController.current?.abort();
     };
   }, []);
 
-  const clearAchievementsTimer = useCallback(() => {
-    if (achievementsTimerRef.current) {
-      clearTimeout(achievementsTimerRef.current);
-      achievementsTimerRef.current = null;
+  useEffect(() => {
+    // initialize streak/xp/achievement related state from profile
+    if (profile) {
+      setCurrentStreak(profile?.stats?.currentStreak || 0);
+      setLongestStreak(profile?.stats?.longestStreak || 0);
+      setHasPermanentShield(profile?.achievements?.includes('STREAK_GUARDIAN') || false);
+      setInitialSessionXP(profile?.xp || 0);
     }
-  }, []);
+  }, [profile, setCurrentStreak, setLongestStreak, setHasPermanentShield, setInitialSessionXP]);
 
   const abortActiveFetch = useCallback(() => {
     if (activeRequestController.current) {
@@ -693,25 +621,7 @@ export function GameProvider({ children }) {
     [activePerks]
   );
 
-  const clearUnlockedLater = useCallback(() => {
-    clearAchievementsTimer();
-    achievementsTimerRef.current = setTimeout(() => setNewlyUnlocked([]), 5000);
-  }, [clearAchievementsTimer]);
-
-  const evaluatePerksForStreak = useCallback(
-    (streakValue) => {
-      let tierReached = streakTier;
-      const minted = [];
-      STREAK_PERKS.forEach((config) => {
-        if (streakValue >= config.threshold && config.tier > tierReached) {
-          minted.push(...mintPerkRewards(config));
-          tierReached = config.tier;
-        }
-      });
-      return { tierReached, minted };
-    },
-    [streakTier]
-  );
+  // `clearUnlockedLater` and `evaluatePerksForStreak` are provided by Achievement and Streak contexts
 
   const finalizeGame = useCallback(
     ({
