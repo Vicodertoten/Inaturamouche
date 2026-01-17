@@ -103,13 +103,25 @@ em {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 .nav-pill.nav-icon {
-  width: 37px;
-  height: 37px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border-radius: 50%;
   justify-content: center;
   font-size: 1.05rem;
   line-height: 1;
+}
+
+.nav-pill.nav-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Slightly larger help icon on desktop for better readability */
+.main-nav .help-icon {
+  width: 30px;
+  height: 30px;
 }
 
 select.nav-pill {
@@ -174,11 +186,17 @@ select.nav-pill {
   margin: 0 auto;
   padding: var(--space-3);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  /* Slightly larger help icon on desktop for better readability */
+  .main-nav .help-icon {
+    width: 27px;
+    height: 27px;
+  }
   overflow: hidden;
 }
+  .nav-pill.nav-icon .help-icon {
+    width: 27px;
+    height: 27px;
+  }
 
 /* Mobile: Add padding for bottom navigation */
 @media (max-width: 768px) {

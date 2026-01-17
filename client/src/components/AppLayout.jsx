@@ -5,30 +5,14 @@ import HelpModal from './HelpModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
+import { CollectionIcon, ProfileIcon as SharedProfileIcon, HelpIcon } from './NavigationIcons';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-const ProfileIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" className="profile-icon">
-    <path
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      d="M12 12.5a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-    />
-    <path
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M5 19.5c0-3.1 3.1-5.1 7-5.1s7 2 7 5.1"
-    />
-  </svg>
-);
+// Use shared icons for consistent desktop/mobile appearance
 
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -81,7 +65,7 @@ const AppLayout = () => {
             title={t('nav.help_label')}
             type="button"
           >
-            ?
+            <HelpIcon />
           </button>
           <button
             className="nav-pill nav-icon nav-elevated"
@@ -90,7 +74,7 @@ const AppLayout = () => {
             title={t('nav.collection_label')}
             type="button"
           >
-            📖
+            <CollectionIcon />
           </button>
           <button
             className="profile-button nav-pill nav-icon nav-elevated"
@@ -99,7 +83,7 @@ const AppLayout = () => {
             title={t('nav.profile_label')}
             type="button"
           >
-            <ProfileIcon />
+            <SharedProfileIcon />
           </button>
           <PreferencesMenu />
         </div>

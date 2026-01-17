@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './PreferencesMenu.css';
+import { SettingsIcon } from './NavigationIcons';
 
 const LANGUAGE_OPTIONS = [
   { code: 'fr', label: 'FR' },
@@ -8,20 +9,7 @@ const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'EN' },
 ];
 
-function GearIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="preferences-gear-icon">
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm8.5 3c0-.47-.04-.93-.12-1.38l-1.7-.28a7 7 0 0 0-.81-1.78l1.02-1.36a8.5 8.5 0 0 0-1.98-1.98l-1.36 1.02a7 7 0 0 0-1.78-.81l-.28-1.7A8.5 8.5 0 0 0 12 2.5c-.47 0-.93.04-1.38.12l-.28 1.7a7 7 0 0 0-1.78.81L7.2 4.11a8.5 8.5 0 0 0-1.98 1.98l1.02 1.36c-.36.56-.63 1.16-.81 1.78l-1.7.28A8.5 8.5 0 0 0 3.5 12c0 .47.04.93.12 1.38l1.7.28c.18.62.45 1.22.81 1.78L5.1 16.8a8.5 8.5 0 0 0 1.98 1.98l1.36-1.02c.56.36 1.16.63 1.78.81l.28 1.7c.45.08.91.12 1.38.12.47 0 .93-.04 1.38-.12l.28-1.7c.62-.18 1.22-.45 1.78-.81l1.36 1.02a8.5 8.5 0 0 0 1.98-1.98l-1.02-1.36c.36-.56.63-1.16.81-1.78l1.7-.28c.08-.45.12-.91.12-1.38Z"
-      />
-    </svg>
-  );
-}
+// Use shared SettingsIcon for consistency with mobile
 
 function LeafIcon() {
   return (
@@ -177,7 +165,7 @@ function PreferencesMenu({ isOpen: externalIsOpen, onToggle: externalOnToggle, i
           title={t('common.preferences_menu_label', {}, 'Open preferences')}
           onClick={toggleMenu}
         >
-          <GearIcon />
+          <SettingsIcon />
         </button>
       )}
 
