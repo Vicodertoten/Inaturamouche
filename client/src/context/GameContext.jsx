@@ -9,11 +9,17 @@ import {
   useRef,
   useState,
 } from 'react';
-import { checkNewAchievements, evaluateMicroChallenges } from '../core/achievements';
+import { 
+  checkNewAchievements, 
+  evaluateMicroChallenges,
+  checkEndOfGameAchievements,
+  applyAllRewards,
+} from '../core/achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
 import { loadProfileWithDefaults } from '../services/PlayerProfile';
 import { updateDailyStreak } from '../services/StreakService';
+import { getCollectionStatsForAchievements, updateWeekendStats } from '../services/AchievementStatsService';
 import { active_session } from '../services/db';
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
@@ -686,12 +692,35 @@ export function GameProvider({ children }) {
       });
 
       const unlocked = checkNewAchievements(profileClone);
-      if (unlocked.length > 0) {
+      
+      // Vérifier aussi les succès de fin de partie
+      const endOfGameUnlocked = checkEndOfGameAchievements({
+        sessionXP: finalScore,
+        gameHour: new Date().getHours(),
+        totalQuestions,
+        correctAnswers: finalCorrectAnswers,
+        hintsUsed: speciesEntries.filter(e => e.hintsUsed).length,
+        shieldsUsed: speciesEntries.filter(e => !e.wasCorrect).length, // Approximation
+        gameMode,
+        gameWon: finalCorrectAnswers > 0,
+      }, profileClone.achievements);
+      
+      // Fusionner tous les succès débloqués
+      const allUnlocked = [...new Set([...unlocked, ...endOfGameUnlocked])];
+      
+      if (allUnlocked.length > 0) {
+        // Ajouter les succès au profil
         profileClone.achievements = Array.from(
-          new Set([...(profileClone.achievements || []), ...unlocked])
+          new Set([...(profileClone.achievements || []), ...allUnlocked])
         );
-        queueAchievements(unlocked);
-        setNewlyUnlocked(unlocked);
+        
+        // Appliquer les récompenses (XP, titres, bordures, multiplicateurs)
+        const rewardResult = applyAllRewards(profileClone, allUnlocked);
+        Object.assign(profileClone, rewardResult.profile);
+        
+        // Notifier le système d'achievements
+        queueAchievements(allUnlocked);
+        setNewlyUnlocked(allUnlocked);
         clearUnlockedLater();
       } else {
         setNewlyUnlocked([]);
@@ -701,13 +730,19 @@ export function GameProvider({ children }) {
       // Update daily streak after completing a game
       const profileWithStreakUpdate = updateDailyStreak(profileClone);
       
+      // Mettre à jour les stats de weekend warrior
+      const profileWithWeekendStats = {
+        ...profileWithStreakUpdate,
+        stats: updateWeekendStats(profileWithStreakUpdate.stats, new Date()),
+      };
+      
       // Save in-game streak records to profile for achievements tracking
       // NOTE: These are session-based combo stats, NOT daily streak
       // - currentStreak: The final combo streak achieved this session
       // - longestStreak: All-time best combo streak record
-      profileWithStreakUpdate.stats.lastSessionStreak = currentStreak;
-      if (longestStreak > (profileWithStreakUpdate.stats.longestStreak || 0)) {
-        profileWithStreakUpdate.stats.longestStreak = longestStreak;
+      profileWithWeekendStats.stats.lastSessionStreak = currentStreak;
+      if (longestStreak > (profileWithWeekendStats.stats.longestStreak || 0)) {
+        profileWithWeekendStats.stats.longestStreak = longestStreak;
       }
 
       // FIX #7: Clear session BEFORE changing game state to prevent restoration of finished game
@@ -715,7 +750,7 @@ export function GameProvider({ children }) {
       clearSessionFromDB()
         .then(() => {
           // Only after successful cleanup, update game state
-          updateProfile(profileWithStreakUpdate);
+          updateProfile(profileWithWeekendStats);
           setIsGameActive(false);
           setIsGameOver(true);
           setNextQuestion(null);

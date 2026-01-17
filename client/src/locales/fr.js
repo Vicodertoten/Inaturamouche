@@ -353,7 +353,141 @@ const fr = {
         title: '👑 Sans Faute Extrême',
         description: 'Terminer une partie de 10 questions en mode Difficile sans erreur ni bouclier',
       },
+      // --- NOUVEAUX SUCCÈS : TAXONOMIE ---
+      SPEC_ORNITHOLOGIST: {
+        title: 'Ornithologue Amateur',
+        description: 'Identifier 50 oiseaux différents.',
+      },
+      SPEC_BOTANIST: {
+        title: 'Main Verte',
+        description: 'Identifier 50 plantes différentes.',
+      },
+      SPEC_ENTOMOLOGIST: {
+        title: 'Chasseur d\'Insectes',
+        description: 'Identifier 50 insectes ou arachnides.',
+      },
+      SPEC_MYCOLOGIST: {
+        title: 'Chercheur de Champignons',
+        description: 'Identifier 20 champignons.',
+      },
+      SPEC_HERPETOLOGIST: {
+        title: 'Sang Froid',
+        description: 'Identifier 20 reptiles ou amphibiens.',
+      },
+      SPEC_MAMMALOGIST: {
+        title: 'Pistage',
+        description: 'Identifier 20 mammifères.',
+      },
+      SPEC_DIVER: {
+        title: 'Grand Bleu',
+        description: 'Identifier 20 espèces marines.',
+      },
+      // --- NOUVEAUX SUCCÈS : COLLECTION ---
+      COLL_ROOKIE_50: {
+        title: 'Curieux de Nature',
+        description: '50 espèces dans le Pokédex.',
+      },
+      COLL_EXPERT_150: {
+        title: 'Naturaliste Confirmé',
+        description: '150 espèces dans le Pokédex.',
+      },
+      COLL_MASTER_300: {
+        title: 'Bibliothèque Vivante',
+        description: '300 espèces dans le Pokédex.',
+      },
+      MASTERY_PROFESSOR_10: {
+        title: 'Le Professeur',
+        description: 'Maîtrise max sur 10 espèces.',
+      },
+      MASTERY_GENIUS_25: {
+        title: 'Génie Taxonomique',
+        description: 'Maîtrise max sur 25 espèces.',
+      },
+      FAMILY_REUNION: {
+        title: 'Réunion de Famille',
+        description: 'Maîtriser 5 espèces de la même famille.',
+      },
+      // --- NOUVEAUX SUCCÈS : ÉLITE ---
+      HARD_VETERAN_50: {
+        title: 'Vétéran Endurci',
+        description: '50 bonnes réponses en Difficile (Total).',
+      },
+      HARD_VETERAN_200: {
+        title: 'Légende du Hardcore',
+        description: '200 bonnes réponses en Difficile (Total).',
+      },
+      SCORING_JACKPOT: {
+        title: 'Jackpot',
+        description: 'Gagner 2000 XP en une seule partie.',
+      },
+      SPEED_LIGHTNING: {
+        title: 'Réflexes Éclairs',
+        description: '5 réponses < 1.5s consécutives.',
+      },
+      PURIST_NO_HINT: {
+        title: 'Puriste',
+        description: 'Partie parfaite (10+ Q) sans indices.',
+      },
+      // --- NOUVEAUX SUCCÈS : HABITUDES ---
+      GAMES_50: {
+        title: 'Habitué',
+        description: 'Jouer 50 parties.',
+      },
+      GAMES_100: {
+        title: 'Accro',
+        description: 'Jouer 100 parties.',
+      },
+      EARLY_BIRD: {
+        title: 'Lève-tôt',
+        description: 'Gagner une partie entre 5h et 8h.',
+      },
+      NIGHT_OWL: {
+        title: 'Oiseau de Nuit',
+        description: 'Gagner une partie entre 0h et 4h.',
+      },
+      STREAK_MONTH: {
+        title: 'Gardien du Mois',
+        description: 'Série journalière de 30 jours.',
+      },
+      SHIELD_HOARDER: {
+        title: 'Paranoïaque',
+        description: 'Posséder 5 boucliers.',
+      },
+      WEEKEND_WARRIOR: {
+        title: 'Guerrier du Dimanche',
+        description: 'Jouer Samedi ET Dimanche.',
+      },
     },
+    reward_label: 'Récompense',
+  },
+  // Récompenses
+  rewards: {
+    xp_flat: '+{value} XP',
+    perm_multiplier: '+{percent}% XP permanent sur {filter}',
+    perm_multiplier_all: '+{percent}% XP permanent sur toutes les espèces',
+    title: 'Nouveau titre : {name}',
+    border: 'Nouvelle bordure : {name}',
+    all_species: 'Toutes les espèces',
+    permanent_bonus: 'Bonus XP permanent',
+    new_title: 'Nouveau titre débloqué !',
+    new_border: 'Nouvelle bordure débloquée !',
+  },
+  // Titres
+  titles: {
+    default: 'Naturaliste',
+    explorateur_marin: 'Explorateur Marin',
+    professeur: 'Professeur',
+    flash: 'Flash',
+    gardien_du_temps: 'Gardien du Temps',
+  },
+  // Bordures
+  borders: {
+    default: 'Classique',
+    scales_theme: 'Écailles',
+    silver_frame: 'Cadre Argent',
+    gold_book_frame: 'Livre d\'Or',
+    hardened_steel: 'Acier Trempé',
+    platinum_ring: 'Anneau Platine',
   },
   notifications: {
     new_species: '🦋 Nouvelle espèce : {name} !',

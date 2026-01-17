@@ -353,7 +353,141 @@ const en = {
         title: '👑 Extreme Flawless',
         description: 'Complete a 10-question Hard mode game without errors or shields',
       },
+      // --- NEW ACHIEVEMENTS: TAXONOMY ---
+      SPEC_ORNITHOLOGIST: {
+        title: 'Amateur Ornithologist',
+        description: 'Identify 50 different birds.',
+      },
+      SPEC_BOTANIST: {
+        title: 'Green Thumb',
+        description: 'Identify 50 different plants.',
+      },
+      SPEC_ENTOMOLOGIST: {
+        title: 'Bug Hunter',
+        description: 'Identify 50 insects or arachnids.',
+      },
+      SPEC_MYCOLOGIST: {
+        title: 'Mushroom Seeker',
+        description: 'Identify 20 fungi.',
+      },
+      SPEC_HERPETOLOGIST: {
+        title: 'Cold Blood',
+        description: 'Identify 20 reptiles or amphibians.',
+      },
+      SPEC_MAMMALOGIST: {
+        title: 'Tracker',
+        description: 'Identify 20 mammals.',
+      },
+      SPEC_DIVER: {
+        title: 'Deep Blue',
+        description: 'Identify 20 marine species.',
+      },
+      // --- NEW ACHIEVEMENTS: COLLECTION ---
+      COLL_ROOKIE_50: {
+        title: 'Nature Curious',
+        description: '50 species in the Pokédex.',
+      },
+      COLL_EXPERT_150: {
+        title: 'Confirmed Naturalist',
+        description: '150 species in the Pokédex.',
+      },
+      COLL_MASTER_300: {
+        title: 'Living Library',
+        description: '300 species in the Pokédex.',
+      },
+      MASTERY_PROFESSOR_10: {
+        title: 'The Professor',
+        description: 'Max mastery on 10 species.',
+      },
+      MASTERY_GENIUS_25: {
+        title: 'Taxonomic Genius',
+        description: 'Max mastery on 25 species.',
+      },
+      FAMILY_REUNION: {
+        title: 'Family Reunion',
+        description: 'Master 5 species from the same family.',
+      },
+      // --- NEW ACHIEVEMENTS: ELITE ---
+      HARD_VETERAN_50: {
+        title: 'Hardened Veteran',
+        description: '50 correct answers in Hard mode (Total).',
+      },
+      HARD_VETERAN_200: {
+        title: 'Hardcore Legend',
+        description: '200 correct answers in Hard mode (Total).',
+      },
+      SCORING_JACKPOT: {
+        title: 'Jackpot',
+        description: 'Earn 2000 XP in a single game.',
+      },
+      SPEED_LIGHTNING: {
+        title: 'Lightning Reflexes',
+        description: '5 consecutive answers < 1.5s.',
+      },
+      PURIST_NO_HINT: {
+        title: 'Purist',
+        description: 'Perfect game (10+ Q) without hints.',
+      },
+      // --- NEW ACHIEVEMENTS: HABITS ---
+      GAMES_50: {
+        title: 'Regular',
+        description: 'Play 50 games.',
+      },
+      GAMES_100: {
+        title: 'Addicted',
+        description: 'Play 100 games.',
+      },
+      EARLY_BIRD: {
+        title: 'Early Bird',
+        description: 'Win a game between 5am and 8am.',
+      },
+      NIGHT_OWL: {
+        title: 'Night Owl',
+        description: 'Win a game between midnight and 4am.',
+      },
+      STREAK_MONTH: {
+        title: 'Month Guardian',
+        description: '30-day daily streak.',
+      },
+      SHIELD_HOARDER: {
+        title: 'Paranoid',
+        description: 'Own 5 shields.',
+      },
+      WEEKEND_WARRIOR: {
+        title: 'Weekend Warrior',
+        description: 'Play on Saturday AND Sunday.',
+      },
     },
+    reward_label: 'Reward',
+  },
+  // Rewards
+  rewards: {
+    xp_flat: '+{value} XP',
+    perm_multiplier: '+{percent}% permanent XP on {filter}',
+    perm_multiplier_all: '+{percent}% permanent XP on all species',
+    title: 'New title: {name}',
+    border: 'New border: {name}',
+    all_species: 'All species',
+    permanent_bonus: 'Permanent XP bonus',
+    new_title: 'New title unlocked!',
+    new_border: 'New border unlocked!',
+  },
+  // Titles
+  titles: {
+    default: 'Naturalist',
+    explorateur_marin: 'Marine Explorer',
+    professeur: 'Professor',
+    flash: 'Flash',
+    gardien_du_temps: 'Time Keeper',
+  },
+  // Borders
+  borders: {
+    default: 'Classic',
+    scales_theme: 'Scales',
+    silver_frame: 'Silver Frame',
+    gold_book_frame: 'Golden Book',
+    hardened_steel: 'Hardened Steel',
+    platinum_ring: 'Platinum Ring',
   },
   notifications: {
     new_species: '🦋 New species: {name}!',

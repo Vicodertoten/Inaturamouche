@@ -1,5 +1,6 @@
 import { openDB } from 'idb';
 import { notify } from './notifications.js';
+import { getDefaultRewardState, mergeRewardState } from '../core/achievements/rewards.js';
 
 const LEGACY_STORAGE_KEY = 'inaturamouche_playerProfile';
 const DB_NAME = 'inaturamouche-player';
@@ -37,6 +38,11 @@ export const getDefaultProfile = () => ({
     packsPlayed: {},
     currentStreak: 0,
     longestStreak: 0,
+    // Nouveaux champs pour les succès
+    weekendWarriorCompleted: false,
+    lastPlayedDays: [], // Pour tracker samedi/dimanche
+    consecutiveFastAnswers: 0, // Pour SPEED_LIGHTNING
+    totalHintsUsed: 0,
   },
   achievements: [],
   pokedex: {},
@@ -53,6 +59,8 @@ export const getDefaultProfile = () => ({
       30: false,
     },
   },
+  // Nouveau: système de récompenses avancé
+  rewards: getDefaultRewardState(),
 });
 
 const mergeProfileWithDefaults = (loadedProfile = {}) => {
@@ -83,6 +91,8 @@ const mergeProfileWithDefaults = (loadedProfile = {}) => {
       ...defaultProfile.dailyStreak,
       ...(safeProfile.dailyStreak || {}),
     },
+    // Fusionner les rewards avec les valeurs par défaut
+    rewards: mergeRewardState(safeProfile.rewards),
   };
 
   if (finalProfile.stats.packsPlayed) {

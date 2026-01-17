@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ACHIEVEMENTS } from '../core/achievements';
+import { 
+  ACHIEVEMENTS, 
+  getAllTitlesWithStatus, 
+  getAllBordersWithStatus,
+  getTitleDetails,
+  getBorderDetails,
+} from '../core/achievements';
 import { useUser } from '../context/UserContext';
 import { getTaxaByIds } from '../services/api';
 import { notify } from '../services/notifications.js';
@@ -182,6 +188,13 @@ const ProfilePage = () => {
 
   const unlockedAchievements = profile.achievements || [];
 
+  // Récupérer le titre et la bordure équipés
+  const equippedTitle = profile.rewards?.equippedTitle || 'default';
+  const equippedBorder = profile.rewards?.equippedBorder || 'default';
+  const titleDetails = getTitleDetails(equippedTitle);
+  const borderDetails = getBorderDetails(equippedBorder);
+  const borderCss = borderDetails?.css || '';
+
   return (
     <div className="screen profile-screen">
       <div className="profile-modal profile-page-card profile-dashboard">
@@ -191,10 +204,14 @@ const ProfilePage = () => {
 
         <div className="profile-hero sticky-hero">
           <div className="hero-left">
-            <div className="avatar-ring" aria-label={t('profile.title')}>
+            <div className={`avatar-ring ${borderCss}`} aria-label={t('profile.title')}>
               <span className="avatar-letter">{avatarLetter}</span>
             </div>
             <div className="hero-meta">
+              {/* Titre équipé */}
+              {titleDetails && equippedTitle !== 'default' && (
+                <p className="equipped-title">{titleDetails.value || t(titleDetails.nameKey)}</p>
+              )}
               <p className="eyebrow">{t('common.profile')}</p>
               {isEditingName ? (
                 <div className="name-editor">
