@@ -118,34 +118,47 @@ npm run ci
 
 ## 📚 Structure des guides
 
-### 1. **[GETTING_STARTED.md](./GETTING_STARTED.md)**
+La documentation est organisée en deux dossiers complémentaires :
+
+### 📂 Organisation
+
+- **`/wiki/`** – Guides généraux et tutoriels pour tous les contributeurs
+- **`/docs/`** – Documentation technique détaillée pour développeurs et mainteneurs
+- **`/client/README.md`** – Documentation spécifique au frontend
+- **`/server/README.md`** – Documentation spécifique au backend
+
+➡️ **Index complet** : Voir [docs/README.md](./docs/README.md) pour la navigation complète de la documentation.
+
+### Guides principaux
+
+### 1. **[GETTING_STARTED.md](./wiki/GETTING_STARTED.md)**
 Installation détaillée, commandes dev/build, variables d'environnement, premiers pas.
 
-### 2. **[ARCHITECTURE.md](./ARCHITECTURE.md)** ⭐
+### 2. **[ARCHITECTURE.md](./wiki/ARCHITECTURE.md)** ⭐
 Vue d'ensemble unifiée du système avec diagrammes Mermaid :
 - Pipeline /api/quiz-question (étapes 1-11)
 - State machine GameContext
 - Stratégies cache et observabilité
 
-### 3. **[API_REFERENCE.md](./API_REFERENCE.md)**
+### 3. **[API_REFERENCE.md](./docs/API_REFERENCE.md)**
 Contrats des routes : requêtes, réponses, erreurs, exemples cURL.
 
-### 4. **Guides thématiques** (dans `/guides/`)
+### 4. **Guides thématiques** (dans `/wiki/guides/`)
 
 #### Backend
-- [QUIZ_PIPELINE.md](./guides/backend/QUIZ_PIPELINE.md) – Détail algorithmique, LCA buckets, anti-répétition
-- [CACHE_STRATEGY.md](./guides/backend/CACHE_STRATEGY.md) – SmartCache, TTL, circuit-breaker, limitations
-- [OBSERVABILITY.md](./guides/backend/OBSERVABILITY.md) – Headers debug, Server-Timing, monitoring
+- [QUIZ_PIPELINE.md](./wiki/guides/backend/QUIZ_PIPELINE.md) – Détail algorithmique, LCA buckets, anti-répétition
+- [CACHE_STRATEGY.md](./wiki/guides/backend/CACHE_STRATEGY.md) – SmartCache, TTL, circuit-breaker, limitations
+- [OBSERVABILITY.md](./wiki/guides/backend/OBSERVABILITY.md) – Headers debug, Server-Timing, monitoring
 
 #### Frontend
-- [GAME_STATE.md](./guides/frontend/GAME_STATE.md) – GameContext, lifecycle, AbortController
-- [PWA_OFFLINE.md](./guides/frontend/PWA_OFFLINE.md) – Service Worker, cache policies, offline-first
-- [COMPONENTS.md](./guides/frontend/COMPONENTS.md) – Catalogue des composants réutilisables
-- [STYLING.md](./guides/frontend/STYLING.md) – Architecture CSS, thèmes, responsive
+- [GAME_STATE.md](./wiki/guides/frontend/GAME_STATE.md) – GameContext, lifecycle, AbortController
+- [PWA_OFFLINE.md](./wiki/guides/frontend/PWA_OFFLINE.md) – Service Worker, cache policies, offline-first
+- COMPONENTS.md – Catalogue des composants réutilisables *(à créer)*
+- STYLING.md – Architecture CSS, thèmes, responsive *(à créer)*
 
 #### Ops
-- [DEPLOYMENT.md](./guides/ops/DEPLOYMENT.md) – Docker, Netlify, Render, env vars
-- [MONITORING.md](./guides/ops/MONITORING.md) – Logs Pino, alertes, performance
+- [DEPLOYMENT.md](./wiki/guides/ops/DEPLOYMENT.md) – Docker, Netlify, Render, env vars
+- MONITORING.md – Logs Pino, alertes, performance *(à créer)*
 
 ### 5. **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 Conventions de code, workflow i18n, tests, CI/CD.
@@ -218,9 +231,9 @@ graph TB
 
 ## 📝 Notes pour les développeurs
 
-- **Nouvelles features** : Consulter [ARCHITECTURE.md](./ARCHITECTURE.md) avant de modifier le pipeline.
+- **Nouvelles features** : Consulter [ARCHITECTURE.md](./wiki/ARCHITECTURE.md) avant de modifier le pipeline.
 - **Translations** : Lancer `npm run check:i18n` après chaque changement i18n.
 - **Performance** : Les headers `Server-Timing` et `X-Lure-Buckets` aident à diagnostiquer les goulots.
 - **Tests** : À ajouter pour tout changement de logique métier ou API.
 
-**Besoin d'aide ?** → Ouvrir une issue ou consulter le guide pertinent dans `/guides/`.
+**Besoin d'aide ?** → Ouvrir une issue ou consulter le guide pertinent dans `/wiki/guides/`.

@@ -14,7 +14,7 @@ em {
   position: fixed;
   top: 1.5rem;
   right: 1.5rem;
-  z-index: 10;
+  z-index: 100; /* Augmenté pour être au-dessus de l'en-tête fixe */
   display: flex;
   gap: 0.75rem;
   align-items: center;
@@ -190,21 +190,29 @@ select.nav-pill {
 } 
 
 .app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
   display: flex;
-  justify-content: center; /* Centre le titre */
+  justify-content: flex-start; /* Aligne le titre à gauche sur desktop */
   align-items: center;
-    margin-bottom: var(--space-4);
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-4);
+  /* Transparent background: keep content visible underneath */
   flex-shrink: 0;
 }
 
 .app-title-image {
-  max-width: 250px;
+  max-width: 200px;
   width: 60%;
   height: auto;
 }
 
 .app-title-wide {
   display: block;
+  margin-left: var(--space-2);
 }
 
 .app-title-compact {
@@ -233,7 +241,7 @@ select.nav-pill {
   }
 
   .app-title-compact {
-    display: block;
+    display: none;
     width: 45px;
     max-width: 45px;
   }
@@ -250,6 +258,13 @@ select.nav-pill {
   flex-direction: column;
   min-height: 0; /* CRITIQUE : Permet au flex item de rétrécir sous son contenu minimum */
   overflow: hidden;
+}
+
+/* Décalage pour éviter que le contenu soit masqué par l'en-tête sticky sur desktop */
+@media (min-width: 769px) {
+  .screen-container {
+    padding-top: 3.5rem; /* Espace suffisant pour l'en-tête fixe */
+  }
 }
 
 .screen {

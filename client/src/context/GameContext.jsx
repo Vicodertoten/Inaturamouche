@@ -680,6 +680,14 @@ export function GameProvider({ children }) {
     return nextQuestion.image_urls?.[0] || nextQuestion.image_url || null;
   }, [mediaType, nextQuestion]);
 
+  // Preload next image for better performance
+  useEffect(() => {
+    if (nextImageUrl) {
+      const img = new Image();
+      img.src = nextImageUrl;
+    }
+  }, [nextImageUrl]);
+
   const currentMultiplier = useMemo(
     () => computeMultiplierFromPerks(activePerks),
     [activePerks]
