@@ -2,14 +2,14 @@
   "name": "app",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "server/index.js",
   "scripts": {
     "test": "node --test ./tests/*.mjs && npm --prefix client run test",
     "check:i18n": "node scripts/i18n-compare.cjs client/src/locales/fr.js client/src/locales/en.js client/src/locales/nl.js",
     "ci": "npm run check:i18n && npm test",
     "lint": "npm --prefix client run lint",
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
     "build": "npm --prefix client install --include=dev && npm --prefix client run build"
   },
   "keywords": [],
