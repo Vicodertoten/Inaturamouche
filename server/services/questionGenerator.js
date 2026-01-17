@@ -234,8 +234,9 @@ export async function buildQuizQuestion({
   marks.labelsMade = performance.now();
 
   const observationPhotos = Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
+  // Medium (~500px) pour chargement rapide mobile au lieu de large (~1024px)
   const image_urls = observationPhotos
-    .map((p) => (p?.url ? p.url.replace('square', 'large') : null))
+    .map((p) => (p?.url ? p.url.replace('square', 'medium') : null))
     .filter(Boolean);
   const image_meta = observationPhotos.map((p, idx) => ({
     id: p.id ?? idx,

@@ -1,6 +1,7 @@
 /**
  * Utilities pour le préchargement optimisé des images
  */
+import { getSizedImageUrl } from './imageUtils';
 
 /**
  * Précharge une image en utilisant la méthode new Image()
@@ -10,24 +11,27 @@
 export function preloadImage(url) {
   if (!url) return Promise.reject(new Error('No URL provided'));
   
+  // IMPORTANT: Précharger en medium pour correspondre à l'affichage
+  const optimizedUrl = getSizedImageUrl(url, 'medium');
+  
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(url);
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.onabort = () => reject(new Error(`Image loading aborted: ${url}`));
+    img.onload = () => resolve(optimizedUrl);
+    img.onerror = () => reject(new Error(`Failed to load image: ${optimizedUrl}`));
+    img.onabort = () => reject(new Error(`Image loading aborted: ${optimizedUrl}`));
     // Set timeout pour éviter les images bloquées indéfiniment
     const timeout = setTimeout(() => {
-      reject(new Error(`Image loading timeout: ${url}`));
+      reject(new Error(`Image loading timeout: ${optimizedUrl}`));
     }, 8000);
     img.onload = () => {
       clearTimeout(timeout);
-      resolve(url);
+      resolve(optimizedUrl);
     };
     img.onerror = () => {
       clearTimeout(timeout);
-      reject(new Error(`Failed to load image: ${url}`));
+      reject(new Error(`Failed to load image: ${optimizedUrl}`));
     };
-    img.src = url;
+    img.src = optimizedUrl;
   });
 }
 

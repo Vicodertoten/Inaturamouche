@@ -38,11 +38,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     setMaxZoom(BASE_MAX_ZOOM);
   }, [imageUrls]);
 
-  // Preload next image logic (larger size to prepare full-res display)
+  // Preload next image logic (medium size for fast mobile loading)
   useEffect(() => {
     if (!nextImageUrl) return;
     const preloadImg = new Image();
-    preloadImg.src = getSizedImageUrl(nextImageUrl, 'large');
+    preloadImg.src = getSizedImageUrl(nextImageUrl, 'medium');
     return () => { preloadImg.src = ''; };
   }, [nextImageUrl]);
 
@@ -138,15 +138,15 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
   
   const currentMeta = useMemo(() => photoMeta?.[currentIndex] || null, [photoMeta, currentIndex]);
   const lowResUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'small') : null, [imageUrls, currentIndex, hasImages]);
-  // Provide both a large URL and an original fallback so the browser can choose
+  // Medium (~500px) pour chargement rapide mobile, large pour zoom uniquement
+  const mediumUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'medium') : null, [imageUrls, currentIndex, hasImages]);
   const largeUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'large') : null, [imageUrls, currentIndex, hasImages]);
-  const originalUrl = useMemo(() => hasImages ? getSizedImageUrl(imageUrls[currentIndex], 'original') : null, [imageUrls, currentIndex, hasImages]);
 
   // When the effective high-res URL changes (e.g. resume from pause), reset loading states
   useEffect(() => {
     setIsLowResLoaded(false);
     setIsHighResLoaded(false);
-  }, [largeUrl, originalUrl]);
+  }, [mediumUrl, largeUrl]);
 
   if (!hasImages) return <div className="image-viewer-container">{t('imageViewer.loading')}</div>;
 
@@ -179,8 +179,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
           <img
             loading={supportsLazyLoading ? 'eager' : undefined}
             className={`image-main ${isHighResLoaded ? 'is-loaded' : ''}`}
-            src={largeUrl || originalUrl}
-            srcSet={(largeUrl && originalUrl) ? `${largeUrl} 1x, ${originalUrl} 2x` : undefined}
+            src={mediumUrl}
+            srcSet={`${mediumUrl} 1x, ${largeUrl} 2x`}
             sizes="100vw"
             alt={alt}
             onLoad={handleImageLoad}
@@ -196,7 +196,8 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
               try {
                 const target = e.target;
                 const current = target.getAttribute('src');
-                if (originalUrl && current !== originalUrl) target.setAttribute('src', originalUrl);
+                // Fallback to large if medium fails
+                if (largeUrl && current !== largeUrl) target.setAttribute('src', largeUrl);
               } catch (err) {
                 // ignore
               }

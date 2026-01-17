@@ -6,6 +6,17 @@ export function getSizedImageUrl(url, size) {
   return url.replace(/(square|small|medium|large|original)/, size);
 }
 
+/**
+ * Obtient l'URL optimisée pour un chargement rapide (medium par défaut)
+ * Medium = ~500px, parfait pour mobile, chargement quasi instantané
+ * @param {string} url - L'URL de l'image iNaturalist
+ * @param {string} size - La taille souhaitée (défaut: 'medium')
+ * @returns {string} L'URL optimisée
+ */
+export function getOptimizedImageUrl(url, size = 'medium') {
+  return getSizedImageUrl(url, size);
+}
+
 export function getQuestionThumbnail(question) {
   if (!question) return null;
   if (Array.isArray(question.image_urls) && question.image_urls.length > 0) {
