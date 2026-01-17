@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useId } from 'react';
-import { autocompleteTaxa } from './services/api'; // NOUVEL IMPORT
-import { useLanguage } from './context/LanguageContext.jsx';
+import { autocompleteTaxa } from '../../services/api'; // NOUVEL IMPORT
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 
 function useDebounce(value, delay) {
