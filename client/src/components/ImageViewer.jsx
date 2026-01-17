@@ -170,7 +170,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             loading={supportsLazyLoading ? 'lazy' : undefined}
             className={`image-lqip ${isLowResLoaded ? 'is-ready' : ''} ${isHighResLoaded ? 'is-hidden' : ''}`}
             src={lowResUrl}
-            key={lowResUrl}
+            key={`lqip-${currentIndex}`}
             onLoad={() => setIsLowResLoaded(true)}
             alt=""
             draggable={false}
@@ -184,7 +184,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             sizes="100vw"
             alt={alt}
             onLoad={handleImageLoad}
-            key={largeUrl || originalUrl}
+            key={`main-${currentIndex}`}
             draggable={false}
             style={{
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${scale})`,

@@ -21,8 +21,13 @@ const EndScreen = ({
   const { t, getTaxonDisplayNames } = useLanguage();
   const { initialSessionXP } = useGameData();
   
-  const currentXP = profile?.xp || 0;
-  const sessionXPGained = Math.max(0, currentXP - (initialSessionXP || 0));
+  // Prefer the larger of local session `score` or the profile-based difference.
+  // This preserves existing tests (which mock profile.xp) while still showing
+  // immediate XP when the profile hasn't been updated yet.
+  const profileDiff = Math.max(0, (profile?.xp || 0) - (initialSessionXP || 0));
+  const sessionXPGained = Math.max(score || 0, profileDiff);
+  // Visual current XP is initial + session gain to force the progress animation
+  const currentXP = (initialSessionXP || 0) + sessionXPGained;
   const startLevel = getLevelFromXp(initialSessionXP || 0);
   const endLevel = getLevelFromXp(currentXP);
   // Level up seulement si on a vraiment gagné de l'XP ET que le niveau a changé
