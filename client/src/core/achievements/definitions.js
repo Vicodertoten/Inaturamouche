@@ -55,6 +55,11 @@ export const AVAILABLE_BORDERS = Object.freeze({
   binoculars_lens: { id: 'binoculars_lens', nameKey: 'borders.binoculars_lens', css: 'border-binoculars' },
   spartan_helmet: { id: 'spartan_helmet', nameKey: 'borders.spartan_helmet', css: 'border-spartan' },
   diamond_frame: { id: 'diamond_frame', nameKey: 'borders.diamond_frame', css: 'border-diamond' },
+  // Next-Gen Premium bordures
+  aurora_borealis: { id: 'aurora_borealis', nameKey: 'borders.aurora_borealis', css: 'border-aurora' },
+  cosmic_nebula: { id: 'cosmic_nebula', nameKey: 'borders.cosmic_nebula', css: 'border-nebula' },
+  phoenix_flame: { id: 'phoenix_flame', nameKey: 'borders.phoenix_flame', css: 'border-phoenix' },
+  ocean_depth: { id: 'ocean_depth', nameKey: 'borders.ocean_depth', css: 'border-ocean' },
 });
 
 /**

@@ -258,10 +258,9 @@ select.nav-pill {
     display: none;
   }
 
+  /* Logo compact masqué sur mobile - Task 4: Nettoyage Mobile */
   .app-title-compact {
-    display: block;
-    width: 40px;
-    max-width: 40px;
+    display: none;
   }
 
   .app-title-image {

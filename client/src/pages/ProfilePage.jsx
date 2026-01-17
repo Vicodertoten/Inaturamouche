@@ -16,6 +16,7 @@ import { notify } from '../services/notifications.js';
 import { resetProfile } from '../services/PlayerProfile';
 import DailyStreakBadge from '../components/DailyStreakBadge';
 import ProfileStreakCard from '../components/ProfileStreakCard';
+import ProfileConfigurator from '../components/ProfileConfigurator';
 import '../components/ProfileModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
@@ -103,11 +104,8 @@ const ProfilePage = () => {
   const [masteryDetails, setMasteryDetails] = useState([]);
   const [isLoadingMastery, setIsLoadingMastery] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  // Unified edit modal state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editedName, setEditedName] = useState('');
-  const [previewTitle, setPreviewTitle] = useState(null);
-  const [previewBorder, setPreviewBorder] = useState(null);
+  // Profile configurator modal state
+  const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
 
   const sortedMastery = useMemo(
     () =>
@@ -164,11 +162,17 @@ const ProfilePage = () => {
     () => profile?.name || profile?.username || t('profile.title'),
     [profile?.name, profile?.username, t]
   );
-  const avatarLetter = useMemo(() => (displayName ? displayName.charAt(0).toUpperCase() : 'E'), [displayName]);
-
-  useEffect(() => {
-    setEditedName(profile?.name || profile?.username || '');
-  }, [profile?.name, profile?.username]);
+  
+  // Compute avatar display
+  const avatarDisplay = useMemo(() => {
+    if (profile?.avatar?.type === 'emoji') {
+      return { type: 'emoji', value: profile.avatar.value };
+    }
+    if (profile?.avatar?.type === 'image') {
+      return { type: 'image', value: profile.avatar.value };
+    }
+    return { type: 'letter', value: displayName ? displayName.charAt(0).toUpperCase() : 'E' };
+  }, [profile?.avatar, displayName]);
 
   useEffect(() => {
     if (activeTab !== 'stats' || !profile || sortedMastery.length === 0 || masteryDetails.length > 0) {
@@ -208,7 +212,6 @@ const ProfilePage = () => {
     resetProfile();
     refreshProfile();
     setIsResetModalOpen(false);
-    setIsEditingName(false);
   }, [refreshProfile]);
 
   const handleBack = useCallback(() => {
@@ -219,46 +222,28 @@ const ProfilePage = () => {
     else navigate('/', { replace: true });
   }, [navigate]);
 
-  // Unified edit modal handlers
-  const handleOpenEditModal = useCallback(() => {
-    setEditedName(profile?.name || profile?.username || '');
-    setPreviewTitle(profile?.rewards?.equippedTitle || 'default');
-    setPreviewBorder(profile?.rewards?.equippedBorder || 'default');
-    setIsEditModalOpen(true);
-  }, [profile?.name, profile?.username, profile?.rewards]);
-
-  const handleCloseEditModal = useCallback(() => {
-    setIsEditModalOpen(false);
-    setPreviewTitle(null);
-    setPreviewBorder(null);
+  // Profile configurator handlers
+  const handleOpenConfigurator = useCallback(() => {
+    setIsConfiguratorOpen(true);
   }, []);
 
-  const handleSaveProfile = useCallback(() => {
-    const trimmedName = (editedName || '').trim();
+  const handleCloseConfigurator = useCallback(() => {
+    setIsConfiguratorOpen(false);
+  }, []);
+
+  const handleSaveProfileChanges = useCallback((changes) => {
     updateProfile((prev) => ({
       ...prev,
-      name: trimmedName || prev.name,
+      name: changes.name || prev.name,
+      avatar: changes.avatar,
       rewards: {
         ...prev.rewards,
-        equippedTitle: previewTitle || prev.rewards?.equippedTitle || 'default',
-        equippedBorder: previewBorder || prev.rewards?.equippedBorder || 'default',
+        equippedTitle: changes.equippedTitle || prev.rewards?.equippedTitle || 'default',
+        equippedBorder: changes.equippedBorder || prev.rewards?.equippedBorder || 'default',
       },
     }));
-    setIsEditModalOpen(false);
-    setPreviewTitle(null);
-    setPreviewBorder(null);
-  }, [editedName, previewTitle, previewBorder, updateProfile]);
-
-  // Preview selection handlers (for modal preview)
-  const handleSelectTitle = useCallback((titleId, isUnlocked) => {
-    // Allow preview even if locked (will show grayed out)
-    setPreviewTitle(titleId);
-  }, []);
-
-  const handleSelectBorder = useCallback((borderId, isUnlocked) => {
-    // Allow preview even if locked (will show grayed out)
-    setPreviewBorder(borderId);
-  }, []);
+    notify(t('profile.save_success'), { type: 'success' });
+  }, [updateProfile, t]);
 
   // Regrouper les succès par catégorie
   const achievementsByCategory = useMemo(() => {
@@ -281,12 +266,12 @@ const ProfilePage = () => {
 
   // Titres et bordures disponibles avec statut de déverrouillage
   const titlesWithStatus = useMemo(() => {
-    return getAllTitlesWithStatus(profile.achievements || []);
-  }, [profile.achievements]);
+    return getAllTitlesWithStatus(profile.rewards);
+  }, [profile.rewards]);
 
   const bordersWithStatus = useMemo(() => {
-    return getAllBordersWithStatus(profile.achievements || []);
-  }, [profile.achievements]);
+    return getAllBordersWithStatus(profile.rewards);
+  }, [profile.rewards]);
 
   if (!profile) {
     return (
@@ -319,7 +304,7 @@ const ProfilePage = () => {
           <button
             type="button"
             className="profile-edit-btn"
-            onClick={handleOpenEditModal}
+            onClick={handleOpenConfigurator}
             aria-label={t('profile.edit_profile')}
             title={t('profile.edit_profile')}
           >
@@ -330,7 +315,15 @@ const ProfilePage = () => {
           <div className="hero-content">
             {/* Avatar */}
             <div className={`avatar-ring ${borderCss}`} aria-label={t('profile.title')}>
-              <span className="avatar-letter">{avatarLetter}</span>
+              {avatarDisplay.type === 'emoji' && (
+                <span className="avatar-emoji">{avatarDisplay.value}</span>
+              )}
+              {avatarDisplay.type === 'image' && (
+                <img src={avatarDisplay.value} alt="Avatar" className="avatar-image" />
+              )}
+              {avatarDisplay.type === 'letter' && (
+                <span className="avatar-letter">{avatarDisplay.value}</span>
+              )}
             </div>
 
             {/* Name */}
@@ -634,102 +627,14 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Unified Edit Profile Modal */}
-      {isEditModalOpen && (
-        <Modal onClose={handleCloseEditModal}>
-          <div className="edit-profile-modal">
-            <h3 className="modal-title">{t('profile.edit_profile')}</h3>
-
-            {/* Live preview */}
-            <div className="edit-preview">
-              <div className={`avatar-ring-preview ${previewBorder && !titlesWithStatus.find(t => t.id === previewTitle)?.unlocked ? '' : ''} ${getBorderDetails(previewBorder)?.css || ''} ${!bordersWithStatus.find(b => b.id === previewBorder)?.unlocked ? 'preview-locked' : ''}`}>
-                <span className="preview-letter-large">{(editedName || 'E').charAt(0).toUpperCase()}</span>
-              </div>
-              {previewTitle && previewTitle !== 'default' && (
-                <p className={`equipped-title-preview ${!titlesWithStatus.find(t => t.id === previewTitle)?.unlocked ? 'preview-locked' : ''}`}>
-                  {getTitleDetails(previewTitle)?.value || t(getTitleDetails(previewTitle)?.nameKey)}
-                </p>
-              )}
-            </div>
-            
-            {/* Username input */}
-            <div className="edit-section">
-              <label htmlFor="edit-username" className="edit-label">{t('profile.edit_name')}</label>
-              <input
-                id="edit-username"
-                type="text"
-                className="edit-input"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                placeholder={t('profile.title')}
-              />
-            </div>
-
-            {/* Title selection */}
-            <div className="edit-section">
-              <label className="edit-label">{t('profile.select_title')}</label>
-              <div className="options-grid options-grid-compact">
-                {titlesWithStatus.map((title) => {
-                  const isSelected = previewTitle === title.id;
-                  return (
-                    <div
-                      key={title.id}
-                      className={`option-item-flat ${isSelected ? 'selected' : ''} ${!title.unlocked ? 'locked-preview' : ''}`}
-                      onClick={() => handleSelectTitle(title.id, title.unlocked)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <span className="option-text">
-                        {title.value || t(title.nameKey)}
-                      </span>
-                      {!title.unlocked && <span className="lock-icon">🔒</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Border selection */}
-            <div className="edit-section">
-              <label className="edit-label">{t('profile.select_border')}</label>
-              <div className="options-grid options-grid-borders">
-                {bordersWithStatus.map((border) => {
-                  const isSelected = previewBorder === border.id;
-                  return (
-                    <div
-                      key={border.id}
-                      className={`option-item-border ${isSelected ? 'selected' : ''} ${!border.unlocked ? 'locked-preview' : ''}`}
-                      onClick={() => handleSelectBorder(border.id, border.unlocked)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className={`border-preview-mini ${border.css || ''}`}>
-                        <span className="preview-letter-mini">{avatarLetter}</span>
-                      </div>
-                      <span className="option-text-small">{t(border.nameKey)}</span>
-                      {!border.unlocked && <span className="lock-icon-small">🔒</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="edit-actions">
-              <button 
-                className="action-button save-button" 
-                onClick={handleSaveProfile}
-                disabled={previewTitle && !titlesWithStatus.find(t => t.id === previewTitle)?.unlocked || previewBorder && !bordersWithStatus.find(b => b.id === previewBorder)?.unlocked}
-              >
-                {t('common.save')}
-              </button>
-              <button className="action-button cancel-button" onClick={handleCloseEditModal}>
-                {t('common.cancel')}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Profile Configurator Modal */}
+      <ProfileConfigurator
+        isOpen={isConfiguratorOpen}
+        onClose={handleCloseConfigurator}
+        onSave={handleSaveProfileChanges}
+        profile={profile}
+        displayName={displayName}
+      />
 
       {isResetModalOpen && (
         <Modal onClose={handleCloseResetModal}>

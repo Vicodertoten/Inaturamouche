@@ -14,6 +14,8 @@ import {
   evaluateMicroChallenges,
   checkEndOfGameAchievements,
   applyAllRewards,
+  getRewardForAchievement,
+  REWARD_TYPES,
 } from '../core/achievements';
 import { initialCustomFilters, customFilterReducer } from '../state/filterReducer';
 import { fetchQuizQuestion } from '../services/api';
@@ -29,6 +31,7 @@ import { useXP } from './XPContext.jsx';
 import { useStreak } from './StreakContext.jsx';
 import { useAchievement } from './AchievementContext.jsx';
 import { preloadQuestionImages } from '../utils/imagePreload';
+import { notify } from '../services/notifications.js';
 
 export const DEFAULT_MAX_QUESTIONS = 5;
 const DEFAULT_MEDIA_TYPE = 'images';
@@ -717,6 +720,17 @@ export function GameProvider({ children }) {
         // Appliquer les récompenses (XP, titres, bordures, multiplicateurs)
         const rewardResult = applyAllRewards(profileClone, allUnlocked);
         Object.assign(profileClone, rewardResult.profile);
+        
+        // Notifier des récompenses obtenues
+        if (rewardResult.totalXP > 0) {
+          notify(`🎉 +${rewardResult.totalXP} XP bonus!`, { type: 'success', duration: 4000 });
+        }
+        if (rewardResult.titlesUnlocked.length > 0) {
+          notify(`🏷️ Nouveau titre débloqué!`, { type: 'success', duration: 4000 });
+        }
+        if (rewardResult.bordersUnlocked.length > 0) {
+          notify(`🖼️ Nouvelle bordure débloquée!`, { type: 'success', duration: 4000 });
+        }
         
         // Notifier le système d'achievements
         queueAchievements(allUnlocked);

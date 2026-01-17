@@ -1269,7 +1269,441 @@
   .border-spartan::before,
   .border-spartan::after,
   .border-diamond::before,
-  .border-diamond::after {
+  .border-diamond::after,
+  .border-aurora::before,
+  .border-aurora::after,
+  .border-nebula::before,
+  .border-nebula::after,
+  .border-phoenix::before,
+  .border-phoenix::after,
+  .border-ocean::before,
+  .border-ocean::after {
     animation: none;
   }
+}
+
+/* ===========================================
+   NEXT-GEN PREMIUM BORDERS
+   =========================================== */
+
+/* ===========================================
+   BORDER: AURORA BOREALIS (Aurore Boréale)
+   Effet lumière nordique SPECTACULAIRE
+   =========================================== */
+
+.border-aurora {
+  --aurora-green: #00FF87;
+  --aurora-cyan: #00E5FF;
+  --aurora-purple: #E040FB;
+  --aurora-pink: #FF4081;
+  --aurora-blue: #448AFF;
+  --aurora-glow: rgba(0, 255, 135, 0.6);
+}
+
+.border-aurora::before {
+  inset: -7px;
+  background: 
+    linear-gradient(
+      45deg,
+      var(--aurora-green) 0%,
+      var(--aurora-cyan) 20%,
+      var(--aurora-purple) 40%,
+      var(--aurora-pink) 60%,
+      var(--aurora-blue) 80%,
+      var(--aurora-green) 100%
+    );
+  background-size: 300% 300%;
+  animation: aurora-wave 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 30px var(--aurora-glow),
+    0 0 60px rgba(0, 229, 255, 0.4),
+    0 0 100px rgba(224, 64, 251, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.3);
+  filter: blur(0.5px);
+}
+
+.border-aurora::after {
+  content: '✨';
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  font-size: 1.4rem;
+  z-index: 10;
+  animation: aurora-sparkle 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--aurora-glow));
+}
+
+/* Particules aurore */
+.border-aurora .avatar-letter::before {
+  content: '⭐';
+  position: absolute;
+  top: -20px;
+  left: -15px;
+  font-size: 0.8rem;
+  animation: aurora-star 3s ease-in-out infinite;
+  filter: hue-rotate(0deg);
+}
+
+.border-aurora .avatar-letter::after {
+  content: '';
+  position: absolute;
+  inset: -25px;
+  border-radius: 50%;
+  background: 
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(0, 255, 135, 0.2) 60deg,
+      transparent 120deg,
+      rgba(0, 229, 255, 0.2) 180deg,
+      transparent 240deg,
+      rgba(224, 64, 251, 0.2) 300deg,
+      transparent 360deg
+    );
+  animation: aurora-halo 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes aurora-wave {
+  0% { background-position: 0% 50%; filter: hue-rotate(0deg) blur(0.5px); }
+  50% { background-position: 100% 50%; filter: hue-rotate(20deg) blur(1px); }
+  100% { background-position: 0% 50%; filter: hue-rotate(0deg) blur(0.5px); }
+}
+
+@keyframes aurora-sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.3) rotate(180deg); opacity: 0.8; }
+}
+
+@keyframes aurora-star {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+  50% { transform: translateY(-10px) rotate(180deg); opacity: 1; }
+}
+
+@keyframes aurora-halo {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===========================================
+   BORDER: COSMIC NEBULA (Nébuleuse Cosmique)
+   Effet espace profond GALACTIQUE
+   =========================================== */
+
+.border-nebula {
+  --nebula-purple: #9C27B0;
+  --nebula-deep: #4A148C;
+  --nebula-pink: #EC407A;
+  --nebula-blue: #1E88E5;
+  --nebula-orange: #FF7043;
+  --nebula-white: rgba(255, 255, 255, 0.8);
+  --nebula-glow: rgba(156, 39, 176, 0.7);
+}
+
+.border-nebula::before {
+  inset: -8px;
+  background: 
+    radial-gradient(
+      ellipse at 30% 30%,
+      var(--nebula-pink) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 70%,
+      var(--nebula-blue) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      var(--nebula-purple) 0%,
+      var(--nebula-deep) 100%
+    );
+  animation: nebula-pulse 5s ease-in-out infinite;
+  box-shadow: 
+    0 0 40px var(--nebula-glow),
+    0 0 80px rgba(236, 64, 122, 0.4),
+    0 0 120px rgba(30, 136, 229, 0.3),
+    inset 0 0 25px rgba(255, 255, 255, 0.2);
+}
+
+.border-nebula::after {
+  content: '🌌';
+  position: absolute;
+  top: -18px;
+  right: -16px;
+  font-size: 1.6rem;
+  z-index: 10;
+  animation: nebula-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px var(--nebula-glow));
+}
+
+/* Étoiles scintillantes */
+.border-nebula .avatar-letter::before {
+  content: '✦';
+  position: absolute;
+  font-size: 0.6rem;
+  color: var(--nebula-white);
+  top: -18px;
+  left: -12px;
+  animation: nebula-twinkle 1.5s ease-in-out infinite;
+  text-shadow: 0 0 8px var(--nebula-white);
+}
+
+.border-nebula .avatar-letter::after {
+  content: '✧';
+  position: absolute;
+  font-size: 0.5rem;
+  color: var(--nebula-white);
+  bottom: -15px;
+  right: -10px;
+  animation: nebula-twinkle 2s ease-in-out infinite 0.5s;
+  text-shadow: 0 0 6px var(--nebula-white);
+}
+
+@keyframes nebula-pulse {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1) saturate(1);
+  }
+  50% { 
+    transform: scale(1.02) rotate(5deg);
+    filter: brightness(1.2) saturate(1.3);
+  }
+}
+
+@keyframes nebula-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.1); }
+}
+
+@keyframes nebula-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* ===========================================
+   BORDER: PHOENIX FLAME (Flamme du Phénix)
+   Effet feu LÉGENDAIRE renaissance
+   =========================================== */
+
+.border-phoenix {
+  --phoenix-red: #FF1744;
+  --phoenix-orange: #FF9100;
+  --phoenix-yellow: #FFEA00;
+  --phoenix-white: #FFF9C4;
+  --phoenix-ember: #D84315;
+  --phoenix-glow: rgba(255, 145, 0, 0.8);
+}
+
+.border-phoenix::before {
+  inset: -7px;
+  background: 
+    conic-gradient(
+      from 0deg,
+      var(--phoenix-red) 0deg,
+      var(--phoenix-orange) 60deg,
+      var(--phoenix-yellow) 120deg,
+      var(--phoenix-white) 150deg,
+      var(--phoenix-yellow) 180deg,
+      var(--phoenix-orange) 240deg,
+      var(--phoenix-red) 300deg,
+      var(--phoenix-ember) 360deg
+    );
+  animation: phoenix-blaze 3s ease-in-out infinite;
+  box-shadow: 
+    0 0 35px var(--phoenix-glow),
+    0 0 70px rgba(255, 23, 68, 0.5),
+    0 0 100px rgba(255, 234, 0, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+.border-phoenix::after {
+  content: '🔥';
+  position: absolute;
+  top: -20px;
+  right: -16px;
+  font-size: 1.8rem;
+  z-index: 10;
+  animation: phoenix-rise 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 15px var(--phoenix-glow));
+}
+
+/* Étincelles de feu */
+.border-phoenix .avatar-letter::before {
+  content: '🔥';
+  position: absolute;
+  top: -22px;
+  left: -14px;
+  font-size: 0.9rem;
+  animation: flame-flicker 0.8s ease-in-out infinite alternate;
+  filter: hue-rotate(-10deg);
+}
+
+.border-phoenix .avatar-letter::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: 
+    radial-gradient(
+      circle at center,
+      transparent 40%,
+      rgba(255, 145, 0, 0.3) 60%,
+      transparent 80%
+    );
+  animation: phoenix-aura 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes phoenix-blaze {
+  0%, 100% { 
+    transform: rotate(0deg);
+    filter: brightness(1);
+  }
+  25% { filter: brightness(1.3); }
+  50% { 
+    transform: rotate(180deg);
+    filter: brightness(1.5);
+  }
+  75% { filter: brightness(1.3); }
+}
+
+@keyframes phoenix-rise {
+  0%, 100% { 
+    transform: translateY(0) scale(1) rotate(-5deg);
+  }
+  50% { 
+    transform: translateY(-12px) scale(1.2) rotate(5deg);
+  }
+}
+
+@keyframes flame-flicker {
+  0% { transform: scale(1) rotate(-10deg); opacity: 0.8; }
+  100% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+}
+
+@keyframes phoenix-aura {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.15); }
+}
+
+/* ===========================================
+   BORDER: OCEAN DEPTH (Profondeur Océanique)
+   Effet abyssal AQUATIQUE mystérieux
+   =========================================== */
+
+.border-ocean {
+  --ocean-deep: #0D47A1;
+  --ocean-mid: #1565C0;
+  --ocean-light: #42A5F5;
+  --ocean-foam: #E1F5FE;
+  --ocean-teal: #00ACC1;
+  --ocean-glow: rgba(21, 101, 192, 0.7);
+}
+
+.border-ocean::before {
+  inset: -6px;
+  background: 
+    linear-gradient(
+      180deg,
+      var(--ocean-foam) 0%,
+      var(--ocean-light) 20%,
+      var(--ocean-mid) 50%,
+      var(--ocean-deep) 100%
+    );
+  background-size: 100% 200%;
+  animation: ocean-wave 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 30px var(--ocean-glow),
+    0 0 60px rgba(66, 165, 245, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.border-ocean::after {
+  content: '🌊';
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  font-size: 1.5rem;
+  z-index: 10;
+  animation: ocean-splash 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--ocean-glow));
+}
+
+/* Bulles */
+.border-ocean .avatar-letter::before {
+  content: '🐚';
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  animation: bubble-float 3s ease-in-out infinite;
+}
+
+.border-ocean .avatar-letter::after {
+  content: '🐟';
+  position: absolute;
+  top: -16px;
+  left: -14px;
+  font-size: 0.8rem;
+  animation: fish-swim 4s ease-in-out infinite;
+}
+
+@keyframes ocean-wave {
+  0%, 100% { 
+    background-position: 0% 0%;
+    filter: brightness(1);
+  }
+  50% { 
+    background-position: 0% 100%;
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes ocean-splash {
+  0%, 100% { transform: translateY(0) rotate(-10deg) scale(1); }
+  25% { transform: translateY(-4px) rotate(0deg) scale(1.1); }
+  50% { transform: translateY(-8px) rotate(10deg) scale(1.15); }
+  75% { transform: translateY(-4px) rotate(0deg) scale(1.1); }
+}
+
+@keyframes bubble-float {
+  0%, 100% { 
+    transform: translateX(-50%) translateY(0);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateX(-50%) translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes fish-swim {
+  0%, 100% { 
+    transform: translateX(0) scaleX(1);
+  }
+  50% { 
+    transform: translateX(10px) scaleX(-1);
+  }
+}
+
+/* ===========================================
+   AVATAR EMOJI & IMAGE STYLES
+   =========================================== */
+
+.avatar-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: relative;
+  z-index: 2;
 }
