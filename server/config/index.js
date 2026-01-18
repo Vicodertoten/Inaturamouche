@@ -15,6 +15,9 @@ export const config = {
   // Timeouts & Retries
   requestTimeoutMs: 8000,
   maxRetries: 2,
+
+  // AI Service
+  aiApiKey: process.env.AI_API_KEY,
   
   // Cache TTLs (en millisecondes)
   questionCacheTtl: 1000 * 60 * 5,        // 5 min

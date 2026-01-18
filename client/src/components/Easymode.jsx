@@ -229,6 +229,7 @@ const EasyMode = () => {
           question={question}
           scoreInfo={scoreInfo}
           onNext={handleNext}
+          userAnswer={remainingPairs[selectedIndex]}
         />
       )}
 

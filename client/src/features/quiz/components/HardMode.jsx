@@ -65,6 +65,7 @@ function HardMode() {
     hintsUsed:  false,
     hintCount:  0,
   });
+  const [lastGuess, setLastGuess] = useState(null);
 
   const { t, language } = useLanguage();
   const feedbackTimeoutRef = useRef(null);
@@ -139,6 +140,7 @@ function HardMode() {
       hintsUsed: false,
       hintCount: 0,
     });
+    setLastGuess(null);
     setActiveRank(RANKS[0]);
   }, [question]);
 
@@ -220,6 +222,7 @@ function HardMode() {
     // Prevent concurrent guesses
     if (!selection?.id || roundStatus !== 'playing' || !question?.bonne_reponse || guesses <= 0 || isGuessing) return;
 
+    setLastGuess(selection);
     setIsGuessing(true); // Lock guessing during async operation
     const updatedGuesses = guesses - 1;
     setGuesses(updatedGuesses);
@@ -428,6 +431,7 @@ function HardMode() {
           question={question}
           scoreInfo={scoreInfo}
           onNext={handleNext}
+          userAnswer={lastGuess}
         />
       )}
 

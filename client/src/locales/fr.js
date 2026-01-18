@@ -231,6 +231,7 @@ const fr = {
   summary: {
     win_title: 'Espèce trouvée !',
     lose_title: 'Dommage !',
+    explanation_title: 'Le Professeur Mouche dit...',
     answer_intro: 'La réponse était :',
     points: 'Points gagnés :',
     bonus: 'Bonus :',

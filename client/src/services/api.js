@@ -204,6 +204,75 @@ async function apiGet(path, params = {}, options = {}) {
   }
 }
 
+async function apiPost(path, body = {}, options = {}) {
+  const { signal, timeout = DEFAULT_TIMEOUT, maxRetries = MAX_RETRIES } = options;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const url = new URL(path, API_BASE_URL);
+
+    const controller = new AbortController();
+    const abortHandler = () => controller.abort(signal?.reason);
+    const timeoutId = setTimeout(() => controller.abort(new DOMException("Timeout", "AbortError")), timeout);
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort(signal.reason);
+      } else {
+        signal.addEventListener("abort", abortHandler, { once: true });
+      }
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        // Pas de JSON → laisser data = {}
+      }
+      if (!res.ok) {
+        const apiError = data?.error ? data.error : null;
+        const message = (apiError?.message) || (typeof apiError === 'string' ? apiError : 'Network error');
+        const error = new Error(message);
+        error.status = res.status;
+        if (apiError?.code) error.code = apiError.code;
+        error.raw = apiError;
+
+        if (attempt < maxRetries && isRetryableError(error)) {
+          const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
+          await sleep(RETRY_DELAYS[delayIndex]);
+          continue;
+        }
+        
+        if (!options?.silent) notifyApiError(error);
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      if (attempt < maxRetries && isRetryableError(error)) {
+        const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
+        await sleep(RETRY_DELAYS[delayIndex]);
+        continue;
+      }
+      
+      if (!options?.silent && !error?.notified) notifyApiError(error);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      if (signal && !signal.aborted) {
+        signal.removeEventListener("abort", abortHandler);
+      }
+    }
+  }
+}
+
 /**
  * Récupère une question de quiz en fonction des filtres.
  * Accepte objets ou URLSearchParams. Les arrays deviennent "a,b,c".
@@ -216,6 +285,13 @@ export const fetchQuizQuestion = (params, options) => {
   );
   paramsWithSession.set('client_session_id', getClientSessionId());
   return apiGet("/api/quiz-question", paramsWithSession, options);
+};
+
+/**
+ * Récupère l'explication IA pour une réponse incorrecte.
+ */
+export const fetchExplanation = (correctId, wrongId, locale = 'fr') => {
+    return apiPost('/api/quiz/explain', { correctId, wrongId, locale }, { timeout: 20000 }); // Timeout plus long pour l'IA
 };
 
 /**

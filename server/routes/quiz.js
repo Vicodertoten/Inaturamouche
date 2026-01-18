@@ -2,6 +2,7 @@
 // Route de génération de questions de quiz
 
 import { Router } from 'express';
+import { z } from 'zod';
 import { findPackById } from '../packs/index.js';
 import { createSeededRandom, buildCacheKey } from '../../lib/quiz-utils.js';
 import { quizLimiter } from '../middleware/rateLimiter.js';
@@ -9,8 +10,43 @@ import { validate, quizSchema } from '../utils/validation.js';
 import { buildMonthDayFilter, geoParams, isValidISODate, getClientIp } from '../utils/helpers.js';
 import { selectionStateCache, questionQueueCache } from '../cache/selectionCache.js';
 import { buildQuizQuestion, getQueueEntry, fillQuestionQueue } from '../services/questionGenerator.js';
+import { getFullTaxaDetails } from '../services/iNaturalistClient.js';
+import { taxonDetailsCache } from '../cache/taxonDetailsCache.js';
+import { generateCustomExplanation } from '../services/aiService.js';
 
 const router = Router();
+
+const explainSchema = z.object({
+  correctId: z.coerce.number().int(),
+  wrongId: z.coerce.number().int(),
+  locale: z.string().trim().default('fr'),
+});
+
+router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
+  const { correctId, wrongId, locale } = req.valid;
+  const { logger, id: requestId } = req;
+  const taxaIds = [correctId, wrongId];
+  
+  try {
+    const taxaDetails = await getFullTaxaDetails(taxaIds, locale, { logger, requestId }, taxonDetailsCache);
+
+    const correctTaxon = taxaDetails.find(t => t.id === correctId);
+    const wrongTaxon = taxaDetails.find(t => t.id === wrongId);
+
+    if (!correctTaxon || !wrongTaxon) {
+      logger.warn({ correctId, wrongId, found: taxaDetails.map(t=>t.id) }, 'Could not find one or both taxa for explanation.');
+      return res.status(404).json({ error: { code: 'TAXON_NOT_FOUND', message: 'One or both species not found.' } });
+    }
+
+    const explanation = await generateCustomExplanation(correctTaxon, wrongTaxon, locale, logger);
+
+    res.json({ explanation });
+
+  } catch (err) {
+    logger.error({ err, requestId }, 'Failed to generate AI explanation');
+    res.status(500).json({ error: { code: 'EXPLANATION_FAILED', message: 'Could not generate explanation.' } });
+  }
+});
 
 router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, res) => {
   try {

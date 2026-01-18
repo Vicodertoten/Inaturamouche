@@ -46,7 +46,7 @@ export function createApp() {
         useDefaults: true,
         directives: {
           'default-src': ["'self'"],
-          'connect-src': ["'self'", 'https://api.inaturalist.org', 'https://*.wikipedia.org'],
+          'connect-src': ["'self'", 'https://api.inaturalist.org', 'https://*.wikipedia.org', 'https://generativelanguage.googleapis.com'],
           'img-src': [
             "'self'",
             'data:',
