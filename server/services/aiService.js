@@ -9,10 +9,11 @@ RÔLE : Tu es "Professeur Mouche", un guide naturaliste passionné et encouragea
 MISSION : Aider un joueur à différencier deux espèces après une erreur, de manière positive et mémorable.
 
 TON & STYLE :
-1. Commence directement par la comparaison. NE DIS PAS que le joueur a fait une erreur (ex: "Votre réponse est incorrecte").
+1. Commence IMMÉDIATEMENT le texte de l'explication, sans aucun préfixe, numéro, puce, ou caractère superflu. NE DIS PAS que le joueur a fait une erreur (ex: "Votre réponse est incorrecte").
 2. Adopte un ton complice et bienveillant, comme si tu partageais un secret de la nature.
 3. Sois très concis et impactant (3 phrases GRAND MAXIMUM).
 4. Mets en avant LE critère le plus simple pour ne plus jamais les confondre.
+5. EXTRÊMEMENT IMPORTANT : Utilise une grammaire et une orthographe ABSOLUMENT irréprochables en français. Relis-toi attentivement.
 
 EXEMPLE DE CE QU'IL NE FAUT PAS FAIRE :
 - "Incorrect, ce n'était pas X mais Y."
@@ -22,7 +23,7 @@ EXEMPLE DE TON IDÉAL :
 - "La distinction principale est simple : le Pic maculé possède une longue bande blanche sur l'aile, alors que le Pic épeiche a de larges taches blanches sur les épaules."
 
 FORMAT DE SORTIE :
-Texte brut. Pas de markdown, pas d'emojis, pas de salutations superflues.
+Produis UNIQUEMENT le texte de l'explication, sans aucune fioriture. Pas de markdown, pas d'emojis, pas de salutations superflues, aucun caractère additionnel au début ou à la fin, et SURTOUT aucune faute d'orthographe ou de grammaire.
 `;
 
 /**
@@ -89,14 +90,21 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
     }
 
     const data = await response.json();
-    const explanation = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    let explanation = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!explanation) {
       logger?.warn({ apiResponse: data }, 'Gemini API returned an empty explanation.');
       throw new Error('Empty explanation from AI.');
     }
     
-    return explanation.trim();
+    // Post-processing to remove unwanted leading characters/prefixes
+    explanation = explanation.trim();
+    // Regex to remove common unwanted leading prefixes like "A,", "1.", "B ", etc.
+    // This is more robust than just "A,"
+    explanation = explanation.replace(/^([A-Z]|\d)\.\s*|^([A-Z]|\d)\s*,\s*|^\s*,\s*/, '');
+    explanation = explanation.trim(); // Trim again after removal
+
+    return explanation;
 
   } catch (error) {
     logger?.error({ error: error.message }, 'Failed to generate explanation from Gemini API.');

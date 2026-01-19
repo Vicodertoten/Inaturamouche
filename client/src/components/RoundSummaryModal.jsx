@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { useUser } from '../context/UserContext';
-import { useGameData } from '../context/GameContext';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -9,9 +7,30 @@ import { fetchExplanation } from '../services/api';
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 
+// Composant interne pour l'effet machine à écrire
+const Typewriter = ({ text, speed = 20, onComplete }) => {
+  const [displayed, setDisplayed] = useState('');
+  
+  useEffect(() => {
+    setDisplayed(''); // Reset si le texte change
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i < text.length) {
+        setDisplayed((prev) => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(timer);
+        if (onComplete) onComplete();
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed, onComplete]);
+
+  return <p className="explanation-section__text">{displayed}</p>;
+};
+
 const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
   const { t, lang, getTaxonDisplayNames } = useLanguage();
-  const { profile } = useUser();
   const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const buttonRef = useRef(null);
@@ -45,24 +64,34 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
   const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
 
   useEffect(() => {
+    let isActive = true; // Drapeau pour éviter les race conditions (double réponse)
+
+    // On utilise les IDs comme dépendances pour éviter les re-renders inutiles sur changement d'objet
     if (!isWin && userDisplayTaxon.id && correctDisplayTaxon.id) {
       const fetchExplanationAsync = async () => {
         setIsLoading(true);
+        setExplanation(''); // Clear previous explanation
         try {
           const data = await fetchExplanation(correctDisplayTaxon.id, userDisplayTaxon.id, lang);
-          setExplanation(data.explanation);
+          if (isActive) {
+            setExplanation(data.explanation);
+          }
         } catch (error) {
           console.error('Failed to fetch explanation:', error);
-          setExplanation('');
+          if (isActive) setExplanation('');
         } finally {
-          setIsLoading(false);
+          if (isActive) setIsLoading(false);
         }
       };
       fetchExplanationAsync();
     } else if (!isWin) {
-      // Explanation is skipped if IDs are missing
+      // Logique existante...
     }
-  }, [isWin, userDisplayTaxon, correctDisplayTaxon, lang]);
+    
+    return () => {
+      isActive = false; // Cleanup: ignore les résultats si le composant est démonté/rechargé
+    };
+  }, [isWin, userDisplayTaxon.id, correctDisplayTaxon.id, lang]);
 
   useEffect(() => {
     previousActiveRef.current = document.activeElement;
@@ -174,14 +203,24 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
           {/* Explanation Section (only if wrong) */}
           {!isWin && (
             <div className="summary-card explanation-section">
-              <h4 className="explanation-section__title">{t('summary.explanation_title')}</h4>
-              {isLoading ? (
-                <div className="explanation-section__loader">
-                  <div className="spinner"></div>
+              {/* Header avec Avatar au lieu du texte statique */}
+              <div className="explanation-header">
+                <div className="prof-mouche-avatar" aria-hidden="true">
+                  {/* Remplacez cet emoji par une <img> si vous avez un asset */}
+                  🪰
                 </div>
-              ) : (
-                explanation && <p className="explanation-section__text">{explanation}</p>
-              )}
+                <div className="explanation-bubble-tip"></div>
+              </div>
+              
+              <div className="explanation-content">
+                {isLoading ? (
+                  <div className="explanation-section__loader">
+                    <div className="spinner"></div>
+                  </div>
+                ) : (
+                  explanation && <Typewriter text={explanation} speed={20} />
+                )}
+              </div>
             </div>
           )}
         </div>
