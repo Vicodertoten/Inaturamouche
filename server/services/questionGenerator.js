@@ -287,11 +287,18 @@ export async function buildQuizQuestion({
         ancestor_ids: correct.ancestor_ids,
         iconic_taxon_id: correct.iconic_taxon_id,
         wikipedia_url: correct.wikipedia_url,
+        url: correct.url, // Add iNaturalist URL
+        default_photo: correct.default_photo, // Add default photo object
       },
       choices: shuffledChoices,
       correct_choice_index,
       correct_label,
-      choice_taxa_details: choiceTaxaInfo,
+      choice_taxa_details: choiceTaxaInfo.map(info => ({
+        ...info, // Keep existing info (taxon_id, name, etc.)
+        wikipedia_url: details.get(info.taxon_id)?.wikipedia_url,
+        url: details.get(info.taxon_id)?.url,
+        default_photo: details.get(info.taxon_id)?.default_photo,
+      })),
       choix_mode_facile,
       choix_mode_facile_ids,
       choix_mode_facile_correct_index,
