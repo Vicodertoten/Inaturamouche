@@ -25,10 +25,10 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
 
     const { primary, secondary } = getTaxonDisplayNames(actualTaxon);
     return {
-      id: actualTaxon.id || actualTaxon.taxon_id, // Robustly get ID
+      id: actualTaxon.id || actualTaxon.taxon_id,
       image_url: actualTaxon.default_photo?.url || actualTaxon.image_url,
       wikipedia_url: actualTaxon.wikipedia_url,
-      inaturalist_url: actualTaxon.url, // Top-level URL for iNaturalist page
+      inaturalist_url: actualTaxon.url || (actualTaxon.id || actualTaxon.taxon_id ? `https://www.inaturalist.org/taxa/${actualTaxon.id || actualTaxon.taxon_id}` : undefined), // Robust iNaturalist URL
       primaryName: primary,
       secondaryName: secondary,
     };
@@ -37,19 +37,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
   const correctDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(question?.bonne_reponse), [question, getTaxonDetailsForDisplay]);
   const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
 
-  console.log('RoundSummaryModal - correctDisplayTaxon:', correctDisplayTaxon);
-  console.log('RoundSummaryModal - userDisplayTaxon:', userDisplayTaxon);
-  console.log('RoundSummaryModal - correct inaturalist_url present:', !!correctDisplayTaxon.inaturalist_url);
-  console.log('RoundSummaryModal - correct wikipedia_url present:', !!correctDisplayTaxon.wikipedia_url);
-  console.log('RoundSummaryModal - user inaturalist_url present:', !!userDisplayTaxon.inaturalist_url);
-  console.log('RoundSummaryModal - user wikipedia_url present:', !!userDisplayTaxon.wikipedia_url);
-
   useEffect(() => {
     if (!isWin && userDisplayTaxon.id && correctDisplayTaxon.id) {
       const fetchExplanationAsync = async () => {
         setIsLoading(true);
         try {
-          console.log('Fetching explanation for correctId:', correctDisplayTaxon.id, 'wrongId:', userDisplayTaxon.id, 'lang:', lang);
           const data = await fetchExplanation(correctDisplayTaxon.id, userDisplayTaxon.id, lang);
           setExplanation(data.explanation);
         } catch (error) {
@@ -61,7 +53,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
       };
       fetchExplanationAsync();
     } else if (!isWin) {
-      console.warn('Skipping explanation fetch: userDisplayTaxon.id or correctDisplayTaxon.id is missing.', { userDisplayTaxonId: userDisplayTaxon.id, correctDisplayTaxonId: correctDisplayTaxon.id });
+      // Explanation is skipped if IDs are missing
     }
   }, [isWin, userDisplayTaxon, correctDisplayTaxon, lang]);
 
