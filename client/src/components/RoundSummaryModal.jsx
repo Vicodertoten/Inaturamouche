@@ -77,47 +77,87 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
         </header>
 
         <div className="summary-body">
-          <div className="summary-col summary-col-answer">
-            <div className="correct-answer-section">
-              <div className="answer-image-wrapper">
-                <img
-                  src={getSizedImageUrl(imageUrl, 'medium')}
-                  srcSet={`${getSizedImageUrl(imageUrl, 'small')} 300w, ${getSizedImageUrl(imageUrl, 'medium')} 600w`}
-                  sizes="(max-width: 768px) 120px, 200px"
-                  alt={primaryName || secondaryName}
-                  className="answer-image"
-                  {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
-                />
-              </div>
-              <div className="answer-details">
-                {primaryName && <h3 className="answer-name">{primaryName}</h3>}
-                {secondaryName && <p className="answer-scientific-name"><em>{secondaryName}</em></p>}
-                <div className="external-links-container modal-links">
-                  <a href={inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
-                    {t('summary.links.inaturalist')}
-                  </a>
-                  {wikipediaUrl && (
-                    <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="external-link">
-                      {t('summary.links.wikipedia')}
-                    </a>
-                  )}
+          <div className="answers-container">
+            {/* Correct Answer Card */}
+            <div className={`answer-card correct-answer-card ${isWin ? 'full-width' : ''}`}>
+              <h3 className="answer-card-title">{t('summary.correct_answer')}</h3>
+              <div className="answer-card-body">
+                <div className="answer-image-wrapper">
+                  <img
+                    src={getSizedImageUrl(bonne_reponse.image_url, 'medium')}
+                    srcSet={`${getSizedImageUrl(bonne_reponse.image_url, 'small')} 300w, ${getSizedImageUrl(bonne_reponse.image_url, 'medium')} 600w`}
+                    sizes="(max-width: 768px) 120px, 200px"
+                    alt={primaryName || secondaryName}
+                    className="answer-image"
+                    {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
+                  />
+                </div>
+                <div className="answer-details">
+                  {primaryName && <p className="answer-name">{primaryName}</p>}
+                  {secondaryName && <p className="answer-scientific-name"><em>{secondaryName}</em></p>}
+                  <div className="external-links-container modal-links">
+                    {bonne_reponse.inaturalist_url && (
+                      <a href={bonne_reponse.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                        {t('summary.links.inaturalist')}
+                      </a>
+                    )}
+                    {bonne_reponse.wikipedia_url && (
+                      <a href={bonne_reponse.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                        {t('summary.links.wikipedia')}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* User Answer Card (only if wrong) */}
+            {!isWin && userAnswer && (
+              <div className="answer-card user-answer-card">
+                <h3 className="answer-card-title">{t('summary.your_answer')}</h3>
+                <div className="answer-card-body">
+                  <div className="answer-image-wrapper">
+                    <img
+                      src={getSizedImageUrl(userAnswer.image_url, 'medium')}
+                      srcSet={`${getSizedImageUrl(userAnswer.image_url, 'small')} 300w, ${getSizedImageUrl(userAnswer.image_url, 'medium')} 600w`}
+                      sizes="(max-width: 768px) 120px, 200px"
+                      alt={userAnswer.primaryName || userAnswer.secondaryName}
+                      className="answer-image"
+                      {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
+                    />
+                  </div>
+                  <div className="answer-details">
+                    {userAnswer.primaryName && <p className="answer-name">{userAnswer.primaryName}</p>}
+                    {userAnswer.secondaryName && <p className="answer-scientific-name"><em>{userAnswer.secondaryName}</em></p>}
+                    <div className="external-links-container modal-links">
+                      {userAnswer.inaturalist_url && (
+                        <a href={userAnswer.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                          {t('summary.links.inaturalist')}
+                        </a>
+                      )}
+                      {userAnswer.wikipedia_url && (
+                        <a href={userAnswer.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                          {t('summary.links.wikipedia')}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Explanation Section (only if wrong) */}
           {!isWin && (
-            <div className="summary-col summary-col-explanation">
-              <div className="explanation-box">
-                <h4 className="explanation-box__title">{t('summary.explanation_title')}</h4>
-                {isLoading ? (
-                  <div className="explanation-box__loader">
-                    <div className="spinner"></div>
-                  </div>
-                ) : (
-                  explanation && <p className="explanation-box__text">{explanation}</p>
-                )}
-              </div>
+            <div className="summary-card explanation-section">
+              <h4 className="explanation-section__title">{t('summary.explanation_title')}</h4>
+              {isLoading ? (
+                <div className="explanation-section__loader">
+                  <div className="spinner"></div>
+                </div>
+              ) : (
+                explanation && <p className="explanation-section__text">{explanation}</p>
+              )}
             </div>
           )}
         </div>

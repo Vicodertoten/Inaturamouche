@@ -13,7 +13,7 @@
 
 .summary-modal {
   width: 100%;
-  max-width: 800px;
+  max-width: 900px; /* Increased max-width to accommodate two cards */
   max-height: 90vh;
   background-color: var(--surface-color);
   border-radius: var(--radius);
@@ -64,13 +64,51 @@
   gap: var(--space-4);
 }
 
-/* --- Correct Answer Section --- */
-.correct-answer-section {
+.answers-container {
+  display: flex;
+  flex-direction: column; /* Stacked by default on small screens */
+  gap: var(--space-4);
+}
+
+.answer-card {
+  background-color: var(--surface-2);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.correct-answer-card {
+  border-color: var(--success-color);
+}
+
+.user-answer-card {
+  border-color: var(--error-color);
+}
+
+.answer-card-title {
+  font-size: var(--type-lg);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color-light); /* Adjusted for better visibility on card */
+}
+
+.correct-answer-card .answer-card-title {
+  color: var(--success-color);
+}
+
+.user-answer-card .answer-card-title {
+  color: var(--error-color);
+}
+
+.answer-card-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  text-align: center;
+  gap: var(--space-2);
 }
 
 .answer-image-wrapper {
@@ -83,7 +121,15 @@
   border-radius: var(--radius-small);
   object-fit: cover;
   border: 2px solid var(--border-color);
-  background-color: var(--surface-2);
+  background-color: var(--surface-3); /* Darker background for image placeholder */
+}
+
+.correct-answer-card .answer-image {
+  border-color: var(--success-color);
+}
+
+.user-answer-card .answer-image {
+  border-color: var(--error-color);
 }
 
 .answer-details {
@@ -108,10 +154,29 @@
 .modal-links {
   margin-top: var(--space-2);
   justify-content: center;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap; /* Allow links to wrap if needed */
 }
 
-/* --- Explanation Box --- */
-.explanation-box {
+.external-link {
+  font-size: var(--type-sm);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-small);
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.external-link:hover {
+  background-color: var(--button-secondary-hover-bg);
+  color: var(--button-secondary-hover-text);
+}
+
+
+/* --- Explanation Section --- */
+.explanation-section {
   background-color: var(--surface-2);
   border-radius: var(--radius);
   padding: var(--space-3);
@@ -120,14 +185,14 @@
   animation: fadeIn 0.5s 0.2s ease-in-out backwards;
 }
 
-.explanation-box__title {
+.explanation-section__title {
   font-weight: 600;
   color: var(--accent-color);
   margin: 0 0 var(--space-2) 0;
   font-size: 1.1em;
 }
 
-.explanation-box__text {
+.explanation-section__text {
   color: var(--text-color);
   line-height: 1.6;
   white-space: pre-wrap;
@@ -135,7 +200,7 @@
   font-size: 0.95rem;
 }
 
-.explanation-box__loader {
+.explanation-section__loader {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -157,30 +222,26 @@
 
 /* --- Responsive Layout --- */
 @media (min-width: 768px) {
-  .summary-body {
-    flex-direction: row;
+  .answers-container {
+    flex-direction: row; /* Side-by-side on larger screens */
+    justify-content: center;
+    gap: var(--space-4);
+  }
+
+  .answer-card.full-width {
+    flex: 1; /* Correct answer takes full width if user was right */
+    max-width: 50%;
+  }
+
+  .answer-card {
+    flex: 1; /* Distribute space equally when two cards are present */
+    max-width: 45%; /* Slightly less than 50% to account for gap */
+  }
+
+  .answer-card-body {
+    flex-direction: row; /* Image and details side-by-side */
+    gap: var(--space-3);
     align-items: flex-start;
-  }
-
-  .summary-col {
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .summary-col-answer {
-    flex-basis: 40%;
-    max-width: 40%;
-  }
-
-  .summary-col-explanation {
-    flex-basis: 60%;
-    max-width: 60%;
-  }
-
-  .correct-answer-section {
-    align-items: flex-start;
-    text-align: left;
-    flex-direction: row;
   }
 
   .answer-image {
@@ -188,10 +249,16 @@
     height: 100px;
   }
   
+  .answer-details {
+    text-align: left;
+    align-items: flex-start;
+  }
+
   .modal-links {
     justify-content: flex-start;
   }
 }
+
 
 /* --- Animations --- */
 @keyframes modal-fade-in {

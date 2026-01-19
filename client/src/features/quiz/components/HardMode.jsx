@@ -67,7 +67,7 @@ function HardMode() {
   });
   const [lastGuess, setLastGuess] = useState(null);
 
-  const { t, language } = useLanguage();
+  const { t, language, getTaxonDisplayNames } = useLanguage();
   const feedbackTimeoutRef = useRef(null);
   const panelTimeoutRef = useRef(null);
   
@@ -222,7 +222,6 @@ function HardMode() {
     // Prevent concurrent guesses
     if (!selection?.id || roundStatus !== 'playing' || !question?.bonne_reponse || guesses <= 0 || isGuessing) return;
 
-    setLastGuess(selection);
     setIsGuessing(true); // Lock guessing during async operation
     const updatedGuesses = guesses - 1;
     setGuesses(updatedGuesses);
@@ -230,6 +229,18 @@ function HardMode() {
     try {
       const guessedTaxonHierarchy = await getTaxonDetails(selection.id, language);
       if (! guessedTaxonHierarchy) throw new Error("Données du taxon invalides");
+
+      // Enrich the selection with full taxon details for display in RoundSummaryModal
+      const { primary: guessedPrimaryName, secondary: guessedSecondaryName } = getTaxonDisplayNames(guessedTaxonHierarchy);
+      const enrichedUserAnswer = {
+        id: guessedTaxonHierarchy.id,
+        image_url: guessedTaxonHierarchy.image_url,
+        wikipedia_url: guessedTaxonHierarchy.wikipedia_url,
+        inaturalist_url: guessedTaxonHierarchy.inaturalist_url,
+        primaryName: guessedPrimaryName,
+        secondaryName: guessedSecondaryName,
+      };
+      setLastGuess(enrichedUserAnswer);
 
       const guessedLineage = [
         ...(Array.isArray(guessedTaxonHierarchy?.ancestors) ? guessedTaxonHierarchy.ancestors : []),
