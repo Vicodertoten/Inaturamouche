@@ -34,7 +34,14 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
     };
   }, [getTaxonDisplayNames]);
 
-  const correctDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(question?.bonne_reponse), [question, getTaxonDetailsForDisplay]);
+  const correctDisplayTaxon = useMemo(() => {
+    const taxon = getTaxonDetailsForDisplay(question?.bonne_reponse);
+    // Override iNaturalist URL with observation-specific one if available
+    if (question?.inaturalist_url) {
+      taxon.inaturalist_url = question.inaturalist_url;
+    }
+    return taxon;
+  }, [question, getTaxonDetailsForDisplay]);
   const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
 
   useEffect(() => {
