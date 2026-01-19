@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useUser } from '../context/UserContext';
 import { useGameData } from '../context/GameContext';
 import './RoundSummaryModal.css';
@@ -18,12 +18,31 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
   const previousActiveRef = useRef(null);
   const isWin = status === 'win';
 
+  // Helper to extract relevant details from a taxon object, handling EasyMode's 'detail' structure
+  const getTaxonDetailsForDisplay = useCallback((taxonData) => {
+    const actualTaxon = taxonData?.detail || taxonData;
+    if (!actualTaxon) return {};
+
+    const { primary, secondary } = getTaxonDisplayNames(actualTaxon);
+    return {
+      id: actualTaxon.id,
+      image_url: actualTaxon.default_photo?.url || actualTaxon.image_url,
+      wikipedia_url: actualTaxon.wikipedia_url,
+      inaturalist_url: actualTaxon.url, // Top-level URL for iNaturalist page
+      primaryName: primary,
+      secondaryName: secondary,
+    };
+  }, [getTaxonDisplayNames]);
+
+  const correctDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(question?.bonne_reponse), [question, getTaxonDetailsForDisplay]);
+  const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
+
   useEffect(() => {
-    if (!isWin && userAnswer && question?.bonne_reponse) {
+    if (!isWin && userDisplayTaxon.id && correctDisplayTaxon.id) {
       const fetchExplanationAsync = async () => {
         setIsLoading(true);
         try {
-          const data = await fetchExplanation(question.bonne_reponse.id, userAnswer.id, lang);
+          const data = await fetchExplanation(correctDisplayTaxon.id, userDisplayTaxon.id, lang);
           setExplanation(data.explanation);
         } catch (error) {
           console.error('Failed to fetch explanation:', error);
@@ -34,7 +53,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
       };
       fetchExplanationAsync();
     }
-  }, [isWin, userAnswer, question, lang]);
+  }, [isWin, userDisplayTaxon, correctDisplayTaxon, lang]);
 
   useEffect(() => {
     previousActiveRef.current = document.activeElement;
@@ -59,11 +78,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
     return null;
   }
 
-  const { bonne_reponse } = question;
-  const { primary: primaryName, secondary: secondaryName } = getTaxonDisplayNames(bonne_reponse);
-  const correctImageUrl = bonne_reponse.default_photo?.url || (question.image_urls && question.image_urls[0]);
-  const correctWikipediaUrl = bonne_reponse.wikipedia_url;
-  const correctInaturalistUrl = bonne_reponse.url; // Use top-level URL from taxon
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const titleIcon = isWin ? '🎉' : '😟';
 
@@ -85,25 +99,25 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
               <div className="answer-card-body">
                 <div className="answer-image-wrapper">
                   <img
-                    src={getSizedImageUrl(correctImageUrl, 'medium')}
-                    srcSet={`${getSizedImageUrl(correctImageUrl, 'small')} 300w, ${getSizedImageUrl(correctImageUrl, 'medium')} 600w`}
+                    src={getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')}
+                    srcSet={`${getSizedImageUrl(correctDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')} 600w`}
                     sizes="(max-width: 768px) 120px, 200px"
-                    alt={primaryName || secondaryName}
+                    alt={correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName}
                     className="answer-image"
                     {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
                   />
                 </div>
                 <div className="answer-details">
-                  {primaryName && <p className="answer-name">{primaryName}</p>}
-                  {secondaryName && <p className="answer-scientific-name"><em>{secondaryName}</em></p>}
+                  {correctDisplayTaxon.primaryName && <p className="answer-name">{correctDisplayTaxon.primaryName}</p>}
+                  {correctDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{correctDisplayTaxon.secondaryName}</em></p>}
                   <div className="external-links-container modal-links">
-                    {correctInaturalistUrl && (
-                      <a href={correctInaturalistUrl} target="_blank" rel="noopener noreferrer" className="external-link">
+                    {correctDisplayTaxon.inaturalist_url && (
+                      <a href={correctDisplayTaxon.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
                         {t('summary.links.inaturalist')}
                       </a>
                     )}
-                    {correctWikipediaUrl && (
-                      <a href={correctWikipediaUrl} target="_blank" rel="noopener noreferrer" className="external-link">
+                    {correctDisplayTaxon.wikipedia_url && (
+                      <a href={correctDisplayTaxon.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
                         {t('summary.links.wikipedia')}
                       </a>
                     )}
@@ -119,25 +133,25 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
                 <div className="answer-card-body">
                   <div className="answer-image-wrapper">
                     <img
-                      src={getSizedImageUrl(userAnswer.image_url, 'medium')} // userAnswer.image_url should now be userAnswer.default_photo?.url
-                      srcSet={`${getSizedImageUrl(userAnswer.image_url, 'small')} 300w, ${getSizedImageUrl(userAnswer.image_url, 'medium')} 600w`}
+                      src={getSizedImageUrl(userDisplayTaxon.image_url, 'medium')}
+                      srcSet={`${getSizedImageUrl(userDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(userDisplayTaxon.image_url, 'medium')} 600w`}
                       sizes="(max-width: 768px) 120px, 200px"
-                      alt={userAnswer.primaryName || userAnswer.secondaryName}
+                      alt={userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName}
                       className="answer-image"
                       {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
                     />
                   </div>
                   <div className="answer-details">
-                    {userAnswer.primaryName && <p className="answer-name">{userAnswer.primaryName}</p>}
-                    {userAnswer.secondaryName && <p className="answer-scientific-name"><em>{userAnswer.secondaryName}</em></p>}
+                    {userDisplayTaxon.primaryName && <p className="answer-name">{userDisplayTaxon.primaryName}</p>}
+                    {userDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{userDisplayTaxon.secondaryName}</em></p>}
                     <div className="external-links-container modal-links">
-                      {userAnswer.inaturalist_url && ( // userAnswer.inaturalist_url should now be userAnswer.url
-                        <a href={userAnswer.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                      {userDisplayTaxon.inaturalist_url && (
+                        <a href={userDisplayTaxon.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
                           {t('summary.links.inaturalist')}
                         </a>
                       )}
-                      {userAnswer.wikipedia_url && (
-                        <a href={userAnswer.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                      {userDisplayTaxon.wikipedia_url && (
+                        <a href={userDisplayTaxon.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
                           {t('summary.links.wikipedia')}
                         </a>
                       )}
