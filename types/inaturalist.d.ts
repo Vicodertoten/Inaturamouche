@@ -20,6 +20,8 @@ export interface InatTaxon {
   wikipedia_url?: string;
   ancestor_ids?: number[];
   ancestors?: Array<{ id: number; name?: string }>;
+  default_photo?: InatPhoto; // Add default_photo
+  url?: string; // Add iNaturalist page URL
 }
 
 export interface InatObservation {

@@ -234,9 +234,9 @@ function HardMode() {
       const { primary: guessedPrimaryName, secondary: guessedSecondaryName } = getTaxonDisplayNames(guessedTaxonHierarchy);
       const enrichedUserAnswer = {
         id: guessedTaxonHierarchy.id,
-        image_url: guessedTaxonHierarchy.image_url,
+        image_url: guessedTaxonHierarchy.default_photo?.url, // Use default_photo.url
         wikipedia_url: guessedTaxonHierarchy.wikipedia_url,
-        inaturalist_url: guessedTaxonHierarchy.inaturalist_url,
+        inaturalist_url: guessedTaxonHierarchy.url, // Use top-level url for iNaturalist page
         primaryName: guessedPrimaryName,
         secondaryName: guessedSecondaryName,
       };

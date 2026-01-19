@@ -232,6 +232,8 @@ const en = {
     win_title: 'Species found!',
     lose_title: 'Too bad!',
     explanation_title: 'Professor Mouche says...',
+    correct_answer: 'Correct Answer',
+    your_answer: 'Your Answer',
     answer_intro: 'The answer was:',
     points: 'Points earned:',
     bonus: 'Bonus:',
