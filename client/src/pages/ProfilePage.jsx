@@ -138,21 +138,30 @@ const ProfilePage = () => {
 
   const accuracyStats = useMemo(() => {
     const totalAnswered =
-      (profile?.stats?.easyQuestionsAnswered || 0) + (profile?.stats?.hardQuestionsAnswered || 0);
-    const totalCorrect = (profile?.stats?.correctEasy || 0) + (profile?.stats?.correctHard || 0);
+      (profile?.stats?.easyQuestionsAnswered || 0) +
+      (profile?.stats?.hardQuestionsAnswered || 0) +
+      (profile?.stats?.riddleQuestionsAnswered || 0);
+    const totalCorrect =
+      (profile?.stats?.correctEasy || 0) +
+      (profile?.stats?.correctHard || 0) +
+      (profile?.stats?.correctRiddle || 0);
     return {
       totalAnswered,
       totalCorrect,
       overallAccuracy: totalAnswered > 0 ? ((totalCorrect / totalAnswered) * 100).toFixed(1) : '0.0',
       easyAccuracy: ((profile?.stats?.accuracyEasy || 0) * 100).toFixed(1),
+      riddleAccuracy: ((profile?.stats?.accuracyRiddle || 0) * 100).toFixed(1),
       hardAccuracy: ((profile?.stats?.accuracyHard || 0) * 100).toFixed(1),
     };
   }, [
     profile?.stats?.accuracyEasy,
+    profile?.stats?.accuracyRiddle,
     profile?.stats?.accuracyHard,
     profile?.stats?.correctEasy,
     profile?.stats?.correctHard,
+    profile?.stats?.correctRiddle,
     profile?.stats?.easyQuestionsAnswered,
+    profile?.stats?.riddleQuestionsAnswered,
     profile?.stats?.hardQuestionsAnswered,
   ]);
 
@@ -461,6 +470,10 @@ const ProfilePage = () => {
                   <div className="stat-item card-elevated">
                     <span className="stat-value">{accuracyStats.easyAccuracy}%</span>
                     <span className="stat-label">{t('profile.modes.easy')}</span>
+                  </div>
+                  <div className="stat-item card-elevated">
+                    <span className="stat-value">{accuracyStats.riddleAccuracy}%</span>
+                    <span className="stat-label">{t('profile.modes.riddle')}</span>
                   </div>
                   <div className="stat-item card-elevated">
                     <span className="stat-value">{accuracyStats.hardAccuracy}%</span>

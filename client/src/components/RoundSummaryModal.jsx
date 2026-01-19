@@ -118,6 +118,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
 
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const titleIcon = isWin ? '🎉' : '😟';
+  const hideUserImage = question?.game_mode === 'riddle';
 
   return (
     <div className="modal-backdrop">
@@ -135,16 +136,18 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
             <div className={`answer-card correct-answer-card ${isWin ? 'full-width' : ''}`}>
               <h3 className="answer-card-title">{t('summary.correct_answer')}</h3>
               <div className="answer-card-body">
-                <div className="answer-image-wrapper">
-                  <img
-                    src={getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')}
-                    srcSet={`${getSizedImageUrl(correctDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')} 600w`}
-                    sizes="(max-width: 768px) 120px, 200px"
-                    alt={correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName}
-                    className="answer-image"
-                    {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
-                  />
-                </div>
+                {correctDisplayTaxon.image_url && (
+                  <div className="answer-image-wrapper">
+                    <img
+                      src={getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')}
+                      srcSet={`${getSizedImageUrl(correctDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')} 600w`}
+                      sizes="(max-width: 768px) 120px, 200px"
+                      alt={correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName}
+                      className="answer-image"
+                      {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
+                    />
+                  </div>
+                )}
                 <div className="answer-details">
                   {correctDisplayTaxon.primaryName && <p className="answer-name">{correctDisplayTaxon.primaryName}</p>}
                   {correctDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{correctDisplayTaxon.secondaryName}</em></p>}
@@ -169,16 +172,18 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
               <div className="answer-card user-answer-card">
                 <h3 className="answer-card-title">{t('summary.your_answer')}</h3>
                 <div className="answer-card-body">
-                  <div className="answer-image-wrapper">
-                    <img
-                      src={getSizedImageUrl(userDisplayTaxon.image_url, 'medium')}
-                      srcSet={`${getSizedImageUrl(userDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(userDisplayTaxon.image_url, 'medium')} 600w`}
-                      sizes="(max-width: 768px) 120px, 200px"
-                      alt={userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName}
-                      className="answer-image"
-                      {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
-                    />
-                  </div>
+                  {!hideUserImage && userDisplayTaxon.image_url && (
+                    <div className="answer-image-wrapper">
+                      <img
+                        src={getSizedImageUrl(userDisplayTaxon.image_url, 'medium')}
+                        srcSet={`${getSizedImageUrl(userDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(userDisplayTaxon.image_url, 'medium')} 600w`}
+                        sizes="(max-width: 768px) 120px, 200px"
+                        alt={userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName}
+                        className="answer-image"
+                        {...(supportsLazyLoading ? { loading: 'lazy' } : {})}
+                      />
+                    </div>
+                  )}
                   <div className="answer-details">
                     {userDisplayTaxon.primaryName && <p className="answer-name">{userDisplayTaxon.primaryName}</p>}
                     {userDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{userDisplayTaxon.secondaryName}</em></p>}

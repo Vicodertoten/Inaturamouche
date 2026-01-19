@@ -5,7 +5,6 @@ import './Configurator.css';
 import { useGameData, useGameUI } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { usePacks } from '../../context/PacksContext.jsx';
-import { useUser } from '../../context/UserContext.jsx';
 
 const ModeVisual = ({ variant }) => {
   const gradientId = useMemo(
@@ -22,6 +21,18 @@ const ModeVisual = ({ variant }) => {
           <span className="tile tile-4" />
         </div>
         <div className="grid-glow" />
+      </div>
+    );
+  }
+  if (variant === 'riddle') {
+    return (
+      <div className="mode-visual mode-visual-riddle" aria-hidden="true">
+        <div className="riddle-card">
+          <span className="riddle-line riddle-line-1" />
+          <span className="riddle-line riddle-line-2" />
+          <span className="riddle-line riddle-line-3" />
+        </div>
+        <div className="riddle-glow" />
       </div>
     );
   }
@@ -120,22 +131,13 @@ const SkeletonLine = ({ width = '100%' }) => (
   <div className="skeleton-line" style={{ width }} aria-hidden="true"></div>
 );
 
-const usePackOptions = ({ packs, t, canStartReview, missedCount }) =>
+const usePackOptions = ({ packs, t }) =>
   useMemo(() => {
-    const baseOptions = [
-      {
-        id: 'review',
-        label: `${t('common.review_mistakes')}${missedCount ? ` (${missedCount})` : ''}`,
-        disabled: !canStartReview,
-      },
-      ...packs.map((pack) => ({
-        id: pack.id,
-        label: pack.titleKey ? t(pack.titleKey) : pack.id,
-      })),
-    ];
-
-    return baseOptions;
-  }, [packs, t, canStartReview, missedCount]);
+    return packs.map((pack) => ({
+      id: pack.id,
+      label: pack.titleKey ? t(pack.titleKey) : pack.id,
+    }));
+  }, [packs, t]);
 
 function Configurator({ onStartGame }) {
   const {
@@ -145,7 +147,6 @@ function Configurator({ onStartGame }) {
     dispatchCustomFilters,
     gameMode,
     setGameMode,
-    canStartReview,
     maxQuestions,
     setMaxQuestions,
     mediaType,
@@ -153,23 +154,18 @@ function Configurator({ onStartGame }) {
   } = useGameData();
   const { error, clearError } = useGameUI();
   const { packs, loading: packsLoading, error: packsError } = usePacks();
-  const { profile } = useUser();
   const { t } = useLanguage();
-  const missedCount = profile?.stats?.missedSpecies?.length || 0;
 
-  const packOptions = usePackOptions({ packs, t, canStartReview, missedCount });
+  const packOptions = usePackOptions({ packs, t });
 
-  const activePack = useMemo(() => {
-    if (activePackId === 'review') {
-      return { id: 'review', descriptionKey: 'home.learn_action_review' };
-    }
-    return packs.find((pack) => pack.id === activePackId);
-  }, [activePackId, packs]);
-
-  const isReviewSelection = activePackId === 'review';
+  const activePack = useMemo(
+    () => packs.find((pack) => pack.id === activePackId),
+    [activePackId, packs]
+  );
+  const isRiddleMode = gameMode === 'riddle';
   const selectedQuestionValue =
     Number.isInteger(maxQuestions) && maxQuestions > 0 ? String(maxQuestions) : 'infinite';
-  const showSoundsNotice = mediaType === 'sounds' || mediaType === 'both';
+  const showSoundsNotice = !isRiddleMode && (mediaType === 'sounds' || mediaType === 'both');
 
   const questionOptions = useMemo(
     () => [
@@ -201,8 +197,11 @@ function Configurator({ onStartGame }) {
   const handleModeChange = useCallback(
     (mode) => {
       setGameMode(mode);
+      if (mode === 'riddle') {
+        setMediaType('images');
+      }
     },
-    [setGameMode]
+    [setGameMode, setMediaType]
   );
 
   const handleQuestionLimitChange = useCallback(
@@ -226,9 +225,9 @@ function Configurator({ onStartGame }) {
 
   const handleStartClick = useCallback(() => {
     if (typeof onStartGame === 'function') {
-      onStartGame({ review: isReviewSelection, maxQuestions, mediaType });
+      onStartGame({ maxQuestions, mediaType });
     }
-  }, [isReviewSelection, maxQuestions, mediaType, onStartGame]);
+  }, [maxQuestions, mediaType, onStartGame]);
 
   const packDescription =
     activePack?.descriptionKey && !packsLoading ? t(activePack.descriptionKey) : null;
@@ -284,9 +283,6 @@ function Configurator({ onStartGame }) {
                   {packDescription}
                 </p>
               )}
-              {isReviewSelection && !canStartReview && (
-                <p className="pack-description muted">{t('home.learn_action_review_disabled')}</p>
-              )}
               {activePackId === 'custom' && (
                 <div className="advanced-filters open">
                   <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
@@ -317,6 +313,22 @@ function Configurator({ onStartGame }) {
               <div className="mode-content">
                 <h4>{t('home.easy_mode')}</h4>
                 <p className="mode-description">{t('home.easy_mode_description')}</p>
+              </div>
+            </label>
+
+            <label className={`mode-card ${gameMode === 'riddle' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="riddle"
+                checked={gameMode === 'riddle'}
+                onChange={() => handleModeChange('riddle')}
+                aria-label={t('home.riddle_mode')}
+              />
+              <ModeVisual variant="riddle" />
+              <div className="mode-content">
+                <h4>{t('home.riddle_mode')}</h4>
+                <p className="mode-description">{t('home.riddle_mode_description')}</p>
               </div>
             </label>
 
@@ -388,7 +400,7 @@ function Configurator({ onStartGame }) {
                   return (
                     <label
                       key={value}
-                      className={`setting-option media-option ${isActive ? 'active' : ''}`}
+                      className={`setting-option media-option ${isActive ? 'active' : ''} ${isRiddleMode ? 'disabled' : ''}`}
                     >
                       <input
                         type="radio"
@@ -396,6 +408,7 @@ function Configurator({ onStartGame }) {
                         value={value}
                         checked={isActive}
                         onChange={() => handleMediaTypeChange(value)}
+                        disabled={isRiddleMode}
                         aria-label={label}
                       />
                       <span className="option-icon" aria-hidden="true">
@@ -406,6 +419,9 @@ function Configurator({ onStartGame }) {
                   );
                 })}
               </div>
+              {isRiddleMode && (
+                <p className="settings-hint">{t('configurator.riddle_media_hint')}</p>
+              )}
               {showSoundsNotice && (
                 <p className="settings-hint">{t('configurator.sounds_warning')}</p>
               )}
@@ -416,7 +432,7 @@ function Configurator({ onStartGame }) {
           <button
             onClick={handleStartClick}
             className="btn btn--primary start-button start-button-glow"
-            disabled={packsLoading || (isReviewSelection && !canStartReview)}
+            disabled={packsLoading}
             aria-label={t('common.start_game')}
           >
             {t('common.start_game')}

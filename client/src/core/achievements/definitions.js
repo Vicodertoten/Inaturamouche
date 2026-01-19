@@ -306,6 +306,24 @@ export const ACHIEVEMENTS = {
   },
 
   // ============================================
+  // NOUVEAUX SUCCÈS - MODE ENIGME
+  // ============================================
+  RIDDLE_SOLVER_10: {
+    titleKey: 'achievements.list.RIDDLE_SOLVER_10.title',
+    descriptionKey: 'achievements.list.RIDDLE_SOLVER_10.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🧩',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 300 },
+  },
+  RIDDLE_SOLVER_50: {
+    titleKey: 'achievements.list.RIDDLE_SOLVER_50.title',
+    descriptionKey: 'achievements.list.RIDDLE_SOLVER_50.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🧠',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 800 },
+  },
+
+  // ============================================
   // NOUVEAUX SUCCÈS - CATÉGORIE : ÉLITE & HARD MODE
   // ============================================
   HARD_VETERAN_50: {
@@ -747,6 +765,15 @@ export const checkNewAchievements = (profile, collectionStats = {}, sessionConte
     !owned.has('ACCURACY_HARD_75')
   ) {
     unlocked.push('ACCURACY_HARD_75');
+  }
+
+  // Mode enigme: total de bonnes reponses
+  const correctRiddle = stats?.correctRiddle || 0;
+  if (correctRiddle >= 10 && !owned.has('RIDDLE_SOLVER_10')) {
+    unlocked.push('RIDDLE_SOLVER_10');
+  }
+  if (correctRiddle >= 50 && !owned.has('RIDDLE_SOLVER_50')) {
+    unlocked.push('RIDDLE_SOLVER_50');
   }
 
   // Maîtrise 5 espèces (3 bonnes réponses chacune)

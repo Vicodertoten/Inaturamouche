@@ -151,7 +151,9 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
     taxonList.sort((a, b) => String(a).localeCompare(String(b)));
   }
 
-  if (taxonList.length < quizChoices) {
+  const hasExplicitTaxa = Boolean(params?.taxon_id);
+  const minTaxaRequired = hasExplicitTaxa ? 1 : quizChoices;
+  if (taxonList.length < minTaxaRequired) {
     const err = new Error("Pas assez d'espèces différentes pour créer un quiz avec ces critères.");
     err.status = 404;
     throw err;

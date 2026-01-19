@@ -21,6 +21,7 @@ export const quizSchema = z.object({
   seed_session: z.string().optional(),
   locale: z.string().default('fr'),
   media_type: z.enum(['images', 'sounds', 'both']).optional(),
+  game_mode: z.enum(['easy', 'hard', 'riddle']).optional(),
   client_session_id: z.string().optional(),
 });
 

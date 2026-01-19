@@ -38,6 +38,13 @@ const en = {
     back: '← Back',
     view: 'View →',
   },
+  review: {
+    title: 'Review Mode',
+    due_today_label: 'Ready for review',
+    start_button: 'Start Review',
+    starting: 'Starting...',
+    action_hint: 'A quick, focused session to lock in what you know.',
+  },
   nav: {
     help_label: 'Help & information',
     profile_label: 'My Profile',
@@ -49,10 +56,12 @@ const en = {
   home: {
     easy_mode: 'Easy',
     easy_mode_description: 'Four options, one correct answer.',
+    riddle_mode: "Professor's Riddle",
+    riddle_mode_description: 'Three text clues, shrinking points, no photos.',
     hard_mode: 'Hard',
     hard_mode_description: 'Guess the taxonomy with limited attempts.',
     play_pillar_title: 'Play',
-    play_pillar_desc: 'Choose your game mode: Easy or Hard.',
+    play_pillar_desc: 'Choose your game mode: Easy, Riddle, or Hard.',
     learn_pillar_title: 'Learn',
     learn_pillar_desc: 'Review tricky species, read the guide, and fine-tune your decks.',
     learn_action_help: 'Show me how it works',
@@ -85,6 +94,7 @@ const en = {
     option_images: 'Images',
     option_sounds: 'Sounds',
     option_both: 'Images + sounds',
+    riddle_media_hint: 'Riddle mode: text only.',
     sounds_warning:
       'Sound-based games can take longer to load and return fewer results depending on your filters.',
   },
@@ -191,6 +201,14 @@ const en = {
     hint_button: 'Hint (-{cost} pts)',
     image_alt: 'Which species is this?',
     score_label: 'Score: {score}',
+  },
+  riddle: {
+    title: "Professor's Riddle",
+    points: '+{points} pts',
+    clue_progress: 'Clue {current}/{total}',
+    next_clue: 'Next clue',
+    fallback_clue: 'The Professor is checking his notes...',
+    fallback_tag: 'House clue',
   },
   hard: {
     title: 'Identify the species',
@@ -417,6 +435,15 @@ const en = {
         title: 'Family Reunion',
         description: 'Master 5 species from the same family.',
       },
+      // --- NEW ACHIEVEMENTS: RIDDLE ---
+      RIDDLE_SOLVER_10: {
+        title: 'Riddle Apprentice',
+        description: "Solve 10 of the Professor's riddles.",
+      },
+      RIDDLE_SOLVER_50: {
+        title: 'Riddle Scholar',
+        description: "Solve 50 of the Professor's riddles.",
+      },
       // --- NEW ACHIEVEMENTS: ELITE ---
       HARD_VETERAN_50: {
         title: 'Hardened Veteran',
@@ -631,9 +658,10 @@ const en = {
     title: 'Welcome to Inaturamouche!',
     gameplay_title: 'Game concept',
     gameplay_body:
-      'Identify animals, plants, or fungi from photos. The game relies on real observations from iNaturalist.',
+      'Identify animals, plants, or fungi from visual or textual clues. The game relies on real observations from iNaturalist.',
     modes_title: 'Game modes',
     modes_easy: 'Easy: a multiple-choice quiz, perfect for relaxed discovery.',
+    modes_riddle: 'Riddle: three clues from Professor Mouche, hardest to easiest.',
     modes_hard:
       'Hard: rebuild the full taxonomy (kingdom, class, etc.). Every correct guess reveals a new rank.',
     packs_title: 'Game packs',
@@ -676,6 +704,7 @@ const en = {
     level: 'Level {level}',
     xp_counter: '{current} / {total} XP',
     summary_title: 'Key stats',
+    review_due_today: 'Species due today',
     stats_labels: {
       xp: 'Total XP',
       games: 'Games played',
@@ -686,6 +715,7 @@ const en = {
     accuracy_title: 'Accuracy by mode',
     modes: {
       easy: 'Easy mode',
+      riddle: 'Riddle mode',
       hard: 'Hard mode',
     },
     pack_stats_title: 'Pack stats',

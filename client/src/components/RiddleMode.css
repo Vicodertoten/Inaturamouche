@@ -1,0 +1,58 @@
+.riddle-mode .riddle-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.riddle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.riddle-title {
+  font-size: var(--type-lg);
+  font-weight: 600;
+}
+
+.riddle-points {
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: rgba(238, 187, 77, 0.12);
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: var(--type-sm);
+}
+
+.riddle-clue {
+  margin: 0;
+  font-size: var(--type-md);
+  line-height: var(--leading-relaxed);
+}
+
+.riddle-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--text-color-muted);
+  font-size: var(--type-sm);
+}
+
+.riddle-source {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.riddle-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}

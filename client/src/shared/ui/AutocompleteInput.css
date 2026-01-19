@@ -1,0 +1,27 @@
+.autocomplete-container {
+  position: relative;
+}
+
+.spinner-autocomplete {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color, rgba(255, 255, 255, 0.8));
+  border-bottom-color: var(--accent-color, #eebb4d);
+  border-radius: 50%;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  animation: rotation 1s linear infinite;
+  pointer-events: none;
+  z-index: 60;
+}
+
+@keyframes rotation {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}

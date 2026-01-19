@@ -39,6 +39,18 @@
   margin-right: auto;
 }
 
+.riddle-mode-header {
+  width: min(100%, 900px);
+  max-width: 900px;
+}
+
+.game-screen.riddle-mode .game-header.riddle-mode-header {
+  width: min(100%, 900px);
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ========================================
    Auto-save Indicator
    ======================================== */
@@ -359,4 +371,3 @@
     flex: 1;
   }
 }
-

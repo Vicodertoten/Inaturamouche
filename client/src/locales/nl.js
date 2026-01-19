@@ -38,6 +38,13 @@ const nl = {
     back: '← Terug',
     view: 'Bekijk →',
   },
+  review: {
+    title: 'Revisiemodus',
+    due_today_label: 'Klaar voor revisie',
+    start_button: 'Herziening starten',
+    starting: 'Bezig met starten...',
+    action_hint: 'Een korte, gerichte sessie om je kennis vast te leggen.',
+  },
   nav: {
     help_label: 'Help en informatie',
     profile_label: 'Mijn profiel',
@@ -49,10 +56,12 @@ const nl = {
   home: {
     easy_mode: 'Makkelijk',
     easy_mode_description: 'Vier opties, één juist antwoord.',
+    riddle_mode: 'Raadsel van de Professor',
+    riddle_mode_description: 'Drie tekstaanwijzingen, dalende punten, geen foto\'s.',
     hard_mode: 'Moeilijk',
     hard_mode_description: 'Raad de taxonomie met beperkte pogingen.',
     play_pillar_title: 'Spelen',
-    play_pillar_desc: 'Kies je spelmodus: Makkelijk of Moeilijk.',
+    play_pillar_desc: 'Kies je spelmodus: Makkelijk, Raadsel of Moeilijk.',
     learn_pillar_title: 'Leren',
     learn_pillar_desc: 'Bekijk moeilijke soorten opnieuw, lees de gids en stel je packs bij.',
     learn_action_help: 'Hoe werkt het?',
@@ -85,6 +94,7 @@ const nl = {
     option_images: 'Afbeeldingen',
     option_sounds: 'Geluiden',
     option_both: 'Afbeeldingen + geluiden',
+    riddle_media_hint: 'Raadselmodus: alleen tekst.',
     sounds_warning:
       'Spellen met geluid kunnen langer laden en minder resultaten geven, afhankelijk van je filters.',
   },
@@ -191,6 +201,14 @@ const nl = {
     hint_button: 'Tip (-{cost} ptn)',
     image_alt: 'Welke soort is dit?',
     score_label: 'Punten: {score}',
+  },
+  riddle: {
+    title: 'Raadsel van de Professor',
+    points: '+{points} ptn',
+    clue_progress: 'Aanwijzing {current}/{total}',
+    next_clue: 'Volgende aanwijzing',
+    fallback_clue: 'De Professor zoekt zijn notities...',
+    fallback_tag: 'Huisraadsel',
   },
   hard: {
     title: 'Identificeer de soort',
@@ -325,6 +343,14 @@ const nl = {
         title: 'Snelstarter',
         description: 'Beantwoord correct in minder dan 8 seconden.',
       },
+      RIDDLE_SOLVER_10: {
+        title: 'Raadselleerling',
+        description: 'Los 10 raadsels van de Professor op.',
+      },
+      RIDDLE_SOLVER_50: {
+        title: 'Raadselkenner',
+        description: 'Los 50 raadsels van de Professor op.',
+      },
       STREAK_STARTER_3: {
         title: '🔥 Eerste Vlam',
         description: 'Bereik een reeks van 3 correcte antwoorden',
@@ -363,9 +389,10 @@ const nl = {
     title: 'Welkom bij Inaturamouche!',
     gameplay_title: 'Doel van het spel',
     gameplay_body:
-      'Identificeer dieren, planten of schimmels aan de hand van foto’s. Het spel gebruikt echte waarnemingen van iNaturalist.',
+      'Identificeer dieren, planten of schimmels met visuele of tekstuele aanwijzingen. Het spel gebruikt echte waarnemingen van iNaturalist.',
     modes_title: 'Spelmodi',
     modes_easy: 'Makkelijk: een meerkeuzequiz, ideaal om rustig soorten te ontdekken.',
+    modes_riddle: 'Raadsel: drie aanwijzingen van Professor Mouche, van moeilijk naar makkelijk.',
     modes_hard:
       'Moeilijk: reconstrueer de volledige taxonomie (rijk, klasse, enz.). Elke goede gok onthult een nieuw niveau.',
     packs_title: 'Packs',
@@ -399,6 +426,7 @@ const nl = {
     level: 'Niveau {level}',
     xp_counter: '{current} / {total} XP',
     summary_title: 'Belangrijkste statistieken',
+    review_due_today: 'Soorten die vandaag klaar zijn voor revisie',
     stats_labels: {
       xp: 'Totale XP',
       games: 'Gespeelde spellen',
@@ -409,6 +437,7 @@ const nl = {
     accuracy_title: 'Nauwkeurigheid per modus',
     modes: {
       easy: 'Makkelijke modus',
+      riddle: 'Raadselmodus',
       hard: 'Moeilijke modus',
     },
     pack_stats_title: 'Pack-statistieken',

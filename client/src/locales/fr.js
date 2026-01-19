@@ -38,6 +38,13 @@ const fr = {
     back: '← Retour',
     view: 'Voir →',
   },
+  review: {
+    title: 'Mode Révision',
+    due_today_label: 'Prêt pour la révision',
+    start_button: 'Commencer la révision',
+    starting: 'Démarrage...',
+    action_hint: 'Une session courte et ciblée pour consolider vos connaissances.',
+  },
   nav: {
     help_label: 'Aide et informations',
     profile_label: 'Mon Profil',
@@ -49,10 +56,12 @@ const fr = {
   home: {
     easy_mode: 'Facile',
     easy_mode_description: 'Quatre propositions, une bonne réponse.',
+    riddle_mode: "L'Enigme du Professeur",
+    riddle_mode_description: 'Trois indices textuels, points decroissants, zero photo.',
     hard_mode: 'Difficile',
     hard_mode_description: 'Devinez la taxonomie avec essais limités.',
     play_pillar_title: 'Jouer',
-    play_pillar_desc: 'Choisissez votre mode de jeu : Facile ou Difficile.',
+    play_pillar_desc: "Choisissez votre mode de jeu : Facile, Enigme ou Difficile.",
     learn_pillar_title: 'Apprendre',
     learn_pillar_desc: 'Révisez les espèces difficiles, lisez le guide et affinez vos packs.',
     learn_action_help: 'Découvrir le fonctionnement',
@@ -85,6 +94,7 @@ const fr = {
     option_images: 'Images',
     option_sounds: 'Sons',
     option_both: 'Images + sons',
+    riddle_media_hint: 'Mode Enigme : texte uniquement.',
     sounds_warning:
       'Les parties avec sons peuvent charger plus lentement et offrir moins de résultats selon vos filtres.',
   },
@@ -191,6 +201,14 @@ const fr = {
     hint_button: 'Indice (-{cost} pts)',
     image_alt: 'Quelle est cette espèce ?',
     score_label: 'Score : {score}',
+  },
+  riddle: {
+    title: "L'Enigme du Professeur",
+    points: '+{points} pts',
+    clue_progress: 'Indice {current}/{total}',
+    next_clue: 'Indice suivant',
+    fallback_clue: 'Le Professeur cherche ses notes...',
+    fallback_tag: 'Indice maison',
   },
   hard: {
     title: "Identifier l'espèce",
@@ -417,6 +435,15 @@ const fr = {
         title: 'Réunion de Famille',
         description: 'Maîtriser 5 espèces de la même famille.',
       },
+      // --- NOUVEAUX SUCCÈS : ENIGME ---
+      RIDDLE_SOLVER_10: {
+        title: 'Apprenti Enigmes',
+        description: 'Reussir 10 enigmes du Professeur.',
+      },
+      RIDDLE_SOLVER_50: {
+        title: 'Maitre des Enigmes',
+        description: 'Reussir 50 enigmes du Professeur.',
+      },
       // --- NOUVEAUX SUCCÈS : ÉLITE ---
       HARD_VETERAN_50: {
         title: 'Vétéran Endurci',
@@ -631,10 +658,12 @@ const fr = {
     title: 'Bienvenue sur Inaturamouche !',
     gameplay_title: 'Principe du jeu',
     gameplay_body:
-      "Le but est d'identifier des espèces (animaux, plantes, champignons...) à partir d'une photo. Le jeu utilise les données réelles de la plateforme de science participative iNaturalist.",
+      "Le but est d'identifier des espèces (animaux, plantes, champignons...) a partir d'indices visuels ou textuels. Le jeu utilise les donnees reelles de la plateforme de science participative iNaturalist.",
     modes_title: 'Modes de jeu',
     modes_easy:
       'Facile : un quiz à choix multiples. Idéal pour découvrir de nouvelles espèces de manière détendue.',
+    modes_riddle:
+      "Enigme : trois indices generes par le Professeur Mouche, du plus difficile au plus evident.",
     modes_hard:
       'Difficile : retrouvez la classification complète (règne, classe, etc.). Chaque bonne proposition révèle un rang supplémentaire.',
     packs_title: 'Packs de jeu',
@@ -678,6 +707,7 @@ const fr = {
     level: 'Niveau {level}',
     xp_counter: '{current} / {total} XP',
     summary_title: 'Statistiques clés',
+    review_due_today: 'Espèces à réviser aujourd\'hui',
     stats_labels: {
       xp: 'XP total',
       games: 'Parties jouées',
@@ -688,6 +718,7 @@ const fr = {
     accuracy_title: 'Précision par mode',
     modes: {
       easy: 'Mode facile',
+      riddle: "Mode Enigme",
       hard: 'Mode difficile',
     },
     pack_stats_title: 'Statistiques par pack',

@@ -24,7 +24,8 @@ const explainSchema = z.object({
 
 router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
   const { correctId, wrongId, locale } = req.valid;
-  const { logger, id: requestId } = req;
+  const logger = req.log;
+  const requestId = req.id;
   const taxaIds = [correctId, wrongId];
   
   try {
@@ -66,6 +67,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       seed_session,
       locale = 'fr',
       media_type,
+      game_mode,
       client_session_id,
     } = req.valid;
 
@@ -75,6 +77,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     const poolRng = hasSeed ? createSeededRandom(`${normalizedSeed}|pool`) : undefined;
     const normalizedSeedSession = typeof seed_session === 'string' ? seed_session.trim() : '';
 
+    const gameMode = game_mode || 'easy';
     const geo = hasSeed ? { p: {}, mode: 'global' } : geoParams({ place_id, nelat, nelng, swlat, swlng });
     const params = {
       quality_grade: 'research',
@@ -84,7 +87,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       locale,
       ...geo.p,
     };
-    if (!hasSeed && (media_type === 'sounds' || media_type === 'both')) {
+    if (!hasSeed && gameMode !== 'riddle' && (media_type === 'sounds' || media_type === 'both')) {
       params.sounds = true;
     }
     const monthDayFilter = hasSeed ? null : buildMonthDayFilter(d1, d2);
@@ -123,7 +126,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
         if (d2 && isValidISODate(d2)) params.d2 = d2;
       }
     }
-    const cacheKeyParams = { ...params };
+    const cacheKeyParams = { ...params, game_mode: gameMode };
     if (monthDayFilter) {
       cacheKeyParams.d1 = d1 || '';
       cacheKeyParams.d2 = d2 || '';
@@ -158,6 +161,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       cacheKey,
       monthDayFilter,
       locale,
+      gameMode,
       geoMode: geo.mode,
       clientId: clientKey,
       logger: req.log,

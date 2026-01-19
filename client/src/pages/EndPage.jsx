@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EndScreen from '../components/EndScreen';
 import { useGameData } from '../context/GameContext';
@@ -16,17 +16,38 @@ const EndPage = () => {
     resetToLobby,
     clearSessionFromDB,
     dailySeed,
+    isReviewMode,
+    gameMode,
+    maxQuestions,
+    mediaType,
   } = useGameData();
   const { profile } = useUser();
+  const isRestartingRef = useRef(false);
 
   useEffect(() => {
-    if (!isGameOver) navigate('/', { replace: true });
+    if (!isGameOver) {
+      if (isRestartingRef.current) {
+        isRestartingRef.current = false;
+        return;
+      }
+      navigate('/', { replace: true });
+    }
   }, [isGameOver, navigate]);
 
   const handleRestart = useCallback(() => {
-    startGame({ seed: dailySeed });
+    isRestartingRef.current = true;
+    const restartConfig = {
+      review: isReviewMode,
+      gameMode,
+      maxQuestions,
+      mediaType,
+    };
+    if (dailySeed) {
+      restartConfig.seed = dailySeed;
+    }
+    startGame(restartConfig);
     navigate('/play');
-  }, [navigate, startGame, dailySeed]);
+  }, [dailySeed, gameMode, isReviewMode, maxQuestions, mediaType, navigate, startGame]);
 
   const handleReturnHome = useCallback(() => {
     // Ensure the saved session is removed so it cannot be resumed later

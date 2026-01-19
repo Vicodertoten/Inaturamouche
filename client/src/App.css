@@ -555,7 +555,8 @@ button:active:not(:disabled),
   align-items: stretch;
 }
 
-.game-screen.easy-mode {
+.game-screen.easy-mode,
+.game-screen.riddle-mode {
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
@@ -574,7 +575,8 @@ button:active:not(:disabled),
   min-height: 0;
 }
 
-.game-screen.easy-mode .card {
+.game-screen.easy-mode .card,
+.game-screen.riddle-mode .card {
   min-height: 0;
   width: min(100%, 940px);
   margin: 0 auto;
@@ -586,12 +588,14 @@ button:active:not(:disabled),
   margin: 0 auto;
 }
 
-.game-screen.easy-mode .game-main {
+.game-screen.easy-mode .game-main,
+.game-screen.riddle-mode .game-main {
   flex: 1;
   min-height: 0;
 }
 
-.game-screen.easy-mode .image-section {
+.game-screen.easy-mode .image-section,
+.game-screen.riddle-mode .image-section {
   align-items: center;
   justify-content: center;
 }

@@ -16,6 +16,7 @@ import { selectionStateCache, getOrCreateMutex, questionQueueCache } from '../ca
 import taxonDetailsCache from '../cache/taxonDetailsCache.js';
 import { nextEligibleTaxonId, pickRelaxedTaxon, makeChoiceLabels, buildTimingData } from '../utils/helpers.js';
 import { config } from '../config/index.js';
+import { generateRiddle } from './aiService.js';
 
 const { questionQueueSize: QUESTION_QUEUE_SIZE } = config;
 
@@ -64,6 +65,7 @@ export async function buildQuizQuestion({
   cacheKey,
   monthDayFilter,
   locale,
+  gameMode,
   geoMode,
   clientId,
   logger,
@@ -161,13 +163,24 @@ export async function buildQuizQuestion({
   rememberObservation(selectionState, targetObservation.id);
   marks.pickedTarget = performance.now();
 
+  const hasExplicitTaxa = Boolean(params?.taxon_id);
+  const excludeFutureTargets = hasExplicitTaxa
+    ? new Set((selectionState.taxonDeck || []).map((id) => String(id)))
+    : null;
   const { lures, buckets } = await buildLures(
     cacheEntry,
     selectionState,
     targetTaxonId,
     targetObservation,
     config.lureCount,
-    questionRng
+    questionRng,
+    {
+      allowExternalLures: hasExplicitTaxa,
+      allowMixedIconic: hasExplicitTaxa,
+      excludeTaxonIds: excludeFutureTargets,
+      logger,
+      requestId,
+    }
   );
   if (!lures || lures.length < config.lureCount) {
     const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
@@ -207,6 +220,12 @@ export async function buildQuizQuestion({
   }
   marks.taxaFetched = performance.now();
 
+  const isRiddleMode = gameMode === 'riddle';
+  let riddle = null;
+  if (isRiddleMode) {
+    riddle = await generateRiddle(correct, locale, logger);
+  }
+
   const choiceTaxaInfo = choiceIdsInOrder.map((id) => {
     const info = details.get(String(id)) || {};
     return {
@@ -233,7 +252,7 @@ export async function buildQuizQuestion({
   const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex((id) => id === String(targetTaxonId));
   marks.labelsMade = performance.now();
 
-  const observationPhotos = Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
+  const observationPhotos = !isRiddleMode && Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
   // Medium (~500px) pour chargement rapide mobile au lieu de large (~1024px)
   const image_urls = observationPhotos
     .map((p) => (p?.url ? p.url.replace('square', 'medium') : null))
@@ -277,7 +296,9 @@ export async function buildQuizQuestion({
     payload: {
       image_urls,
       image_meta,
-      sounds: targetObservation.sounds || [],
+      sounds: isRiddleMode ? [] : targetObservation.sounds || [],
+      game_mode: gameMode || 'easy',
+      riddle: isRiddleMode && riddle ? { clues: riddle.clues, source: riddle.source } : null,
       bonne_reponse: {
         id: correct.id,
         name: correct.name,

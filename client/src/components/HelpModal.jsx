@@ -50,6 +50,9 @@ function HelpModal({ onClose }) {
               <strong>{t('home.easy_mode')} :</strong> {t('help.modes_easy')}
             </li>
             <li>
+              <strong>{t('home.riddle_mode')} :</strong> {t('help.modes_riddle')}
+            </li>
+            <li>
               <strong>{t('home.hard_mode')} :</strong> {t('help.modes_hard')}
             </li>
           </ul>

@@ -3,59 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
-import DailyStreakBadge from '../components/DailyStreakBadge';
-import ReviewCard from '../components/ReviewCard';
+import ReviewDashboardCard from '../components/ReviewDashboardCard';
+import { getReviewStats } from '../services/CollectionService';
 
 const Configurator = lazy(() => import('../features/configurator/Configurator'));
 
-// dailyChallengeLabel moved inside component to use translations
-
-const LobbyPillars = ({ t, onSelectReview, canStartReview, missedCount }) => (
-  <div className="lobby-pillars">
-    <div className="lobby-pillar pillar-play">
-      <div className="pillar-header">
-        <p className="eyebrow">{t('home.play_pillar_title')}</p>
-        <h3>{t('home.play_pillar_desc')}</h3>
-        <p className="learn-tip">{t('home.easy_mode_description')}</p>
-      </div>
-    </div>
-    <div className="lobby-pillar pillar-learn">
-      <div className="pillar-header">
-        <p className="eyebrow">{t('home.learn_pillar_title')}</p>
-        <h3>{t('home.learn_pillar_desc')}</h3>
-      </div>
-      <div className="learn-actions">
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={onSelectReview}
-          disabled={!canStartReview}
-        >
-          {t('home.learn_action_review')}
-        </button>
-        <p className="learn-tip">
-          {canStartReview ? t('home.learn_pillar_desc') : t('home.learn_action_review_disabled')}
-        </p>
-        {missedCount > 0 && (
-          <div className="review-chip">
-            <span className="review-count">{missedCount}</span>
-            <span className="review-label">{t('common.review_mistakes')}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
 const HomePage = () => {
   const navigate = useNavigate();
-  const { startGame, resumeGame, clearSessionFromDB } = useGameData();
+  const { startGame, resumeGame, clearSessionFromDB, startReviewMode } = useGameData();
   const { t } = useLanguage();
   const dailyChallengeLabel = t('home.daily_challenge_label');
   
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [resumeSessionData, setResumeSessionData] = useState(null);
+  const [reviewStats, setReviewStats] = useState(null);
 
   // Vérifier s'il y a une session active au chargement de la page
   useEffect(() => {
@@ -91,9 +53,30 @@ const HomePage = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReviewStats = async () => {
+      try {
+        const stats = await getReviewStats();
+        if (isMounted) {
+          setReviewStats(stats);
+        }
+      } catch (err) {
+        console.error('[HomePage] Failed to load review stats:', err);
+      }
+    };
+
+    loadReviewStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleStart = useCallback(
-    ({ review = false, maxQuestions, mediaType } = {}) => {
-      startGame({ review, maxQuestions, mediaType });
+    ({ maxQuestions, mediaType } = {}) => {
+      startGame({ maxQuestions, mediaType });
       navigate('/play');
     },
     [navigate, startGame]
@@ -112,6 +95,14 @@ const HomePage = () => {
       console.warn('[HomePage] No session data returned from resumeGame');
     }
   }, [navigate, resumeGame]);
+
+  const handleStartReview = useCallback(async () => {
+    const started = await startReviewMode();
+    if (started) {
+      navigate('/play');
+    }
+    return started;
+  }, [navigate, startReviewMode]);
 
   const handleAbandonSession = useCallback(async () => {
     await clearSessionFromDB();
@@ -177,9 +168,14 @@ const HomePage = () => {
         {!hasActiveSession && !isCheckingSession && (
           <>
             {/* Zone prioritaire : Révision */}
-            <section className="priority-section">
-              <ReviewCard />
-            </section>
+            {reviewStats?.dueToday > 0 && (
+              <section className="priority-section">
+                <ReviewDashboardCard
+                  dueToday={reviewStats.dueToday}
+                  onStartReview={handleStartReview}
+                />
+              </section>
+            )}
 
             <section className="daily-challenge-cta">
               <button

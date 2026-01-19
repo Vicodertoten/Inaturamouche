@@ -52,7 +52,7 @@ const normalizeMediaType = (value, fallback = DEFAULT_MEDIA_TYPE) => {
 };
 
 const normalizeGameMode = (value, fallback = 'easy') => {
-  if (value === 'easy' || value === 'hard') return value;
+  if (value === 'easy' || value === 'hard' || value === 'riddle') return value;
   return fallback;
 };
 
@@ -108,7 +108,7 @@ export function GameProvider({ children }) {
   const [sessionSpeciesData, setSessionSpeciesData] = useState([]);
   const [sessionMissedSpecies, setSessionMissedSpecies] = useState([]);
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [reviewSpecies, setReviewSpecies] = useState([]);
+  const [reviewTaxonIds, setReviewTaxonIds] = useState([]);
 
   // XP, streak and achievement state moved to separate contexts
   const {
@@ -231,7 +231,7 @@ export function GameProvider({ children }) {
       setNextQuestion(null);
       setError(null);
       setIsReviewMode(false);
-      setReviewSpecies([]);
+      setReviewTaxonIds([]);
       if (clearSession) {
         resetSessionState();
         // Nettoyer la session sauvegardée de Dexie
@@ -252,7 +252,7 @@ export function GameProvider({ children }) {
   const pauseGame = useCallback(async () => {
     if (!isGameActive) return;
 
-    const sessionData = {
+      const sessionData = {
       id: 1, // Clé unique
       currentQuestionIndex: questionCount,
       currentQuestion: question, // Sauvegarder la question complète pour la reprendre sans recharger du serveur
@@ -277,6 +277,7 @@ export function GameProvider({ children }) {
         dailySeed,
         dailySeedSession,
         isReviewMode,
+        reviewTaxonIds,
       },
       timestamp: Date.now(),
     };
@@ -309,6 +310,7 @@ export function GameProvider({ children }) {
     dailySeed,
     dailySeedSession,
     isReviewMode,
+    reviewTaxonIds,
   ]);
 
   /**
@@ -336,12 +338,13 @@ export function GameProvider({ children }) {
       
       setActivePackId(config.activePackId || 'custom');
       if (config.customFilters) dispatchCustomFilters({ type: 'RESTORE', payload: config.customFilters });
-      setGameMode(config.gameMode || 'easy');
+      setGameMode(normalizeGameMode(config.gameMode, 'easy'));
       setMaxQuestions(config.maxQuestions ?? DEFAULT_MAX_QUESTIONS);
       setMediaType(config.mediaType || DEFAULT_MEDIA_TYPE);
       setDailySeed(config.dailySeed || null);
       setDailySeedSession(config.dailySeedSession || null);
       setIsReviewMode(config.isReviewMode || false);
+      setReviewTaxonIds(config.reviewTaxonIds || []);
 
       setQuestionCount(sessionData.currentQuestionIndex || 0);
       setScore(sessionData.score || 0);
@@ -433,8 +436,11 @@ export function GameProvider({ children }) {
     const params = new URLSearchParams();
     const isDailyChallenge = typeof dailySeed === 'string' && dailySeed.length > 0;
     const effectiveMediaType = isDailyChallenge ? DEFAULT_MEDIA_TYPE : mediaType;
+    const effectiveGameMode = normalizeGameMode(gameMode, 'easy');
+    const resolvedMediaType = effectiveGameMode === 'riddle' ? DEFAULT_MEDIA_TYPE : effectiveMediaType;
     params.set('locale', language);
-    params.set('media_type', effectiveMediaType);
+    params.set('media_type', resolvedMediaType);
+    params.set('game_mode', effectiveGameMode);
     if (isDailyChallenge) {
       params.set('seed', dailySeed);
       if (dailySeedSession) params.set('seed_session', dailySeedSession);
@@ -442,7 +448,9 @@ export function GameProvider({ children }) {
     }
 
     if (isReviewMode) {
-      (profile?.stats?.missedSpecies || []).forEach((id) => params.append('taxon_ids', id));
+      const reviewIds =
+        reviewTaxonIds.length > 0 ? reviewTaxonIds : profile?.stats?.missedSpecies || [];
+      reviewIds.forEach((id) => params.append('taxon_ids', id));
       return params;
     }
 
@@ -481,8 +489,10 @@ export function GameProvider({ children }) {
     activePack,
     customFilters,
     isReviewMode,
+    reviewTaxonIds,
     language,
     mediaType,
+    gameMode,
     dailySeed,
     dailySeedSession,
     profile?.stats?.missedSpecies,
@@ -510,16 +520,20 @@ export function GameProvider({ children }) {
         const questionData = await fetchQuizQuestion(params, { signal: controller.signal });
 
         if (prefetchOnly) {
-          // Précharger les images de la prochaine question en arrière-plan
-          preloadQuestionImages(questionData).catch(() => {
-            // Les erreurs de préchargement sont silencieuses
-          });
+          if (gameMode !== 'riddle') {
+            // Précharger les images de la prochaine question en arrière-plan
+            preloadQuestionImages(questionData).catch(() => {
+              // Les erreurs de préchargement sont silencieuses
+            });
+          }
           setNextQuestion(questionData);
         } else {
-          // Précharger les images de la question courante
-          preloadQuestionImages(questionData).catch(() => {
-            // Les erreurs de préchargement sont silencieuses
-          });
+          if (gameMode !== 'riddle') {
+            // Précharger les images de la question courante
+            preloadQuestionImages(questionData).catch(() => {
+              // Les erreurs de préchargement sont silencieuses
+            });
+          }
           setQuestion(questionData);
           fetchQuestion(true);
         }
@@ -544,7 +558,7 @@ export function GameProvider({ children }) {
         }
       }
     },
-    [abortActiveFetch, abortPrefetchFetch, buildQuizParams, t]
+    [abortActiveFetch, abortPrefetchFetch, buildQuizParams, gameMode, t]
   );
 
   useEffect(() => {
@@ -597,6 +611,9 @@ export function GameProvider({ children }) {
       setIsGameActive(true);
       setIsGameOver(false);
       setIsReviewMode(isDailyChallenge ? false : review);
+      if (!review) {
+        setReviewTaxonIds([]);
+      }
       setInitialSessionXP(profile?.xp || 0);
       setGameMode((prev) =>
         forcedGameMode === undefined ? prev : normalizeGameMode(forcedGameMode, prev)
@@ -617,49 +634,31 @@ export function GameProvider({ children }) {
    */
   const startReviewMode = useCallback(async () => {
     try {
-      const speciesToReview = await getSpeciesDueForReview(10);
+      const speciesToReview = await getSpeciesDueForReview(50);
+      const taxonIds = speciesToReview
+        .map(({ taxon }) => taxon?.id)
+        .filter((id) => Number.isFinite(id));
       
-      if (speciesToReview.length === 0) {
+      if (taxonIds.length === 0) {
         notify('Aucune espèce à réviser aujourd\'hui ! 🎉', { 
           type: 'success',
           duration: 3000 
         });
-        return;
+        return false;
       }
       
-      // Store review species for tracking
-      setReviewSpecies(speciesToReview);
-      
-      // Configure the session
-      setActivePackId('custom');
-      setGameMode('easy'); // Default to Easy mode
-      setMaxQuestions(speciesToReview.length);
-      
-      // Configure custom filters to target specific taxon IDs
-      // Reset filters first
-      dispatchCustomFilters({ type: 'TOGGLE_TAXA' }); // Enable if not already
-      
-      // Add each taxon to included taxa
-      speciesToReview.forEach(({ taxon }) => {
-        if (taxon) {
-          dispatchCustomFilters({
-            type: 'ADD_INCLUDED_TAXON',
-            payload: { id: taxon.id, name: taxon.name }
-          });
-        }
-      });
-      
+      // Store review taxon IDs for API targeting
+      setReviewTaxonIds(taxonIds);
+
       // Start the game with review mode enabled
-      startGame({ review: true });
+      startGame({ review: true, gameMode: 'easy', maxQuestions: taxonIds.length });
       
-      // Fetch first question
-      await fetchQuestion();
-      
-      notify(`📚 ${speciesToReview.length} espèce${speciesToReview.length > 1 ? 's' : ''} à réviser`, {
+      notify(`📚 ${taxonIds.length} espèce${taxonIds.length > 1 ? 's' : ''} à réviser`, {
         type: 'info',
         duration: 3000
       });
       
+      return true;
     } catch (error) {
       console.error('Failed to start review mode:', error);
       if (typeof notifyApiError === 'function') {
@@ -667,8 +666,9 @@ export function GameProvider({ children }) {
       } else {
         notify('Impossible de démarrer le mode révision', { type: 'error' });
       }
+      return false;
     }
-  }, [startGame, fetchQuestion]);
+  }, [startGame]);
 
   const nextImageUrl = useMemo(() => {
     if (mediaType === 'sounds') return null;
@@ -713,6 +713,13 @@ export function GameProvider({ children }) {
           (profileClone.stats.easyQuestionsAnswered || 0) + totalQuestions;
         profileClone.stats.accuracyEasy = profileClone.stats.easyQuestionsAnswered > 0
           ? profileClone.stats.correctEasy / profileClone.stats.easyQuestionsAnswered
+          : 0;
+      } else if (gameMode === 'riddle') {
+        profileClone.stats.correctRiddle = (profileClone.stats.correctRiddle || 0) + finalCorrectAnswers;
+        profileClone.stats.riddleQuestionsAnswered =
+          (profileClone.stats.riddleQuestionsAnswered || 0) + totalQuestions;
+        profileClone.stats.accuracyRiddle = profileClone.stats.riddleQuestionsAnswered > 0
+          ? profileClone.stats.correctRiddle / profileClone.stats.riddleQuestionsAnswered
           : 0;
       } else {
         profileClone.stats.correctHard = (profileClone.stats.correctHard || 0) + finalCorrectAnswers;
@@ -1170,7 +1177,7 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionMissedSpecies,
       isReviewMode,
-      reviewSpecies,
+      reviewTaxonIds,
       currentStreak,
       longestStreak,
       inGameShields,
@@ -1214,7 +1221,7 @@ export function GameProvider({ children }) {
       sessionSpeciesData,
       sessionMissedSpecies,
       isReviewMode,
-      reviewSpecies,
+      reviewTaxonIds,
       currentStreak,
       longestStreak,
       inGameShields,

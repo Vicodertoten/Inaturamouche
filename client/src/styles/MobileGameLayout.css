@@ -265,11 +265,13 @@
 }
 
 /* --- Easy Mode Specific --- */
-.game-screen.easy-mode {
+.game-screen.easy-mode,
+.game-screen.riddle-mode {
   gap: 1rem;
 }
 
-.game-screen.easy-mode .game-header {
+.game-screen.easy-mode .game-header,
+.game-screen.riddle-mode .game-header {
   width: min(100%, 900px);
   max-width: 900px;
   margin-left: auto;
@@ -277,11 +279,13 @@
 }
 
 @media (max-width: 768px) {
-  .game-screen.easy-mode .game-header {
+  .game-screen.easy-mode .game-header,
+  .game-screen.riddle-mode .game-header {
     width: calc(100% - 1rem);
   }
 
-  .game-screen.easy-mode .card {
+  .game-screen.easy-mode .card,
+  .game-screen.riddle-mode .card {
     width: 100%;
     padding: 0.75rem;
   }
