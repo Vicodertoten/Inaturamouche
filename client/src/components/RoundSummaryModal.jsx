@@ -25,7 +25,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
 
     const { primary, secondary } = getTaxonDisplayNames(actualTaxon);
     return {
-      id: actualTaxon.id,
+      id: actualTaxon.id || actualTaxon.taxon_id, // Robustly get ID
       image_url: actualTaxon.default_photo?.url || actualTaxon.image_url,
       wikipedia_url: actualTaxon.wikipedia_url,
       inaturalist_url: actualTaxon.url, // Top-level URL for iNaturalist page
