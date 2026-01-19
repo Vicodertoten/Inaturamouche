@@ -97,12 +97,7 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
       throw new Error('Empty explanation from AI.');
     }
     
-    // Post-processing to remove unwanted leading characters/prefixes
-    explanation = explanation.trim();
-    // Regex to remove common unwanted leading prefixes like "A,", "1.", "B ", etc.
-    // This is more robust than just "A,"
-    explanation = explanation.replace(/^([A-Z]|\d)\.\s*|^([A-Z]|\d)\s*,\s*|^\s*,\s*/, '');
-    explanation = explanation.trim(); // Trim again after removal
+
 
     return explanation;
 
