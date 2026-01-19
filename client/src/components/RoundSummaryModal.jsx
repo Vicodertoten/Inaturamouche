@@ -59,10 +59,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
     return null;
   }
 
-  const { bonne_reponse, inaturalist_url } = question;
+  const { bonne_reponse } = question;
   const { primary: primaryName, secondary: secondaryName } = getTaxonDisplayNames(bonne_reponse);
-  const imageUrl = bonne_reponse.image_url || (question.image_urls && question.image_urls[0]);
-  const wikipediaUrl = bonne_reponse.wikipedia_url;
+  const correctImageUrl = bonne_reponse.default_photo?.url || (question.image_urls && question.image_urls[0]);
+  const correctWikipediaUrl = bonne_reponse.wikipedia_url;
+  const correctInaturalistUrl = bonne_reponse.url; // Use top-level URL from taxon
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const titleIcon = isWin ? '🎉' : '😟';
 
@@ -84,8 +85,8 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
               <div className="answer-card-body">
                 <div className="answer-image-wrapper">
                   <img
-                    src={getSizedImageUrl(bonne_reponse.image_url, 'medium')}
-                    srcSet={`${getSizedImageUrl(bonne_reponse.image_url, 'small')} 300w, ${getSizedImageUrl(bonne_reponse.image_url, 'medium')} 600w`}
+                    src={getSizedImageUrl(correctImageUrl, 'medium')}
+                    srcSet={`${getSizedImageUrl(correctImageUrl, 'small')} 300w, ${getSizedImageUrl(correctImageUrl, 'medium')} 600w`}
                     sizes="(max-width: 768px) 120px, 200px"
                     alt={primaryName || secondaryName}
                     className="answer-image"
@@ -96,13 +97,13 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
                   {primaryName && <p className="answer-name">{primaryName}</p>}
                   {secondaryName && <p className="answer-scientific-name"><em>{secondaryName}</em></p>}
                   <div className="external-links-container modal-links">
-                    {bonne_reponse.inaturalist_url && (
-                      <a href={bonne_reponse.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                    {correctInaturalistUrl && (
+                      <a href={correctInaturalistUrl} target="_blank" rel="noopener noreferrer" className="external-link">
                         {t('summary.links.inaturalist')}
                       </a>
                     )}
-                    {bonne_reponse.wikipedia_url && (
-                      <a href={bonne_reponse.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                    {correctWikipediaUrl && (
+                      <a href={correctWikipediaUrl} target="_blank" rel="noopener noreferrer" className="external-link">
                         {t('summary.links.wikipedia')}
                       </a>
                     )}
@@ -118,7 +119,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
                 <div className="answer-card-body">
                   <div className="answer-image-wrapper">
                     <img
-                      src={getSizedImageUrl(userAnswer.image_url, 'medium')}
+                      src={getSizedImageUrl(userAnswer.image_url, 'medium')} // userAnswer.image_url should now be userAnswer.default_photo?.url
                       srcSet={`${getSizedImageUrl(userAnswer.image_url, 'small')} 300w, ${getSizedImageUrl(userAnswer.image_url, 'medium')} 600w`}
                       sizes="(max-width: 768px) 120px, 200px"
                       alt={userAnswer.primaryName || userAnswer.secondaryName}
@@ -130,7 +131,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
                     {userAnswer.primaryName && <p className="answer-name">{userAnswer.primaryName}</p>}
                     {userAnswer.secondaryName && <p className="answer-scientific-name"><em>{userAnswer.secondaryName}</em></p>}
                     <div className="external-links-container modal-links">
-                      {userAnswer.inaturalist_url && (
+                      {userAnswer.inaturalist_url && ( // userAnswer.inaturalist_url should now be userAnswer.url
                         <a href={userAnswer.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
                           {t('summary.links.inaturalist')}
                         </a>
