@@ -1,16 +1,81 @@
-/* TutorialOverlay.css */
+/* Ajouts recommandés pour le style "Pro" */
 
-.tutorial-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-  pointer-events: auto;
+.tutorial-card {
+  /* ... styles existants ... */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--primary-color, #4CAF50); /* Bordure colorée pour le peps */
+  max-width: 320px;
+  max-height: 300px; /* Limite la hauteur excessive */
+  overflow-y: auto; /* Permet le scroll si contenu trop long */
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.tutorial-header {
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.tutorial-emoji {
+  font-size: 1.8rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-color);
+  text-align: left;
+}
+
+.tutorial-content p {
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+/* Positionnement plus fin : utilise les variables CSS définies dans le JSX */
+.tutorial-card.position-bottom {
+  top: calc(var(--target-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tutorial-card.position-top {
+  bottom: calc(100vh - var(--target-top) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Animation d'entrée */
+@keyframes popIn {
+  from { opacity: 0; transform: translateX(-50%) scale(0.9); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* Gestion du padding "respirant" autour de la cible */
+.tutorial-backdrop.has-target {
+  /* On utilise un mask radial pour "trouer" le fond noir */
+  mask-image: radial-gradient(
+    rectangle at var(--target-x) var(--target-y),
+    black calc(var(--target-width) / 2), 
+    transparent calc(var(--target-width) / 2 + 2px)
+  );
+  /* Fallback pour compatibilité webkit */
+  -webkit-mask-image: radial-gradient(
+    circle at var(--target-x) var(--target-y),
+    transparent calc(var(--target-width) / 2), 
+    black calc(var(--target-width) / 2 + 5px)
+  );
+  background-color: rgba(0, 0, 0, 0.75);
 }
 
 /* Le fond sombre avec effet spotlight */
@@ -19,18 +84,6 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   transition: all 0.5s ease;
-}
-
-/* Spotlight effect for targeted elements */
-.tutorial-backdrop.step-modes,
-.tutorial-backdrop.step-start,
-.tutorial-backdrop.step-streak {
-  background: radial-gradient(
-    circle at var(--target-x) var(--target-y),
-    transparent calc(var(--target-width) * 0.8 + 20px),
-    rgba(0, 0, 0, 0.1) calc(var(--target-width) * 0.8 + 40px),
-    rgba(0, 0, 0, 0.85) calc(var(--target-width) * 0.8 + 60px)
-  );
 }
 
 /* La carte de dialogue */
@@ -85,6 +138,18 @@
 
 .tutorial-footer {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tutorial-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tutorial-buttons {
+  display: flex;
   justify-content: space-between;
   gap: 12px;
 }
@@ -133,6 +198,17 @@
   top: calc(var(--target-y) - 20px);
   left: 50%;
   transform: translateX(-50%);
+}
+
+.tutorial-card.position-bottom {
+  position: absolute;
+  top: calc(var(--target-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tutorial-card.position-center {
+  position: relative;
 }
 
 /* Animations */

@@ -33,28 +33,41 @@ async function seedEncyclopedia() {
     
     console.log(`📚 Loading ${inaturalistIds.length} taxa from iNaturalist...`);
     
-    // Fetch taxon details from iNaturalist via our server
-    const idsParam = inaturalistIds.join(',');
-    const response = await fetch(`/api/taxa?ids=${idsParam}&locale=en`);
+    // Process IDs in batches of 50 (server string limit is 500 chars)
+    const BATCH_SIZE = 50;
+    const allTaxaList = [];
     
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
+    for (let i = 0; i < inaturalistIds.length; i += BATCH_SIZE) {
+      const batchIds = inaturalistIds.slice(i, i + BATCH_SIZE);
+      const idsParam = batchIds.join(',');
+      
+      console.log(`  📡 Fetching batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(inaturalistIds.length / BATCH_SIZE)} (${batchIds.length} taxa)...`);
+      
+      const response = await fetch(`/api/taxa?ids=${idsParam}&locale=en`);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} for batch starting at index ${i}`);
+      }
+      
+      const taxaList = await response.json();
+      
+      if (Array.isArray(taxaList)) {
+        allTaxaList.push(...taxaList);
+      }
     }
     
-    const taxaList = await response.json();
-    
-    if (!Array.isArray(taxaList) || taxaList.length === 0) {
+    if (allTaxaList.length === 0) {
       console.warn('⚠️ No taxa returned from server');
       return;
     }
     
-    console.log(`📚 Seeding ${taxaList.length} taxa into database...`);
+    console.log(`📚 Seeding ${allTaxaList.length} taxa into database...`);
     
     // Seed into CollectionService (handles transaction, batching, etc.)
-    await CollectionService.seedTaxa(taxaList, {
+    await CollectionService.seedTaxa(allTaxaList, {
       onProgress: (count) => {
         if (count % 50 === 0) {
-          console.log(`  ✓ Seeded ${count}/${taxaList.length}`);
+          console.log(`  ✓ Seeded ${count}/${allTaxaList.length}`);
         }
       },
     });
