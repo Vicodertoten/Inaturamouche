@@ -192,6 +192,7 @@ export async function getFullTaxaDetails(
   const cachedResults = [];
   const staleIds = [];
   const missingIds = [];
+  const isMissingObservationCount = (taxon) => taxon?.observations_count == null;
 
   taxonDetailsCache.prune();
 
@@ -200,6 +201,7 @@ export async function getFullTaxaDetails(
     if (entry?.value) {
       cachedResults.push(entry.value);
       if (entry.isStale) staleIds.push(id);
+      if (isMissingObservationCount(entry.value)) missingIds.push(id);
     } else {
       missingIds.push(id);
     }
@@ -217,6 +219,14 @@ export async function getFullTaxaDetails(
           if (!loc.wikipedia_url && def.wikipedia_url) loc.wikipedia_url = def.wikipedia_url;
           if (!loc.preferred_common_name && def.preferred_common_name)
             loc.preferred_common_name = def.preferred_common_name;
+          if (loc.observations_count == null && def.observations_count != null)
+            loc.observations_count = def.observations_count;
+          if (!loc.conservation_status && def.conservation_status)
+            loc.conservation_status = def.conservation_status;
+          if (loc.iconic_taxon_id == null && def.iconic_taxon_id != null)
+            loc.iconic_taxon_id = def.iconic_taxon_id;
+          if (!loc.default_photo && def.default_photo) loc.default_photo = def.default_photo;
+          if (!loc.url && def.url) loc.url = def.url;
           return loc;
         }
         return loc || def;
@@ -224,26 +234,42 @@ export async function getFullTaxaDetails(
       .filter(Boolean);
   };
 
+  const TAXA_BATCH_LIMIT = 25;
+  const chunkIds = (ids, size) => {
+    const out = [];
+    for (let i = 0; i < ids.length; i += size) {
+      out.push(ids.slice(i, i + size));
+    }
+    return out;
+  };
+
   const fetchBatch = async (ids) => {
     if (!ids.length) return [];
-    const path = `https://api.inaturalist.org/v1/taxa/${ids.join(',')}`;
-    // Parallelize localized + default fetches to cut iNat latency on cold starts.
-    const [localizedResponse, defaultResponse] = await Promise.all([
-      fetchInatJSON(path, { locale }, { logger, requestId, label: 'taxa-localized' }),
-      locale.startsWith('en')
-        ? Promise.resolve(null)
-        : fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' }),
-    ]);
-    const localizedResults = Array.isArray(localizedResponse?.results) ? localizedResponse.results : [];
-    const defaultResults = Array.isArray(defaultResponse?.results) ? defaultResponse.results : [];
-    const merged = mergeLocalizedDefaults(localizedResults, defaultResults, ids);
-    for (const taxon of merged) {
-      if (taxon?.id != null) {
-        const cacheKey = `${String(taxon.id)}:${locale}`;
-        taxonDetailsCache.set(cacheKey, taxon);
+    const chunks = chunkIds(ids, TAXA_BATCH_LIMIT);
+    const aggregated = [];
+
+    for (const chunk of chunks) {
+      const path = `https://api.inaturalist.org/v1/taxa/${chunk.join(',')}`;
+      // Parallelize localized + default fetches to cut iNat latency on cold starts.
+      const [localizedResponse, defaultResponse] = await Promise.all([
+        fetchInatJSON(path, { locale }, { logger, requestId, label: 'taxa-localized' }),
+        locale.startsWith('en')
+          ? Promise.resolve(null)
+          : fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' }),
+      ]);
+      const localizedResults = Array.isArray(localizedResponse?.results) ? localizedResponse.results : [];
+      const defaultResults = Array.isArray(defaultResponse?.results) ? defaultResponse.results : [];
+      const merged = mergeLocalizedDefaults(localizedResults, defaultResults, chunk);
+      for (const taxon of merged) {
+        if (taxon?.id != null) {
+          const cacheKey = `${String(taxon.id)}:${locale}`;
+          taxonDetailsCache.set(cacheKey, taxon);
+        }
       }
+      aggregated.push(...merged);
     }
-    return merged;
+
+    return aggregated;
   };
 
   let fetchedResults = [];

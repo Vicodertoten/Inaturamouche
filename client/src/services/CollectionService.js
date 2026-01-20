@@ -1,7 +1,7 @@
 import db, { taxa as taxaTable, stats as statsTable } from './db.js';
 import Dexie from 'dexie';
 import { queueTaxonForEnrichment } from './TaxonomyService.js';
-import { getRarityTier } from '../utils/rarityUtils';
+import { getRarityTier, normalizeObservationsCount } from '../utils/rarityUtils';
 
 // ============== MASTERY CONSTANTS ==============
 
@@ -117,9 +117,7 @@ export async function seedTaxa(taxonList, opts = {}) {
             ancestorIds = taxon.ancestor_ids;
           }
           
-          const observationsCount = Number.isFinite(Number(taxon.observations_count))
-            ? Number(taxon.observations_count)
-            : null;
+          const observationsCount = normalizeObservationsCount(taxon?.observations_count);
           await taxaTable.put({
             id: taxon.id,
             name: taxon.name,
@@ -211,9 +209,9 @@ export async function upsertTaxon(taxonData, opts = {}) {
         ? Date.now()
         : (existing?.descriptionUpdatedAt || null);
 
-      const observationsCount = Number.isFinite(Number(taxonData.observations_count))
-        ? Number(taxonData.observations_count)
-        : existing?.observations_count ?? null;
+      const incomingObservationsCount = normalizeObservationsCount(taxonData?.observations_count);
+      const existingObservationsCount = normalizeObservationsCount(existing?.observations_count);
+      const observationsCount = incomingObservationsCount ?? existingObservationsCount ?? null;
       const merged = {
         id: taxonId,
         name: taxonData.name || existing?.name,
@@ -227,7 +225,7 @@ export async function upsertTaxon(taxonData, opts = {}) {
         thumbnail: taxonData.thumbnail || existing?.thumbnail || imageUrl,
         wikipedia_url: taxonData.wikipedia_url || existing?.wikipedia_url || '',
         observations_count: observationsCount,
-        rarity_tier: getRarityTier(observationsCount) || existing?.rarity_tier || null,
+        rarity_tier: getRarityTier(observationsCount),
         conservation_status: taxonData.conservation_status || existing?.conservation_status || null,
         description,
         descriptionUpdatedAt,
@@ -446,15 +444,19 @@ export async function getSpeciesPage(params = {}) {
       sorted.sort((a, b) => (a.taxon?.name || '').localeCompare(b.taxon?.name || ''));
     } else if (sort === 'rarity') {
       sorted.sort((a, b) => {
-        const aCount = Number.isFinite(a.taxon?.observations_count) ? a.taxon.observations_count : Number.POSITIVE_INFINITY;
-        const bCount = Number.isFinite(b.taxon?.observations_count) ? b.taxon.observations_count : Number.POSITIVE_INFINITY;
-        return aCount - bCount;
+        const aCount = normalizeObservationsCount(a.taxon?.observations_count);
+        const bCount = normalizeObservationsCount(b.taxon?.observations_count);
+        const aValue = aCount ?? Number.POSITIVE_INFINITY;
+        const bValue = bCount ?? Number.POSITIVE_INFINITY;
+        return aValue - bValue;
       });
     } else if (sort === 'rarity_common') {
       sorted.sort((a, b) => {
-        const aCount = Number.isFinite(a.taxon?.observations_count) ? a.taxon.observations_count : Number.NEGATIVE_INFINITY;
-        const bCount = Number.isFinite(b.taxon?.observations_count) ? b.taxon.observations_count : Number.NEGATIVE_INFINITY;
-        return bCount - aCount;
+        const aCount = normalizeObservationsCount(a.taxon?.observations_count);
+        const bCount = normalizeObservationsCount(b.taxon?.observations_count);
+        const aValue = aCount ?? Number.NEGATIVE_INFINITY;
+        const bValue = bCount ?? Number.NEGATIVE_INFINITY;
+        return bValue - aValue;
       });
     }
     return sorted;
@@ -657,6 +659,37 @@ export async function getSpeciesDetail(taxonId) {
     console.error(`Failed to get species detail for ${taxonId}:`, error);
     throw error;
   }
+}
+
+/**
+ * Rebuild rarity tiers for existing taxa using observations_count.
+ * Only uses locally stored data to avoid extra API load.
+ */
+export async function rebuildRarityTiers() {
+  const taxa = await taxaTable.toArray();
+  const updates = [];
+
+  for (const taxon of taxa) {
+    const observationsCount = normalizeObservationsCount(taxon?.observations_count);
+    const nextTier = getRarityTier(observationsCount);
+    const nextObservations = observationsCount ?? null;
+    if (taxon?.id == null) continue;
+    if (taxon.observations_count !== nextObservations || taxon.rarity_tier !== nextTier) {
+      updates.push({
+        id: taxon.id,
+        observations_count: nextObservations,
+        rarity_tier: nextTier,
+      });
+    }
+  }
+
+  if (!updates.length) return;
+
+  await db.transaction('rw', taxaTable, async () => {
+    for (const patch of updates) {
+      await taxaTable.update(patch.id, patch);
+    }
+  });
 }
 
 /**
@@ -962,6 +995,7 @@ const CollectionService = {
   getIconicSummary,
   getSpeciesPage,
   getSpeciesDetail,
+  rebuildRarityTiers,
   updateTaxonDescription,
   getSimilarSpecies,
   onCollectionUpdated,

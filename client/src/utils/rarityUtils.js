@@ -7,24 +7,31 @@ export const RARITY_TIERS = Object.freeze({
   UNKNOWN: 'unknown',
 });
 
+export function normalizeObservationsCount(rawCount) {
+  if (rawCount === null || rawCount === undefined) return null;
+  const normalized = Number(rawCount);
+  if (!Number.isFinite(normalized) || normalized < 1) return null;
+  return normalized;
+}
+
 const RARITY_RULES = [
   { tier: RARITY_TIERS.LEGENDARY, max: 1000, label: 'Legendaire', colorVar: '--rarity-legendary', bonusXp: 50 },
   { tier: RARITY_TIERS.EPIC, max: 10000, label: 'Epique', colorVar: '--rarity-epic', bonusXp: 25 },
-  { tier: RARITY_TIERS.RARE, max: 50000, label: 'Rare', colorVar: '--rarity-rare', bonusXp: 10 },
-  { tier: RARITY_TIERS.UNCOMMON, max: 100000, label: 'Peu commun', colorVar: '--rarity-uncommon', bonusXp: 5 },
+  { tier: RARITY_TIERS.RARE, max: 100000, label: 'Rare', colorVar: '--rarity-rare', bonusXp: 10 },
+  { tier: RARITY_TIERS.UNCOMMON, max: 1000000, label: 'Peu commun', colorVar: '--rarity-uncommon', bonusXp: 5 },
   { tier: RARITY_TIERS.COMMON, max: Infinity, label: 'Commun', colorVar: '--rarity-common', bonusXp: 0 },
 ];
 
 export function getRarityTier(observationsCount) {
-  const normalized = Number(observationsCount);
-  if (!Number.isFinite(normalized) || normalized < 0) return null;
+  const normalized = normalizeObservationsCount(observationsCount);
+  if (normalized === null) return null;
   const rule = RARITY_RULES.find((entry) => normalized < entry.max);
   return rule ? rule.tier : RARITY_TIERS.COMMON;
 }
 
 export function getRarityInfo(observationsCount) {
-  const normalized = Number(observationsCount);
-  if (!Number.isFinite(normalized) || normalized < 0) {
+  const normalized = normalizeObservationsCount(observationsCount);
+  if (normalized === null) {
     return {
       tier: RARITY_TIERS.UNKNOWN,
       label: 'Inconnue',
@@ -64,12 +71,8 @@ export function getRarityInfoByTier(tier) {
 }
 
 export function getRarityInfoForTaxon(taxon = {}) {
-  const observationsCount =
-    Number.isFinite(taxon?.observations_count) ? taxon.observations_count : null;
+  const observationsCount = normalizeObservationsCount(taxon?.observations_count);
   if (observationsCount === null) {
-    if (taxon?.rarity_tier) {
-      return getRarityInfoByTier(taxon.rarity_tier);
-    }
     return {
       tier: RARITY_TIERS.UNKNOWN,
       label: 'Inconnue',

@@ -143,6 +143,17 @@ export function UserProvider({ children }) {
       } catch (e) {
         console.error("Erreur lecture DB", e);
       }
+
+      // Rebuild rarity tiers once using locally stored observations_count data.
+      try {
+        const rarityFlag = localStorage.getItem('RARITY_REBUILD_V6');
+        if (!rarityFlag) {
+          await CollectionService.rebuildRarityTiers();
+          localStorage.setItem('RARITY_REBUILD_V6', '1');
+        }
+      } catch (err) {
+        console.warn('Rarity rebuild skipped:', err);
+      }
       
       // Update collectionVersion if any data changes happened
       if ((migrationApplied || seedingApplied) && isMounted) {
