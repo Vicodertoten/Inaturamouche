@@ -1,6 +1,9 @@
-/* Ajouts recommandés pour le style "Pro" */
-
-.tutorial-card {
+/* Le conteneur principal de l'overlay */
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
   /* ... styles existants ... */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   border: 2px solid var(--primary-color, #4CAF50); /* Bordure colorée pour le peps */
@@ -208,7 +211,10 @@
 }
 
 .tutorial-card.position-center {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* Animations */

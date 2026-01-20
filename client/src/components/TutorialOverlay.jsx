@@ -173,7 +173,7 @@ const TutorialOverlay = () => {
 
   const step = STEPS[currentStepIndex];
   // Logique de positionnement simplifiée
-  const currentPosition = (isFallbackCenter || !targetRect || step.id === 'modes') ? 'center' : step.position;
+  const currentPosition = (isFallbackCenter || !targetRect) ? 'center' : step.position;
 
   return (
     <div className="tutorial-overlay" role="dialog" aria-modal="true">
@@ -181,7 +181,7 @@ const TutorialOverlay = () => {
          Si targetRect est null, le backdrop est plein (opacité uniforme).
       */}
       <div
-        className={`tutorial-backdrop ${targetRect ? 'has-target' : ''}`}
+        className={`tutorial-backdrop ${targetRect && currentPosition !== 'center' ? 'has-target' : ''}`}
         style={targetRect ? {
           '--target-x': `${targetRect.left + targetRect.width / 2}px`,
           '--target-y': `${targetRect.top + targetRect.height / 2}px`,
