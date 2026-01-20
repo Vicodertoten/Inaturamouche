@@ -7,6 +7,7 @@ import packsRouter from './packs.js';
 import quizRouter from './quiz.js';
 import taxaRouter from './taxa.js';
 import placesRouter from './places.js';
+import reportsRouter from './reports.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use(packsRouter);
 router.use(quizRouter);
 router.use(taxaRouter);
 router.use(placesRouter);
+router.use(reportsRouter);
 
 export default router;

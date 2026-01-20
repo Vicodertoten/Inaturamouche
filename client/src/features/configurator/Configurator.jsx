@@ -516,16 +516,17 @@ function Configurator({ onStartGame }) {
           </div>
         </section>
         
+        <div className="play-button-container">
           <button
             onClick={handleStartClick}
-            className="btn btn--primary start-button start-button-glow"
+            className="btn btn--primary start-button start-button-glow play-btn"
             disabled={packsLoading}
             aria-label={t('common.start_game')}
           >
             {t('common.start_game')}
           </button>
         </div>
-      
+      </div>
     </>
   );
 }

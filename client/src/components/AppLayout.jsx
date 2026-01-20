@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AchievementModal from './AchievementModal';
-import HelpModal from './HelpModal';
+import ReportModal from './ReportModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
-import { CollectionIcon, ProfileIcon as SharedProfileIcon, HelpIcon } from './NavigationIcons';
+import { CollectionIcon, ProfileIcon as SharedProfileIcon, ReportIcon } from './NavigationIcons';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
@@ -20,13 +20,8 @@ const AppLayout = () => {
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
   const { achievementQueue, popAchievement } = useUser();
   const { t } = useLanguage();
-  const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
+  const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-
-  const closeHelp = useCallback(() => {
-    localStorage.setItem('home_intro_seen', '1');
-    setIsHelpVisible(false);
-  }, []);
 
   const handleTitleClick = useCallback(() => {
     if (isGameActive || isGameOver) {
@@ -35,7 +30,8 @@ const AppLayout = () => {
     navigate('/');
   }, [isGameActive, isGameOver, navigate, resetToLobby]);
 
-  const showHelp = useCallback(() => setIsHelpVisible(true), []);
+  const showReport = useCallback(() => setIsReportVisible(true), []);
+  const closeReport = useCallback(() => setIsReportVisible(false), []);
 
   const showProfile = useCallback(() => {
     if (location.pathname !== '/profile') navigate('/profile');
@@ -45,11 +41,11 @@ const AppLayout = () => {
     setIsPreferencesOpen((prev) => !prev);
   }, []);
 
-  const outletContext = useMemo(() => ({ showHelp }), [showHelp]);
+  const outletContext = useMemo(() => ({ showReport }), [showReport]);
 
   return (
     <div className="App">
-      {isHelpVisible && <HelpModal onClose={closeHelp} />}
+      {isReportVisible && <ReportModal onClose={closeReport} />}
       {achievementQueue[0] && (
         <AchievementModal achievementId={achievementQueue[0]} onClose={popAchievement} />
       )}
@@ -60,12 +56,12 @@ const AppLayout = () => {
         <div className="main-nav-items">
           <button
             className="nav-pill nav-icon nav-elevated"
-            onClick={showHelp}
-            aria-label={t('nav.help_label')}
-            title={t('nav.help_label')}
+            onClick={showReport}
+            aria-label="Signaler un problème"
+            title="Signaler un problème"
             type="button"
           >
-            <HelpIcon />
+            <ReportIcon />
           </button>
           <button
             className="nav-pill nav-icon nav-elevated"
@@ -93,7 +89,7 @@ const AppLayout = () => {
       <PreferencesMenu isOpen={isPreferencesOpen} onToggle={togglePreferences} isMobileControlled />
 
       {/* Mobile Bottom Navigation - Hidden on Desktop */}
-      <BottomNavigationBar onSettingsClick={togglePreferences} isSettingsOpen={isPreferencesOpen} />
+      <BottomNavigationBar onSettingsClick={togglePreferences} isSettingsOpen={isPreferencesOpen} onReportClick={showReport} />
 
       <header className="app-header">
         <img

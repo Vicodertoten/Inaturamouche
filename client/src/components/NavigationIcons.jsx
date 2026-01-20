@@ -30,15 +30,11 @@ export const SettingsIcon = () => (
   </svg>
 );
 
-export const HelpIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 24 24" className="help-icon">
+export const ReportIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24">
     <path
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 17h.01M9.5 10a2.5 2.5 0 1 1 5 0c0 1.5-2 2.25-2 3.5"
+      fill="currentColor"
+      d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"
     />
   </svg>
 );
@@ -48,4 +44,5 @@ export default {
   CollectionIcon,
   ProfileIcon,
   SettingsIcon,
+  ReportIcon,
 };

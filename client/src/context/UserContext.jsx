@@ -80,11 +80,18 @@ export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Initialize: load profile, migrate legacy data, and seed encyclopedia
   useEffect(() => {
     let isMounted = true;
     const initialize = async () => {
+      // Tutorial check
+      const tutorialSeen = localStorage.getItem('inaturamouche_tutorial_seen');
+      if (!tutorialSeen) {
+        setShowTutorial(true);
+      }
+
       let migrationApplied = false;
       try {
         migrationApplied = await migrateLocalStorageToIndexedDB();
@@ -173,6 +180,11 @@ export function UserProvider({ children }) {
     });
     return unsubscribe;
   }, []);
+
+  const completeTutorial = () => {
+    localStorage.setItem('inaturamouche_tutorial_seen', 'true');
+    setShowTutorial(false);
+  };
 
   const refreshProfile = useCallback(async () => {
     const loadedProfile = await loadProfileFromStore();
@@ -310,6 +322,8 @@ export function UserProvider({ children }) {
     getSpeciesById, // Legacy
     getSpeciesStats, // Legacy
     collectionVersion,
+    showTutorial,
+    completeTutorial,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

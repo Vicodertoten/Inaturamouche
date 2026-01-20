@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/BottomNavigationBar.css';
-import { HomeIcon, CollectionIcon, ProfileIcon, SettingsIcon } from './NavigationIcons';
+import { HomeIcon, CollectionIcon, ProfileIcon, SettingsIcon, ReportIcon } from './NavigationIcons';
 
-const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOpen = false }) => {
+const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOpen = false, onReportClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -12,6 +12,7 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
     { path: '/', icon: HomeIcon, label: t('nav.home_label', {}, 'Accueil'), type: 'route' },
     { path: '/collection', icon: CollectionIcon, label: t('nav.collection_label'), type: 'route' },
     { path: '/profile', icon: ProfileIcon, label: t('nav.profile_label'), type: 'route' },
+    { path: 'report', icon: ReportIcon, label: 'Signaler', type: 'action' },
     { path: 'settings', icon: SettingsIcon, label: t('nav.settings_label', {}, 'Réglages'), type: 'action' },
   ];
 
@@ -19,6 +20,9 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
     if (item.type === 'action' && item.path === 'settings') {
       // Trigger settings menu instead of navigating
       if (onSettingsClick) onSettingsClick();
+    } else if (item.type === 'action' && item.path === 'report') {
+      // Trigger report modal
+      if (onReportClick) onReportClick();
     } else {
       navigate(item.path);
       if (onNavigationChange) onNavigationChange(item.path);

@@ -1,0 +1,211 @@
+/* TutorialOverlay.css */
+
+.tutorial-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Le fond sombre avec effet spotlight */
+.tutorial-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  transition: all 0.5s ease;
+}
+
+/* Spotlight effect for targeted elements */
+.tutorial-backdrop.step-modes,
+.tutorial-backdrop.step-start,
+.tutorial-backdrop.step-streak {
+  background: radial-gradient(
+    circle at var(--target-x) var(--target-y),
+    transparent calc(var(--target-width) * 0.8 + 20px),
+    rgba(0, 0, 0, 0.1) calc(var(--target-width) * 0.8 + 40px),
+    rgba(0, 0, 0, 0.85) calc(var(--target-width) * 0.8 + 60px)
+  );
+}
+
+/* La carte de dialogue */
+.tutorial-card {
+  position: relative;
+  z-index: 10001;
+  background: var(--surface-color, white);
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 90%;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 2px solid var(--primary-color, #2e7d32);
+}
+
+.tutorial-card h3 {
+  color: var(--primary-color, #2e7d32);
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.tutorial-content p {
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+  color: var(--text-color, #333);
+}
+
+.tutorial-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--border-color, #ddd);
+  transition: background-color 0.2s ease;
+}
+
+.progress-dot.active {
+  background-color: var(--primary-color, #2e7d32);
+}
+
+.progress-dot.completed {
+  background-color: var(--success-color, #52c41a);
+}
+
+.tutorial-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tutorial-skip,
+.tutorial-next {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.tutorial-skip {
+  background-color: var(--surface-color, #f5f5f5);
+  color: var(--text-color-muted, #666);
+  border: 1px solid var(--border-color, #ddd);
+}
+
+.tutorial-skip:hover {
+  background-color: var(--background-color, #eee);
+}
+
+.tutorial-next {
+  background-color: var(--primary-color, #2e7d32);
+  color: white;
+}
+
+.tutorial-next:hover {
+  background-color: var(--primary-color-dark, #1b5e20);
+  transform: translateY(-1px);
+}
+
+/* Position adjustments */
+.tutorial-card.position-bottom-left {
+  position: absolute;
+  bottom: 20px;
+  left: calc(var(--target-x) + 20px);
+  transform: translateX(-50%);
+}
+
+.tutorial-card.position-top {
+  position: absolute;
+  top: calc(var(--target-y) - 20px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Animations */
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Pulsing animation for the start button */
+.tutorial-backdrop.step-start .tutorial-next {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .tutorial-card {
+    width: 280px;
+    padding: 20px;
+  }
+
+  .tutorial-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .tutorial-card.position-bottom-left {
+    left: 20px;
+    transform: none;
+    bottom: 20px;
+  }
+
+  .tutorial-card.position-top {
+    top: calc(var(--target-y) - 10px);
+  }
+}
+
+/* Arrow pointer for better UX */
+.tutorial-card::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+}
+
+.tutorial-card.position-bottom-left::before {
+  top: -16px;
+  left: 20px;
+  border-bottom-color: var(--surface-color, white);
+  border-top: none;
+}
+
+.tutorial-card.position-top::before {
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--surface-color, white);
+  border-bottom: none;
+}

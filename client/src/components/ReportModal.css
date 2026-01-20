@@ -1,0 +1,67 @@
+/* src/components/ReportModal.css */
+
+.report-modal .modal-content {
+  max-width: 500px;
+}
+
+.report-modal p {
+  margin-bottom: var(--space-4);
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.form-actions .btn {
+  flex: 1;
+  max-width: 150px;
+}
+
+@media (max-width: 480px) {
+  .report-modal .modal-content {
+    width: 95%;
+    padding: var(--space-3);
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    max-width: none;
+  }
+}
