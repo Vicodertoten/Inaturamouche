@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { fetchExplanation } from '../services/api';
+import { fetchExplanation, getTaxonDetails } from '../services/api';
 
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
@@ -33,6 +33,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const { t, lang, getTaxonDisplayNames } = useLanguage();
   const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userDetailOverride, setUserDetailOverride] = useState(null);
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
   const isWin = status === 'win';
@@ -43,13 +44,21 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     if (!actualTaxon) return {};
 
     const { primary, secondary } = getTaxonDisplayNames(actualTaxon);
+    const defaultPhoto = actualTaxon.default_photo || {};
+    const imageUrl =
+      defaultPhoto.url ||
+      defaultPhoto.medium_url ||
+      defaultPhoto.large_url ||
+      defaultPhoto.square_url ||
+      actualTaxon.image_url;
     return {
       id: actualTaxon.id || actualTaxon.taxon_id,
-      image_url: actualTaxon.default_photo?.url || actualTaxon.image_url,
+      image_url: imageUrl,
       wikipedia_url: actualTaxon.wikipedia_url,
       inaturalist_url: actualTaxon.url || (actualTaxon.id || actualTaxon.taxon_id ? `https://www.inaturalist.org/taxa/${actualTaxon.id || actualTaxon.taxon_id}` : undefined), // Robust iNaturalist URL
       primaryName: primary,
       secondaryName: secondary,
+      scientificName: actualTaxon.name || '',
     };
   }, [getTaxonDisplayNames]);
 
@@ -61,10 +70,44 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     }
     return taxon;
   }, [question, getTaxonDetailsForDisplay]);
-  const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
+  const baseUserId =
+    userAnswer?.detail?.id || userAnswer?.id || userAnswer?.taxon_id || null;
+  const userDisplayTaxon = useMemo(
+    () => getTaxonDetailsForDisplay(userDetailOverride || userAnswer),
+    [userDetailOverride, userAnswer, getTaxonDetailsForDisplay]
+  );
   const explanationCorrectId = explanationContext?.correctId || correctDisplayTaxon.id;
   const explanationWrongId = explanationContext?.wrongId || userDisplayTaxon.id;
   const explanationFocusRank = explanationContext?.focusRank || null;
+  const userWikiUrl = useMemo(() => {
+    if (userDisplayTaxon.wikipedia_url) return userDisplayTaxon.wikipedia_url;
+    if (!userDisplayTaxon.scientificName) return null;
+    return `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(userDisplayTaxon.scientificName)}`;
+  }, [userDisplayTaxon.wikipedia_url, userDisplayTaxon.scientificName, lang]);
+
+  useEffect(() => {
+    setUserDetailOverride(null);
+  }, [baseUserId]);
+
+  useEffect(() => {
+    let isActive = true;
+    if (isWin || !baseUserId) return () => {};
+    const needsPhoto = !userDisplayTaxon.image_url;
+    const needsWiki = !userDisplayTaxon.wikipedia_url;
+    if (!needsPhoto && !needsWiki) return () => {};
+
+    getTaxonDetails(baseUserId, lang)
+      .then((detail) => {
+        if (isActive && detail) {
+          setUserDetailOverride(detail);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isActive = false;
+    };
+  }, [isWin, baseUserId, userDisplayTaxon.image_url, userDisplayTaxon.wikipedia_url, lang]);
 
   useEffect(() => {
     let isActive = true; // Drapeau pour éviter les race conditions (double réponse)
@@ -201,8 +244,8 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                           {t('summary.links.inaturalist')}
                         </a>
                       )}
-                      {userDisplayTaxon.wikipedia_url && (
-                        <a href={userDisplayTaxon.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
+                      {userWikiUrl && (
+                        <a href={userWikiUrl} target="_blank" rel="noopener noreferrer" className="external-link">
                           {t('summary.links.wikipedia')}
                         </a>
                       )}
