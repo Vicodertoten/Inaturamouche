@@ -407,6 +407,18 @@ const nl = {
         title: '👑 Extreme Volmaaktheid',
         description: 'Voltooi een 10-vragenmoeilijk spel zonder fouten of schilden',
       },
+      FIRST_REVIEW: {
+        title: 'Eerste herziening',
+        description: 'Voltooi je eerste revisiesessie.',
+      },
+      DEDICATED_LEARNER: {
+        title: 'Toegewijde leerling',
+        description: 'Voltooi 7 dagen op rij een revisiesessie.',
+      },
+      MASTER_REVIEWER: {
+        title: 'Meesterherzienaar',
+        description: 'Houd 50 soorten in je revisiesysteem.',
+      },
     },
   },
   notifications: {

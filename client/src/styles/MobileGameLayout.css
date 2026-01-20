@@ -105,16 +105,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, rgba(52, 66, 45, 0.95), rgba(26, 32, 21, 0.95));
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-1);
 }
 
 .audio-player {
   width: 100%;
-  max-width: 400px;
-  height: 32px;
+  min-height: 40px;
 }
 
 /* --- Image Viewer --- */

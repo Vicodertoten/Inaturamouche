@@ -646,6 +646,18 @@ const fr = {
         title: 'Résilience',
         description: 'Finir une partie avec 100% sur les 5 dernières questions après une erreur.',
       },
+      FIRST_REVIEW: {
+        title: 'Première révision',
+        description: 'Terminer votre première session de révision.',
+      },
+      DEDICATED_LEARNER: {
+        title: 'Apprenant assidu',
+        description: 'Effectuer 7 jours consécutifs de révision.',
+      },
+      MASTER_REVIEWER: {
+        title: 'Maître réviseur',
+        description: 'Conserver 50 espèces dans le système de révision.',
+      },
     },
     reward_label: 'Récompense',
   },

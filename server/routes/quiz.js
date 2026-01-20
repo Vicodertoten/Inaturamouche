@@ -20,10 +20,11 @@ const explainSchema = z.object({
   correctId: z.coerce.number().int(),
   wrongId: z.coerce.number().int(),
   locale: z.string().trim().default('fr'),
+  focusRank: z.string().trim().max(32).optional().nullable(),
 });
 
 router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
-  const { correctId, wrongId, locale } = req.valid;
+  const { correctId, wrongId, locale, focusRank } = req.valid;
   const logger = req.log;
   const requestId = req.id;
   const taxaIds = [correctId, wrongId];
@@ -39,7 +40,13 @@ router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
       return res.status(404).json({ error: { code: 'TAXON_NOT_FOUND', message: 'One or both species not found.' } });
     }
 
-    const explanation = await generateCustomExplanation(correctTaxon, wrongTaxon, locale, logger);
+    const explanation = await generateCustomExplanation(
+      correctTaxon,
+      wrongTaxon,
+      locale,
+      logger,
+      { focusRank }
+    );
 
     res.json({ explanation });
 

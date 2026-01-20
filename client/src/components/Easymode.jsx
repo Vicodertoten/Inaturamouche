@@ -4,6 +4,7 @@ import RoundSummaryModal from './RoundSummaryModal';
 import GameHeader from './GameHeader';
 import LevelUpNotification from './LevelUpNotification';
 import { computeScore } from '../utils/scoring';
+import { getAudioMimeType, normalizeMediaUrl } from '../utils/mediaUtils';
 import { getDisplayName } from '../utils/speciesUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -38,7 +39,8 @@ const EasyMode = () => {
   // Paires (id, label) alignées. Fallback si serveur ancien (sans ids/index).
   const { t, getTaxonDisplayNames } = useLanguage();
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
-  const soundUrl = question?.sounds?.[0]?.file_url;
+  const soundUrl = normalizeMediaUrl(question?.sounds?.[0]?.file_url);
+  const soundType = getAudioMimeType(soundUrl);
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
   // `imageAltRaw` may contain the answer — do not expose it as `alt` to
@@ -258,7 +260,19 @@ const EasyMode = () => {
             <div className="image-section">
               {showAudio && (
                 <div className="audio-panel">
-                  <audio controls src={soundUrl} className="audio-player" preload="none" />
+                  <audio
+                    controls
+                    className="audio-player"
+                    preload="metadata"
+                    playsInline
+                    controlsList="nodownload noplaybackrate"
+                  >
+                    {soundType ? (
+                      <source src={soundUrl} type={soundType} />
+                    ) : (
+                      <source src={soundUrl} />
+                    )}
+                  </audio>
                 </div>
               )}
               {showImage && (

@@ -646,6 +646,18 @@ const en = {
         title: 'Resilience',
         description: 'Finish a game with 100% on the last 5 questions after an error.',
       },
+      FIRST_REVIEW: {
+        title: 'First Review',
+        description: 'Complete your first review session.',
+      },
+      DEDICATED_LEARNER: {
+        title: 'Dedicated Learner',
+        description: 'Complete 7 consecutive days of review sessions.',
+      },
+      MASTER_REVIEWER: {
+        title: 'Master Reviewer',
+        description: 'Have 50 species waiting in your review system.',
+      },
     },
     reward_label: 'Reward',
   },

@@ -11,6 +11,7 @@ import PhylogeneticTree from '../../../components/PhylogeneticTree.jsx';
 import './HardMode.css';
 import { getTaxonDetails } from '../../../services/api';
 import { computeScore, computeInGameStreakBonus } from '../../../utils/scoring';
+import { getAudioMimeType, normalizeMediaUrl } from '../../../utils/mediaUtils';
 import { useGameData } from '../../../context/GameContext';
 import { useUser } from '../../../context/UserContext';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
@@ -75,7 +76,8 @@ function HardMode() {
   const questionRef = useRef(question);
 
   // Computed values
-  const soundUrl = question?.sounds?.[0]?.file_url;
+  const soundUrl = normalizeMediaUrl(question?.sounds?.[0]?.file_url);
+  const soundType = getAudioMimeType(soundUrl);
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
 
@@ -466,7 +468,19 @@ function HardMode() {
                 <div className="media-panel">
                   {showAudio && (
                     <div className="audio-panel">
-                      <audio controls src={soundUrl} className="audio-player" preload="none" />
+                      <audio
+                        controls
+                        className="audio-player"
+                        preload="metadata"
+                        playsInline
+                        controlsList="nodownload noplaybackrate"
+                      >
+                        {soundType ? (
+                          <source src={soundUrl} type={soundType} />
+                        ) : (
+                          <source src={soundUrl} />
+                        )}
+                      </audio>
                     </div>
                   )}
                   {showImage && (

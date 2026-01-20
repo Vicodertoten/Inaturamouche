@@ -450,7 +450,9 @@ export function GameProvider({ children }) {
     if (isReviewMode) {
       const reviewIds =
         reviewTaxonIds.length > 0 ? reviewTaxonIds : profile?.stats?.missedSpecies || [];
-      reviewIds.forEach((id) => params.append('taxon_ids', id));
+      if (reviewIds.length > 0) {
+        params.set('taxon_ids', reviewIds.join(','));
+      }
       return params;
     }
 

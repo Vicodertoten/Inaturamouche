@@ -29,7 +29,7 @@ const Typewriter = ({ text, speed = 20, onComplete }) => {
   return <p className="explanation-section__text">{displayed}</p>;
 };
 
-const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
+const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
   const { t, lang, getTaxonDisplayNames } = useLanguage();
   const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -62,17 +62,25 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
     return taxon;
   }, [question, getTaxonDetailsForDisplay]);
   const userDisplayTaxon = useMemo(() => getTaxonDetailsForDisplay(userAnswer), [userAnswer, getTaxonDetailsForDisplay]);
+  const explanationCorrectId = explanationContext?.correctId || correctDisplayTaxon.id;
+  const explanationWrongId = explanationContext?.wrongId || userDisplayTaxon.id;
+  const explanationFocusRank = explanationContext?.focusRank || null;
 
   useEffect(() => {
     let isActive = true; // Drapeau pour éviter les race conditions (double réponse)
 
     // On utilise les IDs comme dépendances pour éviter les re-renders inutiles sur changement d'objet
-    if (!isWin && userDisplayTaxon.id && correctDisplayTaxon.id) {
+    if (!isWin && explanationCorrectId && explanationWrongId) {
       const fetchExplanationAsync = async () => {
         setIsLoading(true);
         setExplanation(''); // Clear previous explanation
         try {
-          const data = await fetchExplanation(correctDisplayTaxon.id, userDisplayTaxon.id, lang);
+          const data = await fetchExplanation(
+            explanationCorrectId,
+            explanationWrongId,
+            lang,
+            explanationFocusRank
+          );
           if (isActive) {
             setExplanation(data.explanation);
           }
@@ -91,7 +99,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer }) => {
     return () => {
       isActive = false; // Cleanup: ignore les résultats si le composant est démonté/rechargé
     };
-  }, [isWin, userDisplayTaxon.id, correctDisplayTaxon.id, lang]);
+  }, [isWin, explanationCorrectId, explanationWrongId, explanationFocusRank, lang]);
 
   useEffect(() => {
     previousActiveRef.current = document.activeElement;

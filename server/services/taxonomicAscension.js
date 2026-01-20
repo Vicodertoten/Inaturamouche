@@ -5,6 +5,7 @@ const RANK_ORDER = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 's
 const MAX_OPTIONS_PER_RANK = 3;
 const MAX_SPECIES_CANDIDATES = 4;
 const MAX_SPECIES_OPTIONS = 3;
+const MAX_ANCESTOR_ENRICH_TAXA = 16;
 
 export const TAXONOMIC_MAX_MISTAKES = 2;
 export const TAXONOMIC_HINT_COST_XP = 15;
@@ -39,6 +40,7 @@ const collectAncestorCandidates = ({
   rng,
   maxCandidates,
   requireParent,
+  taxonDetailsById,
 }) => {
   const candidates = [];
   const seen = new Set();
@@ -49,7 +51,11 @@ const collectAncestorCandidates = ({
     if (String(taxonId) === String(targetTaxonId)) continue;
     const sanitizedObs = pool.byTaxon.get(String(taxonId))?.[0];
     if (!sanitizedObs) continue;
-    const ancestors = extractAncestorsFromObservation(sanitizedObs);
+    const detailAncestors = taxonDetailsById?.get(String(taxonId))?.ancestors;
+    const ancestors =
+      Array.isArray(detailAncestors) && detailAncestors.length > 0
+        ? detailAncestors
+        : extractAncestorsFromObservation(sanitizedObs);
     if (!ancestors.length) continue;
     if (requireParent && parentId) {
       const parentMatch = ancestors.some(
@@ -158,7 +164,28 @@ const buildFallbackDetailsForSpecies = (speciesList, map) => {
   });
 };
 
-const buildAncestorPool = (pool, targetTaxonId, rng) => {
+const addAncestorsToPool = (result, seen, ancestors) => {
+  if (!Array.isArray(ancestors)) return;
+  ancestors.forEach((ancestor) => {
+    const rank = toRankKey(ancestor.rank);
+    if (!rank || !RANK_ORDER.includes(rank)) return;
+    const key = `${rank}:${ancestor.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (!result.has(rank)) result.set(rank, []);
+    result.get(rank).push({
+      id: ancestor.id,
+      snapshot: {
+        id: ancestor.id,
+        name: ancestor.name,
+        preferred_common_name: ancestor.preferred_common_name,
+        rank: ancestor.rank,
+      },
+    });
+  });
+};
+
+const buildAncestorPool = (pool, targetTaxonId, rng, extraTaxaDetails = []) => {
   const result = new Map();
   const seen = new Set();
   const taxonEntries = shuffleTaxa(Array.from(pool.byTaxon.entries()), rng);
@@ -166,34 +193,28 @@ const buildAncestorPool = (pool, targetTaxonId, rng) => {
     if (String(taxonId) === String(targetTaxonId)) continue;
     const obs = observations?.[0];
     if (!obs) continue;
-    const ancestors = extractAncestorsFromObservation(obs);
-    ancestors.forEach((ancestor) => {
-      const rank = toRankKey(ancestor.rank);
-      if (!rank || !RANK_ORDER.includes(rank)) return;
-      const key = `${rank}:${ancestor.id}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      if (!result.has(rank)) result.set(rank, []);
-      result.get(rank).push({
-        id: ancestor.id,
-        snapshot: {
-          id: ancestor.id,
-          name: ancestor.name,
-          preferred_common_name: ancestor.preferred_common_name,
-          rank: ancestor.rank,
-        },
-      });
-    });
+    addAncestorsToPool(result, seen, extractAncestorsFromObservation(obs));
+  }
+
+  const detailEntries = shuffleTaxa(extraTaxaDetails, rng);
+  for (const detail of detailEntries) {
+    if (!detail?.id) continue;
+    if (String(detail.id) === String(targetTaxonId)) continue;
+    addAncestorsToPool(result, seen, detail.ancestors);
   }
   return result;
 };
 
-const buildSpeciesAncestorPool = (speciesCandidates) => {
+const buildSpeciesAncestorPool = (speciesCandidates, taxonDetailsById) => {
   const pool = new Map();
   speciesCandidates.forEach((candidate) => {
-    const ancestors = Array.isArray(candidate?.fallback?.ancestors)
-      ? candidate.fallback.ancestors
-      : [];
+    const detail = taxonDetailsById?.get(String(candidate.id));
+    const ancestors =
+      Array.isArray(detail?.ancestors) && detail.ancestors.length > 0
+        ? detail.ancestors
+        : Array.isArray(candidate?.fallback?.ancestors)
+          ? candidate.fallback.ancestors
+          : [];
     ancestors.forEach((ancestor) => {
       const rank = toRankKey(ancestor.rank);
       if (!rank || !RANK_ORDER.includes(rank)) return;
@@ -219,6 +240,7 @@ const buildRankSteps = ({
   rng,
   ancestorPool,
   speciesAncestorPool,
+  taxonDetailsById,
 }) => {
   const rankSteps = [];
 
@@ -239,6 +261,7 @@ const buildRankSteps = ({
       rng,
       maxCandidates: MAX_OPTIONS_PER_RANK - 1,
       requireParent: Boolean(parentId),
+      taxonDetailsById,
     });
 
     const additionalCandidates = primaryCandidates.length < MAX_OPTIONS_PER_RANK - 1
@@ -252,6 +275,7 @@ const buildRankSteps = ({
         rng,
         maxCandidates: (MAX_OPTIONS_PER_RANK - 1) - primaryCandidates.length,
         requireParent: false,
+        taxonDetailsById,
       })
       : [];
 
@@ -278,15 +302,6 @@ const buildRankSteps = ({
 
     appendFromPool(ancestorPool?.get(rank));
     appendFromPool(speciesAncestorPool?.get(rank));
-
-    const fallbackCandidates = ancestorPool.get(rank) || [];
-    for (const fallback of fallbackCandidates) {
-      if (uniqueCandidates.length >= limit) break;
-      if (seenIds.has(fallback.id)) continue;
-      if (String(fallback.id) === String(correctId)) continue;
-      seenIds.add(fallback.id);
-      uniqueCandidates.push(fallback);
-    }
 
     rankSteps.push({
       rank,
@@ -347,8 +362,36 @@ export async function buildTaxonomicAscension({
     maxCandidates: MAX_SPECIES_CANDIDATES,
   });
 
-  const ancestorPool = buildAncestorPool(pool, targetTaxonId, rng);
-  const speciesAncestorPool = buildSpeciesAncestorPool(speciesCandidates);
+  const enrichmentIds = new Set(speciesCandidates.map((candidate) => String(candidate.id)));
+  const poolIds = shuffleTaxa(pool.taxonList || [], rng);
+  for (const taxonId of poolIds) {
+    if (enrichmentIds.size >= MAX_ANCESTOR_ENRICH_TAXA) break;
+    if (String(taxonId) === String(targetTaxonId)) continue;
+    enrichmentIds.add(String(taxonId));
+  }
+
+  const enrichmentFallbackDetails = new Map();
+  enrichmentIds.forEach((id) => {
+    const obs = pool.byTaxon.get(String(id))?.[0];
+    if (obs?.taxon) enrichmentFallbackDetails.set(String(id), obs.taxon);
+  });
+
+  const enrichmentDetails = enrichmentIds.size
+    ? await getFullTaxaDetails(
+      Array.from(enrichmentIds),
+      locale,
+      { logger, requestId, fallbackDetails: enrichmentFallbackDetails },
+      taxonDetailsCache
+    )
+    : [];
+  const taxonDetailsById = new Map();
+  taxonDetailsById.set(String(targetDetails.id), targetDetails);
+  enrichmentDetails.forEach((detail) => {
+    if (detail?.id != null) taxonDetailsById.set(String(detail.id), detail);
+  });
+
+  const ancestorPool = buildAncestorPool(pool, targetTaxonId, rng, enrichmentDetails);
+  const speciesAncestorPool = buildSpeciesAncestorPool(speciesCandidates, taxonDetailsById);
   const rankSteps = buildRankSteps({
     targetLineage,
     pool,
@@ -356,6 +399,7 @@ export async function buildTaxonomicAscension({
     rng,
     ancestorPool,
     speciesAncestorPool,
+    taxonDetailsById,
   });
 
   const detailIds = new Set();

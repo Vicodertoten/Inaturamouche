@@ -290,8 +290,12 @@ export const fetchQuizQuestion = (params, options) => {
 /**
  * Récupère l'explication IA pour une réponse incorrecte.
  */
-export const fetchExplanation = (correctId, wrongId, locale = 'fr') => {
-    return apiPost('/api/quiz/explain', { correctId, wrongId, locale }, { timeout: 20000 }); // Timeout plus long pour l'IA
+export const fetchExplanation = (correctId, wrongId, locale = 'fr', focusRank = null) => {
+    return apiPost(
+      '/api/quiz/explain',
+      { correctId, wrongId, locale, focusRank },
+      { timeout: 20000 }
+    ); // Timeout plus long pour l'IA
 };
 
 /**

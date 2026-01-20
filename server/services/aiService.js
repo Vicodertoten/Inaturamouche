@@ -187,21 +187,24 @@ const calculateSeverity = (correctTaxon, wrongTaxon) => {
   return 'MEDIUM';
 };
 
-const buildSystemPrompt = ({ severity, locale, strictLength = false }) => `
+const buildSystemPrompt = ({ severity, locale, strictLength = false, focusRank = null }) => `
 Tu es Mamie Mouche, grand-mere naturaliste: chaleureuse, drole, tres pedago.
 Langue=${locale}. Tutoiement. Severity=${severity}.
 Reponds en 2 phrases, 24 a 42 mots. Pas de markdown, pas d'emojis, pas de listes, pas de salutations.
-Ne dis jamais "image/photo" ni "selon". Ne compare pas par genre/famille/ordre/classe; parle de traits observables.
+Ne dis jamais "image/photo" ni "selon". ${focusRank
+  ? `Explique l'erreur au niveau du rang "${focusRank}". Tu peux citer ce rang une fois, mais base-toi surtout sur les traits observables.`
+  : 'Ne compare pas par genre/famille/ordre/classe; parle de traits observables.'}
 Appuie-toi sur CONTEXTE_JSON et des connaissances sures; si un detail est incertain, dis-le.
 Si severity="HUGE", taquine gentiment. Si severity="MEDIUM", sois stricte et claire. Si severity="CLOSE", encourage et sois experte.
 Donne un critere discriminant net pour ne plus confondre.
 ${strictLength ? 'Fais exactement 2 phrases, 24 a 42 mots.' : ''}
 `.trim();
 
-const buildContextPayload = ({ correctTaxon, wrongTaxon, locale, severity }) =>
+const buildContextPayload = ({ correctTaxon, wrongTaxon, locale, severity, focusRank }) =>
   JSON.stringify({
     locale,
     severity,
+    focusRank: focusRank || null,
     correct: {
       scientific: correctTaxon?.name || null,
       common: getCommonName(correctTaxon),
@@ -212,11 +215,14 @@ const buildContextPayload = ({ correctTaxon, wrongTaxon, locale, severity }) =>
     },
   });
 
-const buildParts = async ({ correctTaxon, wrongTaxon, locale, severity }) => {
-  const contextJson = buildContextPayload({ correctTaxon, wrongTaxon, locale, severity });
+const buildParts = async ({ correctTaxon, wrongTaxon, locale, severity, focusRank }) => {
+  const contextJson = buildContextPayload({ correctTaxon, wrongTaxon, locale, severity, focusRank });
   const parts = [{ text: `CONTEXTE_JSON:${contextJson}` }];
   let imagesAttached = 0;
 
+  if (focusRank) {
+    parts.push({ text: `Explique l'erreur au niveau du rang "${focusRank}".` });
+  }
   parts.push({ text: 'Explique la différence de manière claire et mémorable.' });
   return { parts, imagesAttached };
 };
@@ -277,7 +283,13 @@ const isTooLong = (text) => countWords(text) > 50;
  * @param {pino.Logger} logger - The logger instance.
  * @returns {Promise<string>} The AI-generated explanation.
  */
-export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale = 'fr', logger) {
+export async function generateCustomExplanation(
+  correctTaxon,
+  wrongTaxon,
+  locale = 'fr',
+  logger,
+  { focusRank = null } = {}
+) {
   if (!aiApiKey) {
     logger?.warn('AI_API_KEY is not configured. Skipping AI explanation.');
     return 'Mamie Mouche fait une infusion, explication indisponible !';
@@ -288,7 +300,7 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
   }
 
   const severity = calculateSeverity(correctTaxon, wrongTaxon);
-  const cacheKey = `${EXPLANATION_CACHE_VERSION}:${locale}:${correctTaxon.id}-${wrongTaxon.id}`;
+  const cacheKey = `${EXPLANATION_CACHE_VERSION}:${locale}:${focusRank || 'none'}:${correctTaxon.id}-${wrongTaxon.id}`;
   const cacheEntry = explanationCache.getEntry(cacheKey);
   if (cacheEntry) {
     logger?.info(
@@ -303,7 +315,7 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
     return await explanationCache.getOrFetch(
       cacheKey,
       async () => {
-        const { parts, imagesAttached } = await buildParts({ correctTaxon, wrongTaxon, locale, severity });
+        const { parts, imagesAttached } = await buildParts({ correctTaxon, wrongTaxon, locale, severity, focusRank });
 
         const callGemini = async (strictLength = false) => {
           logger?.info(
@@ -312,6 +324,7 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
               hasContextJson: true,
               severity,
               locale,
+              focusRank,
               strictLength,
             },
             'Gemini request payload'
@@ -324,7 +337,7 @@ export async function generateCustomExplanation(correctTaxon, wrongTaxon, locale
               maxOutputTokens: 700,
             },
             systemInstruction: {
-              parts: [{ text: buildSystemPrompt({ severity, locale, strictLength }) }],
+              parts: [{ text: buildSystemPrompt({ severity, locale, strictLength, focusRank }) }],
             },
           };
 

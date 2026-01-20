@@ -47,7 +47,6 @@ function TaxonomicAscension() {
     inGameShields,
     hasPermanentShield,
     nextImageUrl,
-    recentXPGain,
     levelUpNotification,
     completeRound,
     endGame,
@@ -56,10 +55,6 @@ function TaxonomicAscension() {
   const steps = ascension?.steps || [];
   const maxMistakes = ascension?.max_mistakes ?? 2;
   const hintCost = ascension?.hint_cost_xp ?? 15;
-  const totalPoints = useMemo(
-    () => steps.reduce((sum, step) => sum + (SCORE_PER_RANK[step.rank] || 0), 0),
-    [steps]
-  );
   const { t } = useLanguage();
   const { profile, updateProfile } = useUser();
 
@@ -71,6 +66,9 @@ function TaxonomicAscension() {
   const [roundStatus, setRoundStatus] = useState('playing');
   const [scoreInfo, setScoreInfo] = useState(null);
   const [selectedSpeciesOption, setSelectedSpeciesOption] = useState(null);
+  const [lastSelectedOption, setLastSelectedOption] = useState(null);
+  const [lossContext, setLossContext] = useState(null);
+  const [liveXPGain, setLiveXPGain] = useState(0);
   const questionRef = useRef(question);
 
   useEffect(() => {
@@ -81,65 +79,90 @@ function TaxonomicAscension() {
     setHintUsed(false);
     setHintCount(0);
     setSelectedSpeciesOption(null);
+    setLastSelectedOption(null);
+    setLossContext(null);
     setRoundStatus('playing');
     setScoreInfo(null);
+    setLiveXPGain(0);
   }, [question, steps]);
 
   const isCurrentQuestion = questionRef.current === question;
 
-  const finalizeRound = useCallback(() => {
+  const computePointsFromHistory = useCallback((history) => (
+    steps.reduce((sum, step, index) => {
+      const status = history?.[index]?.status;
+      if (status === 'correct') {
+        return sum + (SCORE_PER_RANK[step.rank] || 0);
+      }
+      return sum;
+    }, 0)
+  ), [steps]);
+
+  const finalizeRound = useCallback(({ status, points, finalMistakes } = {}) => {
     if (roundStatus !== 'playing') return;
-    const perfect = mistakes === 0;
-    const status = perfect ? 'win' : 'lose';
+    const mistakesCount = typeof finalMistakes === 'number' ? finalMistakes : mistakes;
+    const didWin = status === 'win';
+    const perfect = didWin && mistakesCount === 0 && !hintUsed;
     const streakBonus = perfect ? computeInGameStreakBonus(currentStreak, 'hard') : 0;
     setScoreInfo({
-      points: perfect ? totalPoints : 0,
+      points: typeof points === 'number' ? points : computePointsFromHistory(stepHistory),
       bonus: 0,
       streakBonus,
     });
-    setRoundStatus(status);
-  }, [roundStatus, mistakes, currentStreak, totalPoints]);
+    setRoundStatus(didWin ? 'win' : 'lose');
+  }, [roundStatus, mistakes, hintUsed, currentStreak, computePointsFromHistory, stepHistory]);
 
   const advanceStep = useCallback(() => {
-    setCurrentStepIndex((prev) => {
-      const next = prev + 1;
-      if (next >= steps.length) {
-        finalizeRound();
-        return prev;
-      }
-      return next;
-    });
-  }, [steps.length, finalizeRound]);
+    setCurrentStepIndex((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!steps.length && roundStatus === 'playing') {
-      finalizeRound();
+      finalizeRound({ status: 'lose', points: 0, finalMistakes: mistakes });
     }
-  }, [steps.length, roundStatus, finalizeRound]);
-
-  const updateStepHistory = useCallback((index, patch) => {
-    setStepHistory((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...(copy[index] || {}), ...patch };
-      return copy;
-    });
-  }, []);
+  }, [steps.length, roundStatus, finalizeRound, mistakes]);
 
   const currentStep = steps[currentStepIndex];
 
   const handleSelectOption = (option) => {
     if (roundStatus !== 'playing' || !currentStep) return;
     const wasCorrect = option.taxon_id === currentStep.correct_taxon_id;
-    updateStepHistory(currentStepIndex, {
+    const nextHistory = [...stepHistory];
+    nextHistory[currentStepIndex] = {
+      ...(nextHistory[currentStepIndex] || {}),
       status: wasCorrect ? 'correct' : 'incorrect',
       selectedTaxonId: option.taxon_id,
       option,
-    });
-    if (!wasCorrect) {
-      setMistakes((prev) => prev + 1);
+    };
+    setStepHistory(nextHistory);
+    const nextMistakes = wasCorrect ? mistakes : mistakes + 1;
+    if (!wasCorrect) setMistakes(nextMistakes);
+    if (wasCorrect) {
+      setLiveXPGain(SCORE_PER_RANK[currentStep.rank] || 0);
+    } else {
+      const correctOption = currentStep.options.find(
+        (opt) => opt.taxon_id === currentStep.correct_taxon_id
+      );
+      setLossContext({
+        correctId: String(correctOption?.taxon_id || currentStep.correct_taxon_id),
+        wrongId: String(option.taxon_id),
+        focusRank: t(`ranks.${currentStep.rank}`, currentStep.rank),
+      });
     }
+    setLastSelectedOption(option);
     if (currentStep.rank === 'species') {
       setSelectedSpeciesOption(option);
+    }
+    const earnedPoints = computePointsFromHistory(nextHistory);
+    const outOfLives = nextMistakes >= maxMistakes;
+    const isLastStep = currentStepIndex >= steps.length - 1;
+    if (outOfLives) {
+      finalizeRound({ status: 'lose', points: earnedPoints, finalMistakes: nextMistakes });
+      return;
+    }
+    if (isLastStep) {
+      finalizeRound({ status: 'win', points: earnedPoints, finalMistakes: nextMistakes });
+      return;
     }
     advanceStep();
   };
@@ -156,7 +179,7 @@ function TaxonomicAscension() {
     }
     setHintUsed(true);
     setHintCount((prev) => prev + 1);
-    setMistakes((prev) => prev + 1);
+    const nextMistakes = mistakes;
     updateProfile((prev) => ({
       ...prev,
       xp: Math.max(0, (prev?.xp || 0) - hintCost),
@@ -169,13 +192,24 @@ function TaxonomicAscension() {
     const correctOption = currentStep.options.find(
       (opt) => opt.taxon_id === currentStep.correct_taxon_id
     );
-    updateStepHistory(currentStepIndex, {
+    const nextHistory = [...stepHistory];
+    nextHistory[currentStepIndex] = {
+      ...(nextHistory[currentStepIndex] || {}),
       status: 'correct',
       selectedTaxonId: String(currentStep.correct_taxon_id),
       option: correctOption,
-    });
+    };
+    setStepHistory(nextHistory);
+    setLiveXPGain(SCORE_PER_RANK[currentStep.rank] || 0);
+    setLastSelectedOption(correctOption || null);
     if (currentStep.rank === 'species' && correctOption) {
       setSelectedSpeciesOption(correctOption);
+    }
+    const earnedPoints = computePointsFromHistory(nextHistory);
+    const isLastStep = currentStepIndex >= steps.length - 1;
+    if (isLastStep) {
+      finalizeRound({ status: 'win', points: earnedPoints, finalMistakes: nextMistakes });
+      return;
     }
     advanceStep();
   };
@@ -200,7 +234,10 @@ function TaxonomicAscension() {
     count: mistakes,
     max: maxMistakes,
   });
-  const userAnswer = useMemo(() => buildUserAnswerPayload(selectedSpeciesOption), [selectedSpeciesOption]);
+  const userAnswer = useMemo(
+    () => buildUserAnswerPayload(selectedSpeciesOption || lastSelectedOption),
+    [selectedSpeciesOption, lastSelectedOption]
+  );
 
   const progressPills = steps.map((step, index) => {
     const history = stepHistory[index];
@@ -225,14 +262,6 @@ function TaxonomicAscension() {
     ? getRankPrompt(t, currentStep.rank)
     : t('taxonomic.prompt_generic', { rank: t('taxonomic.no_rank', 'rang') });
 
-  const earnedXP = steps.reduce((sum, step, index) => {
-    const history = stepHistory[index];
-    if (history?.status === 'correct') {
-      return sum + (SCORE_PER_RANK[step.rank] || 0);
-    }
-    return sum;
-  }, 0);
-  const remainingXP = Math.max(totalPoints - earnedXP, 0);
   const guessesLabel = Math.max(maxMistakes - mistakes, 0);
 
   if (!steps.length) {
@@ -245,7 +274,7 @@ function TaxonomicAscension() {
           hasPermanentShield={hasPermanentShield}
           questionCount={questionCount}
           maxQuestions={maxQuestions}
-          guesses={mistakesRemaining}
+          guesses={guessesLabel}
           onQuit={endGame}
           isGameOver={roundStatus !== 'playing'}
         />
@@ -274,7 +303,7 @@ function TaxonomicAscension() {
           onClose={() => {}}
         />
       )}
-      <FloatingXPIndicator xpGain={recentXPGain} position="center" />
+      <FloatingXPIndicator xpGain={liveXPGain} position="center" />
       {roundStatus !== 'playing' && isCurrentQuestion && scoreInfo && (
         <RoundSummaryModal
           status={roundStatus}
@@ -282,6 +311,7 @@ function TaxonomicAscension() {
           scoreInfo={scoreInfo}
           onNext={handleNext}
           userAnswer={userAnswer}
+          explanationContext={roundStatus === 'lose' ? lossContext : null}
         />
       )}
       <div className="screen game-screen taxonomic-mode">
