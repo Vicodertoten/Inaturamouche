@@ -102,6 +102,44 @@
     transition: transform 0.4s ease;
 }
 
+.rarity-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #1c1c1c;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    background: var(--rarity-common);
+    backdrop-filter: blur(6px);
+}
+
+.rarity-badge.rarity-legendary {
+    background: var(--rarity-legendary);
+}
+
+.rarity-badge.rarity-epic {
+    background: var(--rarity-epic);
+    color: #f8f5ff;
+}
+
+.rarity-badge.rarity-rare {
+    background: var(--rarity-rare);
+    color: #0f2436;
+}
+
+.rarity-badge.rarity-uncommon {
+    background: var(--rarity-uncommon);
+}
+
+.rarity-badge.rarity-common {
+    background: var(--rarity-common);
+}
+
 .collection-card:hover .card-image {
     transform: scale(1.08);
 }

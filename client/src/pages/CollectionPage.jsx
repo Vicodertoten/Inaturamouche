@@ -83,6 +83,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const [sortOrder, setSortOrder] = useState('mastery');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRarity, setFilterRarity] = useState('all');
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
@@ -98,7 +99,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   // Reset page when search, filter or sort changes
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, filterStatus, sortOrder, iconicTaxonId]);
+  }, [searchQuery, filterStatus, filterRarity, sortOrder, iconicTaxonId]);
 
   // Fetch species data
   useEffect(() => {
@@ -114,6 +115,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
           sort: sortOrder,
           searchQuery: searchQuery.trim(),
           filterStatus,
+          filterRarity,
         });
         console.log(`✅ Fetched ${result.species.length} species (total: ${result.total})`);
         if (isMounted) {
@@ -132,7 +134,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     return () => {
       isMounted = false;
     };
-  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, page, collectionVersion]);
+  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, filterRarity, page, collectionVersion]);
 
   // Listen for collection updates
   useEffect(() => {
@@ -144,6 +146,9 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
             offset: 0,
             limit: 500,
             sort: sortOrder,
+            searchQuery: searchQuery.trim(),
+            filterStatus,
+            filterRarity,
           });
           setSpecies(result.species);
         } catch (err) {
@@ -153,7 +158,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
       void fetch();
     });
     return unsubscribe;
-  }, [iconicTaxonId, sortOrder]);
+  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, filterRarity]);
 
   if (error) {
     return (
@@ -195,6 +200,22 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
             </select>
           </div>
 
+          <div className="filter-control">
+            <label htmlFor="rarity-filter-select">{t('collection.filter_rarity_label') || 'Rareté'}</label>
+            <select
+              id="rarity-filter-select"
+              value={filterRarity}
+              onChange={(e) => setFilterRarity(e.target.value)}
+            >
+              <option value="all">{t('collection.filter_rarity.all') || 'Toutes'}</option>
+              <option value="legendary">{t('collection.filter_rarity.legendary') || 'Légendaire'}</option>
+              <option value="epic">{t('collection.filter_rarity.epic') || 'Épique'}</option>
+              <option value="rare">{t('collection.filter_rarity.rare') || 'Rare'}</option>
+              <option value="uncommon">{t('collection.filter_rarity.uncommon') || 'Peu commun'}</option>
+              <option value="common">{t('collection.filter_rarity.common') || 'Commun'}</option>
+            </select>
+          </div>
+
           <div className="sort-controls">
             <label htmlFor="sort-select">{t('collection.sort_label')}</label>
             <select
@@ -205,6 +226,8 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
               <option value="mastery">{t('collection.sort.mastery')}</option>
               <option value="recent">{t('collection.sort.recent')}</option>
               <option value="alpha">{t('collection.sort.alpha')}</option>
+              <option value="rarity">{t('collection.sort.rarity')}</option>
+              <option value="rarity_common">{t('collection.sort.rarity_common')}</option>
             </select>
           </div>
         </div>

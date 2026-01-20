@@ -1,0 +1,105 @@
+.rarity-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rarity-burst {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+}
+
+.rarity-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rarity-legendary);
+  transform: translate(-50%, -50%);
+  animation: rarity-pop 1.1s ease-out forwards;
+}
+
+.rarity-epic .rarity-particle {
+  background: var(--rarity-epic);
+}
+
+.rarity-wave {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 2px solid var(--rarity-legendary);
+  opacity: 0.8;
+  animation: rarity-wave 1.1s ease-out forwards;
+}
+
+.rarity-epic .rarity-wave {
+  border-color: var(--rarity-epic);
+}
+
+.rarity-legendary .rarity-particle:nth-child(odd) {
+  background: var(--rarity-legendary);
+}
+
+.rarity-legendary .rarity-particle:nth-child(even) {
+  background: var(--accent-strong);
+}
+
+.rarity-epic .rarity-particle:nth-child(odd) {
+  background: var(--rarity-epic);
+}
+
+.rarity-epic .rarity-particle:nth-child(even) {
+  background: #c8a7ff;
+}
+
+.rarity-particle:nth-child(1)  { --dx: -60px; --dy: -80px; }
+.rarity-particle:nth-child(2)  { --dx: 40px; --dy: -90px; }
+.rarity-particle:nth-child(3)  { --dx: 90px; --dy: -20px; }
+.rarity-particle:nth-child(4)  { --dx: 70px; --dy: 60px; }
+.rarity-particle:nth-child(5)  { --dx: -40px; --dy: 90px; }
+.rarity-particle:nth-child(6)  { --dx: -90px; --dy: 20px; }
+.rarity-particle:nth-child(7)  { --dx: -70px; --dy: 60px; }
+.rarity-particle:nth-child(8)  { --dx: 10px; --dy: -110px; }
+.rarity-particle:nth-child(9)  { --dx: 120px; --dy: 10px; }
+.rarity-particle:nth-child(10) { --dx: -120px; --dy: -10px; }
+.rarity-particle:nth-child(11) { --dx: 30px; --dy: 110px; }
+.rarity-particle:nth-child(12) { --dx: -30px; --dy: -110px; }
+.rarity-particle:nth-child(13) { --dx: 95px; --dy: 40px; }
+.rarity-particle:nth-child(14) { --dx: -95px; --dy: 40px; }
+.rarity-particle:nth-child(15) { --dx: 0px; --dy: -130px; }
+.rarity-particle:nth-child(16) { --dx: 0px; --dy: 130px; }
+.rarity-particle:nth-child(17) { --dx: 110px; --dy: -50px; }
+.rarity-particle:nth-child(18) { --dx: -110px; --dy: -50px; }
+
+@keyframes rarity-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0.9;
+  }
+  70% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes rarity-wave {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}

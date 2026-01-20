@@ -1,4 +1,5 @@
 import Dexie from 'dexie';
+import { getRarityTier } from '../utils/rarityUtils';
 
 // Initialize Dexie Database
 const db = new Dexie('inaturalist_quiz');
@@ -109,6 +110,30 @@ db.version(6).stores({
   taxonomy_cache: 'id',
   taxon_groups: 'id,parent_id',
   active_session: 'id',
+});
+
+/**
+ * Version 7: Add rarity fields to taxa for future filtering/sorting.
+ * - observations_count: raw iNaturalist observation count
+ * - rarity_tier: derived rarity bucket for UI and filters
+ */
+db.version(7).stores({
+  taxa: 'id,iconic_taxon_id,updatedAt,name,rarity_tier,observations_count',
+  stats: 'id,iconic_taxon_id,[iconic_taxon_id+masteryLevel],[iconic_taxon_id+lastSeenAt],lastSeenAt,nextReviewDate',
+  collection: 'taxon_id,masteryLevel',
+  species: 'id,iconic_taxon_id',
+  taxonomy_cache: 'id',
+  taxon_groups: 'id,parent_id',
+  active_session: 'id',
+}).upgrade(async (trans) => {
+  const taxaTable = trans.table('taxa');
+  const taxa = await taxaTable.toArray();
+  for (const taxon of taxa) {
+    const tier = getRarityTier(taxon?.observations_count);
+    if (tier && taxon.rarity_tier !== tier) {
+      await taxaTable.update(taxon.id, { rarity_tier: tier });
+    }
+  }
 });
 
 /**

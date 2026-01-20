@@ -119,6 +119,14 @@
 
   --accent-blue: #5b9bd5; /* Keep for legacy or specific water elements, but use sparingly */
 
+  /* --- RARITY COLORS --- */
+  --rarity-legendary: #f29f3d;
+  --rarity-epic: #8e5de8;
+  --rarity-rare: #4aa3ff;
+  --rarity-uncommon: #63b56a;
+  --rarity-common: #9aa0a6;
+  --rarity-unknown: #7f8c8d;
+
   /* Misc */
   --full-height: 100dvh;
   --nav-height-mobile: 70px;

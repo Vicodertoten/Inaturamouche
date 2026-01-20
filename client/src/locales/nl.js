@@ -147,6 +147,8 @@ const nl = {
       mastery: 'Beheersing',
       recent: 'Onlangs gezien',
       alpha: 'Alfabetisch',
+      rarity: 'Zeldzaamheid (zeldzaam → gewoon)',
+      rarity_common: 'Zeldzaamheid (gewoon → zeldzaam)',
     },
     loading_species: 'Soorten laden...',
     empty: 'Nog geen soorten in deze categorie.',
@@ -164,11 +166,20 @@ const nl = {
       },
       search_placeholder: 'Zoek naar een soort...',
       filter_label: 'Filter:',
+      filter_rarity_label: 'Zeldzaamheid:',
       filter: {
         all: 'Alles',
         seen: 'Ontdekt',
         mastered: 'Beheerst',
         to_learn: 'Nog te leren',
+      },
+      filter_rarity: {
+        all: 'Alle',
+        legendary: 'Legendarisch',
+        epic: 'Episch',
+        rare: 'Zeldzaam',
+        uncommon: 'Ongewoon',
+        common: 'Gewoon',
       },
       page_prefix: 'Pagina',
   },
@@ -406,6 +417,22 @@ const nl = {
       FLAWLESS_HARD: {
         title: '👑 Extreme Volmaaktheid',
         description: 'Voltooi een 10-vragenmoeilijk spel zonder fouten of schilden',
+      },
+      RARITY_LEGEND_HUNTER_3: {
+        title: 'Legendjager',
+        description: 'Identificeer 3 legendarische soorten.',
+      },
+      RARITY_LEGEND_HUNTER_10: {
+        title: 'Levende mythes',
+        description: 'Identificeer 10 legendarische soorten.',
+      },
+      RARITY_EPIC_SEEKER_5: {
+        title: 'Epische zoeker',
+        description: 'Identificeer 5 epische soorten.',
+      },
+      RARITY_EPIC_SEEKER_25: {
+        title: 'Epische verzamelaar',
+        description: 'Identificeer 25 epische soorten.',
       },
       FIRST_REVIEW: {
         title: 'Eerste herziening',

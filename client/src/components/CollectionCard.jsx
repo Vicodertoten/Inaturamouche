@@ -1,5 +1,6 @@
 import React from 'react';
 import { MASTERY_LEVELS } from '../services/CollectionService';
+import { getRarityInfoForTaxon } from '../utils/rarityUtils';
 import './CollectionCard.css';
 
 // Memoize the component to prevent re-renders in react-window
@@ -20,6 +21,8 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
     isGhost ? 'grayscale' : '',
   ].filter(Boolean).join(' ');
 
+  const rarityInfo = getRarityInfoForTaxon(taxon);
+
   // Extract best image URL
   const imageUrl =
     taxon?.medium_url ||
@@ -38,6 +41,14 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
     <div className={cardClasses} style={style}>
       <div className="card-image-wrapper">
         <img src={imageUrl} alt={taxon.name} className={imageClasses} loading="lazy" />
+        {rarityInfo?.tier && rarityInfo.tier !== 'unknown' && (
+          <span
+            className={`rarity-badge rarity-${rarityInfo.tier}`}
+            title={`${rarityInfo.label}${rarityInfo.observationsCount ? ` • ${rarityInfo.observationsCount.toLocaleString()} obs.` : ''}`}
+          >
+            {rarityInfo.label}
+          </span>
+        )}
       </div>
       <div className="card-info">
         <p className="card-common-name">{taxon.preferred_common_name || taxon.name}</p>

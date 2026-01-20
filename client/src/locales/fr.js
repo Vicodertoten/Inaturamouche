@@ -147,6 +147,8 @@ const fr = {
       mastery: 'Maîtrise',
       recent: 'Récemment vues',
       alpha: 'Alphabétique',
+      rarity: 'Rareté (rare → commun)',
+      rarity_common: 'Rareté (commun → rare)',
     },
     loading_species: 'Chargement des espèces...',
     empty: 'Aucune espèce dans cette catégorie pour le moment.',
@@ -164,11 +166,20 @@ const fr = {
       },
       search_placeholder: 'Rechercher une espèce...',
       filter_label: 'Filtre :',
+      filter_rarity_label: 'Rareté :',
       filter: {
         all: 'Tout',
         seen: 'Découverts',
         mastered: 'Maîtrisés',
         to_learn: 'À apprendre',
+      },
+      filter_rarity: {
+        all: 'Toutes',
+        legendary: 'Légendaires',
+        epic: 'Épiques',
+        rare: 'Rares',
+        uncommon: 'Peu communes',
+        common: 'Communes',
       },
       page_prefix: 'Page',
   },
@@ -462,6 +473,22 @@ const fr = {
       FAMILY_REUNION: {
         title: 'Réunion de Famille',
         description: 'Maîtriser 5 espèces de la même famille.',
+      },
+      RARITY_LEGEND_HUNTER_3: {
+        title: 'Chasseur de Légendes',
+        description: 'Identifier 3 espèces légendaires.',
+      },
+      RARITY_LEGEND_HUNTER_10: {
+        title: 'Mythes Vivants',
+        description: 'Identifier 10 espèces légendaires.',
+      },
+      RARITY_EPIC_SEEKER_5: {
+        title: 'Chercheur d’Épiques',
+        description: 'Identifier 5 espèces épiques.',
+      },
+      RARITY_EPIC_SEEKER_25: {
+        title: 'Collectionneur Épique',
+        description: 'Identifier 25 espèces épiques.',
       },
       // --- NOUVEAUX SUCCÈS : ENIGME ---
       RIDDLE_SOLVER_10: {

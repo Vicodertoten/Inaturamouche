@@ -22,6 +22,13 @@ export interface InatTaxon {
   ancestors?: Array<{ id: number; name?: string }>;
   default_photo?: InatPhoto; // Add default_photo
   url?: string; // Add iNaturalist page URL
+  iconic_taxon_id?: number;
+  observations_count?: number;
+  conservation_status?: {
+    status?: string;
+    status_name?: string;
+    authority?: string;
+  };
 }
 
 export interface InatObservation {

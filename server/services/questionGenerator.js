@@ -360,6 +360,8 @@ export async function buildQuizQuestion({
         wikipedia_url: correct.wikipedia_url,
         url: correct.url, // Add iNaturalist URL
         default_photo: correct.default_photo, // Add default photo object
+        observations_count: correct.observations_count ?? null,
+        conservation_status: correct.conservation_status ?? null,
       },
       choices: shuffledChoices,
       correct_choice_index,
@@ -369,6 +371,8 @@ export async function buildQuizQuestion({
         wikipedia_url: details.get(info.taxon_id)?.wikipedia_url,
         url: details.get(info.taxon_id)?.url,
         default_photo: details.get(info.taxon_id)?.default_photo,
+        observations_count: details.get(info.taxon_id)?.observations_count ?? null,
+        conservation_status: details.get(info.taxon_id)?.conservation_status ?? null,
       })),
       taxonomic_ascension: isTaxonomicMode
         ? {

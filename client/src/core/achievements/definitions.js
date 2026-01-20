@@ -311,6 +311,34 @@ export const ACHIEVEMENTS = {
     icon: '👨‍👩‍👧‍👦',
     reward: { type: REWARD_TYPES.XP_FLAT, value: 1500 },
   },
+  RARITY_LEGEND_HUNTER_3: {
+    titleKey: 'achievements.list.RARITY_LEGEND_HUNTER_3.title',
+    descriptionKey: 'achievements.list.RARITY_LEGEND_HUNTER_3.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🏹',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 600 },
+  },
+  RARITY_LEGEND_HUNTER_10: {
+    titleKey: 'achievements.list.RARITY_LEGEND_HUNTER_10.title',
+    descriptionKey: 'achievements.list.RARITY_LEGEND_HUNTER_10.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🏆',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 1200 },
+  },
+  RARITY_EPIC_SEEKER_5: {
+    titleKey: 'achievements.list.RARITY_EPIC_SEEKER_5.title',
+    descriptionKey: 'achievements.list.RARITY_EPIC_SEEKER_5.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '🔮',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 400 },
+  },
+  RARITY_EPIC_SEEKER_25: {
+    titleKey: 'achievements.list.RARITY_EPIC_SEEKER_25.title',
+    descriptionKey: 'achievements.list.RARITY_EPIC_SEEKER_25.description',
+    category: ACHIEVEMENT_CATEGORIES.COLLECTION,
+    icon: '✨',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 900 },
+  },
 
   // ============================================
   // NOUVEAUX SUCCÈS - MODE ENIGME
@@ -851,6 +879,23 @@ export const checkNewAchievements = (profile, collectionStats = {}, sessionConte
   // FAMILY_REUNION: 5 espèces de la même famille maîtrisées
   if (collectionStats?.familyReunionComplete && !owned.has('FAMILY_REUNION')) {
     unlocked.push('FAMILY_REUNION');
+  }
+
+  // Rareté: cumul de découvertes rares (via stats.rarityCounts)
+  const rarityCounts = stats?.rarityCounts || {};
+  const legendaryFound = rarityCounts.legendary || 0;
+  const epicFound = rarityCounts.epic || 0;
+  if (legendaryFound >= 3 && !owned.has('RARITY_LEGEND_HUNTER_3')) {
+    unlocked.push('RARITY_LEGEND_HUNTER_3');
+  }
+  if (legendaryFound >= 10 && !owned.has('RARITY_LEGEND_HUNTER_10')) {
+    unlocked.push('RARITY_LEGEND_HUNTER_10');
+  }
+  if (epicFound >= 5 && !owned.has('RARITY_EPIC_SEEKER_5')) {
+    unlocked.push('RARITY_EPIC_SEEKER_5');
+  }
+  if (epicFound >= 25 && !owned.has('RARITY_EPIC_SEEKER_25')) {
+    unlocked.push('RARITY_EPIC_SEEKER_25');
   }
 
   // ============================================

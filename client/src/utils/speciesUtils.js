@@ -1,3 +1,5 @@
+import { getRarityTier } from './rarityUtils';
+
 export const resolveImageUrls = (taxon = {}, thumbnailHint) => {
   const defaultPhoto = taxon.default_photo || {};
   const fallbackPhotoUrl = defaultPhoto.square_url || defaultPhoto.url || null;
@@ -27,6 +29,9 @@ export const buildSpeciesPayload = (taxon, thumbnailHint) => {
   if (!taxon?.id) return null;
   const rawIconicId = taxon.iconic_taxon_id ?? taxon.iconic_taxon?.id;
   const iconicTaxonId = Number.isFinite(Number(rawIconicId)) ? Number(rawIconicId) : null;
+  const observationsCount = Number.isFinite(Number(taxon.observations_count))
+    ? Number(taxon.observations_count)
+    : null;
   const payload = {
     id: taxon.id,
     name: taxon.name,
@@ -36,6 +41,9 @@ export const buildSpeciesPayload = (taxon, thumbnailHint) => {
     rank: taxon.rank,
     ancestor_ids: normalizeAncestorIds(taxon),
     default_photo: taxon.default_photo || null,
+    observations_count: observationsCount,
+    rarity_tier: getRarityTier(observationsCount),
+    conservation_status: taxon.conservation_status || null,
     ...resolveImageUrls(taxon, thumbnailHint),
   };
   if (iconicTaxonId !== null) {

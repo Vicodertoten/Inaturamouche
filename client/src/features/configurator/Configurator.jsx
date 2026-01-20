@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import CustomFilter from './components/CustomFilter';
 import ErrorModal from '../../components/ErrorModal';
 import './Configurator.css';
@@ -139,6 +139,17 @@ const usePackOptions = ({ packs, t }) =>
     }));
   }, [packs, t]);
 
+const PACK_EMOJIS = {
+  european_mushrooms: '🍄',
+  european_trees: '🌳',
+  world_birds: '🐦',
+  france_mammals: '🦊',
+  belgium_herps: '🦎',
+  amazing_insects: '🦋',
+  mediterranean_flora: '🌿',
+  great_barrier_reef_life: '🐠',
+};
+
 function Configurator({ onStartGame }) {
   const {
     activePackId,
@@ -157,6 +168,9 @@ function Configurator({ onStartGame }) {
   const { t } = useLanguage();
 
   const packOptions = usePackOptions({ packs, t });
+  const [packView, setPackView] = useState(() =>
+    activePackId === 'custom' ? 'custom' : 'packs'
+  );
 
   const activePack = useMemo(
     () => packs.find((pack) => pack.id === activePackId),
@@ -187,11 +201,30 @@ function Configurator({ onStartGame }) {
     [t]
   );
 
-  const handlePackChange = useCallback(
-    (e) => {
-      setActivePackId(e.target.value);
+  const prefabPacks = useMemo(
+    () => packOptions.filter((pack) => pack.id !== 'custom'),
+    [packOptions]
+  );
+
+  const handlePackSelect = useCallback(
+    (packId) => {
+      setActivePackId(packId);
     },
     [setActivePackId]
+  );
+
+  const handlePackViewChange = useCallback(
+    (nextView) => {
+      setPackView(nextView);
+      if (nextView === 'custom') {
+        setActivePackId('custom');
+        return;
+      }
+      if (activePackId === 'custom' && prefabPacks.length > 0) {
+        setActivePackId(prefabPacks[0].id);
+      }
+    },
+    [activePackId, prefabPacks, setActivePackId]
   );
 
   const handleModeChange = useCallback(
@@ -231,6 +264,8 @@ function Configurator({ onStartGame }) {
 
   const packDescription =
     activePack?.descriptionKey && !packsLoading ? t(activePack.descriptionKey) : null;
+  const isPackView = packView === 'packs';
+  const isCustomView = packView === 'custom';
 
   return (
     <>
@@ -247,48 +282,84 @@ function Configurator({ onStartGame }) {
           />
 
           <div className="pack-card pack-card-glow">
-            <div className="pack-selector">
-              <label htmlFor="pack-select">{t('configurator.pack_label')}</label>
-              <div
-                className="tooltip"
-                data-tooltip={t('configurator.pack_hint')}
-                onPointerLeave={(e) => e.currentTarget.querySelector('select')?.blur()}
-                title={t('configurator.pack_hint')}
+            <div className="pack-submenu" role="tablist" aria-label="Choix du pack">
+              <button
+                type="button"
+                className={`pack-submenu-button ${isPackView ? 'active' : ''}`}
+                onClick={() => handlePackViewChange('packs')}
+                aria-pressed={isPackView}
               >
-                <select
-                  id="pack-select"
-                  value={activePackId}
-                  onChange={handlePackChange}
-                  className="pack-select-dropdown"
-                  disabled={packsLoading}
-                >
-                  {packOptions.map((option) => (
-                    <option key={option.id} value={option.id} disabled={option.disabled}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                Packs
+              </button>
+              <button
+                type="button"
+                className={`pack-submenu-button ${isCustomView ? 'active' : ''}`}
+                onClick={() => handlePackViewChange('custom')}
+                aria-pressed={isCustomView}
+              >
+                Personnalisé
+              </button>
             </div>
 
-            <div className="pack-details">
-              {packsLoading && (
-                <>
-                  <SkeletonLine width="74%" />
-                  <SkeletonLine width="54%" />
-                </>
-              )}
-              {!packsLoading && packDescription && (
-                <p className="pack-description">
-                  {packDescription}
-                </p>
-              )}
-              {activePackId === 'custom' && (
+            {isPackView && (
+              <>
+                <div className="pack-grid" role="list">
+                  {packsLoading &&
+                    Array.from({ length: 4 }, (_, index) => (
+                      <div className="pack-tile pack-tile-skeleton" key={`skeleton-${index}`}>
+                        <SkeletonLine width="60%" />
+                      </div>
+                    ))}
+                  {!packsLoading &&
+                    prefabPacks.map((option) => {
+                      const isSelected = activePackId === option.id;
+                      const emoji = PACK_EMOJIS[option.id] ?? '🎒';
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`pack-tile ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handlePackSelect(option.id)}
+                          aria-pressed={isSelected}
+                        >
+                          <span className="pack-emoji" aria-hidden="true">
+                            {emoji}
+                          </span>
+                          <span className="pack-title">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+                <div className="pack-details">
+                  {packsLoading && (
+                    <>
+                      <SkeletonLine width="74%" />
+                      <SkeletonLine width="54%" />
+                    </>
+                  )}
+                  {!packsLoading && packDescription && activePackId !== 'custom' && (
+                    <p className="pack-description">{packDescription}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {isCustomView && (
+              <div className="pack-details">
+                {packsLoading && (
+                  <>
+                    <SkeletonLine width="74%" />
+                    <SkeletonLine width="54%" />
+                  </>
+                )}
+                {!packsLoading && packDescription && activePackId === 'custom' && (
+                  <p className="pack-description">{packDescription}</p>
+                )}
                 <div className="advanced-filters open">
                   <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </section>
 

@@ -29,6 +29,16 @@ const Typewriter = ({ text, speed = 20, onComplete }) => {
   return <p className="explanation-section__text">{displayed}</p>;
 };
 
+const getObservationImageUrl = (taxon) => {
+  if (!taxon) return null;
+  return (
+    taxon.default_photo?.medium_url ||
+    taxon.default_photo?.square_url ||
+    taxon.default_photo?.url ||
+    null
+  );
+};
+
 const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
   const { t, lang, getTaxonDisplayNames } = useLanguage();
   const [explanation, setExplanation] = useState('');
@@ -70,6 +80,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     }
     return taxon;
   }, [question, getTaxonDetailsForDisplay]);
+
   const baseUserId =
     userAnswer?.detail?.id || userAnswer?.id || userAnswer?.taxon_id || null;
   const userDisplayTaxon = useMemo(
@@ -169,14 +180,14 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const titleIcon = isWin ? '🎉' : '😟';
-  const hideUserImage = question?.game_mode === 'riddle';
+  const correctImageUrl = getObservationImageUrl(question?.bonne_reponse) || correctDisplayTaxon.image_url;
 
   return (
     <div className="modal-backdrop">
       <div className="modal-content summary-modal" role="dialog" aria-modal="true" aria-labelledby="summary-title">
         <header className="summary-header">
           <h2 id="summary-title" className={`summary-title ${isWin ? 'win' : 'lose'}`}>
-            <span className="summary-title-icon" aria-hidden="true">{titleIcon}</span>
+        
             {title}
           </h2>
         </header>
@@ -187,11 +198,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             <div className={`answer-card correct-answer-card ${isWin ? 'full-width' : ''}`}>
               <h3 className="answer-card-title">{t('summary.correct_answer')}</h3>
               <div className="answer-card-body">
-                {correctDisplayTaxon.image_url && (
+                {correctImageUrl && (
                   <div className="answer-image-wrapper">
                     <img
-                      src={getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')}
-                      srcSet={`${getSizedImageUrl(correctDisplayTaxon.image_url, 'small')} 300w, ${getSizedImageUrl(correctDisplayTaxon.image_url, 'medium')} 600w`}
+                      src={getSizedImageUrl(correctImageUrl, 'medium')}
+                      srcSet={`${getSizedImageUrl(correctImageUrl, 'small')} 300w, ${getSizedImageUrl(correctImageUrl, 'medium')} 600w`}
                       sizes="(max-width: 768px) 120px, 200px"
                       alt={correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName}
                       className="answer-image"
@@ -223,7 +234,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
               <div className="answer-card user-answer-card">
                 <h3 className="answer-card-title">{t('summary.your_answer')}</h3>
                 <div className="answer-card-body">
-                  {!hideUserImage && userDisplayTaxon.image_url && (
+                  {userDisplayTaxon.image_url && (
                     <div className="answer-image-wrapper">
                       <img
                         src={getSizedImageUrl(userDisplayTaxon.image_url, 'medium')}

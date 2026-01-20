@@ -147,6 +147,8 @@ const en = {
       mastery: 'Mastery',
       recent: 'Recently Seen',
       alpha: 'Alphabetical',
+      rarity: 'Rarity (rare → common)',
+      rarity_common: 'Rarity (common → rare)',
     },
     loading_species: 'Loading species...',
     empty: 'No species in this category yet.',
@@ -164,11 +166,20 @@ const en = {
       },
       search_placeholder: 'Search species...',
       filter_label: 'Filter:',
+      filter_rarity_label: 'Rarity:',
       filter: {
         all: 'All',
         seen: 'Discovered',
         mastered: 'Mastered',
         to_learn: 'To Learn',
+      },
+      filter_rarity: {
+        all: 'All',
+        legendary: 'Legendary',
+        epic: 'Epic',
+        rare: 'Rare',
+        uncommon: 'Uncommon',
+        common: 'Common',
       },
       page_prefix: 'Page',
   },
@@ -462,6 +473,22 @@ const en = {
       FAMILY_REUNION: {
         title: 'Family Reunion',
         description: 'Master 5 species from the same family.',
+      },
+      RARITY_LEGEND_HUNTER_3: {
+        title: 'Legend Hunter',
+        description: 'Identify 3 legendary species.',
+      },
+      RARITY_LEGEND_HUNTER_10: {
+        title: 'Living Myths',
+        description: 'Identify 10 legendary species.',
+      },
+      RARITY_EPIC_SEEKER_5: {
+        title: 'Epic Seeker',
+        description: 'Identify 5 epic species.',
+      },
+      RARITY_EPIC_SEEKER_25: {
+        title: 'Epic Collector',
+        description: 'Identify 25 epic species.',
       },
       // --- NEW ACHIEVEMENTS: RIDDLE ---
       RIDDLE_SOLVER_10: {
