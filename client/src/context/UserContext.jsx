@@ -86,12 +86,6 @@ export function UserProvider({ children }) {
   useEffect(() => {
     let isMounted = true;
     const initialize = async () => {
-      // Tutorial check
-      const tutorialSeen = localStorage.getItem('inaturamouche_tutorial_seen');
-      if (!tutorialSeen) {
-        setShowTutorial(true);
-      }
-
       let migrationApplied = false;
       try {
         migrationApplied = await migrateLocalStorageToIndexedDB();
@@ -173,18 +167,24 @@ export function UserProvider({ children }) {
     };
   }, []);
 
-  // Listen for BroadcastChannel collection updates from other tabs
+  // Check if tutorial should be shown for first-time users
+  useEffect(() => {
+    const tutorialSeen = localStorage.getItem('inaturamouche_tutorial_seen');
+    if (!tutorialSeen) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const completeTutorial = useCallback(() => {
+    localStorage.setItem('inaturamouche_tutorial_seen', 'true');
+    setShowTutorial(false);
+  }, []);
   useEffect(() => {
     const unsubscribe = CollectionService.onCollectionUpdated(() => {
       setCollectionVersion((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
-
-  const completeTutorial = () => {
-    localStorage.setItem('inaturamouche_tutorial_seen', 'true');
-    setShowTutorial(false);
-  };
 
   const refreshProfile = useCallback(async () => {
     const loadedProfile = await loadProfileFromStore();

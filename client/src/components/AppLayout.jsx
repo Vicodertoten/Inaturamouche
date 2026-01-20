@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AchievementModal from './AchievementModal';
+import TutorialOverlay from './TutorialOverlay';
 import ReportModal from './ReportModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
@@ -20,8 +21,14 @@ const AppLayout = () => {
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
   const { achievementQueue, popAchievement } = useUser();
   const { t } = useLanguage();
+  const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+
+  const closeHelp = useCallback(() => {
+    localStorage.setItem('home_intro_seen', '1');
+    setIsHelpVisible(false);
+  }, []);
 
   const handleTitleClick = useCallback(() => {
     if (isGameActive || isGameOver) {
@@ -30,6 +37,7 @@ const AppLayout = () => {
     navigate('/');
   }, [isGameActive, isGameOver, navigate, resetToLobby]);
 
+  const showHelp = useCallback(() => setIsHelpVisible(true), []);
   const showReport = useCallback(() => setIsReportVisible(true), []);
   const closeReport = useCallback(() => setIsReportVisible(false), []);
 
@@ -41,7 +49,7 @@ const AppLayout = () => {
     setIsPreferencesOpen((prev) => !prev);
   }, []);
 
-  const outletContext = useMemo(() => ({ showReport }), [showReport]);
+  const outletContext = useMemo(() => ({ showHelp, showReport }), [showHelp, showReport]);
 
   return (
     <div className="App">
