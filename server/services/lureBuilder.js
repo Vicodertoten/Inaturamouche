@@ -120,12 +120,16 @@ export async function buildLures(
   const cacheKey = `similar:${targetId}`;
   let similarResults = similarSpeciesCache.get(cacheKey, { allowStale: true });
   let similarIds = [];
-  
+
   if (!similarResults) {
-    similarResults = await fetchSimilarSpeciesWithTimeout(targetId, 900);
-    if (Array.isArray(similarResults) && similarResults.length > 0) {
-      similarSpeciesCache.set(cacheKey, similarResults);
-    }
+    // Warm cache in background to avoid blocking first-question latency.
+    fetchSimilarSpeciesWithTimeout(targetId, 900)
+      .then((results) => {
+        if (Array.isArray(results) && results.length > 0) {
+          similarSpeciesCache.set(cacheKey, results);
+        }
+      })
+      .catch(() => {});
   }
 
   if (Array.isArray(similarResults) && similarResults.length > 0) {

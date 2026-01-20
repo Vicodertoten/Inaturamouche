@@ -112,7 +112,7 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true, // permet de tester le SW en dev
+        enabled: false,
       },
     }),
   ],

@@ -60,6 +60,8 @@ const en = {
     riddle_mode_description: 'Three text clues, shrinking points, no photos.',
     hard_mode: 'Hard',
     hard_mode_description: 'Guess the taxonomy with limited attempts.',
+    taxonomic_mode: 'Tree Climber',
+    taxonomic_mode_description: 'Climb the taxonomic tree by validating each rank.',
     play_pillar_title: 'Play',
     play_pillar_desc: 'Choose your game mode: Easy, Riddle, or Hard.',
     learn_pillar_title: 'Learn',
@@ -236,6 +238,28 @@ const en = {
       unavailable: 'Information unavailable',
     },
   },
+  taxonomic: {
+    instructions: 'Build the taxonomic path from kingdom to species.',
+    focus_label: 'Current rank',
+    parent_label: 'Parent',
+    prompt_generic: 'Choose the correct {rank}.',
+    prompts: {
+      kingdom: 'Animal or Plant?',
+      phylum: 'Which phylum?',
+      class: 'Which class?',
+      order: 'Which order?',
+      family: 'Which family?',
+      genus: 'Which genus?',
+      species: 'Which species?',
+    },
+    mistakes: 'Mistakes {count}/{max}',
+    hint_button: 'Reveal the correct option (-{cost} XP)',
+    hint_used: 'Revealed the {rank}',
+    hint_locked: 'Not enough XP ({current}/{cost})',
+    empty: 'No steps available for this taxon.',
+    no_rank: 'rank',
+    xp_remaining: 'You lose {points} XP if you don’t finish the species.',
+  },
   imageViewer: {
     loading: 'Loading...',
     nav_label: 'Navigation controls',
@@ -352,6 +376,10 @@ const en = {
       SKILL_SPEEDRUN: {
         title: 'Speedrunner',
         description: 'Answer correctly in under 8 seconds.',
+      },
+      TREE_CLIMBER_FLAWLESS: {
+        title: 'Tree Climber',
+        description: 'Complete a flawless taxonomic ascent.',
       },
       STREAK_STARTER_3: {
         title: '🔥 First Flame',

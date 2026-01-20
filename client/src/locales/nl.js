@@ -60,6 +60,8 @@ const nl = {
     riddle_mode_description: 'Drie tekstaanwijzingen, dalende punten, geen foto\'s.',
     hard_mode: 'Moeilijk',
     hard_mode_description: 'Raad de taxonomie met beperkte pogingen.',
+    taxonomic_mode: 'Taxonomische Klim',
+    taxonomic_mode_description: 'Beklim de taxonomische boom door elk rangniveau correct te kiezen.',
     play_pillar_title: 'Spelen',
     play_pillar_desc: 'Kies je spelmodus: Makkelijk, Raadsel of Moeilijk.',
     learn_pillar_title: 'Leren',
@@ -236,6 +238,28 @@ const nl = {
       unavailable: 'Informatie niet beschikbaar',
     },
   },
+  taxonomic: {
+    instructions: 'Bouw de taxonomische route van rijk naar soort.',
+    focus_label: 'Huidige rang',
+    parent_label: 'Ouder',
+    prompt_generic: 'Kies de juiste {rank}.',
+    prompts: {
+      kingdom: 'Dier of Plant?',
+      phylum: 'Welke stam?',
+      class: 'Welke klasse?',
+      order: 'Welke orde?',
+      family: 'Welke familie?',
+      genus: 'Welk geslacht?',
+      species: 'Welke soort?',
+    },
+    mistakes: 'Fouten {count}/{max}',
+    hint_button: 'Toon het juiste antwoord (-{cost} XP)',
+    hint_used: '{rank} onthuld!',
+    hint_locked: 'Te weinig XP ({current}/{cost})',
+    empty: 'Geen stappen beschikbaar voor deze taxon.',
+    no_rank: 'rang',
+    xp_remaining: 'Je mist {points} XP als je de soort niet afmaakt.',
+  },
   imageViewer: {
     loading: 'Laden...',
     nav_label: 'Navigatiebediening',
@@ -342,6 +366,10 @@ const nl = {
       SKILL_SPEEDRUN: {
         title: 'Snelstarter',
         description: 'Beantwoord correct in minder dan 8 seconden.',
+      },
+      TREE_CLIMBER_FLAWLESS: {
+        title: 'Boomklimmer',
+        description: 'Voltooi een foutloze taxonomische klim.',
       },
       RIDDLE_SOLVER_10: {
         title: 'Raadselleerling',

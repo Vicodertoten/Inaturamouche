@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import HardMode from '../features/quiz/components/HardMode';
 import EasyMode from '../components/Easymode';
 import RiddleMode from '../components/RiddleMode';
+import TaxonomicAscension from '../features/quiz/components/TaxonomicAscension';
 import QuestionSkeleton from '../components/QuestionSkeleton';
 import { useGameData, useGameUI } from '../context/GameContext';
 
@@ -23,6 +24,7 @@ const PlayPage = () => {
 
   if (gameMode === 'easy') return <EasyMode />;
   if (gameMode === 'riddle') return <RiddleMode />;
+  if (gameMode === 'taxonomic') return <TaxonomicAscension />;
   return <HardMode />;
 };
 

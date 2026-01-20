@@ -41,7 +41,7 @@ const API_BASE_URL =
   runtimeEnv.VITE_API_URL ||
   (runtimeEnv.DEV
     ? "http://localhost:3001"
-    : "https://inaturamouche.onrender.com");
+    : "https://inaturamouche-api.onrender.com");
 
 // Timeout augmenté à 15s pour absorber les cold starts d'iNaturalist
 const DEFAULT_TIMEOUT = 15000;

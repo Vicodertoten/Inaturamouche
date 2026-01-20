@@ -34,6 +34,7 @@ export function useQuestionQueue(filters = {}, options = {}) {
   
   // File de questions préchargées
   const [queue, setQueue] = useState([]);
+  const queueRef = useRef(queue);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -41,11 +42,23 @@ export function useQuestionQueue(filters = {}, options = {}) {
   const inflightRef = useRef(false);
   const abortControllerRef = useRef(null);
   const filtersRef = useRef(filters);
+
+  const updateQueue = useCallback((updater) => {
+    setQueue((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      queueRef.current = next;
+      return next;
+    });
+  }, []);
   
   // Mettre à jour la ref des filtres quand ils changent
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   /**
    * Charge une nouvelle question et l'ajoute à la file
@@ -62,12 +75,12 @@ export function useQuestionQueue(filters = {}, options = {}) {
       const question = await fetchQuizQuestion(filtersRef.current, { signal });
       
       if (!signal?.aborted) {
-        // Précharger les images en parallèle (ne pas bloquer l'ajout à la file)
-        preloadQuestionImages(question).catch(() => {
+        // Précharger en arriere-plan (ne pas bloquer l'ajout a la file)
+        preloadQuestionImages(question, { priorityCount: 0 }).catch(() => {
           // Les erreurs de préchargement sont loggées mais ne bloquent pas
         });
         
-        setQueue(prev => [...prev, question]);
+        updateQueue((prev) => [...prev, question]);
       }
     } catch (err) {
       if (!signal?.aborted && err.name !== 'AbortError') {
@@ -93,28 +106,31 @@ export function useQuestionQueue(filters = {}, options = {}) {
     
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
-    
-    while (queue.length < queueSize && !signal.aborted) {
+
+    // Utiliser la ref pour eviter les boucles avec longueur stale.
+    while (queueRef.current.length < queueSize && !signal.aborted) {
       await fetchAndEnqueue(signal);
     }
-  }, [queue.length, queueSize, fetchAndEnqueue]);
+  }, [queueSize, fetchAndEnqueue]);
 
   /**
    * Précharge la prochaine question (à appeler quand question N est affichée)
    */
   const prefetchNext = useCallback(() => {
-    if (queue.length < queueSize && !inflightRef.current) {
+    if (queueRef.current.length < queueSize && !inflightRef.current) {
       fetchAndEnqueue(abortControllerRef.current?.signal);
     }
-  }, [queue.length, queueSize, fetchAndEnqueue]);
+  }, [queueSize, fetchAndEnqueue]);
 
   /**
    * Récupère la prochaine question de la file
    */
   const dequeue = useCallback(() => {
-    setQueue(prev => {
+    let nextItem = null;
+    updateQueue((prev) => {
       if (prev.length === 0) return prev;
       const [first, ...rest] = prev;
+      nextItem = first;
       return rest;
     });
     
@@ -123,8 +139,8 @@ export function useQuestionQueue(filters = {}, options = {}) {
       prefetchNext();
     }
     
-    return queue[0] || null;
-  }, [queue, autoRefill, prefetchNext]);
+    return nextItem;
+  }, [autoRefill, prefetchNext, updateQueue]);
 
   /**
    * Vide la file et annule les requêtes en cours
@@ -133,10 +149,10 @@ export function useQuestionQueue(filters = {}, options = {}) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    setQueue([]);
+    updateQueue([]);
     setError(null);
     inflightRef.current = false;
-  }, []);
+  }, [updateQueue]);
 
   /**
    * Reset complet (utile quand les filtres changent)

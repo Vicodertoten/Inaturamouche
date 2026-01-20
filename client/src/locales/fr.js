@@ -60,6 +60,8 @@ const fr = {
     riddle_mode_description: 'Trois indices textuels, points decroissants, zero photo.',
     hard_mode: 'Difficile',
     hard_mode_description: 'Devinez la taxonomie avec essais limités.',
+    taxonomic_mode: 'Ascension Taxonomique',
+    taxonomic_mode_description: 'Remontez l’arbre phylogénétique en validant chaque rang.',
     play_pillar_title: 'Jouer',
     play_pillar_desc: "Choisissez votre mode de jeu : Facile, Enigme ou Difficile.",
     learn_pillar_title: 'Apprendre',
@@ -236,6 +238,28 @@ const fr = {
       unavailable: 'Informations non disponibles',
     },
   },
+  taxonomic: {
+    instructions: 'Remontez l’arbre phylogénétique en validant chaque rang.',
+    focus_label: 'Rang actuel',
+    parent_label: 'Parent',
+    prompt_generic: 'Choisissez le bon {rank}.',
+    prompts: {
+      kingdom: 'Animal ou Végétal ?',
+      phylum: 'Quel embranchement ?',
+      class: 'Quelle classe ?',
+      order: 'Quel ordre ?',
+      family: 'Quelle famille ?',
+      genus: 'Quel genre ?',
+      species: 'Quelle espèce ?',
+    },
+    mistakes: 'Erreurs {count}/{max}',
+    hint_button: 'Montrer la bonne réponse (-{cost} XP)',
+    hint_used: '{rank} révélé !',
+    hint_locked: 'XP insuffisant ({current}/{cost})',
+    empty: 'Aucune étape disponible pour cet arbre.',
+    no_rank: 'rang',
+    xp_remaining: 'Il vous manque {points} XP pour finir l’espèce.',
+  },
   imageViewer: {
     loading: 'Chargement...',
     nav_label: 'Contrôles de navigation',
@@ -352,6 +376,10 @@ const fr = {
       SKILL_SPEEDRUN: {
         title: 'Réflexe éclair',
         description: 'Répondre correctement en moins de 8 secondes.',
+      },
+      TREE_CLIMBER_FLAWLESS: {
+        title: 'Grimpeur de l’arbre',
+        description: 'Terminer une ascension taxonomique sans erreur.',
       },
       STREAK_STARTER_3: {
         title: '🔥 Première Flamme',

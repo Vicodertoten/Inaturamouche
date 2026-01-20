@@ -36,6 +36,16 @@ export function sanitizeObservation(obs) {
     : [];
 
   const taxon = obs.taxon || {};
+  const ancestors = Array.isArray(taxon.ancestors)
+    ? taxon.ancestors
+        .filter((ancestor) => ancestor?.id && typeof ancestor?.rank === 'string')
+        .map((ancestor) => ({
+          id: ancestor.id,
+          name: ancestor.name,
+          preferred_common_name: ancestor.preferred_common_name,
+          rank: ancestor.rank,
+        }))
+    : [];
   return {
     id: obs.id,
     uri: obs.uri,
@@ -46,7 +56,12 @@ export function sanitizeObservation(obs) {
       id: taxon.id,
       name: taxon.name,
       preferred_common_name: taxon.preferred_common_name,
+      common_name: taxon.common_name,
+      wikipedia_url: taxon.wikipedia_url,
+      url: taxon.url,
+      default_photo: taxon.default_photo,
       ancestor_ids: Array.isArray(taxon.ancestor_ids) ? taxon.ancestor_ids : [],
+      ancestors,
       rank: taxon.rank,
       iconic_taxon_id: taxon.iconic_taxon_id || null,
     },

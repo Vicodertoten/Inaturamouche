@@ -1,6 +1,6 @@
 # API Reference
 
-Base URL front : `VITE_API_URL` si défini, sinon `http://localhost:3001` en dev et `https://inaturamouche.onrender.com` en prod. Toutes les routes sont CORS-allowlist pour ces origines.
+Base URL front : `VITE_API_URL` si défini, sinon `http://localhost:3001` en dev et `https://inaturamouche-api.onrender.com` en prod. Toutes les routes sont CORS-allowlist pour ces origines.
 
 ## Règles globales
 - **Rate-limit** : `/api/*` 300 req / 15 min par IP ; `/api/quiz-question` 60 req / min ; `/api/places*` proxy 120 req / min.  

@@ -52,7 +52,7 @@ const normalizeMediaType = (value, fallback = DEFAULT_MEDIA_TYPE) => {
 };
 
 const normalizeGameMode = (value, fallback = 'easy') => {
-  if (value === 'easy' || value === 'hard' || value === 'riddle') return value;
+  if (value === 'easy' || value === 'hard' || value === 'riddle' || value === 'taxonomic') return value;
   return fallback;
 };
 

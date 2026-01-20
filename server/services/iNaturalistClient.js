@@ -176,14 +176,14 @@ export async function fetchSimilarSpeciesWithTimeout(taxonId, timeoutMs = 900) {
  * Fetches full taxa details with fallback to defaults
  * @param {Array<string|number>} taxonIds
  * @param {string} locale
- * @param {{ logger?: import("pino").Logger, requestId?: string, fallbackDetails?: Map }} options
+ * @param {{ logger?: import("pino").Logger, requestId?: string, fallbackDetails?: Map, allowPartial?: boolean }} options
  * @param {import('../cache/taxonDetailsCache.js').TaxonDetailsCache} taxonDetailsCache
  * @returns {Promise<Array>}
  */
 export async function getFullTaxaDetails(
   taxonIds,
   locale = 'fr',
-  { logger, requestId, fallbackDetails = new Map() } = {},
+  { logger, requestId, fallbackDetails = new Map(), allowPartial = false } = {},
   taxonDetailsCache
 ) {
   if (!taxonIds || taxonIds.length === 0) return [];
@@ -227,17 +227,15 @@ export async function getFullTaxaDetails(
   const fetchBatch = async (ids) => {
     if (!ids.length) return [];
     const path = `https://api.inaturalist.org/v1/taxa/${ids.join(',')}`;
-    const localizedResponse = await fetchInatJSON(
-      path,
-      { locale },
-      { logger, requestId, label: 'taxa-localized' }
-    );
-    const localizedResults = Array.isArray(localizedResponse.results) ? localizedResponse.results : [];
-    let defaultResults = [];
-    if (!locale.startsWith('en')) {
-      const defaultResponse = await fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' });
-      defaultResults = Array.isArray(defaultResponse.results) ? defaultResponse.results : [];
-    }
+    // Parallelize localized + default fetches to cut iNat latency on cold starts.
+    const [localizedResponse, defaultResponse] = await Promise.all([
+      fetchInatJSON(path, { locale }, { logger, requestId, label: 'taxa-localized' }),
+      locale.startsWith('en')
+        ? Promise.resolve(null)
+        : fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' }),
+    ]);
+    const localizedResults = Array.isArray(localizedResponse?.results) ? localizedResponse.results : [];
+    const defaultResults = Array.isArray(defaultResponse?.results) ? defaultResponse.results : [];
     const merged = mergeLocalizedDefaults(localizedResults, defaultResults, ids);
     for (const taxon of merged) {
       if (taxon?.id != null) {
@@ -249,7 +247,7 @@ export async function getFullTaxaDetails(
   };
 
   let fetchedResults = [];
-  const shouldBackgroundRefresh = idsToFetch.length > 0 && missingIds.length === 0;
+  const shouldBackgroundRefresh = idsToFetch.length > 0 && (missingIds.length === 0 || allowPartial);
   if (idsToFetch.length > 0) {
     if (shouldBackgroundRefresh) {
       fetchBatch(idsToFetch).catch((err) => {

@@ -12,6 +12,7 @@ import {
 } from './selectionState.js';
 import { buildLures } from './lureBuilder.js';
 import { getFullTaxaDetails, getTaxonName } from './iNaturalistClient.js';
+import { buildTaxonomicAscension } from './taxonomicAscension.js';
 import { selectionStateCache, getOrCreateMutex, questionQueueCache } from '../cache/selectionCache.js';
 import taxonDetailsCache from '../cache/taxonDetailsCache.js';
 import { nextEligibleTaxonId, pickRelaxedTaxon, makeChoiceLabels, buildTimingData } from '../utils/helpers.js';
@@ -150,6 +151,7 @@ export async function buildQuizQuestion({
   });
 
   const selectionMode = initialSelectionMode;
+  const isFirstQuestion = questionIndex === 0;
 
   let targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId, { allowSeen: false }, questionRng);
   if (!targetObservation) {
@@ -162,55 +164,125 @@ export async function buildQuizQuestion({
   }
   rememberObservation(selectionState, targetObservation.id);
   marks.pickedTarget = performance.now();
+  const isTaxonomicMode = gameMode === 'taxonomic';
+  let buckets = { near: 0, mid: 0, far: 0 };
+  let taxonomicSteps = null;
+  let taxonomicMeta = null;
+  let details = new Map();
+  let choiceTaxaInfo = [];
+  let choiceIdsInOrder = [];
+  let labelsInOrder = [];
+  let choiceObjects = [];
+  let shuffledChoices = [];
+  let correct_choice_index = -1;
+  let correct_label = '';
+  let choix_mode_facile = [];
+  let choix_mode_facile_ids = [];
+  let choix_mode_facile_correct_index = -1;
 
   const hasExplicitTaxa = Boolean(params?.taxon_id);
   const excludeFutureTargets = hasExplicitTaxa
     ? new Set((selectionState.taxonDeck || []).map((id) => String(id)))
     : null;
-  const { lures, buckets } = await buildLures(
-    cacheEntry,
-    selectionState,
-    targetTaxonId,
-    targetObservation,
-    config.lureCount,
-    questionRng,
+
+  if (!isTaxonomicMode) {
+    const { lures, buckets: builtBuckets } = await buildLures(
+      cacheEntry,
+      selectionState,
+      targetTaxonId,
+      targetObservation,
+      config.lureCount,
+      questionRng,
+      {
+        allowExternalLures: hasExplicitTaxa,
+        allowMixedIconic: hasExplicitTaxa,
+        excludeTaxonIds: excludeFutureTargets,
+        logger,
+        requestId,
+      }
+    );
+    if (!lures || lures.length < config.lureCount) {
+      const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
+      err.status = 404;
+      throw err;
+    }
+    buckets = builtBuckets;
+    marks.builtLures = performance.now();
+
+    choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
+    const fallbackDetails = new Map();
+    fallbackDetails.set(String(targetTaxonId), targetObservation?.taxon || {});
+    for (const lure of lures) {
+      fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
+    }
+
+  const choiceTaxaDetails = await getFullTaxaDetails(
+    choiceIdsInOrder,
+    locale,
     {
-      allowExternalLures: hasExplicitTaxa,
-      allowMixedIconic: hasExplicitTaxa,
-      excludeTaxonIds: excludeFutureTargets,
       logger,
       requestId,
-    }
+      fallbackDetails,
+      // Fast path for the very first question: use fallback details, refresh cache in background.
+      allowPartial: isFirstQuestion,
+    },
+    taxonDetailsCache
   );
-  if (!lures || lures.length < config.lureCount) {
-    const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
-    err.status = 404;
-    throw err;
-  }
-  marks.builtLures = performance.now();
 
-  const choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
-  const fallbackDetails = new Map();
-  fallbackDetails.set(String(targetTaxonId), targetObservation?.taxon || {});
-  for (const lure of lures) {
-    fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
-  }
-
-  const choiceTaxaDetails = await getFullTaxaDetails(choiceIdsInOrder, locale, {
-    logger,
-    requestId,
-    fallbackDetails,
-  }, taxonDetailsCache);
-
-  const details = new Map();
-  for (const taxon of choiceTaxaDetails) {
-    details.set(String(taxon.id), taxon);
-  }
-  for (const id of choiceIdsInOrder) {
-    const key = String(id);
-    if (!details.has(key)) {
-      details.set(key, fallbackDetails.get(key) || {});
+    details = new Map();
+    for (const taxon of choiceTaxaDetails) {
+      details.set(String(taxon.id), taxon);
     }
+    for (const id of choiceIdsInOrder) {
+      const key = String(id);
+      if (!details.has(key)) {
+        details.set(key, fallbackDetails.get(key) || {});
+      }
+    }
+
+    choiceTaxaInfo = choiceIdsInOrder.map((id) => {
+      const info = details.get(String(id)) || {};
+      return {
+        taxon_id: String(id),
+        name: info.name || info.taxon?.name,
+        preferred_common_name: info.preferred_common_name || info.common_name || null,
+        rank: info.rank,
+      };
+    });
+
+    labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
+    choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
+    shuffledChoices = shuffleFisherYates(choiceObjects, questionRng);
+    correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
+    try {
+      correct_label = shuffledChoices[correct_choice_index]?.label || '';
+    } catch {
+      correct_label = '';
+    }
+
+    const facilePairs = choiceIdsInOrder.map((id) => ({
+      taxon_id: id,
+      label: getTaxonName(details.get(String(id))),
+    }));
+    const facileShuffled = shuffleFisherYates(facilePairs, questionRng);
+    choix_mode_facile = facileShuffled.map((p) => p.label);
+    choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
+    choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex((id) => id === String(targetTaxonId));
+  } else {
+    const ascensionData = await buildTaxonomicAscension({
+      pool: cacheEntry,
+      targetTaxonId,
+      locale,
+      rng: questionRng,
+      logger,
+      requestId,
+      taxonDetailsCache,
+    });
+    taxonomicSteps = ascensionData.steps;
+    taxonomicMeta = ascensionData.meta;
+    details = ascensionData.detailMap;
+    buckets = { near: 0, mid: 0, far: 0 };
+    marks.builtLures = performance.now();
   }
   const correct = details.get(String(targetTaxonId));
   if (!correct) {
@@ -225,31 +297,9 @@ export async function buildQuizQuestion({
   if (isRiddleMode) {
     riddle = await generateRiddle(correct, locale, logger);
   }
-
-  const choiceTaxaInfo = choiceIdsInOrder.map((id) => {
-    const info = details.get(String(id)) || {};
-    return {
-      taxon_id: String(id),
-      name: info.name || info.taxon?.name,
-      preferred_common_name: info.preferred_common_name || info.common_name || null,
-      rank: info.rank,
-    };
-  });
-
-  const labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
-  const choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
-  const shuffledChoices = shuffleFisherYates(choiceObjects, questionRng);
-  const correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
-  const correct_label = shuffledChoices[correct_choice_index]?.label || getTaxonName(correct);
-
-  const facilePairs = choiceIdsInOrder.map((id) => ({
-    taxon_id: id,
-    label: getTaxonName(details.get(String(id))),
-  }));
-  const facileShuffled = shuffleFisherYates(facilePairs, questionRng);
-  const choix_mode_facile = facileShuffled.map((p) => p.label);
-  const choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
-  const choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex((id) => id === String(targetTaxonId));
+  if (!correct_label) {
+    correct_label = getTaxonName(correct);
+  }
   marks.labelsMade = performance.now();
 
   const observationPhotos = !isRiddleMode && Array.isArray(targetObservation.photos) ? targetObservation.photos : [];
@@ -320,6 +370,14 @@ export async function buildQuizQuestion({
         url: details.get(info.taxon_id)?.url,
         default_photo: details.get(info.taxon_id)?.default_photo,
       })),
+      taxonomic_ascension: isTaxonomicMode
+        ? {
+            steps: taxonomicSteps,
+            max_mistakes: taxonomicMeta?.maxMistakes || 0,
+            hint_cost_xp: taxonomicMeta?.hintCost || 0,
+            options_per_step: taxonomicMeta?.optionsPerStep || 0,
+          }
+        : null,
       choix_mode_facile,
       choix_mode_facile_ids,
       choix_mode_facile_correct_index,

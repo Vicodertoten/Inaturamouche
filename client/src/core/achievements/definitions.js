@@ -155,6 +155,13 @@ export const ACHIEVEMENTS = {
     icon: '⚡',
     reward: { type: REWARD_TYPES.XP_FLAT, value: 200 },
   },
+  TREE_CLIMBER_FLAWLESS: {
+    titleKey: 'achievements.list.TREE_CLIMBER_FLAWLESS.title',
+    descriptionKey: 'achievements.list.TREE_CLIMBER_FLAWLESS.description',
+    category: ACHIEVEMENT_CATEGORIES.SKILL,
+    icon: '🌲',
+    reward: { type: REWARD_TYPES.XP_FLAT, value: 600 },
+  },
   // Streak Achievements
   STREAK_STARTER_3: {
     titleKey: 'achievements.list.STREAK_STARTER_3.title',
@@ -1089,6 +1096,16 @@ export const evaluateMicroChallenges = (snapshot = {}, alreadyUnlocked = []) => 
   // SCORING_JACKPOT: 2000 XP en une partie
   if (!owned.has('SCORING_JACKPOT') && sessionXP >= 2000) {
     unlocked.push('SCORING_JACKPOT');
+  }
+
+  // TREE_CLIMBER_FLAWLESS: Perfect taxonomic ascent
+  if (
+    !owned.has('TREE_CLIMBER_FLAWLESS') &&
+    roundMeta.mode === 'taxonomic' &&
+    roundMeta.wasCorrect &&
+    roundMeta.mistakes === 0
+  ) {
+    unlocked.push('TREE_CLIMBER_FLAWLESS');
   }
 
   // PURIST_NO_HINT: Partie parfaite (10+ Q) sans indices

@@ -3,13 +3,26 @@
 
 import { createApp } from './app.js';
 import { config } from './config/index.js';
+import { warmDefaultObservationPool } from './services/warmup.js';
 
 const { app, logger } = createApp();
 
 // Démarrer le serveur seulement si pas en mode test
 if (config.nodeEnv !== 'test') {
-  app.listen(config.port, () => {
-    console.log(`Serveur Inaturamouche démarré sur le port ${config.port}`);
+  setTimeout(() => {
+    warmDefaultObservationPool({ logger }).catch(() => {});
+  }, 1000).unref();
+  const server = app.listen(config.port, () => {
+    logger.info(`Serveur Inaturamouche démarré sur le port ${config.port}`);
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      logger.error(`Port ${config.port} est déjà utilisé. Terminez le processus qui l'utilise ou définissez la variable d'environnement PORT pour en choisir un autre.`);
+      process.exit(1);
+    }
+    logger.error('Erreur du serveur non gérée:', err);
+    throw err;
   });
 }
 

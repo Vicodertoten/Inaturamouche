@@ -347,6 +347,22 @@ function Configurator({ onStartGame }) {
                 <p className="mode-description">{t('home.hard_mode_description')}</p>
               </div>
             </label>
+
+            <label className={`mode-card ${gameMode === 'taxonomic' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="mode"
+                value="taxonomic"
+                checked={gameMode === 'taxonomic'}
+                onChange={() => handleModeChange('taxonomic')}
+                aria-label={t('home.taxonomic_mode')}
+              />
+              <ModeVisual variant="hard" />
+              <div className="mode-content">
+                <h4>{t('home.taxonomic_mode')}</h4>
+                <p className="mode-description">{t('home.taxonomic_mode_description')}</p>
+              </div>
+            </label>
           </div>
         </section>
 
