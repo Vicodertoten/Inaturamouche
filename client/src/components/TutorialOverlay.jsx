@@ -31,23 +31,6 @@ const TutorialOverlay = () => {
         position: 'center',
       },
       {
-        id: 'loop',
-        title: t('tutorial.step_loop_title', {}, "Ta boucle d'apprentissage"),
-        text: t(
-          'tutorial.step_loop_text',
-          {},
-          "Chaque partie nourrit ta mémoire : tu identifies, tu gagnes de l'XP, tu enrichis ta collection."
-        ),
-        bullets: [
-          t('tutorial.step_loop_bullet_1', {}, 'Observe sans pression.'),
-          t('tutorial.step_loop_bullet_2', {}, 'Teste ton intuition.'),
-          t('tutorial.step_loop_bullet_3', {}, 'Reviens sur ce qui résiste.'),
-        ],
-        route: '/',
-        targetSelector: '.tutorial-home-dashboard',
-        position: 'auto',
-      },
-      {
         id: 'daily',
         title: t('tutorial.step_daily_title', {}, 'Défi du jour'),
         text: t(
@@ -92,6 +75,9 @@ const TutorialOverlay = () => {
         route: '/',
         targetSelector: '.tutorial-pack-grid',
         position: 'auto',
+        highlightSelector: '.pack-card, .pack-card-glow',
+        spotlightPadding: 26,
+        spotlightRadius: 28,
       },
       {
         id: 'modes',
@@ -129,19 +115,6 @@ const TutorialOverlay = () => {
         position: 'auto',
       },
       {
-        id: 'start',
-        title: t('tutorial.step_start_title', {}, 'Lance une session'),
-        text: t(
-          'tutorial.step_start_text',
-          {},
-          "Chaque bonne réponse ajoute l'espèce à ta collection et booste ton XP."
-        ),
-        route: '/',
-        targetSelector: '.tutorial-start-game',
-        position: 'auto',
-        nextLabel: t('tutorial.step_start_next', {}, 'Voir la navigation'),
-      },
-      {
         id: 'navigation',
         title: t('tutorial.step_navigation_title', {}, 'Navigation rapide'),
         text: t(
@@ -151,6 +124,7 @@ const TutorialOverlay = () => {
         ),
         route: '/',
         targetSelector: '.tutorial-main-nav, .tutorial-bottom-nav',
+        highlightSelector: '.tutorial-nav-home, .tutorial-nav-collection, .tutorial-nav-profile, .tutorial-nav-report, .tutorial-nav-settings',
         position: 'auto',
         skipScroll: true,
         nextLabel: t('tutorial.step_navigation_next', {}, 'Voir la collection'),
@@ -240,19 +214,27 @@ const TutorialOverlay = () => {
   const [targetRect, setTargetRect] = useState(null);
   const [isFallbackCenter, setIsFallbackCenter] = useState(false);
   const [cardStyle, setCardStyle] = useState({});
+  const [cardPlacement, setCardPlacement] = useState('center');
   const [viewportTick, setViewportTick] = useState(0);
   const requestedRouteRef = useRef(null);
   const cardRef = useRef(null);
 
   const step = steps[currentStepIndex];
 
+  const finishTutorial = useCallback(() => {
+    completeTutorial();
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [completeTutorial, location.pathname, navigate]);
+
   const handleNext = useCallback(() => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex((prev) => prev + 1);
     } else {
-      completeTutorial();
+      finishTutorial();
     }
-  }, [completeTutorial, currentStepIndex, steps.length]);
+  }, [currentStepIndex, finishTutorial, steps.length]);
 
   const handleBack = useCallback(() => {
     if (currentStepIndex > 0) {
@@ -261,8 +243,8 @@ const TutorialOverlay = () => {
   }, [currentStepIndex]);
 
   const handleSkip = useCallback(() => {
-    completeTutorial();
-  }, [completeTutorial]);
+    finishTutorial();
+  }, [finishTutorial]);
 
   const handleKeyDown = useCallback(
     (event) => {
@@ -356,6 +338,15 @@ const TutorialOverlay = () => {
   }, [location.pathname, showTutorial, step]);
 
   useEffect(() => {
+    if (!showTutorial || !step?.highlightSelector) return;
+    const elements = Array.from(document.querySelectorAll(step.highlightSelector));
+    elements.forEach((el) => el.classList.add('tutorial-highlight'));
+    return () => {
+      elements.forEach((el) => el.classList.remove('tutorial-highlight'));
+    };
+  }, [location.pathname, showTutorial, step?.highlightSelector]);
+
+  useEffect(() => {
     if (!showTutorial) return;
     const handleResize = () => setViewportTick((prev) => prev + 1);
     window.addEventListener('resize', handleResize);
@@ -388,6 +379,8 @@ const TutorialOverlay = () => {
   useEffect(() => {
     if (showTutorial) {
       setCurrentStepIndex(0);
+      setCardPlacement('center');
+      setCardStyle({});
       requestedRouteRef.current = null;
     }
   }, [showTutorial]);
@@ -397,7 +390,7 @@ const TutorialOverlay = () => {
   const isCentered = isFallbackCenter || !targetRect;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const resolvedPosition =
+  const preferredPosition =
     isCentered
       ? 'center'
       : step.position === 'auto'
@@ -436,16 +429,44 @@ const TutorialOverlay = () => {
     const gap = 18;
     let top;
     let left;
+    let placement = preferredPosition;
 
-    if (!targetRect || isFallbackCenter || resolvedPosition === 'center') {
+    if (!targetRect || isFallbackCenter || preferredPosition === 'center') {
       top = (viewportHeight - cardRect.height) / 2;
       left = (viewportWidth - cardRect.width) / 2;
-    } else if (resolvedPosition === 'top') {
-      top = targetRect.top - gap - cardRect.height;
-      left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
     } else {
-      top = targetRect.bottom + gap;
-      left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+      const topSpace = targetRect.top - gap;
+      const bottomSpace = viewportHeight - targetRect.bottom - gap;
+      const leftSpace = targetRect.left - gap;
+      const rightSpace = viewportWidth - targetRect.right - gap;
+      const fitsTop = topSpace >= cardRect.height;
+      const fitsBottom = bottomSpace >= cardRect.height;
+      const fitsLeft = leftSpace >= cardRect.width;
+      const fitsRight = rightSpace >= cardRect.width;
+
+      if (placement === 'top' && !fitsTop && fitsBottom) placement = 'bottom';
+      if (placement === 'bottom' && !fitsBottom && fitsTop) placement = 'top';
+      if (!fitsTop && !fitsBottom) {
+        if (fitsRight) placement = 'right';
+        else if (fitsLeft) placement = 'left';
+      }
+
+      if (placement === 'top') {
+        top = targetRect.top - gap - cardRect.height;
+        left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+      } else if (placement === 'bottom') {
+        top = targetRect.bottom + gap;
+        left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+      } else if (placement === 'right') {
+        top = targetRect.top + targetRect.height / 2 - cardRect.height / 2;
+        left = targetRect.right + gap;
+      } else if (placement === 'left') {
+        top = targetRect.top + targetRect.height / 2 - cardRect.height / 2;
+        left = targetRect.left - gap - cardRect.width;
+      } else {
+        top = targetRect.bottom + gap;
+        left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+      }
     }
 
     top = clampValue(top, margin, viewportHeight - margin - cardRect.height);
@@ -455,10 +476,11 @@ const TutorialOverlay = () => {
       top: `${Math.round(top)}px`,
       left: `${Math.round(left)}px`,
     });
+    setCardPlacement(placement);
   }, [
     currentStepIndex,
     isFallbackCenter,
-    resolvedPosition,
+    preferredPosition,
     showTutorial,
     targetRect,
     viewportHeight,
@@ -544,7 +566,7 @@ const TutorialOverlay = () => {
 
       <div
         ref={cardRef}
-        className={`tutorial-card position-${resolvedPosition}`}
+        className={`tutorial-card position-${cardPlacement}`}
         style={{ ...cardStyle, ...cardVars }}
       >
         <div className="tutorial-header">

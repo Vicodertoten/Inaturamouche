@@ -132,6 +132,10 @@
   --nav-height-mobile: 70px;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* --- STYLE DE BASE --- */
 html, body {
   margin: 0;

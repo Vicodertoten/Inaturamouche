@@ -177,24 +177,21 @@
 
 /* --- Explanation Section Revised --- */
 .explanation-section {
-  background-color: var(--surface-2);
+  background-color: var(--surface-color);
   border-radius: var(--radius);
   /* On retire le padding standard pour gérer la layout avec l'avatar */
-  padding: 0; 
-  border: 1px solid var(--border-color);
+  padding: 0;
+  border: 1px solid rgba(238, 187, 77, 0.45);
   text-align: left;
   animation: fadeIn 0.5s 0.2s ease-in-out backwards;
   position: relative;
   margin-top: var(--space-4);
-  /* Style bulle de BD */
-  background-color: #f0f7ff; /* Bleu très très clair ou var(--surface-2) */
-  border: 2px solid var(--accent-color);
 }
 
 /* Dark mode support si nécessaire */
 @media (prefers-color-scheme: dark) {
   .explanation-section {
-    background-color: var(--surface-2);
+    background-color: var(--surface-color);
   }
 }
 
@@ -290,6 +287,76 @@
 
   .modal-links {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop {
+    padding: var(--space-2);
+  }
+
+  .summary-modal {
+    max-height: 94vh;
+  }
+
+  .summary-header {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .summary-title {
+    font-size: 1.25rem;
+  }
+
+  .summary-body {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .answers-container {
+    gap: var(--space-3);
+  }
+
+  .answer-card {
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .answer-image {
+    width: 96px;
+    height: 96px;
+  }
+
+  .answer-card-title {
+    font-size: 1rem;
+  }
+
+  .answer-name {
+    font-size: 1rem;
+  }
+
+  .answer-scientific-name {
+    font-size: 0.9rem;
+  }
+
+  .explanation-content {
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+  }
+
+  .explanation-section {
+    margin-top: var(--space-3);
+  }
+
+  .explanation-section__text {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .summary-footer {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .next-button {
+    font-size: 1rem;
   }
 }
 

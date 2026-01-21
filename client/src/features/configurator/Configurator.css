@@ -278,6 +278,7 @@
   align-items: center;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+  min-width: 0;
 }
 .mode-card::after {
   content: '';
@@ -414,6 +415,10 @@
 .mode-content h4 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.mode-content {
+  min-width: 0;
 }
 
 .mode-description {
@@ -869,6 +874,28 @@
 @media (min-width: 768px) {
   .taxa-fieldsets {
     flex-direction: row;
+  }
+}
+
+@media (max-width: 600px) {
+  .config-section {
+    padding: var(--space-3);
+  }
+
+  .pack-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-card {
+    grid-template-columns: minmax(0, 64px) minmax(0, 1fr);
+  }
+
+  .game-settings-grid {
+    grid-template-columns: 1fr;
   }
 }
 

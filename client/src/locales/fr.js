@@ -139,7 +139,7 @@ const fr = {
     },
   },
   collection: {
-    title: 'Living Atlas',
+    title: 'Atlas du vivant',
     species_seen: '{count} espèces vues',
     mastered_count: '{count} maîtrisées',
     sort_label: 'Trier :',

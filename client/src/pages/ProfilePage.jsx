@@ -109,6 +109,12 @@ const ProfilePage = () => {
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
   // Review stats
   const [reviewStats, setReviewStats] = useState(null);
+  const [openCategories, setOpenCategories] = useState(() => ({
+    [ACHIEVEMENT_CATEGORIES.TAXONOMY]: true,
+    [ACHIEVEMENT_CATEGORIES.COLLECTION]: true,
+    [ACHIEVEMENT_CATEGORIES.SKILL]: true,
+    [ACHIEVEMENT_CATEGORIES.HABIT]: true,
+  }));
 
   const sortedMastery = useMemo(
     () =>
@@ -266,6 +272,13 @@ const ProfilePage = () => {
     }));
     notify(t('profile.save_success'), { type: 'success' });
   }, [updateProfile, t]);
+
+  const toggleCategory = useCallback((category) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [category]: !prev?.[category],
+    }));
+  }, []);
 
   // Regrouper les succès par catégorie
   const achievementsByCategory = useMemo(() => {
@@ -571,100 +584,152 @@ const ProfilePage = () => {
               {/* Catégorie: Taxonomie */}
               {achievementsByCategory[ACHIEVEMENT_CATEGORIES.TAXONOMY].length > 0 && (
                 <div className="achievement-category">
-                  <h4 className="category-header">
-                    <span className="category-icon">🔬</span>
-                    {t('achievements.categories.taxonomy')}
-                  </h4>
-                  <ul className="achievements-grid">
-                    {achievementsByCategory[ACHIEVEMENT_CATEGORIES.TAXONOMY].map((achievement) => {
-                      const unlocked = unlockedAchievements.includes(achievement.id);
-                      const reward = getRewardForAchievement(achievement.id);
-                      return (
-                        <AchievementCard
-                          key={achievement.id}
-                          achievement={achievement}
-                          unlocked={unlocked}
-                          reward={reward}
-                          t={t}
-                        />
-                      );
-                    })}
-                  </ul>
+                  <button
+                    type="button"
+                    className="category-header"
+                    onClick={() => toggleCategory(ACHIEVEMENT_CATEGORIES.TAXONOMY)}
+                    aria-expanded={openCategories[ACHIEVEMENT_CATEGORIES.TAXONOMY]}
+                    aria-controls="achievement-category-taxonomy"
+                  >
+                    <span className="category-title">
+                      <span className="category-icon">🔬</span>
+                      {t('achievements.categories.taxonomy')}
+                    </span>
+                    <span className="category-chevron" aria-hidden="true">
+                      {openCategories[ACHIEVEMENT_CATEGORIES.TAXONOMY] ? '▾' : '▸'}
+                    </span>
+                  </button>
+                  {openCategories[ACHIEVEMENT_CATEGORIES.TAXONOMY] && (
+                    <ul className="achievements-grid" id="achievement-category-taxonomy">
+                      {achievementsByCategory[ACHIEVEMENT_CATEGORIES.TAXONOMY].map((achievement) => {
+                        const unlocked = unlockedAchievements.includes(achievement.id);
+                        const reward = getRewardForAchievement(achievement.id);
+                        return (
+                          <AchievementCard
+                            key={achievement.id}
+                            achievement={achievement}
+                            unlocked={unlocked}
+                            reward={reward}
+                            t={t}
+                          />
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
 
               {/* Catégorie: Collection */}
               {achievementsByCategory[ACHIEVEMENT_CATEGORIES.COLLECTION].length > 0 && (
                 <div className="achievement-category">
-                  <h4 className="category-header">
-                    <span className="category-icon">📚</span>
-                    {t('achievements.categories.collection')}
-                  </h4>
-                  <ul className="achievements-grid">
-                    {achievementsByCategory[ACHIEVEMENT_CATEGORIES.COLLECTION].map((achievement) => {
-                      const unlocked = unlockedAchievements.includes(achievement.id);
-                      const reward = getRewardForAchievement(achievement.id);
-                      return (
-                        <AchievementCard
-                          key={achievement.id}
-                          achievement={achievement}
-                          unlocked={unlocked}
-                          reward={reward}
-                          t={t}
-                        />
-                      );
-                    })}
-                  </ul>
+                  <button
+                    type="button"
+                    className="category-header"
+                    onClick={() => toggleCategory(ACHIEVEMENT_CATEGORIES.COLLECTION)}
+                    aria-expanded={openCategories[ACHIEVEMENT_CATEGORIES.COLLECTION]}
+                    aria-controls="achievement-category-collection"
+                  >
+                    <span className="category-title">
+                      <span className="category-icon">📚</span>
+                      {t('achievements.categories.collection')}
+                    </span>
+                    <span className="category-chevron" aria-hidden="true">
+                      {openCategories[ACHIEVEMENT_CATEGORIES.COLLECTION] ? '▾' : '▸'}
+                    </span>
+                  </button>
+                  {openCategories[ACHIEVEMENT_CATEGORIES.COLLECTION] && (
+                    <ul className="achievements-grid" id="achievement-category-collection">
+                      {achievementsByCategory[ACHIEVEMENT_CATEGORIES.COLLECTION].map((achievement) => {
+                        const unlocked = unlockedAchievements.includes(achievement.id);
+                        const reward = getRewardForAchievement(achievement.id);
+                        return (
+                          <AchievementCard
+                            key={achievement.id}
+                            achievement={achievement}
+                            unlocked={unlocked}
+                            reward={reward}
+                            t={t}
+                          />
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
 
               {/* Catégorie: Compétence */}
               {achievementsByCategory[ACHIEVEMENT_CATEGORIES.SKILL].length > 0 && (
                 <div className="achievement-category">
-                  <h4 className="category-header">
-                    <span className="category-icon">⚡</span>
-                    {t('achievements.categories.skill')}
-                  </h4>
-                  <ul className="achievements-grid">
-                    {achievementsByCategory[ACHIEVEMENT_CATEGORIES.SKILL].map((achievement) => {
-                      const unlocked = unlockedAchievements.includes(achievement.id);
-                      const reward = getRewardForAchievement(achievement.id);
-                      return (
-                        <AchievementCard
-                          key={achievement.id}
-                          achievement={achievement}
-                          unlocked={unlocked}
-                          reward={reward}
-                          t={t}
-                        />
-                      );
-                    })}
-                  </ul>
+                  <button
+                    type="button"
+                    className="category-header"
+                    onClick={() => toggleCategory(ACHIEVEMENT_CATEGORIES.SKILL)}
+                    aria-expanded={openCategories[ACHIEVEMENT_CATEGORIES.SKILL]}
+                    aria-controls="achievement-category-skill"
+                  >
+                    <span className="category-title">
+                      <span className="category-icon">⚡</span>
+                      {t('achievements.categories.skill')}
+                    </span>
+                    <span className="category-chevron" aria-hidden="true">
+                      {openCategories[ACHIEVEMENT_CATEGORIES.SKILL] ? '▾' : '▸'}
+                    </span>
+                  </button>
+                  {openCategories[ACHIEVEMENT_CATEGORIES.SKILL] && (
+                    <ul className="achievements-grid" id="achievement-category-skill">
+                      {achievementsByCategory[ACHIEVEMENT_CATEGORIES.SKILL].map((achievement) => {
+                        const unlocked = unlockedAchievements.includes(achievement.id);
+                        const reward = getRewardForAchievement(achievement.id);
+                        return (
+                          <AchievementCard
+                            key={achievement.id}
+                            achievement={achievement}
+                            unlocked={unlocked}
+                            reward={reward}
+                            t={t}
+                          />
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
 
               {/* Catégorie: Habitudes */}
               {achievementsByCategory[ACHIEVEMENT_CATEGORIES.HABIT].length > 0 && (
                 <div className="achievement-category">
-                  <h4 className="category-header">
-                    <span className="category-icon">📅</span>
-                    {t('achievements.categories.habit')}
-                  </h4>
-                  <ul className="achievements-grid">
-                    {achievementsByCategory[ACHIEVEMENT_CATEGORIES.HABIT].map((achievement) => {
-                      const unlocked = unlockedAchievements.includes(achievement.id);
-                      const reward = getRewardForAchievement(achievement.id);
-                      return (
-                        <AchievementCard
-                          key={achievement.id}
-                          achievement={achievement}
-                          unlocked={unlocked}
-                          reward={reward}
-                          t={t}
-                        />
-                      );
-                    })}
-                  </ul>
+                  <button
+                    type="button"
+                    className="category-header"
+                    onClick={() => toggleCategory(ACHIEVEMENT_CATEGORIES.HABIT)}
+                    aria-expanded={openCategories[ACHIEVEMENT_CATEGORIES.HABIT]}
+                    aria-controls="achievement-category-habit"
+                  >
+                    <span className="category-title">
+                      <span className="category-icon">📅</span>
+                      {t('achievements.categories.habit')}
+                    </span>
+                    <span className="category-chevron" aria-hidden="true">
+                      {openCategories[ACHIEVEMENT_CATEGORIES.HABIT] ? '▾' : '▸'}
+                    </span>
+                  </button>
+                  {openCategories[ACHIEVEMENT_CATEGORIES.HABIT] && (
+                    <ul className="achievements-grid" id="achievement-category-habit">
+                      {achievementsByCategory[ACHIEVEMENT_CATEGORIES.HABIT].map((achievement) => {
+                        const unlocked = unlockedAchievements.includes(achievement.id);
+                        const reward = getRewardForAchievement(achievement.id);
+                        return (
+                          <AchievementCard
+                            key={achievement.id}
+                            achievement={achievement}
+                            unlocked={unlocked}
+                            reward={reward}
+                            t={t}
+                          />
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

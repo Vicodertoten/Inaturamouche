@@ -1,148 +1,219 @@
-/* Le conteneur principal de l'overlay */
+/* Overlay container */
 .tutorial-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
 }
-  /* ... styles existants ... */
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  border : 2px solid var(--primary-color, #4CAF50); /* Bordure colorée pour le peps */
-  max-width: 320px;
-  max-height: 300px; /* Limite la hauteur excessive */
-  overflow-y: auto; /* Permet le scroll si contenu trop long */
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+
+/* Backdrop + shade blocks */
+.tutorial-backdrop,
+.tutorial-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 14, 12, 0.78);
+  transition: opacity 0.3s ease;
+}
+
+.tutorial-shade {
+  inset: auto;
+}
+
+.tutorial-hole {
+  position: absolute;
+  z-index: 10000;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Spotlight ring */
+.tutorial-spotlight {
+  position: absolute;
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 0 0 2px rgba(46, 125, 50, 0.5),
+    0 0 32px rgba(46, 125, 50, 0.35);
+  animation: spotlightPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes spotlightPulse {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(46, 125, 50, 0.45),
+      0 0 26px rgba(46, 125, 50, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(46, 125, 50, 0.75),
+      0 0 38px rgba(46, 125, 50, 0.45);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(46, 125, 50, 0.45),
+      0 0 26px rgba(46, 125, 50, 0.25);
+  }
+}
+
+.tutorial-overlay[data-step='packs'] .tutorial-spotlight {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 0 4px rgba(238, 187, 77, 0.7),
+    0 0 42px rgba(46, 125, 50, 0.55);
+  animation: spotlightPulseFocused 2.2s ease-in-out infinite;
+}
+
+@keyframes spotlightPulseFocused {
+  0% {
+    box-shadow:
+      0 0 0 4px rgba(238, 187, 77, 0.55),
+      0 0 34px rgba(46, 125, 50, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(238, 187, 77, 0.85),
+      0 0 48px rgba(46, 125, 50, 0.7);
+  }
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(238, 187, 77, 0.55),
+      0 0 34px rgba(46, 125, 50, 0.35);
+  }
+}
+
+/* Highlighted targets */
+.tutorial-highlight {
+  position: relative;
+  z-index: 10001;
+  box-shadow:
+    0 0 0 2px rgba(238, 187, 77, 0.8),
+    0 0 16px rgba(238, 187, 77, 0.6);
+  animation: tutorialGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes tutorialGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(238, 187, 77, 0.7),
+      0 0 14px rgba(238, 187, 77, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(238, 187, 77, 1),
+      0 0 22px rgba(238, 187, 77, 0.75);
+  }
+}
+
+.tutorial-overlay[data-step='packs'] .tutorial-highlight {
+  box-shadow:
+    0 0 0 4px rgba(238, 187, 77, 0.9),
+    0 0 32px rgba(46, 125, 50, 0.55),
+    inset 0 0 18px rgba(46, 125, 50, 0.35);
+  animation: tutorialGlowFocused 1.6s ease-in-out infinite;
+}
+
+@keyframes tutorialGlowFocused {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px rgba(238, 187, 77, 0.75),
+      0 0 24px rgba(46, 125, 50, 0.45),
+      inset 0 0 12px rgba(46, 125, 50, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(238, 187, 77, 1),
+      0 0 36px rgba(46, 125, 50, 0.65),
+      inset 0 0 16px rgba(46, 125, 50, 0.4);
+  }
+}
+
+/* Tutorial card */
+.tutorial-card {
+  position: absolute;
+  z-index: 10001;
+  top: 0;
+  left: 0;
+  background: var(--surface-color, #ffffff);
+  color: var(--text-color, #1f2a24);
+  padding: 24px;
+  border-radius: 18px;
+  width: min(360px, 92vw);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  border: 2px solid var(--primary-color, #2e7d32);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+  transform-origin: top left;
+  animation: popIn 0.28s ease-out;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .tutorial-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.tutorial-emoji {
-  font-size: 1.8rem;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  padding: 8px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tutorial-step {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-color-muted, #60746a);
 }
 
 .tutorial-card h3 {
   margin: 0;
-  font-size: 1.2rem;
-  color: var(--text-color);
-  text-align: left;
-}
-
-.tutorial-content p {
-  line-height: 1.5;
-  color: var(--text-muted);
-  text-align: left;
-}
-
-/* Positionnement plus fin : utilise les variables CSS définies dans le JSX */
-.tutorial-card.position-bottom {
-  top: calc(var(--target-bottom) + 20px);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.tutorial-card.position-top {
-  bottom: calc(100vh - var(--target-top) + 20px);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Animation d'entrée */
-@keyframes popIn {
-  from { opacity: 0; transform: translateX(-50%) scale(0.9); }
-  to { opacity: 1; transform: translateX(-50%) scale(1); }
-}
-
-/* Gestion du padding "respirant" autour de la cible */
-.tutorial-backdrop.has-target {
-  /* On utilise un mask radial pour "trouer" le fond noir */
-  mask-image: radial-gradient(
-    rectangle at var(--target-x) var(--target-y),
-    black calc(var(--target-width) / 2), 
-    transparent calc(var(--target-width) / 2 + 2px)
-  );
-  /* Fallback pour compatibilité webkit */
-  -webkit-mask-image: radial-gradient(
-    circle at var(--target-x) var(--target-y),
-    transparent calc(var(--target-width) / 2), 
-    black calc(var(--target-width) / 2 + 5px)
-  );
-  background-color: rgba(0, 0, 0, 0.75);
-}
-
-/* Le fond sombre avec effet spotlight */
-.tutorial-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  transition: all 0.5s ease;
-}
-
-/* La carte de dialogue */
-.tutorial-card {
-  position: relative;
-  z-index: 10001;
-  background: var(--surface-color, white);
-  padding: 24px;
-  border-radius: 16px;
-  max-width: 90%;
-  width: 320px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 2px solid var(--primary-color, #2e7d32);
-}
-
-.tutorial-card h3 {
+  font-size: 1.25rem;
   color: var(--primary-color, #2e7d32);
-  margin: 0 0 12px 0;
-  font-size: 1.2rem;
-  font-weight: 600;
+}
+
+.tutorial-content {
+  display: grid;
+  gap: 12px;
 }
 
 .tutorial-content p {
-  margin: 0 0 16px 0;
+  margin: 0;
   line-height: 1.5;
-  color: var(--text-color, #333);
+  color: var(--text-color, #1f2a24);
 }
 
-.tutorial-progress {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+.tutorial-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--text-color, #1f2a24);
 }
 
-.progress-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--border-color, #ddd);
-  transition: background-color 0.2s ease;
-}
-
-.progress-dot.active {
-  background-color: var(--primary-color, #2e7d32);
-}
-
-.progress-dot.completed {
-  background-color: var(--success-color, #52c41a);
+.tutorial-note {
+  font-size: 0.9rem;
+  color: var(--text-color-muted, #60746a);
+  background: rgba(46, 125, 50, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
 .tutorial-footer {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: 18px;
 }
 
 .tutorial-dots {
@@ -151,143 +222,71 @@
   gap: 8px;
 }
 
-.tutorial-buttons {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--border-color, #d7dfd7);
 }
 
+.progress-dot.active {
+  background-color: var(--primary-color, #2e7d32);
+}
+
+.tutorial-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tutorial-back,
 .tutorial-skip,
 .tutorial-next {
+  flex: 1 1 120px;
   padding: 10px 16px;
-  border-radius: 8px;
-  border: none;
-  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #d7dfd7);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex: 1;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.tutorial-back {
+  background: var(--surface-color, #f6f7f4);
+  color: var(--text-color-muted, #55645b);
+}
+
+.tutorial-back:hover {
+  background: rgba(46, 125, 50, 0.08);
 }
 
 .tutorial-skip {
-  background-color: var(--surface-color, #f5f5f5);
-  color: var(--text-color-muted, #666);
-  border: 1px solid var(--border-color, #ddd);
+  background: var(--surface-color, #ffffff);
+  color: var(--text-color-muted, #55645b);
 }
 
 .tutorial-skip:hover {
-  background-color: var(--background-color, #eee);
+  background: rgba(46, 125, 50, 0.06);
 }
 
 .tutorial-next {
-  background-color: var(--primary-color, #2e7d32);
-  color: white;
+  background: var(--primary-color, #2e7d32);
+  color: #ffffff;
+  border-color: var(--primary-color, #2e7d32);
 }
 
 .tutorial-next:hover {
-  background-color: var(--primary-color-dark, #1b5e20);
   transform: translateY(-1px);
+  background: var(--primary-dark, #1b5e20);
 }
 
-/* Position adjustments */
-.tutorial-card.position-bottom-left {
-  position: absolute;
-  bottom: 20px;
-  left: calc(var(--target-x) + 20px);
-  transform: translateX(-50%);
-}
-
-.tutorial-card.position-top {
-  position: absolute;
-  top: calc(var(--target-y) - 20px);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.tutorial-card.position-bottom {
-  position: absolute;
-  top: calc(var(--target-bottom) + 20px);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.tutorial-card.position-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Animations */
-@keyframes popIn {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Pulsing animation for the start button */
-.tutorial-backdrop.step-start .tutorial-next {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
-  }
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .tutorial-card {
-    width: 280px;
     padding: 20px;
+    width: min(320px, 92vw);
   }
 
   .tutorial-card h3 {
     font-size: 1.1rem;
   }
-
-  .tutorial-card.position-bottom-left {
-    left: 20px;
-    transform: none;
-    bottom: 20px;
-  }
-
-  .tutorial-card.position-top {
-    top: calc(var(--target-y) - 10px);
-  }
-}
-
-/* Arrow pointer for better UX */
-.tutorial-card::before {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border: 8px solid transparent;
-}
-
-.tutorial-card.position-bottom-left::before {
-  top: -16px;
-  left: 20px;
-  border-bottom-color: var(--surface-color, white);
-  border-top: none;
-}
-
-.tutorial-card.position-top::before {
-  bottom: -16px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-top-color: var(--surface-color, white);
-  border-bottom: none;
 }
