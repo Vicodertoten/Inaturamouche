@@ -1,132 +1,349 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './TutorialOverlay.css';
 
-// ---------------------------------------------------------
-// CONTENU DU TUTORIEL
-// ---------------------------------------------------------
-const STEPS = [
-  {
-    id: 'welcome',
-    title: "Bienvenue, Naturaliste !",
-    text: "Je suis le Professeur Mouche. Ma mission ? Vous aider à découvrir le monde vivant. Ensemble, nous allons observer, identifier et collectionner les espèces. Prêt pour l'aventure ?",
-    targetClass: null, // Au centre
-    position: 'center'
-  },
-  {
-    id: 'daily',
-    title: "Votre défi quotidien",
-    text: "Chaque jour apporte son lot de surprises ! Ici, un nouveau défi vous attend. C'est souvent le meilleur moyen de gagner rapidement de l'expérience et de découvrir des espèces rares.",
-    targetClass: '.daily-challenge-cta', // On vise le bouton du défi
-    position: 'bottom'
-  },
-  {
-    id: 'modes',
-    title: "Votre laboratoire",
-    text: "Vous voulez vous concentrer sur les oiseaux ? Les champignons ? Les plantes ? Configurez votre partie ici. Le mode Quiz est parfait pour débuter, tandis que l'Énigme vous mettra à l'épreuve.",
-    targetClass: '.configurator-shell',
-    position: 'center' // Centré de manière stratégique pour éviter les bugs de positionnement
-  },
-  {
-    id: 'streak',
-    title: "Vos séries",
-    text: "Regardez ces compteurs importants. La série de jeu multiplie vos points quand vous enchaînez les bonnes réponses - attention, une erreur l'arrête ! La série journalière compte vos jours consécutifs de jeu, elle ne s'arrête jamais avec les erreurs. Le bouclier ne protège que la série de jeu.",
-    targetClass: '.streak-badge-container',
-    position: 'bottom'
-  },
-  {
-    id: 'navigation',
-    title: "Votre poste de commandement",
-    text: "Voici vos outils principaux : signalez un problème si quelque chose ne va pas, explorez votre collection d'espèces découvertes, consultez votre profil pour voir votre progression et vos succès, et ajustez vos préférences selon vos goûts.",
-    targetClass: '.main-nav', // La barre de navigation principale
-    position: 'bottom'
-  },
-  {
-    id: 'start',
-    title: "À l'aventure !",
-    text: "Vous avez maintenant tous les outils nécessaires. Lancez votre première identification et laissez-vous guider par la curiosité. La nature a tant de secrets à partager !",
-    targetClass: '.play-btn', // Le bouton principal ou celui du daily
-    position: 'top',
-    action: true
-  }
-];
+const clampValue = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const TutorialOverlay = () => {
   const { showTutorial, completeTutorial } = useUser();
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const steps = useMemo(
+    () => [
+      {
+        id: 'welcome',
+        title: t('tutorial.step_welcome_title', {}, 'Bienvenue, naturaliste !'),
+        text: t(
+          'tutorial.step_welcome_text',
+          {},
+          "Ici le Professeur Mouche. Inaturamouche existe pour apprendre le vivant : observer, comprendre, mémoriser."
+        ),
+        note: t(
+          'tutorial.step_welcome_note',
+          {},
+          "Je te guide pas à pas et je te fais visiter l'application."
+        ),
+        route: '/',
+        position: 'center',
+      },
+      {
+        id: 'loop',
+        title: t('tutorial.step_loop_title', {}, "Ta boucle d'apprentissage"),
+        text: t(
+          'tutorial.step_loop_text',
+          {},
+          "Chaque partie nourrit ta mémoire : tu identifies, tu gagnes de l'XP, tu enrichis ta collection."
+        ),
+        bullets: [
+          t('tutorial.step_loop_bullet_1', {}, 'Observe sans pression.'),
+          t('tutorial.step_loop_bullet_2', {}, 'Teste ton intuition.'),
+          t('tutorial.step_loop_bullet_3', {}, 'Reviens sur ce qui résiste.'),
+        ],
+        route: '/',
+        targetSelector: '.tutorial-home-dashboard',
+        position: 'auto',
+      },
+      {
+        id: 'daily',
+        title: t('tutorial.step_daily_title', {}, 'Défi du jour'),
+        text: t(
+          'tutorial.step_daily_text',
+          {},
+          "Un run court, renouvelé chaque jour. Idéal pour lancer ta streak et croiser des espèces rares."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-daily-challenge',
+        position: 'auto',
+      },
+      {
+        id: 'review',
+        title: t('tutorial.step_review_title', {}, 'Révisions intelligentes'),
+        text: t(
+          'tutorial.step_review_text',
+          {},
+          "Quand tu hésites, je note. Le mode Révision repropose ces espèces pour les ancrer durablement."
+        ),
+        note: t(
+          'tutorial.step_review_note',
+          {},
+          "Si la carte n'apparaît pas encore, elle se débloque après tes premières parties."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-review-card',
+        position: 'auto',
+      },
+      {
+        id: 'packs',
+        title: t('tutorial.step_packs_title', {}, 'Packs thématiques'),
+        text: t(
+          'tutorial.step_packs_text',
+          {},
+          "Choisis un pack pour définir ton terrain d'étude : oiseaux, champignons, arbres..."
+        ),
+        bullets: [
+          t('tutorial.step_packs_bullet_1', {}, 'Un pack = un écosystème.'),
+          t('tutorial.step_packs_bullet_2', {}, 'Plus de packs = plus de diversité.'),
+          t('tutorial.step_packs_bullet_3', {}, 'Mode personnalisé pour créer ton propre terrain.'),
+        ],
+        route: '/',
+        targetSelector: '.tutorial-pack-grid',
+        position: 'auto',
+      },
+      {
+        id: 'modes',
+        title: t('tutorial.step_modes_title', {}, 'Modes de jeu'),
+        text: t(
+          'tutorial.step_modes_text',
+          {},
+          "Change de rythme selon ton énergie. Chaque mode entraîne une compétence."
+        ),
+        bullets: [
+          t('tutorial.step_modes_bullet_1', {}, 'Quiz : choix multiples, parfait pour démarrer.'),
+          t('tutorial.step_modes_bullet_2', {}, 'Énigme : indices progressifs, logique fine.'),
+          t('tutorial.step_modes_bullet_3', {}, 'Difficile : gravis la taxonomie.'),
+          t('tutorial.step_modes_bullet_4', {}, 'Taxonomique : ascension complète (niveau expert).'),
+        ],
+        route: '/',
+        targetSelector: '.tutorial-mode-cards',
+        position: 'auto',
+      },
+      {
+        id: 'settings',
+        title: t('tutorial.step_settings_title', {}, 'Réglages de partie'),
+        text: t(
+          'tutorial.step_settings_text',
+          {},
+          "Choisis la durée et les médias. Les sons sont parfaits pour entraîner l'oreille."
+        ),
+        note: t(
+          'tutorial.step_settings_note',
+          {},
+          "En Énigme, les sons sont désactivés pour garder les indices cohérents."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-game-settings',
+        position: 'auto',
+      },
+      {
+        id: 'start',
+        title: t('tutorial.step_start_title', {}, 'Lance une session'),
+        text: t(
+          'tutorial.step_start_text',
+          {},
+          "Chaque bonne réponse ajoute l'espèce à ta collection et booste ton XP."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-start-game',
+        position: 'auto',
+        nextLabel: t('tutorial.step_start_next', {}, 'Voir la navigation'),
+      },
+      {
+        id: 'navigation',
+        title: t('tutorial.step_navigation_title', {}, 'Navigation rapide'),
+        text: t(
+          'tutorial.step_navigation_text',
+          {},
+          "Tout est à portée : collection, profil, signalement, réglages."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-main-nav, .tutorial-bottom-nav',
+        position: 'auto',
+        skipScroll: true,
+        nextLabel: t('tutorial.step_navigation_next', {}, 'Voir la collection'),
+      },
+      {
+        id: 'collection',
+        title: t('tutorial.step_collection_title', {}, 'Ta collection vivante'),
+        text: t(
+          'tutorial.step_collection_text',
+          {},
+          'Ici, tu vois ce que tu as découvert et ce qui reste à maîtriser.'
+        ),
+        bullets: [
+          t('tutorial.step_collection_bullet_1', {}, "Clique un groupe pour explorer l'ensemble."),
+          t('tutorial.step_collection_bullet_2', {}, 'Filtre et trie tes trouvailles.'),
+          t('tutorial.step_collection_bullet_3', {}, 'Les fantômes = vus mais pas encore maîtrisés.'),
+        ],
+        route: '/collection',
+        targetSelector: '.tutorial-collection-grid',
+        position: 'auto',
+        nextLabel: t('tutorial.step_collection_next', {}, 'Voir le profil'),
+      },
+      {
+        id: 'profile',
+        title: t('tutorial.step_profile_title', {}, 'Ton profil'),
+        text: t(
+          'tutorial.step_profile_text',
+          {},
+          'Ton tableau de bord : niveau, XP, avatar, titres et bordures.'
+        ),
+        bullets: [
+          t('tutorial.step_profile_bullet_1', {}, 'Résumé : progression globale.'),
+          t('tutorial.step_profile_bullet_2', {}, 'Stats : précision et packs joués.'),
+          t('tutorial.step_profile_bullet_3', {}, 'Succès : défis et récompenses.'),
+        ],
+        route: '/profile',
+        targetSelector: '.tutorial-profile-hero',
+        position: 'auto',
+      },
+      {
+        id: 'streaks',
+        title: t('tutorial.step_streaks_title', {}, 'Streaks & boucliers'),
+        text: t(
+          'tutorial.step_streaks_text',
+          {},
+          'La streak quotidienne récompense ta régularité. Les boucliers sauvent ta streak de jeu.'
+        ),
+        note: t(
+          'tutorial.step_streaks_note',
+          {},
+          "En partie, la streak de bonnes réponses monte vite — protège-la !"
+        ),
+        route: '/profile',
+        targetSelector: '.tutorial-streaks',
+        position: 'auto',
+      },
+      {
+        id: 'tabs',
+        title: t('tutorial.step_tabs_title', {}, 'Révisions & progression'),
+        text: t(
+          'tutorial.step_tabs_text',
+          {},
+          'Onglet Statistiques = révisions, packs, précision. Onglet Succès = titres, bordures, bonus.'
+        ),
+        route: '/profile',
+        targetSelector: '.tutorial-profile-tabs',
+        position: 'auto',
+        nextLabel: t('tutorial.step_tabs_next', {}, 'Retour au labo'),
+      },
+      {
+        id: 'wrap',
+        title: t('tutorial.step_wrap_title', {}, 'À toi de jouer !'),
+        text: t(
+          'tutorial.step_wrap_text',
+          {},
+          "Explore, collectionne, reviens demain. Je suis là pour t'aider à apprendre."
+        ),
+        route: '/',
+        targetSelector: '.tutorial-start-game',
+        position: 'auto',
+      },
+    ],
+    [t]
+  );
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
-  
-  // Petit état pour gérer si l'élément cible est introuvable (fallback au centre)
   const [isFallbackCenter, setIsFallbackCenter] = useState(false);
+  const [cardStyle, setCardStyle] = useState({});
+  const [viewportTick, setViewportTick] = useState(0);
+  const requestedRouteRef = useRef(null);
+  const cardRef = useRef(null);
+
+  const step = steps[currentStepIndex];
 
   const handleNext = useCallback(() => {
-    if (currentStepIndex < STEPS.length - 1) {
-      setCurrentStepIndex(prev => prev + 1);
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex((prev) => prev + 1);
     } else {
       completeTutorial();
     }
-  }, [currentStepIndex, completeTutorial]);
+  }, [completeTutorial, currentStepIndex, steps.length]);
+
+  const handleBack = useCallback(() => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex((prev) => prev - 1);
+    }
+  }, [currentStepIndex]);
 
   const handleSkip = useCallback(() => {
     completeTutorial();
   }, [completeTutorial]);
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') {
-      handleSkip();
-    } else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      handleNext();
-    } else if (e.key === 'ArrowLeft' && currentStepIndex > 0) {
-      e.preventDefault();
-      setCurrentStepIndex(prev => prev - 1);
-    }
-  }, [currentStepIndex, handleNext, handleSkip]);
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Escape') {
+        handleSkip();
+      } else if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        handleNext();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        handleBack();
+      }
+    },
+    [handleBack, handleNext, handleSkip]
+  );
 
-  // ---------------------------------------------------------
-  // 🎯 LOGIQUE DE POSITIONNEMENT ROBUSTE
-  // ---------------------------------------------------------
   useEffect(() => {
+    if (!showTutorial) return;
+
+    const activeStep = steps[currentStepIndex];
+    if (!activeStep?.route) return;
+
+    if (location.pathname === activeStep.route) {
+      requestedRouteRef.current = null;
+      return;
+    }
+
+    if (requestedRouteRef.current !== activeStep.route) {
+      requestedRouteRef.current = activeStep.route;
+      navigate(activeStep.route);
+    }
+  }, [currentStepIndex, location.pathname, navigate, showTutorial, steps]);
+
+  useEffect(() => {
+    if (!showTutorial || !step) return;
+
+    setTargetRect(null);
+    setIsFallbackCenter(false);
+
     const updateTargetPosition = () => {
-      const step = STEPS[currentStepIndex];
-      
-      // Si pas de cible définie, on centre
-      if (!step.targetClass) {
+      const isRouteMatch = !step.route || location.pathname === step.route;
+      if (!isRouteMatch) {
+        setTargetRect(null);
+        setIsFallbackCenter(true);
+        return;
+      }
+
+      if (!step.targetSelector) {
         setTargetRect(null);
         setIsFallbackCenter(false);
         return;
       }
 
-      // On cherche l'élément
-      const targetElement = document.querySelector(step.targetClass);
-      
-      if (targetElement) {
-        // Pour toutes les étapes, on scroll vers l'élément pour l'assurer visibilité
-        if (step.id !== 'welcome') { // Sauf pour welcome qui est déjà centré
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const targetCandidates = Array.from(document.querySelectorAll(step.targetSelector));
+      let targetElement = null;
+      let rect = null;
+
+      for (const candidate of targetCandidates) {
+        const candidateRect = candidate.getBoundingClientRect();
+        if (candidateRect.width > 0 && candidateRect.height > 0) {
+          targetElement = candidate;
+          rect = candidateRect;
+          break;
         }
-        
-        const rect = targetElement.getBoundingClientRect();
-        
-        // Vérification si l'élément est visible à l'écran (non caché)
-        if (rect.width === 0 && rect.height === 0) {
-           setTargetRect(null);
-           setIsFallbackCenter(true);
-        } else {
-           setTargetRect(rect);
-           setIsFallbackCenter(false);
-        }
-      } else {
-        // Si l'élément n'existe pas, on centre la bulle
+      }
+
+      if (!targetElement) {
         setTargetRect(null);
         setIsFallbackCenter(true);
+        return;
       }
+
+      if (!step.skipScroll) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      setTargetRect(rect);
+      setIsFallbackCenter(false);
     };
 
-    // Petit délai pour laisser le temps au DOM de se rendre (surtout au premier chargement)
-    const timer = setTimeout(updateTargetPosition, 300); // Augmenté à 300ms
+    const timer = setTimeout(updateTargetPosition, 320);
 
     window.addEventListener('resize', updateTargetPosition);
     window.addEventListener('scroll', updateTargetPosition);
@@ -136,99 +353,244 @@ const TutorialOverlay = () => {
       window.removeEventListener('resize', updateTargetPosition);
       window.removeEventListener('scroll', updateTargetPosition);
     };
-  }, [currentStepIndex]);
+  }, [location.pathname, showTutorial, step]);
+
+  useEffect(() => {
+    if (!showTutorial) return;
+    const handleResize = () => setViewportTick((prev) => prev + 1);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showTutorial]);
 
   useEffect(() => {
     if (showTutorial) {
-        window.addEventListener('keydown', handleKeyDown);
-    } else {
-        window.removeEventListener('keydown', handleKeyDown);
+      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-        window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown, showTutorial]);
 
-  // Gestion du scroll - bloqué pendant le tutoriel
   useEffect(() => {
     if (showTutorial) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
   }, [showTutorial]);
 
-  // Reset step index when tutorial restarts
   useEffect(() => {
     if (showTutorial) {
       setCurrentStepIndex(0);
+      requestedRouteRef.current = null;
     }
   }, [showTutorial]);
 
-  if (!showTutorial) return null;
+  if (!showTutorial || !step) return null;
 
-  const step = STEPS[currentStepIndex];
-  // Logique de positionnement simplifiée
-  const currentPosition = (isFallbackCenter || !targetRect) ? 'center' : step.position;
+  const isCentered = isFallbackCenter || !targetRect;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const resolvedPosition =
+    isCentered
+      ? 'center'
+      : step.position === 'auto'
+        ? targetRect.top > viewportHeight * 0.55
+          ? 'top'
+          : 'bottom'
+        : step.position;
+
+  const spotlightPadding = step.spotlightPadding ?? 12;
+  const spotlightRect = targetRect
+    ? (() => {
+        const rawLeft = targetRect.left - spotlightPadding;
+        const rawTop = targetRect.top - spotlightPadding;
+        const rawWidth = targetRect.width + spotlightPadding * 2;
+        const rawHeight = targetRect.height + spotlightPadding * 2;
+        const left = clampValue(rawLeft, 8, viewportWidth - 8);
+        const top = clampValue(rawTop, 8, viewportHeight - 8);
+        const width = Math.max(0, Math.min(rawWidth, viewportWidth - left - 8));
+        const height = Math.max(0, Math.min(rawHeight, viewportHeight - top - 8));
+        if (width === 0 || height === 0) return null;
+        return { left, top, width, height };
+      })()
+    : null;
+  const hasSpotlight = Boolean(
+    spotlightRect && !isCentered && spotlightRect.width > 0 && spotlightRect.height > 0
+  );
+  const spotlightRadius = step.spotlightRadius ?? 18;
+
+  useLayoutEffect(() => {
+    if (!showTutorial) return;
+    const cardEl = cardRef.current;
+    if (!cardEl) return;
+
+    const cardRect = cardEl.getBoundingClientRect();
+    const margin = 16;
+    const gap = 18;
+    let top;
+    let left;
+
+    if (!targetRect || isFallbackCenter || resolvedPosition === 'center') {
+      top = (viewportHeight - cardRect.height) / 2;
+      left = (viewportWidth - cardRect.width) / 2;
+    } else if (resolvedPosition === 'top') {
+      top = targetRect.top - gap - cardRect.height;
+      left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+    } else {
+      top = targetRect.bottom + gap;
+      left = targetRect.left + targetRect.width / 2 - cardRect.width / 2;
+    }
+
+    top = clampValue(top, margin, viewportHeight - margin - cardRect.height);
+    left = clampValue(left, margin, viewportWidth - margin - cardRect.width);
+
+    setCardStyle({
+      top: `${Math.round(top)}px`,
+      left: `${Math.round(left)}px`,
+    });
+  }, [
+    currentStepIndex,
+    isFallbackCenter,
+    resolvedPosition,
+    showTutorial,
+    targetRect,
+    viewportHeight,
+    viewportTick,
+    viewportWidth,
+  ]);
+
+  const cardVars = targetRect
+    ? {
+        '--target-x': `${targetRect.left + targetRect.width / 2}px`,
+        '--target-y': `${targetRect.top + targetRect.height / 2}px`,
+        '--target-top': `${targetRect.top}px`,
+        '--target-bottom': `${targetRect.bottom}px`,
+        '--target-left': `${targetRect.left}px`,
+        '--target-right': `${targetRect.right}px`,
+      }
+    : {};
 
   return (
-    <div className="tutorial-overlay" role="dialog" aria-modal="true">
-      {/* Le Backdrop avec le "trou" (mask). 
-         Si targetRect est null, le backdrop est plein (opacité uniforme).
-      */}
-      <div
-        className={`tutorial-backdrop ${targetRect && currentPosition !== 'center' ? 'has-target' : ''}`}
-        style={targetRect ? {
-          '--target-x': `${targetRect.left + targetRect.width / 2}px`,
-          '--target-y': `${targetRect.top + targetRect.height / 2}px`,
-          '--target-width': `${targetRect.width + 16}px`, // +16px de padding pour respirer
-          '--target-height': `${targetRect.height + 16}px`
-        } : {}}
-        onClick={handleNext} // Cliquer à côté fait avancer (plus fluide)
-      />
+    <div className="tutorial-overlay" role="dialog" aria-modal="true" data-step={step.id}>
+      {hasSpotlight ? (
+        <>
+          <div
+            className="tutorial-shade"
+            style={{ top: 0, left: 0, width: '100%', height: `${spotlightRect.top}px` }}
+            onClick={handleNext}
+          />
+          <div
+            className="tutorial-shade"
+            style={{
+              top: `${spotlightRect.top + spotlightRect.height}px`,
+              left: 0,
+              width: '100%',
+              height: `${Math.max(0, viewportHeight - (spotlightRect.top + spotlightRect.height))}px`,
+            }}
+            onClick={handleNext}
+          />
+          <div
+            className="tutorial-shade"
+            style={{
+              top: `${spotlightRect.top}px`,
+              left: 0,
+              width: `${spotlightRect.left}px`,
+              height: `${spotlightRect.height}px`,
+            }}
+            onClick={handleNext}
+          />
+          <div
+            className="tutorial-shade"
+            style={{
+              top: `${spotlightRect.top}px`,
+              left: `${spotlightRect.left + spotlightRect.width}px`,
+              width: `${Math.max(0, viewportWidth - (spotlightRect.left + spotlightRect.width))}px`,
+              height: `${spotlightRect.height}px`,
+            }}
+            onClick={handleNext}
+          />
+          <div
+            className="tutorial-hole"
+            style={{
+              left: `${spotlightRect.left}px`,
+              top: `${spotlightRect.top}px`,
+              width: `${spotlightRect.width}px`,
+              height: `${spotlightRect.height}px`,
+              borderRadius: `${spotlightRadius}px`,
+            }}
+            onClick={handleNext}
+          />
+          <div
+            className="tutorial-spotlight"
+            style={{
+              left: `${spotlightRect.left}px`,
+              top: `${spotlightRect.top}px`,
+              width: `${spotlightRect.width}px`,
+              height: `${spotlightRect.height}px`,
+              borderRadius: `${spotlightRadius}px`,
+            }}
+          />
+        </>
+      ) : (
+        <div className="tutorial-backdrop" onClick={handleNext} />
+      )}
 
       <div
-        className={`tutorial-card position-${currentPosition} step-anim`}
-        style={targetRect ? {
-          '--target-x': `${targetRect.left + targetRect.width / 2}px`,
-          '--target-y': `${targetRect.top + targetRect.height / 2}px`,
-           // Ajustement pour positionner la carte par rapport aux bords de l'élément
-           '--target-top': `${targetRect.top}px`,
-           '--target-bottom': `${targetRect.bottom}px`,
-           '--target-left': `${targetRect.left}px`,
-           '--target-right': `${targetRect.right}px`,
-        } : {}}
+        ref={cardRef}
+        className={`tutorial-card position-${resolvedPosition}`}
+        style={{ ...cardStyle, ...cardVars }}
       >
         <div className="tutorial-header">
-           <h3>{step.title}</h3>
+          <span className="tutorial-step">
+            {t('tutorial.step_label', {}, 'Étape')} {currentStepIndex + 1}/{steps.length}
+          </span>
+          <h3>{step.title}</h3>
         </div>
-        
+
         <div className="tutorial-content">
-          <p>{step.text}</p>
+          {step.text && <p>{step.text}</p>}
+          {step.bullets && (
+            <ul className="tutorial-list">
+              {step.bullets.map((item, index) => (
+                <li key={`${step.id}-bullet-${index}`}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {step.note && <p className="tutorial-note">{step.note}</p>}
         </div>
 
         <div className="tutorial-footer">
-            <div className="tutorial-dots">
-              {STEPS.map((_, index) => (
-                <span
-                  key={index}
-                  className={`progress-dot ${index === currentStepIndex ? 'active' : ''}`}
-                />
-              ))}
-            </div>
-            
-            <div className="tutorial-buttons">
-                <button className="tutorial-skip" onClick={handleSkip}>
-                    {t('tutorial.skip', {}, 'Passer')}
-                </button>
-                <button className="tutorial-next btn-primary" onClick={handleNext}>
-                    {step.action ? "C'est parti !" : t('tutorial.next', {}, 'Suivant →')}
-                </button>
-            </div>
+          <div className="tutorial-dots">
+            {steps.map((_, index) => (
+              <span
+                key={`dot-${index}`}
+                className={`progress-dot ${index === currentStepIndex ? 'active' : ''}`}
+              />
+            ))}
+          </div>
+
+          <div className="tutorial-buttons">
+            {currentStepIndex > 0 && (
+              <button className="tutorial-back" onClick={handleBack}>
+                {t('tutorial.previous', {}, 'Précédent')}
+              </button>
+            )}
+            <button className="tutorial-skip" onClick={handleSkip}>
+              {t('tutorial.skip', {}, 'Passer')}
+            </button>
+            <button className="tutorial-next" onClick={handleNext}>
+              {step.nextLabel || (currentStepIndex === steps.length - 1
+                ? t('tutorial.finish', {}, "C'est parti !")
+                : t('tutorial.next', {}, 'Suivant →'))}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -236,4 +598,3 @@ const TutorialOverlay = () => {
 };
 
 export default TutorialOverlay;
-

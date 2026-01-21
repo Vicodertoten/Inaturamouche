@@ -303,7 +303,7 @@ function Configurator({ onStartGame }) {
 
             {isPackView && (
               <>
-                <div className="pack-grid" role="list">
+                <div className="pack-grid tutorial-pack-grid" role="list">
                   {packsLoading &&
                     Array.from({ length: 4 }, (_, index) => (
                       <div className="pack-tile pack-tile-skeleton" key={`skeleton-${index}`}>
@@ -370,7 +370,7 @@ function Configurator({ onStartGame }) {
             subtitle={t('home.play_pillar_desc')}
           />
 
-          <div className="mode-cards" role="radiogroup" aria-label={t('home.play_pillar_title')}>
+          <div className="mode-cards tutorial-mode-cards" role="radiogroup" aria-label={t('home.play_pillar_title')}>
             <label className={`mode-card ${gameMode === 'easy' ? 'selected' : ''}`}>
               <input
                 type="radio"
@@ -444,7 +444,7 @@ function Configurator({ onStartGame }) {
             subtitle={t('configurator.game_settings_hint')}
           />
 
-          <div className="game-settings-grid">
+          <div className="game-settings-grid tutorial-game-settings">
             <div className="setting-card">
               <p className="setting-label">{t('configurator.question_count_label')}</p>
               <div
@@ -519,7 +519,7 @@ function Configurator({ onStartGame }) {
         <div className="play-button-container">
           <button
             onClick={handleStartClick}
-            className="btn btn--primary start-button start-button-glow play-btn"
+            className="btn btn--primary start-button start-button-glow play-btn tutorial-start-game"
             disabled={packsLoading}
             aria-label={t('common.start_game')}
           >

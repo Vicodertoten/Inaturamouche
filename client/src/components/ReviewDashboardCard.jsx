@@ -31,7 +31,7 @@ const ReviewDashboardCard = ({ dueToday = 0, onStartReview }) => {
 
   return (
     <div
-      className={`review-dashboard-card${isStarting ? ' is-starting' : ''}`}
+      className={`review-dashboard-card tutorial-review-card${isStarting ? ' is-starting' : ''}`}
       role="button"
       tabIndex={0}
       onClick={handleStart}

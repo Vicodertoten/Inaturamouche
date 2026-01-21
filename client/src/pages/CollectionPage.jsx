@@ -41,7 +41,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
       <div className="collection-header">
         <h1>{t('collection.title')}</h1>
       </div>
-      <div className="iconic-taxa-grid">
+      <div className="iconic-taxa-grid tutorial-collection-grid">
         {ICONIC_TAXA_LIST.map((iconicTaxon) => {
           const stats = summary?.[iconicTaxon.id] || {
             seenCount: 0,

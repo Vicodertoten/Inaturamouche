@@ -9,11 +9,11 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
   const { t } = useLanguage();
 
   const navItems = [
-    { path: '/', icon: HomeIcon, label: t('nav.home_label', {}, 'Accueil'), type: 'route' },
-    { path: '/collection', icon: CollectionIcon, label: t('nav.collection_label'), type: 'route' },
-    { path: '/profile', icon: ProfileIcon, label: t('nav.profile_label'), type: 'route' },
-    { path: 'report', icon: ReportIcon, label: 'Signaler', type: 'action' },
-    { path: 'settings', icon: SettingsIcon, label: t('nav.settings_label', {}, 'Réglages'), type: 'action' },
+    { path: '/', icon: HomeIcon, label: t('nav.home_label', {}, 'Accueil'), type: 'route', tutorialClass: 'tutorial-nav-home' },
+    { path: '/collection', icon: CollectionIcon, label: t('nav.collection_label'), type: 'route', tutorialClass: 'tutorial-nav-collection' },
+    { path: '/profile', icon: ProfileIcon, label: t('nav.profile_label'), type: 'route', tutorialClass: 'tutorial-nav-profile' },
+    { path: 'report', icon: ReportIcon, label: 'Signaler', type: 'action', tutorialClass: 'tutorial-nav-report' },
+    { path: 'settings', icon: SettingsIcon, label: t('nav.settings_label', {}, 'Réglages'), type: 'action', tutorialClass: 'tutorial-nav-settings' },
   ];
 
   const handleNavClick = (item) => {
@@ -30,17 +30,17 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
   };
 
   return (
-    <nav className="bottom-nav" aria-label={t('nav.main_label', {}, 'Navigation')}>
+    <nav className="bottom-nav tutorial-bottom-nav" aria-label={t('nav.main_label', {}, 'Navigation')}>
       <div className="bottom-nav-container">
         {navItems.map((item) => {
-          const { path, icon: Icon, label, type } = item;
+          const { path, icon: Icon, label, type, tutorialClass } = item;
           const isActive = type === 'route' 
             ? location.pathname === path 
             : (type === 'action' && path === 'settings' && isSettingsOpen);
           return (
             <button
               key={path}
-              className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+              className={`bottom-nav-item ${isActive ? 'active' : ''} ${tutorialClass || ''}`}
               onClick={() => handleNavClick(item)}
               aria-label={label}
               title={label}

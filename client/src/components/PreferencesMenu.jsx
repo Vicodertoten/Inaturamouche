@@ -158,7 +158,7 @@ function PreferencesMenu({ isOpen: externalIsOpen, onToggle: externalOnToggle, i
       {!isMobileControlled && (
         <button
           type="button"
-          className="preferences-trigger nav-pill nav-icon nav-elevated"
+          className="preferences-trigger nav-pill nav-icon nav-elevated tutorial-nav-settings"
           aria-haspopup="menu"
           aria-expanded={isOpen}
           aria-label={t('common.preferences_menu_label', {}, 'Open preferences')}

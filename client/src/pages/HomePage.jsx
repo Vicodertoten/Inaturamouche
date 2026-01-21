@@ -4,8 +4,6 @@ import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
 import ReviewDashboardCard from '../components/ReviewDashboardCard';
-import TutorialOverlay from '../components/TutorialOverlay';
-import DailyStreakBadge from '../components/DailyStreakBadge';
 import { getReviewStats } from '../services/CollectionService';
 
 const Configurator = lazy(() => import('../features/configurator/Configurator'));
@@ -126,9 +124,7 @@ const HomePage = () => {
 
   return (
     <div className="screen configurator-screen">
-      <TutorialOverlay />
-      
-      <div className="home-dashboard card">
+      <div className="home-dashboard card tutorial-home-dashboard">
         
         
         {/* Afficher le bouton "Reprendre la partie" si une session est active */}
@@ -184,7 +180,7 @@ const HomePage = () => {
             <section className="daily-challenge-cta play-button-container">
               <button
                 type="button"
-                className="btn btn--primary start-button play-btn"
+                className="btn btn--primary start-button play-btn tutorial-daily-challenge"
                 onClick={handleDailyChallenge}
                 aria-label={dailyChallengeLabel}
               >

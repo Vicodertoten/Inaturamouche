@@ -321,7 +321,7 @@ const ProfilePage = () => {
           {t('profile.back')}
         </button>
 
-        <div className="profile-hero sticky-hero">
+        <div className="profile-hero sticky-hero tutorial-profile-hero">
           {/* Edit button - top left */}
           <button
             type="button"
@@ -381,7 +381,7 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        <div className="tabs-container pill-tabs" role="tablist" aria-label={t('profile.title')}>
+        <div className="tabs-container pill-tabs tutorial-profile-tabs" role="tablist" aria-label={t('profile.title')}>
           <button
             className={`tab-button pill ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => setActiveTab('summary')}
@@ -423,12 +423,13 @@ const ProfilePage = () => {
               aria-live="polite"
               aria-labelledby="tab-summary-trigger"
             >
-              <DailyStreakBadge />
-
-              <ProfileStreakCard
-                currentStreak={profile.stats.lastSessionStreak || 0}
-                longestStreak={profile.stats.longestStreak || 0}
-              />
+              <div className="tutorial-streaks">
+                <DailyStreakBadge />
+                <ProfileStreakCard
+                  currentStreak={profile.stats.lastSessionStreak || 0}
+                  longestStreak={profile.stats.longestStreak || 0}
+                />
+              </div>
 
               <div className="profile-section">
                 <h3>{t('profile.summary_title')}</h3>

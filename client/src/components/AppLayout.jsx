@@ -58,12 +58,13 @@ const AppLayout = () => {
         <AchievementModal achievementId={achievementQueue[0]} onClose={popAchievement} />
       )}
       <ToastContainer />
+      <TutorialOverlay />
 
       {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
-      <nav className="main-nav desktop-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
+      <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">
           <button
-            className="nav-pill nav-icon nav-elevated"
+            className="nav-pill nav-icon nav-elevated tutorial-nav-report"
             onClick={showReport}
             aria-label="Signaler un problème"
             title="Signaler un problème"
@@ -72,7 +73,7 @@ const AppLayout = () => {
             <ReportIcon />
           </button>
           <button
-            className="nav-pill nav-icon nav-elevated"
+            className="nav-pill nav-icon nav-elevated tutorial-nav-collection"
             onClick={() => navigate('/collection')}
             aria-label={t('nav.collection_label')}
             title={t('nav.collection_label')}
@@ -81,7 +82,7 @@ const AppLayout = () => {
             <CollectionIcon />
           </button>
           <button
-            className="profile-button nav-pill nav-icon nav-elevated"
+            className="profile-button nav-pill nav-icon nav-elevated tutorial-nav-profile"
             onClick={showProfile}
             aria-label={t('nav.profile_label')}
             title={t('nav.profile_label')}
