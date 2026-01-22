@@ -10,7 +10,7 @@ const en = {
     save: 'Save',
     loading: 'Loading...',
     start_game: 'Start game!',
-    review_mistakes: 'Review my mistakes',
+    review_mistakes: 'Review',
     help: 'Help',
     profile: 'My Profile',
     home: 'Home',

@@ -10,7 +10,7 @@ const nl = {
     save: 'Opslaan',
     loading: 'Laden...',
     start_game: 'Spel starten!',
-    review_mistakes: 'Fouten herzien',
+    review_mistakes: 'herzien',
     help: 'Hulp',
     profile: 'Mijn profiel',
     home: 'Start',

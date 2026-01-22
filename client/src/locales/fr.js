@@ -10,7 +10,7 @@ const fr = {
     save: 'Enregistrer',
     loading: 'Chargement...',
     start_game: 'Lancer la partie !',
-    review_mistakes: 'Réviser mes erreurs',
+    review_mistakes: 'Réviser',
     help: 'Aide',
     profile: 'Mon Profil',
     home: 'Accueil',
@@ -40,10 +40,10 @@ const fr = {
   },
   review: {
     title: 'Mode Révision',
-    due_today_label: 'Prêt pour la révision',
+    due_today_label: 'Espèces a réviser',
     start_button: 'Commencer la révision',
     starting: 'Démarrage...',
-    action_hint: 'Une session courte et ciblée pour consolider vos connaissances.',
+    action_hint: 'Une partie ciblée pour consolider vos connaissances.',
   },
   nav: {
     help_label: 'Aide et informations',

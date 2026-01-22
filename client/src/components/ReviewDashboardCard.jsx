@@ -46,10 +46,8 @@ const ReviewDashboardCard = ({ dueToday = 0, onStartReview }) => {
           </span>
           <span className="review-dashboard-badge">XP Bonus (+25%)</span>
         </div>
-        <h3 className="review-dashboard-title">{t('common.review_mistakes')}</h3>
-        <p className="review-dashboard-subtitle">
-          {t('profile.review_due_today', {}, 'Species due today')}
-        </p>
+      
+        
         <div className="review-dashboard-count">
           <span className="count-value">{dueToday}</span>
           <span className="count-label">

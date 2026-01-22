@@ -110,10 +110,10 @@ const ProfilePage = () => {
   // Review stats
   const [reviewStats, setReviewStats] = useState(null);
   const [openCategories, setOpenCategories] = useState(() => ({
-    [ACHIEVEMENT_CATEGORIES.TAXONOMY]: true,
-    [ACHIEVEMENT_CATEGORIES.COLLECTION]: true,
-    [ACHIEVEMENT_CATEGORIES.SKILL]: true,
-    [ACHIEVEMENT_CATEGORIES.HABIT]: true,
+    [ACHIEVEMENT_CATEGORIES.TAXONOMY]: false,
+    [ACHIEVEMENT_CATEGORIES.COLLECTION]: false,
+    [ACHIEVEMENT_CATEGORIES.SKILL]: false,
+    [ACHIEVEMENT_CATEGORIES.HABIT]: false,
   }));
 
   const sortedMastery = useMemo(
