@@ -4,6 +4,7 @@ import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../service
 import { checkDailyStreak } from '../services/StreakService';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
+import { getTaxaByIds } from '../services/api';
 import { stats as statsTable, taxa as taxaTable } from '../services/db';
 
 const UserContext = createContext(null);
@@ -39,17 +40,10 @@ async function seedEncyclopedia() {
     
     for (let i = 0; i < inaturalistIds.length; i += BATCH_SIZE) {
       const batchIds = inaturalistIds.slice(i, i + BATCH_SIZE);
-      const idsParam = batchIds.join(',');
       
       console.log(`  📡 Fetching batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(inaturalistIds.length / BATCH_SIZE)} (${batchIds.length} taxa)...`);
       
-      const response = await fetch(`/api/taxa?ids=${idsParam}&locale=en`);
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status} for batch starting at index ${i}`);
-      }
-      
-      const taxaList = await response.json();
+      const taxaList = await getTaxaByIds(batchIds, 'en');
       
       if (Array.isArray(taxaList)) {
         allTaxaList.push(...taxaList);
