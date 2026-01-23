@@ -19,7 +19,7 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
-  const { achievementQueue, popAchievement } = useUser();
+  const { achievementQueue, popAchievement, showTutorial } = useUser();
   const { t } = useLanguage();
   const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
   const [isReportVisible, setIsReportVisible] = useState(false);
@@ -58,7 +58,7 @@ const AppLayout = () => {
         <AchievementModal achievementId={achievementQueue[0]} onClose={popAchievement} />
       )}
       <ToastContainer />
-      <TutorialOverlay />
+      {showTutorial && <TutorialOverlay />}
 
       {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
       <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>

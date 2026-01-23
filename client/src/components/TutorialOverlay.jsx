@@ -74,7 +74,7 @@ const TutorialOverlay = () => {
         ],
         route: '/',
         targetSelector: '.tutorial-pack-grid',
-        position: 'auto',
+        position: 'right',
         highlightSelector: '.pack-card, .pack-card-glow',
         spotlightPadding: 26,
         spotlightRadius: 28,

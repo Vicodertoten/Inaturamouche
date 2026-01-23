@@ -7,7 +7,7 @@ import {
 } from '../../core/achievements';
 import { loadProfileWithDefaults } from '../../services/PlayerProfile';
 import { updateDailyStreak } from '../../services/StreakService';
-import { updateWeekendStats } from '../../services/AchievementStatsService';
+import { getCollectionStatsForAchievements, updateWeekendStats } from '../../services/AchievementStatsService';
 import { getSpeciesDueForReview } from '../../services/CollectionService';
 import { notify } from '../../services/notifications';
 import { notifyApiError } from '../../services/api';
@@ -22,6 +22,9 @@ import {
   normalizeMediaType,
   resolveTotalQuestions,
 } from './gameUtils';
+
+const LIGHTNING_THRESHOLD_MS = 1500;
+const DAY_MS = 1000 * 60 * 60 * 24;
 
 export function useGameActions({
   profile,
@@ -84,6 +87,14 @@ export function useGameActions({
   clearUnlockedLater,
   setRarityCelebration,
 }) {
+  const getDateKey = useCallback((date) => new Date(date).toISOString().split('T')[0], []);
+
+  const daysBetween = useCallback((fromDateKey, toDateKey) => {
+    const from = new Date(fromDateKey);
+    const to = new Date(toDateKey);
+    return Math.floor((to - from) / DAY_MS);
+  }, []);
+
   const triggerRarityCelebration = useCallback(
     (tier) => {
       if (!setRarityCelebration || !tier) return;
@@ -262,7 +273,7 @@ export function useGameActions({
   }, [setReviewTaxonIds, startGame]);
 
   const finalizeGame = useCallback(
-    ({
+    async ({
       finalCorrectAnswers,
       finalScore,
       finalCorrectSpecies,
@@ -275,6 +286,11 @@ export function useGameActions({
         : resolveTotalQuestions(maxQuestions, questionCount);
 
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
+      profileClone.stats.totalQuestionsAnswered =
+        (profileClone.stats.totalQuestionsAnswered || 0) + totalQuestions;
+      if (gameMode === 'hard') {
+        profileClone.stats.hardGamesCompleted = (profileClone.stats.hardGamesCompleted || 0) + 1;
+      }
 
       if (gameMode === 'easy') {
         profileClone.stats.correctEasy = (profileClone.stats.correctEasy || 0) + finalCorrectAnswers;
@@ -350,7 +366,61 @@ export function useGameActions({
         profileClone.stats.rarityCounts[tier] += 1;
       });
 
-      const unlocked = checkNewAchievements(profileClone);
+      if (isReviewMode) {
+        const todayKey = getDateKey(new Date());
+        const lastReviewDate = profileClone.stats.lastReviewDate;
+        let consecutiveReviewDays = profileClone.stats.consecutiveReviewDays || 0;
+
+        if (lastReviewDate === todayKey) {
+          consecutiveReviewDays = profileClone.stats.consecutiveReviewDays || 1;
+        } else if (lastReviewDate) {
+          const diffDays = daysBetween(lastReviewDate, todayKey);
+          consecutiveReviewDays = diffDays === 1 ? (profileClone.stats.consecutiveReviewDays || 0) + 1 : 1;
+        } else {
+          consecutiveReviewDays = 1;
+        }
+
+        profileClone.stats.reviewSessionsCompleted =
+          (profileClone.stats.reviewSessionsCompleted || 0) + 1;
+        profileClone.stats.consecutiveReviewDays = consecutiveReviewDays;
+        profileClone.stats.lastReviewDate = todayKey;
+      }
+
+      const responseTimes = speciesEntries
+        .map((entry) => entry?.responseTimeMs)
+        .filter((value) => typeof value === 'number');
+      const averageResponseTimeMs = responseTimes.length
+        ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
+        : null;
+      const uniqueClassIds = new Set();
+      speciesEntries.forEach((entry) => {
+        const classAncestor = entry?.taxon?.ancestors?.find((ancestor) => ancestor.rank === 'class');
+        const classId = classAncestor?.id ?? entry?.taxon?.iconic_taxon_id ?? null;
+        if (classId) uniqueClassIds.add(classId);
+      });
+      const uniqueClassesInGame = uniqueClassIds.size;
+      const lastFiveEntries = speciesEntries.slice(-5);
+      const hadErrorBeforeLast5 = speciesEntries.slice(0, -5).some((entry) => !entry?.wasCorrect);
+      const last5AllCorrect = lastFiveEntries.length === 5 && lastFiveEntries.every((entry) => entry?.wasCorrect);
+
+      const profileWithStreakUpdate = updateDailyStreak(profileClone);
+      const profileWithWeekendStats = {
+        ...profileWithStreakUpdate,
+        stats: updateWeekendStats(profileWithStreakUpdate.stats, new Date()),
+      };
+
+      profileWithWeekendStats.stats.lastSessionStreak = currentStreak;
+      if (longestStreak > (profileWithWeekendStats.stats.longestStreak || 0)) {
+        profileWithWeekendStats.stats.longestStreak = longestStreak;
+      }
+
+      let collectionStats = {};
+      try {
+        collectionStats = await getCollectionStatsForAchievements();
+      } catch (error) {
+        console.error('[GameContext] Failed to load collection stats for achievements:', error);
+      }
+      const unlocked = checkNewAchievements(profileWithWeekendStats, collectionStats);
       const endOfGameUnlocked = checkEndOfGameAchievements(
         {
           sessionXP: finalScore,
@@ -361,16 +431,22 @@ export function useGameActions({
           shieldsUsed: speciesEntries.filter((e) => !e.wasCorrect).length,
           gameMode,
           gameWon: finalCorrectAnswers > 0,
+          averageResponseTimeMs,
+          uniqueClassesInGame,
+          hadErrorBeforeLast5,
+          last5AllCorrect,
         },
-        profileClone.achievements
+        profileWithWeekendStats.achievements
       );
 
       const allUnlocked = [...new Set([...unlocked, ...endOfGameUnlocked])];
 
       if (allUnlocked.length > 0) {
-        profileClone.achievements = Array.from(new Set([...(profileClone.achievements || []), ...allUnlocked]));
-        const rewardResult = applyAllRewards(profileClone, allUnlocked);
-        Object.assign(profileClone, rewardResult.profile);
+        profileWithWeekendStats.achievements = Array.from(
+          new Set([...(profileWithWeekendStats.achievements || []), ...allUnlocked])
+        );
+        const rewardResult = applyAllRewards(profileWithWeekendStats, allUnlocked);
+        Object.assign(profileWithWeekendStats, rewardResult.profile);
 
         if (rewardResult.totalXP > 0) {
           notify(`🎉 +${rewardResult.totalXP} XP bonus!`, { type: 'success', duration: 4000 });
@@ -388,17 +464,6 @@ export function useGameActions({
       } else {
         setNewlyUnlocked([]);
         clearAchievementsTimer();
-      }
-
-      const profileWithStreakUpdate = updateDailyStreak(profileClone);
-      const profileWithWeekendStats = {
-        ...profileWithStreakUpdate,
-        stats: updateWeekendStats(profileWithStreakUpdate.stats, new Date()),
-      };
-
-      profileWithWeekendStats.stats.lastSessionStreak = currentStreak;
-      if (longestStreak > (profileWithWeekendStats.stats.longestStreak || 0)) {
-        profileWithWeekendStats.stats.longestStreak = longestStreak;
       }
 
       clearSessionFromDB()
@@ -422,6 +487,9 @@ export function useGameActions({
       clearSessionFromDB,
       clearUnlockedLater,
       currentStreak,
+      daysBetween,
+      getCollectionStatsForAchievements,
+      getDateKey,
       gameMode,
       longestStreak,
       maxQuestions,
@@ -605,12 +673,32 @@ export function useGameActions({
         void addSpeciesToCollection(taxonPayload, isCorrectFinal, fallbackImageUrl);
       }
       const nextSpeciesData = [...sessionSpeciesData, speciesEntry];
+      const consecutiveFastAnswers = (() => {
+        let count = 0;
+        for (let i = nextSpeciesData.length - 1; i >= 0; i -= 1) {
+          const entry = nextSpeciesData[i];
+          if (!entry?.wasCorrect) break;
+          if (typeof entry.responseTimeMs !== 'number' || entry.responseTimeMs > LIGHTNING_THRESHOLD_MS) break;
+          count += 1;
+        }
+        return count;
+      })();
+      const hintsUsedInSession = nextSpeciesData.filter((entry) => entry?.hintsUsed).length;
+      const correctAnswersInSession = nextSpeciesData.filter((entry) => entry?.wasCorrect).length;
+      const shieldsUsedInSession = nextSpeciesData.filter((entry) => !entry?.wasCorrect).length;
 
       const microUnlocks = evaluateMicroChallenges(
         {
           currentStreak: newStreak,
           roundMeta: roundDetails,
           sessionSpeciesData: nextSpeciesData,
+          consecutiveFastAnswers,
+          sessionXP: updatedScore,
+          totalQuestionsAnswered: nextSpeciesData.length,
+          hintsUsedInSession,
+          correctAnswersInSession,
+          shieldsUsed: shieldsUsedInSession,
+          gameMode,
         },
         profile?.achievements || []
       );

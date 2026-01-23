@@ -78,6 +78,7 @@ export const AVAILABLE_TITLES = Object.freeze({
   Immortel: { id: 'Immortel', nameKey: 'titles.immortel', value: 'Immortel' },
   Vampire: { id: 'Vampire', nameKey: 'titles.vampire', value: 'Vampire' },
   Medium: { id: 'Medium', nameKey: 'titles.medium', value: 'Médium' },
+  master_reviewer: { id: 'master_reviewer', nameKey: 'titles.master_reviewer', value: 'Maître Réviseur' },
 });
 
 /** @type {Record<string, Achievement>} */
@@ -698,7 +699,7 @@ export const ACHIEVEMENTS = {
     descriptionKey: 'achievements.list.MASTER_REVIEWER.description',
     category: ACHIEVEMENT_CATEGORIES.COLLECTION,
     icon: '📖',
-    reward: { type: REWARD_TYPES.TITLE, value: 'Maître Réviseur' },
+    reward: { type: REWARD_TYPES.TITLE, value: 'master_reviewer' },
   },
 };
 
@@ -914,8 +915,9 @@ export const checkNewAchievements = (profile, collectionStats = {}, sessionConte
     unlocked.push('SPEC_BOTANIST');
   }
 
-  // SPEC_ENTOMOLOGIST: 50 insectes
-  if ((taxCounts.Insecta || 0) >= 50 && !owned.has('SPEC_ENTOMOLOGIST')) {
+  // SPEC_ENTOMOLOGIST: 50 insectes ou arachnides
+  const entomoCount = (taxCounts.Insecta || 0) + (taxCounts.Arachnida || 0);
+  if (entomoCount >= 50 && !owned.has('SPEC_ENTOMOLOGIST')) {
     unlocked.push('SPEC_ENTOMOLOGIST');
   }
 

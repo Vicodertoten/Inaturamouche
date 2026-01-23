@@ -6,7 +6,7 @@
  */
 
 import db, { taxa as taxaTable, stats as statsTable } from './db.js';
-import { ICONIC_TAXON_MAP } from '../core/achievements';
+import { TAXON_GROUP_FILTERS } from '../core/achievements';
 import { MASTERY_LEVELS } from './CollectionService.js';
 
 // Threshold XP for Diamond mastery
@@ -28,6 +28,18 @@ const ICONIC_TO_FILTER = {
   47170: 'Fungi',     // Fungi
 };
 
+const ORDER_FAMILY_FILTERS = [
+  'Lepidoptera',
+  'Coleoptera',
+  'Hymenoptera',
+  'Odonata',
+  'Carnivora',
+  'Rodentia',
+  'Rosaceae',
+  'Asteraceae',
+  'Fagaceae',
+];
+
 /**
  * Calcule les statistiques de collection pour les succès
  * @returns {Promise<Object>} collectionStats pour checkNewAchievements
@@ -41,6 +53,7 @@ export async function getCollectionStatsForAchievements() {
         Aves: 0,
         Plantae: 0,
         Insecta: 0,
+        Arachnida: 0,
         Fungi: 0,
         Reptilia: 0,
         Amphibia: 0,
@@ -48,9 +61,20 @@ export async function getCollectionStatsForAchievements() {
         Actinopterygii: 0,
         Mollusca: 0,
         Marine: 0,
+        Lepidoptera: 0,
+        Coleoptera: 0,
+        Hymenoptera: 0,
+        Odonata: 0,
+        Carnivora: 0,
+        Rodentia: 0,
+        Rosaceae: 0,
+        Asteraceae: 0,
+        Fagaceae: 0,
       },
       familyReunionComplete: false,
       familyMasteryCounts: {}, // { familyId: count } pour 5 espèces de même famille
+      fullyMasteredCount: 0,
+      totalInReviewSystem: 0,
     };
 
     // Compter le total d'espèces vues (stats table entries)
@@ -61,6 +85,16 @@ export async function getCollectionStatsForAchievements() {
       .filter(stat => (stat.xp || 0) >= DIAMOND_XP_THRESHOLD)
       .count();
     result.diamondMasteryCount = diamondStats;
+
+    // Compter les espèces maîtrisées totalement (masteryLevel >= DIAMOND)
+    result.fullyMasteredCount = await statsTable
+      .filter(stat => (stat.masteryLevel || 0) >= MASTERY_LEVELS.DIAMOND)
+      .count();
+
+    // Compter les espèces dans le système de révision
+    result.totalInReviewSystem = await statsTable
+      .filter(stat => stat.nextReviewDate)
+      .count();
 
     // Compter par taxonomie (utilise l'index iconic_taxon_id)
     // Pour éviter de charger toutes les données, on fait des requêtes groupées
@@ -78,6 +112,28 @@ export async function getCollectionStatsForAchievements() {
       result.taxonomyCounts.Actinopterygii + 
       result.taxonomyCounts.Mollusca;
 
+    // Comptage des ordres/familles via ancestor_ids
+    const seenStats = await statsTable.toArray();
+    const seenIds = seenStats.map(stat => stat.id);
+    const seenTaxa = await taxaTable.bulkGet(seenIds);
+    const filterIdMap = ORDER_FAMILY_FILTERS.reduce((acc, filterName) => {
+      const ids = TAXON_GROUP_FILTERS[filterName] || [];
+      acc[filterName] = new Set(ids);
+      return acc;
+    }, {});
+
+    seenTaxa.forEach((taxon) => {
+      if (!taxon || !Array.isArray(taxon.ancestor_ids)) return;
+      ORDER_FAMILY_FILTERS.forEach((filterName) => {
+        const idSet = filterIdMap[filterName];
+        if (!idSet || idSet.size === 0) return;
+        const hasMatch = taxon.ancestor_ids.some((id) => idSet.has(id));
+        if (hasMatch) {
+          result.taxonomyCounts[filterName] += 1;
+        }
+      });
+    });
+
     // Vérifier FAMILY_REUNION: 5 espèces de la même famille maîtrisées (Diamond)
     // Cette vérification est plus complexe et nécessite les ancestor_ids
     const familyMasteryComplete = await checkFamilyReunion();
@@ -91,6 +147,8 @@ export async function getCollectionStatsForAchievements() {
       diamondMasteryCount: 0,
       taxonomyCounts: {},
       familyReunionComplete: false,
+      fullyMasteredCount: 0,
+      totalInReviewSystem: 0,
     };
   }
 }

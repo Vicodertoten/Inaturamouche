@@ -15,6 +15,39 @@ const sanitizeProfile = (profileCandidate) => {
   return rest;
 };
 
+const TUTORIAL_STORAGE_KEY = 'inaturamouche_tutorial_seen';
+
+const getLocalStorage = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch (error) {
+    console.warn('Access to localStorage is blocked', error);
+    return null;
+  }
+};
+
+const readTutorialSeenFlag = () => {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(TUTORIAL_STORAGE_KEY);
+  } catch (error) {
+    console.warn('Unable to read tutorial flag from localStorage', error);
+    return null;
+  }
+};
+
+const writeTutorialSeenFlag = () => {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(TUTORIAL_STORAGE_KEY, 'true');
+  } catch (error) {
+    console.warn('Unable to persist tutorial completion flag', error);
+  }
+};
+
 /**
  * Load encyclopedia data from packs and seed database with taxon information.
  * Fetches full taxon data from iNaturalist API based on inaturalist_ids in packs.
@@ -176,14 +209,14 @@ export function UserProvider({ children }) {
 
   // Check if tutorial should be shown for first-time users
   useEffect(() => {
-    const tutorialSeen = localStorage.getItem('inaturamouche_tutorial_seen');
+    const tutorialSeen = readTutorialSeenFlag();
     if (!tutorialSeen) {
       setShowTutorial(true);
     }
   }, []);
 
   const completeTutorial = useCallback(() => {
-    localStorage.setItem('inaturamouche_tutorial_seen', 'true');
+    writeTutorialSeenFlag();
     setShowTutorial(false);
   }, []);
   useEffect(() => {

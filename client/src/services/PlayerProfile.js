@@ -46,6 +46,11 @@ export const getDefaultProfile = () => ({
     lastPlayedDays: [], // Pour tracker samedi/dimanche
     consecutiveFastAnswers: 0, // Pour SPEED_LIGHTNING
     totalHintsUsed: 0,
+    totalQuestionsAnswered: 0,
+    hardGamesCompleted: 0,
+    reviewSessionsCompleted: 0,
+    consecutiveReviewDays: 0,
+    lastReviewDate: null,
   },
   achievements: [],
   pokedex: {},

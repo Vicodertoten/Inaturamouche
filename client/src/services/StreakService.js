@@ -129,11 +129,11 @@ export const updateDailyStreak = (profile) => {
     // Earn shield every 7 days
     if (
       newStreak % 7 === 0 &&
-      updatedProfile.dailyStreak.shields < 3
+      updatedProfile.dailyStreak.shields < 5
     ) {
       updatedProfile.dailyStreak.shields += 1;
 
-      notify('🛡️ +1 Bouclier gagné! (Max 3)', {
+      notify('🛡️ +1 Bouclier gagné! (Max 5)', {
         type: 'success',
         duration: 4000,
       });
