@@ -42,7 +42,9 @@ export function getOrCreateMutex(key) {
  * Supprime les mutexes dont les clés ne sont plus dans le cache.
  */
 export function pruneMutexes() {
-  const cacheKeys = new Set(Object.keys(selectionStateCache._store || {}));
+  const cacheKeys = new Set(
+    selectionStateCache?.store ? Array.from(selectionStateCache.store.keys()) : []
+  );
   for (const key of selectionStateMutexes.keys()) {
     if (!cacheKeys.has(key)) {
       selectionStateMutexes.delete(key);

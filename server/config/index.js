@@ -51,8 +51,9 @@ export const config = {
   distinctTaxaTarget: 30,
   
   // Lure thresholds (profondeur LCA normalisée)
-  lureNearThreshold: 0.85,
-  lureMidThreshold: 0.65,
+  lureNearThreshold: 0.9,
+  lureMidThreshold: 0.75,
+  easyLureMinCloseness: 0.78,
   
   // Circuit breaker
   inatCircuitFailureThreshold: 3,

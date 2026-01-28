@@ -15,18 +15,37 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 
 // Use shared icons for consistent desktop/mobile appearance
 
+const readLocalStorage = (key) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Access to localStorage is blocked', error);
+    return null;
+  }
+};
+
+const writeLocalStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('Unable to persist localStorage value', error);
+  }
+};
+
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
   const { achievementQueue, popAchievement, showTutorial } = useUser();
   const { t } = useLanguage();
-  const [isHelpVisible, setIsHelpVisible] = useState(() => !localStorage.getItem('home_intro_seen'));
+  const [isHelpVisible, setIsHelpVisible] = useState(() => !readLocalStorage('home_intro_seen'));
   const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   const closeHelp = useCallback(() => {
-    localStorage.setItem('home_intro_seen', '1');
+    writeLocalStorage('home_intro_seen', '1');
     setIsHelpVisible(false);
   }, []);
 

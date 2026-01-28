@@ -2,13 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
-import app from '../../server.js';
+import { createApp } from '../../server/app.js';
 
 let server;
 let baseUrl;
 let originalFetch;
+let app;
 
 test.before(async () => {
+  ({ app } = createApp());
   // start server on ephemeral port
   server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, resolve));

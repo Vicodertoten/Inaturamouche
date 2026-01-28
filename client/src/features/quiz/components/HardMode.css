@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  align-items: center;
 }
 
 @media (max-width: 991px) {
@@ -104,18 +105,21 @@
 }
 
 .hard-mode-layout {
-  display: grid;
-  grid-template-columns: minmax(520px, 65%) minmax(300px, 35%);
+  display: flex;
+  flex-direction: column;
   gap: 1.35rem;
-  align-items: start;
   min-height: 0;
+  align-items: center;
+  width: min(100%, 920px);
+  margin: 0 auto;
 }
 
 .media-column {
   position: sticky;
   top: 1rem;
-  align-self: start;
-  max-width: 720px;
+  align-self: center;
+  width: 100%;
+  max-width: 760px;
   height: calc(100dvh - 140px);
 }
 
@@ -129,17 +133,11 @@
   width: 100%;
 }
 
-.tree-column {
-  min-height: 0;
-  max-height: calc(100dvh - 140px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.35rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
+.media-panel,
+.guess-panel {
   width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .proposition-panel,
@@ -155,18 +153,6 @@
 
 .proposition-panel {
   position: relative;
-}
-
-.tree-panel {
-  min-height: 280px;
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex: 1;
-  overflow: hidden;
 }
 
 .proposition-panel.panel-shake,
@@ -217,175 +203,6 @@
 .left-stack .image-viewer-container .image-wrapper {
   max-width: 100%;
   width: 100%;
-}
-
-/* --- Arbre phylogénétique --- */
-.phylo-tree-shell {
-  width: 100%;
-  max-width: 440px;
-  height: 100%;
-  display: flex;
-  align-items: flex-start;
-  margin: 0 auto;
-  overflow: hidden;
-}
-
-.phylo-scroll {
-  width: 100%;
-  max-height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.4rem;
-  position: relative;
-}
-
-/* Subtle scroll indicator */
-.phylo-scroll::after {
-  content: '';
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(to bottom, transparent, var(--surface-color));
-  pointer-events: none;
-  opacity: 0.8;
-}
-
-.phylo-svg {
-  width: 100%;
-  min-height: 260px;
-}
-
-.phylo-link {
-  fill: none;
-  stroke: var(--border-color);
-  stroke-width: 2px;
-  opacity: 0.75;
-}
-
-.phylo-node circle {
-  transition: transform 0.25s ease, stroke-width 0.25s ease, filter 0.25s ease;
-}
-
-.phylo-node.unknown circle {
-  fill: rgba(255, 255, 255, 0.02);
-}
-
-.phylo-node.known circle {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
-}
-
-.phylo-node.active circle {
-  stroke-width: 3.4px;
-  transform: scale(1.08);
-}
-
-.phylo-node text {
-  fill: var(--text-color);
-  font-weight: 600;
-  font-size: 0.62rem;
-}
-
-.phylo-node .node-secondary {
-  font-weight: 500;
-  font-size: 0.56rem;
-  fill: var(--text-color-muted);
-  font-style: italic;
-}
-
-.phylo-node .node-locked {
-  fill: var(--text-color);
-  font-weight: 800;
-  pointer-events: none;
-}
-
-.phylo-node.unknown .node-label,
-.phylo-node.unknown .node-secondary {
-  opacity: 0.75;
-}
-
-/* --- Fiche d'information --- */
-.phylo-card {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 180px;
-  max-width: 260px;
-  padding: 0.75rem 0.9rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(145deg, rgba(15, 15, 18, 0.92), rgba(36, 38, 46, 0.95));
-  color: var(--text-color);
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(14px);
-  z-index: 2200;
-  text-decoration: none;
-  animation: phyloCardFadeIn 0.18s ease;
-}
-
-.phylo-card.discovered {
-  cursor: pointer;
-}
-
-.phylo-card.unknown {
-  align-items: center;
-  justify-content: center;
-  min-height: 110px;
-  background: rgba(25, 26, 32, 0.85);
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  color: var(--text-color-muted);
-  cursor: default;
-}
-
-.phylo-card-unknown {
-  font-size: 2.6rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.phylo-card-rank {
-  font-size: 0.82rem;
-  color: var(--text-color-muted);
-  text-transform: capitalize;
-}
-
-.phylo-card-name {
-  font-weight: 700;
-}
-
-.phylo-card-secondary {
-  font-style: italic;
-  font-size: 0.88rem;
-  color: var(--text-color-muted);
-}
-
-.phylo-card-summary {
-  margin-top: 0.3rem;
-  font-size: 0.88rem;
-  line-height: 1.35;
-}
-
-.phylo-card-link {
-  margin-top: 0.35rem;
-  font-weight: 600;
-  color: var(--primary-color);
-}
-
-.phylo-card.discovered:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-@keyframes phyloCardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* --- Zone de saisie --- */
@@ -478,15 +295,6 @@
     max-height: none;
     overflow: visible;
     padding-right: 0;
-  }
-
-  .tree-column {
-    order: 2;
-    max-height: none;
-    overflow: visible;
-    padding-right: 0;
-    width: 100%;
-    height: auto;
   }
 
   .media-panel {

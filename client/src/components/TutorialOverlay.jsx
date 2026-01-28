@@ -294,7 +294,7 @@ const TutorialOverlay = () => {
 
       if (!step.targetSelector) {
         setTargetRect(null);
-        setIsFallbackCenter(false);
+        setIsFallbackCenter(step.position === 'center');
         return;
       }
 
@@ -426,7 +426,7 @@ const TutorialOverlay = () => {
 
     const cardRect = cardEl.getBoundingClientRect();
     const margin = 16;
-    const gap = 18;
+    const gap = step.id === 'packs' ? 12 : 18;
     let top;
     let left;
     let placement = preferredPosition;

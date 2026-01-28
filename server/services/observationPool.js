@@ -224,7 +224,7 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
       const poolErr = new Error(
         "Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres."
       );
-      poolErr.status = err?.status || 503;
+      poolErr.status = 503;
       poolErr.code = 'POOL_UNAVAILABLE';
       throw poolErr;
     }

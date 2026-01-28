@@ -8,21 +8,32 @@ const MESSAGES = { fr, en, nl };
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
 
+const getLocalStorage = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch (error) {
+    console.warn('Access to localStorage is blocked', error);
+    return null;
+  }
+};
+
 /**
  * Génère ou récupère un ID de session client unique et persistant.
  * Utilisé pour identifier le client de manière unique au serveur,
  * permettant la reprise de parties.
  */
 function getClientSessionId() {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+  const storage = getLocalStorage();
+  if (!storage) {
     return 'anon-' + Math.random().toString(36).slice(2, 8);
   }
   
-  let sessionId = localStorage.getItem(CLIENT_SESSION_ID_KEY);
+  let sessionId = storage.getItem(CLIENT_SESSION_ID_KEY);
   if (!sessionId) {
     // Générer un nouvel ID: timestamp + 8 caractères aléatoires
     sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    localStorage.setItem(CLIENT_SESSION_ID_KEY, sessionId);
+    storage.setItem(CLIENT_SESSION_ID_KEY, sessionId);
     console.log('[API] Generated new client session ID:', sessionId);
   }
   return sessionId;
@@ -30,7 +41,8 @@ function getClientSessionId() {
 
 function getCurrentLanguage() {
   if (typeof window === 'undefined') return 'fr';
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const storage = getLocalStorage();
+  const stored = storage?.getItem(LANGUAGE_STORAGE_KEY);
   return stored && MESSAGES[stored] ? stored : 'fr';
 }
 

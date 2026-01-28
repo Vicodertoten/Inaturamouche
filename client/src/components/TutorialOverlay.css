@@ -150,6 +150,15 @@
   animation: popIn 0.28s ease-out;
 }
 
+.tutorial-overlay[data-step='packs'] .tutorial-card {
+  width: min(320px, 88vw);
+  max-height: min(70vh, 480px);
+}
+
+.tutorial-overlay[data-step='packs'] .tutorial-card.position-right {
+  transform-origin: left center;
+}
+
 @keyframes popIn {
   from {
     opacity: 0;

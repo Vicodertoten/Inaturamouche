@@ -2,10 +2,10 @@ import { shuffleFisherYates } from '../../lib/quiz-utils.js';
 import { getFullTaxaDetails, getTaxonName } from './iNaturalistClient.js';
 
 const RANK_ORDER = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
-const MAX_OPTIONS_PER_RANK = 3;
+const MAX_OPTIONS_PER_RANK = 4;
 const MAX_SPECIES_CANDIDATES = 4;
-const MAX_SPECIES_OPTIONS = 3;
-const MAX_ANCESTOR_ENRICH_TAXA = 16;
+const MAX_SPECIES_OPTIONS = 4;
+const MAX_ANCESTOR_ENRICH_TAXA = 32;
 
 export const TAXONOMIC_MAX_MISTAKES = 2;
 export const TAXONOMIC_HINT_COST_XP = 15;

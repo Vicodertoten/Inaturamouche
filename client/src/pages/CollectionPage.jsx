@@ -22,6 +22,12 @@ const getIconicLabel = (iconicTaxonId, t) => {
 
 function IconicTaxaGrid({ onSelectIconic }) {
   const { t } = useLanguage();
+  const handleCardKeyDown = (event, taxonId) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectIconic(taxonId);
+    }
+  };
   // Fetch iconic summary via CollectionService (no toArray)
   const summary = useLiveQuery(
     async () => {
@@ -54,7 +60,10 @@ function IconicTaxaGrid({ onSelectIconic }) {
             <div
               key={iconicTaxon.id}
               className="iconic-taxon-card"
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectIconic(iconicTaxon.id)}
+              onKeyDown={(event) => handleCardKeyDown(event, iconicTaxon.id)}
             >
               <div className="iconic-card-header">
                 <h2>{getIconicLabel(iconicTaxon.id, t)}</h2>
@@ -95,6 +104,12 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const iconicTaxonName = getIconicLabel(iconicTaxonId, t);
+  const handleSpeciesKeyDown = (event, item) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSpeciesSelect(item);
+    }
+  };
 
   // Reset page when search, filter or sort changes
   useEffect(() => {
@@ -249,7 +264,10 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
                 <div
                   key={item.taxon.id}
                   className="species-grid-item"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSpeciesSelect(item)}
+                  onKeyDown={(event) => handleSpeciesKeyDown(event, item)}
                 >
                   <CollectionCard taxon={item.taxon} collection={item.stats} />
                 </div>

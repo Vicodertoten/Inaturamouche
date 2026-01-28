@@ -24,7 +24,7 @@ const LURE_MID_THRESHOLD = lureMidThreshold;
  * @param {any} targetObservation Representative observation for the target (provides ancestor_ids).
  * @param {number} [lureCount=LURE_COUNT] Number of lures to produce (default 3 for 4-choice quiz).
  * @param {() => number} [rng] Optional RNG for deterministic lure ordering.
- * @param {{ allowMixedIconic?: boolean, allowExternalLures?: boolean, excludeTaxonIds?: Set<string>, logger?: any, requestId?: string }} [options]
+ * @param {{ allowMixedIconic?: boolean, allowExternalLures?: boolean, excludeTaxonIds?: Set<string>, logger?: any, requestId?: string, minCloseness?: number }} [options]
  * @returns {Promise<{ lures: Array<{ taxonId: string, obs: any }>, buckets: { near: number, mid: number, far: number }, source: string }>}
  */
 export async function buildLures(
@@ -39,13 +39,22 @@ export async function buildLures(
   const targetId = String(targetTaxonId);
   const seenTaxa = new Set([targetId]);
   const random = typeof rng === 'function' ? rng : Math.random;
-  const { allowMixedIconic = false, allowExternalLures = false, excludeTaxonIds, logger, requestId } = options;
+  const {
+    allowMixedIconic = false,
+    allowExternalLures = false,
+    excludeTaxonIds,
+    logger,
+    requestId,
+    minCloseness = 0,
+  } = options;
   const isExcluded = (tid) => excludeTaxonIds && excludeTaxonIds.has(String(tid));
 
   const targetAnc = Array.isArray(targetObservation?.taxon?.ancestor_ids)
     ? targetObservation.taxon.ancestor_ids
     : [];
   const targetDepth = Math.max(targetAnc.length, 1);
+  const normalizedMinCloseness = Number.isFinite(minCloseness) ? minCloseness : 0;
+  const closenessFloor = Math.min(Math.max(normalizedMinCloseness, 0), 1);
 
   // Récupérer l'iconic_taxon_id de la cible
   const targetIconicTaxonId = targetObservation?.taxon?.iconic_taxon_id || null;
@@ -101,6 +110,12 @@ export async function buildLures(
   jitterSort(mid);
   jitterSort(far);
 
+  const filterByCloseness = (arr) =>
+    closenessFloor > 0 ? arr.filter((candidate) => candidate.closeness >= closenessFloor) : arr;
+  const nearPreferred = filterByCloseness(near);
+  const midPreferred = filterByCloseness(mid);
+  const farPreferred = filterByCloseness(far);
+
   const out = [];
   const pickFromArr = (arr) => {
     for (const s of arr) {
@@ -108,7 +123,7 @@ export async function buildLures(
       if (seenTaxa.has(s.tid)) continue;
       const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
       if (obs) {
-        out.push({ taxonId: s.tid, obs });
+        out.push({ taxonId: s.tid, obs, closeness: s.closeness, depth: s.depth });
         seenTaxa.add(s.tid);
       }
     }
@@ -280,6 +295,12 @@ export async function buildLures(
         seenTaxa.add(String(obs.taxon.id));
       }
     }
+  }
+
+  if (closenessFloor > 0) {
+    if (out.length < lureCount) pickFromArr(nearPreferred);
+    if (out.length < lureCount) pickFromArr(midPreferred);
+    if (out.length < lureCount) pickFromArr(farPreferred);
   }
 
   // FALLBACK STRATEGY: LCA-only (near/mid/far buckets)

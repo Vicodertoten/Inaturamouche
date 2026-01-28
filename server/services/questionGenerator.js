@@ -199,6 +199,7 @@ export async function buildQuizQuestion({
         excludeTaxonIds: excludeFutureTargets,
         logger,
         requestId,
+        minCloseness: gameMode === 'easy' ? config.easyLureMinCloseness : 0,
       }
     );
     if (!lures || lures.length < config.lureCount) {

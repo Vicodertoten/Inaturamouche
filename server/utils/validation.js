@@ -45,6 +45,14 @@ export const speciesCountsSchema = z.object({
   locale: z.string().default('fr'),
   per_page: z.coerce.number().min(1).max(200).default(100),
   page: z.coerce.number().min(1).max(500).default(1),
+}).refine((data) => {
+  const hasTaxaFilter = Boolean(data.taxon_ids || data.include_taxa || data.exclude_taxa);
+  const hasPlace = Boolean(data.place_id);
+  const hasBbox = [data.nelat, data.nelng, data.swlat, data.swlng].every((v) => v != null);
+  return hasTaxaFilter || hasPlace || hasBbox;
+}, {
+  message: 'At least one filter is required',
+  path: ['taxon_ids'],
 });
 
 export const placesSchema = z.object({
@@ -52,10 +60,11 @@ export const placesSchema = z.object({
   per_page: z.coerce.number().min(1).max(25).default(15),
 });
 
-const csvIds = (maxItems) =>
-  z
+const csvIds = (maxItems, { allowEmpty = false } = {}) => {
+  const minItems = allowEmpty ? 0 : 1;
+  return z
     .string()
-    .min(1)
+    .min(minItems)
     .max(500)
     .transform((value) =>
       String(value)
@@ -63,12 +72,13 @@ const csvIds = (maxItems) =>
         .map((s) => s.trim())
         .filter(Boolean)
     )
-    .refine((list) => list.length > 0 && list.length <= maxItems, {
-      message: `Entre 1 et ${maxItems} identifiants sont requis`,
+    .refine((list) => list.length >= minItems && list.length <= maxItems, {
+      message: `Entre ${minItems} et ${maxItems} identifiants sont requis`,
     });
+};
 
 export const placesByIdSchema = z.object({
-  ids: csvIds(25),
+  ids: csvIds(25, { allowEmpty: true }),
 });
 
 export const taxaBatchSchema = z.object({

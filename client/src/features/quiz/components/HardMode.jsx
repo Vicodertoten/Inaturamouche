@@ -7,7 +7,6 @@ import RoundSummaryModal from '../../../components/RoundSummaryModal';
 import GameHeader from '../../../components/GameHeader';
 import LevelUpNotification from '../../../components/LevelUpNotification';
 import FloatingXPIndicator from '../../../components/FloatingXPIndicator';
-import PhylogeneticTree from '../../../components/PhylogeneticTree.jsx';
 import './HardMode.css';
 import { getTaxonDetails } from '../../../services/api';
 import { computeScore, computeInGameStreakBonus } from '../../../utils/scoring';
@@ -525,15 +524,6 @@ function HardMode() {
               </div>
             </div>
 
-            <div className="tree-column">
-              <div className="proposition-panel tree-panel">
-                <PhylogeneticTree
-                  knownTaxa={knownTaxa}
-                  targetTaxon={question?.bonne_reponse}
-                  activeRank={activeRank}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>

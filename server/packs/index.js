@@ -89,12 +89,23 @@ const PACK_DEFINITIONS = [
  * @returns {Array<Pick<PackDefinition, "id" | "type" | "titleKey" | "descriptionKey">>}
  */
 export function listPublicPacks() {
-  return PACK_DEFINITIONS.map(({ id, type, titleKey, descriptionKey }) => ({
-    id,
-    type,
-    titleKey,
-    descriptionKey,
-  }));
+  return PACK_DEFINITIONS.map((pack) => {
+    const base = {
+      id: pack.id,
+      type: pack.type,
+      titleKey: pack.titleKey,
+      descriptionKey: pack.descriptionKey,
+    };
+
+    if (pack.type === 'list' && Array.isArray(pack.taxa_ids)) {
+      base.taxa_ids = pack.taxa_ids;
+    }
+    if (pack.type === 'dynamic' && pack.api_params) {
+      base.api_params = pack.api_params;
+    }
+
+    return base;
+  });
 }
 
 /**

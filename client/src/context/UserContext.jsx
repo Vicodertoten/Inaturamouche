@@ -125,6 +125,25 @@ export function UserProvider({ children }) {
   // Initialize: load profile, migrate legacy data, and seed encyclopedia
   useEffect(() => {
     let isMounted = true;
+    let cancelSeeding = null;
+
+    const scheduleIdleTask = (task) => {
+      if (typeof window === 'undefined') {
+        void task();
+        return () => {};
+      }
+      if (typeof window.requestIdleCallback === 'function') {
+        const id = window.requestIdleCallback(() => {
+          void task();
+        }, { timeout: 2000 });
+        return () => window.cancelIdleCallback?.(id);
+      }
+      const id = window.setTimeout(() => {
+        void task();
+      }, 1500);
+      return () => window.clearTimeout(id);
+    };
+
     const initialize = async () => {
       let migrationApplied = false;
       try {
@@ -153,57 +172,54 @@ export function UserProvider({ children }) {
       }
       
       // Seed encyclopedia if needed. Use a localStorage flag to avoid partial seeding issues.
-      let seedingApplied = false;
       try {
-        const seedingFlag = localStorage.getItem('SEEDING_COMPLETE_V1');
+        const storage = getLocalStorage();
+        const seedingFlag = storage?.getItem('SEEDING_COMPLETE_V1');
         const count = await taxaTable.count();
         console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
 
-        if (!seedingFlag) {
-          try {
-            console.log('🌱 Seeding encyclopedia (flag missing)...');
-            await seedEncyclopedia();
-            // Only mark seeding complete once it finished without throwing
-            localStorage.setItem('SEEDING_COMPLETE_V1', '1');
-            seedingApplied = true;
-          } catch (seedErr) {
-            // Don't set the flag - seeding failed/aborted; let next init attempt retry
-            console.error('❌ Seeding failed, will retry on next launch:', seedErr);
-          }
-        } else if (count === 0) {
-          // Edge case: flag present but DB empty (possible corruption) - try one more time
-          try {
-            console.warn('⚠️ Seeding flag present but DB empty; re-seeding...');
-            await seedEncyclopedia();
-            localStorage.setItem('SEEDING_COMPLETE_V1', '1');
-            seedingApplied = true;
-          } catch (seedErr) {
-            console.error('❌ Re-seeding failed:', seedErr);
-          }
+        if (!seedingFlag || count === 0) {
+          const reason = !seedingFlag ? 'flag missing' : 'db empty';
+          cancelSeeding = scheduleIdleTask(async () => {
+            try {
+              console.log(`🌱 Seeding encyclopedia (${reason})...`);
+              await seedEncyclopedia();
+              // Only mark seeding complete once it finished without throwing
+              storage?.setItem('SEEDING_COMPLETE_V1', '1');
+              if (isMounted) {
+                setCollectionVersion((prev) => prev + 1);
+              }
+            } catch (seedErr) {
+              // Don't set the flag - seeding failed/aborted; let next init attempt retry
+              console.error('❌ Seeding failed, will retry on next launch:', seedErr);
+            }
+          });
         }
       } catch (e) {
-        console.error("Erreur lecture DB", e);
+        console.error('Erreur lecture DB', e);
       }
 
       // Rebuild rarity tiers once using locally stored observations_count data.
       try {
-        const rarityFlag = localStorage.getItem('RARITY_REBUILD_V6');
+        const storage = getLocalStorage();
+        const rarityFlag = storage?.getItem('RARITY_REBUILD_V6');
         if (!rarityFlag) {
           await CollectionService.rebuildRarityTiers();
-          localStorage.setItem('RARITY_REBUILD_V6', '1');
+          storage?.setItem('RARITY_REBUILD_V6', '1');
         }
       } catch (err) {
         console.warn('Rarity rebuild skipped:', err);
       }
       
       // Update collectionVersion if any data changes happened
-      if ((migrationApplied || seedingApplied) && isMounted) {
+      if (migrationApplied && isMounted) {
         setCollectionVersion((prev) => prev + 1);
       }
     };
     void initialize();
     return () => {
       isMounted = false;
+      if (cancelSeeding) cancelSeeding();
     };
   }, []);
 

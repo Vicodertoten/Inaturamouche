@@ -157,9 +157,9 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       clientKey = client_session_id || clientIp || 'anon';
     }
 
-    // Debug logging pour session persistence
-    console.log(
-      `[SESSION] clientSessionId=${client_session_id || 'none'}, clientIp=${clientIp}, clientKey=${clientKey}`
+    req.log?.debug(
+      { clientSessionId: client_session_id || null, clientIp, clientKey },
+      'Session persistence'
     );
 
     const queueKey = `${cacheKey}|${clientKey || 'anon'}`;
