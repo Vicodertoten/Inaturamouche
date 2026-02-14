@@ -45,9 +45,6 @@ function PreferencesMenu({ isOpen: externalIsOpen, onToggle: externalOnToggle, i
 
   // Use external state if provided, otherwise use internal state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-  const setIsOpen = externalOnToggle !== undefined
-    ? externalOnToggle
-    : setInternalIsOpen;
 
   const preferencesTitle = useMemo(
     () => t('common.preferences_title', {}, 'Settings'),

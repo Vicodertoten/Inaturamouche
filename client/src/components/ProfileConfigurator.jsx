@@ -3,7 +3,6 @@ import Modal from './Modal';
 import { 
   getAllTitlesWithStatus, 
   getAllBordersWithStatus,
-  getTitleDetails,
   getBorderDetails,
 } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -132,12 +131,6 @@ const ProfileConfigurator = ({
   const borderCss = useMemo(() => {
     return getBorderDetails(previewBorder)?.css || '';
   }, [previewBorder]);
-
-  const titleDisplay = useMemo(() => {
-    if (!previewTitle || previewTitle === 'default') return null;
-    const details = getTitleDetails(previewTitle);
-    return details?.value || t(details?.nameKey);
-  }, [previewTitle, t]);
 
   if (!isOpen) return null;
 

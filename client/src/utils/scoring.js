@@ -23,7 +23,7 @@ export function computeScore({
   if (mode === 'easy') {
     points = isCorrect ? EASY_BASE_POINTS : 0;
   } else if (mode === 'hard') {
-    points = basePoints;
+    points = isCorrect ? basePoints : 0;
     if (isCorrect) {
       bonus = guessesRemaining * HARD_GUESS_BONUS;
     }

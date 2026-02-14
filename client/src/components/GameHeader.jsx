@@ -46,7 +46,7 @@ const GameHeader = ({
   const { t } = useLanguage();
   const { profile } = useUser();
   const { recentXPGain, xpMultipliers, isReviewMode } = useGameData();
-  const { level, xpProgress = 0, xpNeeded = 1 } = useLevelProgress(profile?.xp || 0);
+  const { level } = useLevelProgress(profile?.xp || 0);
   const hasQuestionLimit = Number.isInteger(maxQuestions) && maxQuestions > 0;
 
   const questionValue = hasQuestionLimit ? `${questionCount}/${maxQuestions}` : questionCount;

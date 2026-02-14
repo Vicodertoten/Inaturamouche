@@ -5,7 +5,13 @@ import { config } from '../config/index.js';
 import { fetchInatJSON } from './iNaturalistClient.js';
 import { questionCache } from '../cache/questionCache.js';
 
-const { maxObsPages, distinctTaxaTarget, quizChoices } = config;
+const {
+  maxObsPages,
+  distinctTaxaTarget,
+  quizChoices,
+  degradePoolMaxTaxa,
+  degradePoolMaxObsPerTaxon,
+} = config;
 
 /**
  * Sanitize an observation from iNaturalist
@@ -187,6 +193,76 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
   return { pool, pagesFetched, poolObs: results.length, poolTaxa: taxonList.length };
 }
 
+function poolStats(pool) {
+  if (!pool) return { poolObs: 0, poolTaxa: 0 };
+  const poolObs =
+    typeof pool.observationCount === 'number'
+      ? pool.observationCount
+      : Array.from(pool.byTaxon?.values?.() || []).reduce((n, arr) => n + arr.length, 0);
+  const poolTaxa = Array.isArray(pool.taxonList) ? pool.taxonList.length : 0;
+  return { poolObs, poolTaxa };
+}
+
+function parseRequestedTaxonIds(params) {
+  const raw = params?.taxon_id;
+  if (!raw) return null;
+  const ids = String(raw)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return ids.length ? new Set(ids.map(String)) : null;
+}
+
+function buildDegradePoolFromCache(params) {
+  const entries = Array.from(questionCache.store?.values?.() || []);
+  if (!entries.length) return null;
+
+  const requestedTaxonIds = parseRequestedTaxonIds(params);
+  const hasExplicitTaxa = Boolean(params?.taxon_id);
+  const minTaxaRequired = hasExplicitTaxa ? 1 : quizChoices;
+  const maxTaxa = Math.max(minTaxaRequired, degradePoolMaxTaxa);
+  const byTaxon = new Map();
+  const seenObsIds = new Set();
+
+  for (const entry of entries) {
+    const pool = entry?.value;
+    if (!pool?.byTaxon) continue;
+    for (const [taxonId, observations] of pool.byTaxon.entries()) {
+      const key = String(taxonId);
+      if (requestedTaxonIds && !requestedTaxonIds.has(key)) continue;
+      if (!Array.isArray(observations) || observations.length === 0) continue;
+      if (!byTaxon.has(key) && byTaxon.size >= maxTaxa) continue;
+      if (!byTaxon.has(key)) byTaxon.set(key, []);
+      const target = byTaxon.get(key);
+      for (const obs of observations) {
+        if (target.length >= degradePoolMaxObsPerTaxon) break;
+        if (!obs?.id || seenObsIds.has(String(obs.id))) continue;
+        if (!Array.isArray(obs.photos) || obs.photos.length === 0) continue;
+        target.push(obs);
+        seenObsIds.add(String(obs.id));
+      }
+      if (target.length === 0) {
+        byTaxon.delete(key);
+      }
+    }
+    if (byTaxon.size >= maxTaxa) break;
+  }
+
+  const taxonList = Array.from(byTaxon.keys());
+  if (taxonList.length < minTaxaRequired) return null;
+  const observationCount = Array.from(byTaxon.values()).reduce((acc, list) => acc + list.length, 0);
+
+  return {
+    timestamp: Date.now(),
+    version: Date.now(),
+    byTaxon,
+    taxonList,
+    taxonSet: new Set(taxonList.map(String)),
+    observationCount,
+    source: 'degrade-local',
+  };
+}
+
 /**
  * Get or refresh observation pool with cache management
  */
@@ -207,37 +283,60 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
     }
   }
 
-  const poolStatsFromCache = (pool) => ({
-    poolObs: pool?.observationCount || Array.from(pool.byTaxon.values()).reduce((n, arr) => n + arr.length, 0),
-    poolTaxa: pool?.taxonList?.length || 0,
-  });
-
-  const refreshPool = async () => {
-    try {
-      const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng, seed });
-      questionCache.set(cacheKey, fresh.pool);
-      return { ...fresh, cacheStatus: 'miss' };
-    } catch (err) {
-      // MODE STRICT: Plus de fallback hors-sujet
-      // Si l'API est indisponible ou retourne vide, on renvoie une erreur explicite
-      logger?.error({ requestId, error: err.message }, 'Observation pool unavailable');
-      const poolErr = new Error(
-        "Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres."
-      );
-      poolErr.status = 503;
-      poolErr.code = 'POOL_UNAVAILABLE';
-      throw poolErr;
-    }
+  let fetchedStats = null;
+  const fetchFreshPool = async () => {
+    const fresh = await fetchObservationPoolFromInat(params, monthDayFilter, {
+      logger,
+      requestId,
+      rng,
+      seed,
+    });
+    fetchedStats = {
+      pagesFetched: fresh.pagesFetched,
+      poolObs: fresh.poolObs,
+      poolTaxa: fresh.poolTaxa,
+    };
+    return fresh.pool;
   };
 
   if (cachedEntry && !cachedEntry.isStale) {
-    return { pool: cachedPool, pagesFetched: 0, ...poolStatsFromCache(cachedPool), cacheStatus: 'hit' };
+    return { pool: cachedPool, pagesFetched: 0, ...poolStats(cachedPool), cacheStatus: 'hit' };
   }
+
   if (cachedEntry && cachedEntry.isStale) {
-    refreshPool().catch((err) => {
-      logger?.warn({ requestId, error: err.message }, 'Background pool refresh failed');
+    const stalePool = await questionCache.getOrFetch(cacheKey, fetchFreshPool, {
+      allowStale: true,
+      background: true,
+      onError: (err) => logger?.warn({ requestId, error: err?.message }, 'Background pool refresh failed'),
     });
-    return { pool: cachedPool, pagesFetched: 0, ...poolStatsFromCache(cachedPool), cacheStatus: 'stale' };
+    return { pool: stalePool, pagesFetched: 0, ...poolStats(stalePool), cacheStatus: 'stale' };
   }
-  return refreshPool();
+
+  try {
+    const freshPool = await questionCache.getOrFetch(cacheKey, fetchFreshPool, {
+      allowStale: false,
+      background: false,
+    });
+    if (fetchedStats) {
+      return { pool: freshPool, ...fetchedStats, cacheStatus: 'miss' };
+    }
+    return { pool: freshPool, pagesFetched: 0, ...poolStats(freshPool), cacheStatus: 'hit' };
+  } catch (err) {
+    logger?.warn({ requestId, error: err?.message }, 'Fresh observation pool fetch failed, trying degrade mode');
+    const degradedPool = buildDegradePoolFromCache(params);
+    if (degradedPool) {
+      logger?.warn(
+        { requestId, cacheKey, taxa: degradedPool.taxonList.length, obs: degradedPool.observationCount },
+        'Serving degraded local observation pool'
+      );
+      questionCache.set(cacheKey, degradedPool);
+      return { pool: degradedPool, pagesFetched: 0, ...poolStats(degradedPool), cacheStatus: 'degrade' };
+    }
+    const poolErr = new Error(
+      "Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres."
+    );
+    poolErr.status = 503;
+    poolErr.code = 'POOL_UNAVAILABLE';
+    throw poolErr;
+  }
 }

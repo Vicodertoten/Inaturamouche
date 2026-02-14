@@ -1,2 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /reports
+Disallow: /admin/
+
+Sitemap: https://inaturaquizz.com/sitemap.xml

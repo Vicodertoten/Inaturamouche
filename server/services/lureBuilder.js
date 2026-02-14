@@ -2,7 +2,7 @@
 // Algorithme LCA pour construire les leurres avec stratégie hybride
 
 import { config } from '../config/index.js';
-import { lcaDepth, shuffleFisherYates } from '../../lib/quiz-utils.js';
+import { lcaDepth } from '../../lib/quiz-utils.js';
 import { pickObservationForTaxon } from './selectionState.js';
 import { fetchInatJSON, fetchSimilarSpeciesWithTimeout } from './iNaturalistClient.js';
 import { similarSpeciesCache } from '../cache/similarSpeciesCache.js';
@@ -168,6 +168,7 @@ export async function buildLures(
       if (isExcluded(sid)) continue;
       if (seenTaxa.has(sid)) continue;
       const s = scoredMap.get(sid);
+      if (s.closeness < closenessFloor) continue;
       const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs });
@@ -307,12 +308,14 @@ export async function buildLures(
   // Used when API times out, fails, or returns no results
   if (out.length < lureCount && near.length) pickFromArr([near[0]]);
   if (out.length < lureCount && mid.length) pickFromArr([mid[0]]);
-  if (out.length < lureCount && far.length) pickFromArr([far[0]]);
   if (out.length < lureCount) pickFromArr(near);
   if (out.length < lureCount) pickFromArr(mid);
+  if (out.length < lureCount && far.length) pickFromArr([far[0]]);
   if (out.length < lureCount) pickFromArr(far);
   if (out.length < lureCount) {
-    const rest = shuffleFisherYates(scored, rng);
+    const rest = scored
+      .slice()
+      .sort((a, b) => b.closeness - a.closeness || b.depth - a.depth || (random() - 0.5) * 0.01);
     pickFromArr(rest);
   }
 
@@ -334,6 +337,7 @@ export async function buildLures(
     relaxedJitter(relaxedFar);
     if (out.length < lureCount && relaxedNear.length) pickFromArr(relaxedNear);
     if (out.length < lureCount && relaxedMid.length) pickFromArr(relaxedMid);
+    if (out.length < lureCount && relaxedFar.length) pickFromArr([relaxedFar[0]]);
     if (out.length < lureCount && relaxedFar.length) pickFromArr(relaxedFar);
   }
 

@@ -33,18 +33,11 @@ const EndScreen = ({
   // Level up seulement si on a vraiment gagné de l'XP ET que le niveau a changé
   const leveledUp = sessionXPGained > 0 && endLevel > startLevel;
 
-  const [levelUpsDetected, setLevelUpsDetected] = useState([]);
-
   // Callback pour les level-ups détectés lors de l'animation XP
   const handleLevelUp = (newLevel) => {
-    setLevelUpsDetected(prev => {
-      const updated = [...prev, newLevel];
-      // Notification pour ce level-up
-      notify(t('notifications.level_up', { level: newLevel }, `Niveau ${newLevel} atteint!`), { 
-        type: 'success', 
-        duration: 4000 
-      });
-      return updated;
+    notify(t('notifications.level_up', { level: newLevel }, `Niveau ${newLevel} atteint!`), {
+      type: 'success',
+      duration: 4000,
     });
   };
 
@@ -73,10 +66,6 @@ const EndScreen = ({
       return () => { clearTimeout(start); clearTimeout(stop); };
     }
   }, []);
-
-  const totalQuestions = sessionSpeciesData.length || 0;
-  const correctCount = sessionCorrectSpecies.length;
-  const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
 
   const sortedSpecies = [...sessionSpeciesData].sort((a, b) => {
     const aFound = sessionCorrectSpecies.includes(a.id);

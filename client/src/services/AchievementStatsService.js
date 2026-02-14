@@ -5,7 +5,7 @@
  * Optimisé pour éviter de charger toutes les données en mémoire.
  */
 
-import db, { taxa as taxaTable, stats as statsTable } from './db.js';
+import { taxa as taxaTable, stats as statsTable } from './db.js';
 import { TAXON_GROUP_FILTERS } from '../core/achievements';
 import { MASTERY_LEVELS } from './CollectionService.js';
 

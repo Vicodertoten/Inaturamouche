@@ -5,7 +5,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { findPackById } from '../packs/index.js';
 import { createSeededRandom, buildCacheKey } from '../../lib/quiz-utils.js';
-import { quizLimiter } from '../middleware/rateLimiter.js';
+import { explainDailyLimiter, explainLimiter, quizLimiter } from '../middleware/rateLimiter.js';
 import { validate, quizSchema } from '../utils/validation.js';
 import { buildMonthDayFilter, geoParams, isValidISODate, getClientIp } from '../utils/helpers.js';
 import { selectionStateCache, questionQueueCache } from '../cache/selectionCache.js';
@@ -13,17 +13,77 @@ import { buildQuizQuestion, getQueueEntry, fillQuestionQueue } from '../services
 import { getFullTaxaDetails } from '../services/iNaturalistClient.js';
 import { taxonDetailsCache } from '../cache/taxonDetailsCache.js';
 import { generateCustomExplanation } from '../services/aiService.js';
+import {
+  createRoundSession,
+  submitRoundAnswer,
+  getAdaptiveQuestionTuning,
+  getBalanceDashboardSnapshot,
+} from '../services/roundStore.js';
+import { config } from '../config/index.js';
+import { sendError } from '../utils/http.js';
 
 const router = Router();
+const { balanceDashboardToken, balanceDashboardRequireToken } = config;
 
-const explainSchema = z.object({
-  correctId: z.coerce.number().int(),
-  wrongId: z.coerce.number().int(),
-  locale: z.string().trim().default('fr'),
-  focusRank: z.string().trim().max(32).optional().nullable(),
+const getAuthToken = (req) => {
+  const header = req.headers.authorization || '';
+  if (!header) return '';
+  if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim();
+  return header.trim();
+};
+
+const isAuthorized = (req, expectedToken) => {
+  if (!expectedToken) return false;
+  const token = getAuthToken(req);
+  return token && token === expectedToken;
+};
+
+const isConfiguredToken = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const explainSchema = z
+  .object({
+    correctId: z.coerce.number().int().positive(),
+    wrongId: z.coerce.number().int().positive(),
+    locale: z.enum(['fr', 'en', 'nl']).default('fr'),
+    focusRank: z.string().trim().max(32).optional().nullable(),
+  })
+  .refine((data) => data.correctId !== data.wrongId, {
+    message: 'correctId and wrongId must differ',
+    path: ['wrongId'],
+  });
+
+const submitAnswerSchema = z.object({
+  round_id: z.string().trim().min(8).max(120),
+  round_signature: z.string().trim().min(32).max(256),
+  round_action: z
+    .enum(['answer', 'hard_guess', 'hard_hint', 'taxonomic_select', 'taxonomic_hint'])
+    .optional(),
+  selected_taxon_id: z.union([z.string(), z.number()]).optional(),
+  step_index: z.coerce.number().int().min(0).max(30).optional(),
+  submission_id: z.string().trim().min(3).max(120).optional(),
+  client_session_id: z.string().trim().max(120).optional(),
+}).superRefine((value, ctx) => {
+  const action = value.round_action || 'answer';
+  const selectedRequired = action === 'answer' || action === 'hard_guess' || action === 'taxonomic_select';
+  const stepRequired = action === 'taxonomic_select' || action === 'taxonomic_hint';
+
+  if (selectedRequired && (value.selected_taxon_id === undefined || value.selected_taxon_id === null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['selected_taxon_id'],
+      message: 'selected_taxon_id is required for this action',
+    });
+  }
+  if (stepRequired && (value.step_index === undefined || value.step_index === null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['step_index'],
+      message: 'step_index is required for this action',
+    });
+  }
 });
 
-router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
+router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(explainSchema), async (req, res) => {
   const { correctId, wrongId, locale, focusRank } = req.valid;
   const logger = req.log;
   const requestId = req.id;
@@ -37,7 +97,11 @@ router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
 
     if (!correctTaxon || !wrongTaxon) {
       logger.warn({ correctId, wrongId, found: taxaDetails.map(t=>t.id) }, 'Could not find one or both taxa for explanation.');
-      return res.status(404).json({ error: { code: 'TAXON_NOT_FOUND', message: 'One or both species not found.' } });
+      return sendError(req, res, {
+        status: 404,
+        code: 'TAXON_NOT_FOUND',
+        message: 'One or both species not found.',
+      });
     }
 
     const explanation = await generateCustomExplanation(
@@ -52,7 +116,11 @@ router.post('/api/quiz/explain', validate(explainSchema), async (req, res) => {
 
   } catch (err) {
     logger.error({ err, requestId }, 'Failed to generate AI explanation');
-    res.status(500).json({ error: { code: 'EXPLANATION_FAILED', message: 'Could not generate explanation.' } });
+    return sendError(req, res, {
+      status: 500,
+      code: 'EXPLANATION_FAILED',
+      message: 'Could not generate explanation.',
+    });
   }
 });
 
@@ -102,7 +170,11 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     if (pack_id) {
       const selectedPack = findPackById(pack_id);
       if (!selectedPack) {
-        return res.status(400).json({ error: { code: 'UNKNOWN_PACK', message: 'Unknown pack' } });
+        return sendError(req, res, {
+          status: 400,
+          code: 'UNKNOWN_PACK',
+          message: 'Unknown pack',
+        });
       }
       if (selectedPack.type === 'list' && Array.isArray(selectedPack.taxa_ids)) {
         params.taxon_id = selectedPack.taxa_ids.join(',');
@@ -171,6 +243,12 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       gameMode,
       geoMode: geo.mode,
       clientId: clientKey,
+      adaptiveTuning: hasSeed
+        ? null
+        : getAdaptiveQuestionTuning({
+            clientId: clientKey,
+            gameMode,
+          }),
       logger: req.log,
       requestId: req.id,
       rng,
@@ -184,12 +262,30 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       item = await buildQuizQuestion(context);
     }
     if (!item?.payload) {
-      return res
-        .status(503)
-        .json({
-          error: { code: 'POOL_UNAVAILABLE', message: 'Observation pool unavailable, please try again.' },
-        });
+      return sendError(req, res, {
+        status: 503,
+        code: 'POOL_UNAVAILABLE',
+        message: 'Observation pool unavailable, please try again.',
+      });
     }
+
+    if (item?.validation) {
+      const round = createRoundSession({
+        clientId: clientKey,
+        gameMode: item.validation.game_mode,
+        correctTaxonId: item.validation.correct_taxon_id,
+        correctAnswer: item.validation.correct_answer,
+        inaturalistUrl: item.validation.inaturalist_url,
+        maxAttempts: item.validation.max_attempts,
+        locale: item.validation.locale || locale,
+        hardMode: item.validation.hard_mode,
+        taxonomicMode: item.validation.taxonomic_mode,
+      });
+      item.payload.round_id = round.round_id;
+      item.payload.round_signature = round.round_signature;
+      item.payload.round_expires_at = round.round_expires_at;
+    }
+
     if (item.headers) {
       for (const [key, value] of Object.entries(item.headers)) {
         res.set(key, value);
@@ -203,14 +299,86 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled quiz route error');
     if (res.headersSent) return;
-    const status = err?.status || 500;
+    const status = Number.parseInt(String(err?.status ?? 500), 10) || 500;
     let code = err?.code || (status === 500 ? 'INTERNAL_SERVER_ERROR' : 'ERROR');
-    let message = err?.message || (status === 500 ? 'Internal server error' : 'Error');
+    let message = status >= 500 ? 'Internal server error' : err?.message || 'Error';
     if (err?.code === 'timeout') {
       code = 'INAT_TIMEOUT';
       message = 'iNaturalist service is slow or unavailable, please try again.';
     }
-    res.status(status).json({ error: { code, message } });
+    if (err?.code === 'circuit_open') {
+      code = 'INAT_UNAVAILABLE';
+      message = 'iNaturalist service is temporarily unavailable, please try again later.';
+    }
+    return sendError(req, res, { status, code, message });
+  }
+});
+
+router.post('/api/quiz/submit', quizLimiter, validate(submitAnswerSchema), async (req, res) => {
+  try {
+    const {
+      round_id,
+      round_signature,
+      round_action,
+      selected_taxon_id,
+      step_index,
+      submission_id,
+      client_session_id,
+    } = req.valid;
+
+    const clientIp = getClientIp(req);
+    const clientKey = client_session_id || clientIp || 'anon';
+
+    const result = await submitRoundAnswer({
+      roundId: round_id,
+      roundSignature: round_signature,
+      clientId: clientKey,
+      roundAction: round_action,
+      selectedTaxonId: selected_taxon_id,
+      stepIndex: step_index,
+      submissionId: submission_id,
+      logger: req.log,
+      requestId: req.id,
+    });
+
+    return res.json(result);
+  } catch (err) {
+    req.log?.warn({ err, requestId: req.id }, 'Quiz submit failed');
+    const status = Number.parseInt(String(err?.status ?? 400), 10) || 400;
+    const code = err?.code || (status >= 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST');
+    const message = status >= 500 ? 'Internal server error' : err?.message || 'Error';
+    return sendError(req, res, { status, code, message });
+  }
+});
+
+router.get('/api/quiz/balance-dashboard', (req, res) => {
+  try {
+    if (balanceDashboardRequireToken) {
+      if (!isConfiguredToken(balanceDashboardToken)) {
+        return sendError(req, res, {
+          status: 503,
+          code: 'BALANCE_DASHBOARD_DISABLED',
+          message: 'Balance dashboard is not configured.',
+        });
+      }
+      if (!isAuthorized(req, balanceDashboardToken)) {
+        return sendError(req, res, {
+          status: 401,
+          code: 'UNAUTHORIZED',
+          message: 'Unauthorized',
+        });
+      }
+    }
+
+    const snapshot = getBalanceDashboardSnapshot();
+    return res.json(snapshot);
+  } catch (err) {
+    req.log?.error({ err, requestId: req.id }, 'Balance dashboard failed');
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 

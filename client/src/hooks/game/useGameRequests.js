@@ -207,14 +207,14 @@ export function useGameRequests({
   }, [fetchQuestion, isGameActive, loading, question, questionCount]);
 
   useEffect(() => {
-    if (question?.bonne_reponse?.id) {
+    if (question?.round_id || question?.bonne_reponse?.id) {
       const now =
         typeof performance !== 'undefined' && typeof performance.now === 'function'
           ? performance.now()
           : Date.now();
       questionStartTimeRef.current = now;
     }
-  }, [question?.bonne_reponse?.id]);
+  }, [question?.round_id, question?.bonne_reponse?.id]);
 
   return {
     abortActiveFetch,

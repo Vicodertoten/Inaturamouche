@@ -49,6 +49,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Workaround for Workbox/Terser instability observed in production minification.
+        mode: "development",
+        sourcemap: false,
+        disableDevLogs: true,
         cleanupOutdatedCaches: true,
         // Ne jamais faire tomber /api/ dans la navigation fallback SPA
         navigateFallbackDenylist: [/^\/api\//],
@@ -128,7 +132,7 @@ export default defineConfig({
     },
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
     target: "esnext",
     rollupOptions: {
       output: {

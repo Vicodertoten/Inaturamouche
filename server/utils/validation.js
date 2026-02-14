@@ -2,6 +2,7 @@
 // Schémas de validation Zod
 
 import { z } from 'zod';
+import { sendError } from './http.js';
 
 const stringOrArray = z.union([z.string(), z.array(z.string())]);
 
@@ -90,10 +91,14 @@ export const taxaBatchSchema = z.object({
 export function validate(schema) {
   return (req, res, next) => {
     const parsed = schema.safeParse({ ...req.query, ...req.body });
-    if (!parsed.success)
-      return res
-        .status(400)
-        .json({ error: { code: 'BAD_REQUEST', message: 'Bad request' }, issues: parsed.error.issues });
+    if (!parsed.success) {
+      return sendError(req, res, {
+        status: 400,
+        code: 'BAD_REQUEST',
+        message: 'Bad request',
+        issues: parsed.error.issues,
+      });
+    }
     req.valid = parsed.data;
     next();
   };

@@ -220,6 +220,7 @@ const TutorialOverlay = () => {
   const cardRef = useRef(null);
 
   const step = steps[currentStepIndex];
+  const stepId = step?.id;
 
   const finishTutorial = useCallback(() => {
     completeTutorial();
@@ -385,21 +386,19 @@ const TutorialOverlay = () => {
     }
   }, [showTutorial]);
 
-  if (!showTutorial || !step) return null;
-
-  const isCentered = isFallbackCenter || !targetRect;
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+  const isCentered = !step || isFallbackCenter || !targetRect;
   const preferredPosition =
     isCentered
       ? 'center'
-      : step.position === 'auto'
+      : step?.position === 'auto'
         ? targetRect.top > viewportHeight * 0.55
           ? 'top'
           : 'bottom'
-        : step.position;
+        : step?.position;
 
-  const spotlightPadding = step.spotlightPadding ?? 12;
+  const spotlightPadding = step?.spotlightPadding ?? 12;
   const spotlightRect = targetRect
     ? (() => {
         const rawLeft = targetRect.left - spotlightPadding;
@@ -417,16 +416,16 @@ const TutorialOverlay = () => {
   const hasSpotlight = Boolean(
     spotlightRect && !isCentered && spotlightRect.width > 0 && spotlightRect.height > 0
   );
-  const spotlightRadius = step.spotlightRadius ?? 18;
+  const spotlightRadius = step?.spotlightRadius ?? 18;
 
   useLayoutEffect(() => {
-    if (!showTutorial) return;
+    if (!showTutorial || !step) return;
     const cardEl = cardRef.current;
     if (!cardEl) return;
 
     const cardRect = cardEl.getBoundingClientRect();
     const margin = 16;
-    const gap = step.id === 'packs' ? 12 : 18;
+    const gap = stepId === 'packs' ? 12 : 18;
     let top;
     let left;
     let placement = preferredPosition;
@@ -482,6 +481,8 @@ const TutorialOverlay = () => {
     isFallbackCenter,
     preferredPosition,
     showTutorial,
+    step,
+    stepId,
     targetRect,
     viewportHeight,
     viewportTick,
@@ -498,6 +499,8 @@ const TutorialOverlay = () => {
         '--target-right': `${targetRect.right}px`,
       }
     : {};
+
+  if (!showTutorial || !step) return null;
 
   return (
     <div className="tutorial-overlay" role="dialog" aria-modal="true" data-step={step.id}>

@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
 import ReviewDashboardCard from '../components/ReviewDashboardCard';
 import { getReviewStats } from '../services/CollectionService';
+import { debugError, debugLog, debugWarn } from '../utils/logger';
 
 const Configurator = lazy(() => import('../features/configurator/Configurator'));
 
@@ -32,7 +33,7 @@ const HomePage = () => {
           setResumeSessionData(null);
         }
       } catch (err) {
-        console.error('[HomePage] Error checking active session:', err);
+        debugError('[HomePage] Error checking active session:', err);
         setHasActiveSession(false);
         setResumeSessionData(null);
       } finally {
@@ -63,7 +64,7 @@ const HomePage = () => {
           setReviewStats(stats);
         }
       } catch (err) {
-        console.error('[HomePage] Failed to load review stats:', err);
+        debugError('[HomePage] Failed to load review stats:', err);
       }
     };
 
@@ -83,16 +84,16 @@ const HomePage = () => {
   );
 
   const handleResumeGame = useCallback(async () => {
-    console.log('[HomePage] Starting resume game...');
+    debugLog('[HomePage] Starting resume game...');
     const sessionData = await resumeGame();
-    console.log('[HomePage] Resume game completed, session data:', sessionData);
+    debugLog('[HomePage] Resume game completed');
     if (sessionData) {
       // Petit délai pour laisser React traiter les state updates
       await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('[HomePage] Navigating to /play');
+      debugLog('[HomePage] Navigating to /play');
       navigate('/play');
     } else {
-      console.warn('[HomePage] No session data returned from resumeGame');
+      debugWarn('[HomePage] No session data returned from resumeGame');
     }
   }, [navigate, resumeGame]);
 

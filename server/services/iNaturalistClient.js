@@ -4,7 +4,16 @@
 import { config } from '../config/index.js';
 import { CircuitBreaker } from '../../lib/smart-cache.js';
 
-const { requestTimeoutMs, maxRetries, inatCircuitFailureThreshold, inatCircuitCooldownMs, inatCircuitHalfOpenMax } = config;
+const {
+  requestTimeoutMs,
+  maxRetries,
+  inatCircuitFailureThreshold,
+  inatCircuitCooldownMs,
+  inatCircuitHalfOpenMax,
+  inatMaxConcurrentRequests,
+  inatBackoffBaseMs,
+  inatBackoffMaxMs,
+} = config;
 
 // Circuit breaker pour protéger contre les défaillances de l'API iNaturalist
 const inatCircuitBreaker = new CircuitBreaker({
@@ -12,6 +21,44 @@ const inatCircuitBreaker = new CircuitBreaker({
   cooldownMs: inatCircuitCooldownMs,
   halfOpenMax: inatCircuitHalfOpenMax,
 });
+
+let inatInFlight = 0;
+const inatWaitQueue = [];
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function acquireInatSlot() {
+  if (inatInFlight < inatMaxConcurrentRequests) {
+    inatInFlight += 1;
+    return () => {
+      inatInFlight = Math.max(0, inatInFlight - 1);
+      const next = inatWaitQueue.shift();
+      if (next) next();
+    };
+  }
+  await new Promise((resolve) => inatWaitQueue.push(resolve));
+  return acquireInatSlot();
+}
+
+function parseRetryAfterMs(retryAfterValue) {
+  if (!retryAfterValue) return 0;
+  const seconds = Number.parseInt(String(retryAfterValue), 10);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const retryDate = Date.parse(String(retryAfterValue));
+  if (Number.isFinite(retryDate)) {
+    return Math.max(0, retryDate - Date.now());
+  }
+  return 0;
+}
+
+function computeBackoffMs(attempt, response) {
+  const exp = Math.min(inatBackoffMaxMs, inatBackoffBaseMs * Math.pow(2, Math.max(0, attempt)));
+  const retryAfterMs =
+    response?.status === 429 ? parseRetryAfterMs(response.headers?.get?.('retry-after')) : 0;
+  const floor = Math.max(exp, retryAfterMs);
+  const jitter = Math.floor(Math.random() * Math.max(20, Math.floor(floor * 0.2)));
+  return Math.min(inatBackoffMaxMs, floor + jitter);
+}
 
 /**
  * Fetches JSON from iNaturalist with bounded retries and a per-request timeout.
@@ -47,18 +94,24 @@ export async function fetchJSON(
       attempt,
     };
     try {
-      const response = await fetch(urlObj, {
-        signal: controller.signal,
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Inaturamouche/1.0 (+contact: you@example.com)',
-        },
-      });
+      const releaseSlot = await acquireInatSlot();
+      let response;
+      try {
+        response = await fetch(urlObj, {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'Inaturamouche/1.0 (+contact: you@example.com)',
+          },
+        });
+      } finally {
+        releaseSlot();
+      }
       clearTimeout(timer);
       if (!response.ok) {
         if ((response.status >= 500 || response.status === 429) && attempt < retries) {
           attempt++;
-          await new Promise((r) => setTimeout(r, 300 * Math.pow(2, attempt)));
+          await sleep(computeBackoffMs(attempt, response));
           continue;
         }
         const text = await response.text().catch(() => '');
@@ -81,7 +134,7 @@ export async function fetchJSON(
       if (attempt < retries) {
         attempt++;
         logger?.warn({ ...requestMeta, error: err.message }, 'Retrying iNat fetch');
-        await new Promise((r) => setTimeout(r, 300 * Math.pow(2, attempt)));
+        await sleep(computeBackoffMs(attempt));
         continue;
       }
       logger?.error({ ...requestMeta, error: err.message }, 'iNat fetch exhausted retries');

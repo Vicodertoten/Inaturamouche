@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useLevelProgress } from '../hooks/useLevelProgress';
 import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
@@ -27,7 +27,7 @@ const XPProgressBar = ({
   const initialXP = startXP == null ? currentXP : startXP;
   const [displayedXP, setDisplayedXP] = useState(initialXP);
   const [displayedLevel, setDisplayedLevel] = useState(getLevelFromXp(initialXP));
-  const { level, nextLevel, xpProgress, xpNeeded, progressPercent } = useLevelProgress(displayedXP);
+  const { nextLevel, xpProgress, xpNeeded, progressPercent } = useLevelProgress(displayedXP);
   const [showXPPopup, setShowXPPopup] = useState(false);
   const [displayedProgress, setDisplayedProgress] = useState(progressPercent);
   const [isAnimating, setIsAnimating] = useState(false);

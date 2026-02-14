@@ -15,39 +15,14 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 
 // Use shared icons for consistent desktop/mobile appearance
 
-const readLocalStorage = (key) => {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage.getItem(key);
-  } catch (error) {
-    console.warn('Access to localStorage is blocked', error);
-    return null;
-  }
-};
-
-const writeLocalStorage = (key, value) => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch (error) {
-    console.warn('Unable to persist localStorage value', error);
-  }
-};
-
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
   const { achievementQueue, popAchievement, showTutorial } = useUser();
   const { t } = useLanguage();
-  const [isHelpVisible, setIsHelpVisible] = useState(() => !readLocalStorage('home_intro_seen'));
   const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-
-  const closeHelp = useCallback(() => {
-    writeLocalStorage('home_intro_seen', '1');
-    setIsHelpVisible(false);
-  }, []);
 
   const handleTitleClick = useCallback(() => {
     if (isGameActive || isGameOver) {
@@ -56,7 +31,6 @@ const AppLayout = () => {
     navigate('/');
   }, [isGameActive, isGameOver, navigate, resetToLobby]);
 
-  const showHelp = useCallback(() => setIsHelpVisible(true), []);
   const showReport = useCallback(() => setIsReportVisible(true), []);
   const closeReport = useCallback(() => setIsReportVisible(false), []);
 
@@ -68,7 +42,7 @@ const AppLayout = () => {
     setIsPreferencesOpen((prev) => !prev);
   }, []);
 
-  const outletContext = useMemo(() => ({ showHelp, showReport }), [showHelp, showReport]);
+  const outletContext = useMemo(() => ({ showReport }), [showReport]);
 
   return (
     <div className="App">

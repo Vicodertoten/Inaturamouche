@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { active_session } from '../../services/db';
 import { DEFAULT_MAX_QUESTIONS, DEFAULT_MEDIA_TYPE, normalizeGameMode } from './gameUtils';
+import { debugError, debugLog } from '../../utils/logger';
 
 export function useGamePersistence({
   isGameActive,
@@ -53,9 +54,9 @@ export function useGamePersistence({
   const clearSessionFromDB = useCallback(async () => {
     try {
       await active_session.delete(1);
-      console.log('[GameContext] Active session cleared from DB');
+      debugLog('[GameContext] Active session cleared from DB');
     } catch (err) {
-      console.error('[GameContext] Failed to clear active session:', err);
+      debugError('[GameContext] Failed to clear active session:', err);
     }
   }, []);
 
@@ -93,9 +94,9 @@ export function useGamePersistence({
 
     try {
       await active_session.put(sessionData);
-      console.log('[GameContext] Session paused and saved', sessionData);
+      debugLog('[GameContext] Session paused and saved');
     } catch (err) {
-      console.error('[GameContext] Failed to pause game session:', err);
+      debugError('[GameContext] Failed to pause game session:', err);
     }
   }, [
     isGameActive,
@@ -125,21 +126,21 @@ export function useGamePersistence({
 
   const resumeGame = useCallback(async () => {
     try {
-      console.log('[GameContext] resumeGame() - Starting restoration');
+      debugLog('[GameContext] resumeGame() - Starting restoration');
       const sessionData = await active_session.get(1);
       if (!sessionData) {
-        console.log('[GameContext] No active session found');
+        debugLog('[GameContext] No active session found');
         return null;
       }
 
-      console.log('[GameContext] Session resumed from DB, data:', {
+      debugLog('[GameContext] Session resumed from DB', {
         currentQuestionIndex: sessionData.currentQuestionIndex,
         score: sessionData.score,
         gameConfig: sessionData.gameConfig,
       });
 
       const config = sessionData.gameConfig || {};
-      console.log('[GameContext] Restoring config:', config);
+      debugLog('[GameContext] Restoring config');
 
       setActivePackId(config.activePackId || 'custom');
       if (config.customFilters) dispatchCustomFilters({ type: 'RESTORE', payload: config.customFilters });
@@ -166,16 +167,16 @@ export function useGamePersistence({
         questionStartTimeRef.current = sessionData.questionStartTime;
       }
 
-      console.log('[GameContext] About to set isGameActive to true');
+      debugLog('[GameContext] About to set isGameActive to true');
       setIsGameActive(true);
       setIsGameOver(false);
       setQuestion(sessionData.currentQuestion || null);
       setNextQuestion(sessionData.nextQuestion || null);
 
-      console.log('[GameContext] resumeGame() - Restoration complete');
+      debugLog('[GameContext] resumeGame() - Restoration complete');
       return sessionData;
     } catch (err) {
-      console.error('[GameContext] Failed to resume game session:', err);
+      debugError('[GameContext] Failed to resume game session:', err);
       return null;
     }
   }, [
@@ -208,7 +209,7 @@ export function useGamePersistence({
   useEffect(() => {
     return () => {
       if (isGameActive) {
-        pauseGame().catch((err) => console.error('[GameContext] Error pausing game on unmount:', err));
+        pauseGame().catch((err) => debugError('[GameContext] Error pausing game on unmount:', err));
       }
     };
   }, [isGameActive, pauseGame]);
@@ -232,7 +233,7 @@ export function useGamePersistence({
     const handleVisibilityChange = async () => {
       if (document.hidden && isGameActive) {
         await pauseGame();
-        console.log('[GameContext] Session paused due to visibility change');
+        debugLog('[GameContext] Session paused due to visibility change');
       }
     };
 

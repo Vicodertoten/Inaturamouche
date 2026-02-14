@@ -99,6 +99,7 @@ export const applyReward = (profile, achievementId) => {
       break;
 
     case REWARD_TYPES.PERM_MULTIPLIER:
+    {
       // Ajouter le multiplicateur permanent
       const newMultiplier = {
         achievementId,
@@ -113,8 +114,10 @@ export const applyReward = (profile, achievementId) => {
         updatedProfile.rewards.permanentMultipliers.push(newMultiplier);
       }
       break;
+    }
 
     case REWARD_TYPES.TITLE:
+    {
       // Débloquer le titre
       const titleId = reward.value;
       if (titleId && !updatedProfile.rewards.unlockedTitles.includes(titleId)) {
@@ -122,8 +125,10 @@ export const applyReward = (profile, achievementId) => {
         titleUnlocked = titleId;
       }
       break;
+    }
 
     case REWARD_TYPES.BORDER:
+    {
       // Débloquer la bordure
       const borderId = reward.value;
       if (borderId && !updatedProfile.rewards.unlockedBorders.includes(borderId)) {
@@ -131,6 +136,7 @@ export const applyReward = (profile, achievementId) => {
         borderUnlocked = borderId;
       }
       break;
+    }
 
     default:
       console.warn(`Unknown reward type: ${reward.type}`);
@@ -309,19 +315,25 @@ export const formatRewardDescription = (reward, t) => {
       return t('rewards.xp_flat', { value: reward.value });
 
     case REWARD_TYPES.PERM_MULTIPLIER:
+    {
       const percent = Math.round(reward.value * 100);
       if (reward.filter === 'all') {
         return t('rewards.perm_multiplier_all', { percent });
       }
       return t('rewards.perm_multiplier', { percent, filter: reward.filter });
+    }
 
     case REWARD_TYPES.TITLE:
+    {
       const title = getTitleDetails(reward.value);
       return t('rewards.title', { name: title?.value || reward.value });
+    }
 
     case REWARD_TYPES.BORDER:
+    {
       const border = getBorderDetails(reward.value);
       return t('rewards.border', { name: t(border?.nameKey) || reward.value });
+    }
 
     default:
       return '';

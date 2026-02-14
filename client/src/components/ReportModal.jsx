@@ -3,11 +3,15 @@
 import React, { useState, useEffect, useId } from 'react';
 import './ReportModal.css'; // We'll create this CSS file
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { submitBugReport } from '../services/api.js';
+import { notify } from '../services/notifications.js';
+import { debugError } from '../utils/logger.js';
 
 function ReportModal({ onClose }) {
   const { t } = useLanguage();
   const titleId = useId();
   const [description, setDescription] = useState('');
+  const [website, setWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -32,26 +36,15 @@ function ReportModal({ onClose }) {
     setIsSubmitting(true);
 
     try {
-      // Envoyer le rapport au serveur
-      const response = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description,
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        }),
+      await submitBugReport({
+        description,
+        website,
       });
-
-      if (response.ok) {
-        alert('Merci pour votre signalement ! Le rapport a été envoyé avec succès.');
-        onClose();
-      } else {
-        throw new Error('Erreur lors de l\'envoi du rapport');
-      }
+      notify(t('report.success', {}, 'Merci pour votre signalement !'), { type: 'success' });
+      onClose();
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du signalement:', error);
-      alert('Erreur lors de l\'envoi. Veuillez réessayer.');
+      debugError('Erreur lors de l\'envoi du signalement:', error);
+      notify(t('report.error', {}, 'Erreur lors de l’envoi. Veuillez réessayer.'), { type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +79,15 @@ function ReportModal({ onClose }) {
               placeholder="Décrivez le problème (ex: photo floue, mauvaise identification, etc.)"
               required
               rows={4}
+            />
+            <input
+              type="text"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              autoComplete="off"
+              tabIndex={-1}
+              className="sr-only"
+              aria-hidden="true"
             />
           </div>
 

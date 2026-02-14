@@ -9,7 +9,7 @@ import { config } from './config/index.js';
 import corsOptions from './config/cors.js';
 import { httpLogger } from './middleware/logging.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
-import { notFoundHandler } from './middleware/errorHandler.js';
+import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import routes from './routes/index.js';
 
 /**
@@ -96,6 +96,7 @@ export function createApp() {
 
   // 404 handler
   app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return { app, logger: httpLogger.logger };
 }

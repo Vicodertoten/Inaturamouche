@@ -4,6 +4,8 @@ import GameHeader from './GameHeader';
 import LevelUpNotification from './LevelUpNotification';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { submitQuizAnswer } from '../services/api';
+import { notify } from '../services/notifications';
 import './RiddleMode.css';
 
 const RIDDLE_POINTS = [10, 5, 1];
@@ -30,6 +32,8 @@ const RiddleMode = () => {
   const [eliminatedIds, setEliminatedIds] = useState(new Set());
   const [showSummary, setShowSummary] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
   const [roundMeta, setRoundMeta] = useState({
     mode: 'riddle',
     hintsUsed: false,
@@ -56,13 +60,6 @@ const RiddleMode = () => {
     });
   }, [choiceDetailMap, question]);
 
-  const fallbackLabel = question?.bonne_reponse?.preferred_common_name || question?.bonne_reponse?.common_name;
-  const correctIndexFromServer = Number.isInteger(question?.choix_mode_facile_correct_index)
-    ? question.choix_mode_facile_correct_index
-    : Math.max(0, easyPairs.findIndex((p) => p.label === fallbackLabel));
-
-  const correctPair = easyPairs[correctIndexFromServer];
-  const correctId = correctPair?.id ?? null;
   const visiblePairs = useMemo(
     () => easyPairs.filter((pair) => !eliminatedIds.has(String(pair.id))),
     [easyPairs, eliminatedIds]
@@ -84,6 +81,8 @@ const RiddleMode = () => {
     setEliminatedIds(new Set());
     setShowSummary(false);
     setIsTransitioning(false);
+    setIsSubmitting(false);
+    setValidationResult(null);
     setLastAnswer(null);
     setRoundMeta({
       mode: 'riddle',
@@ -104,17 +103,28 @@ const RiddleMode = () => {
 
   const isCurrentQuestion = questionRef.current === question;
   const answeredThisQuestion = roundStatus !== 'playing' && isCurrentQuestion;
-  const isCorrectAnswer = roundStatus === 'win' && isCurrentQuestion;
+  const isCorrectAnswer = roundStatus === 'win' && isCurrentQuestion && Boolean(validationResult?.is_correct);
+  const correctTaxonId = validationResult?.correct_taxon_id ? String(validationResult.correct_taxon_id) : null;
 
   const pointsForClue = RIDDLE_POINTS[clueIndex] ?? 1;
   const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
   const scoreInfo = { points: isCorrectAnswer ? pointsForClue : 0, bonus: 0, streakBonus };
+  const resolvedQuestion = useMemo(() => {
+    if (!question || !validationResult?.correct_answer) return question;
+    return {
+      ...question,
+      bonne_reponse: validationResult.correct_answer,
+      inaturalist_url: validationResult.inaturalist_url || question.inaturalist_url || null,
+    };
+  }, [question, validationResult]);
 
   const handleNext = () => {
     completeRound({
       ...scoreInfo,
       isCorrect: isCorrectAnswer,
-      roundMeta: { ...roundMeta, wasCorrect: isCorrectAnswer, clueIndex },
+      roundMeta: { ...roundMeta, wasCorrect: isCorrectAnswer, clueIndex, serverValidated: true },
+      resolvedQuestion,
+      validationResult,
     });
   };
 
@@ -123,50 +133,60 @@ const RiddleMode = () => {
     setClueIndex((prev) => Math.min(prev + 1, RIDDLE_POINTS.length - 1));
   };
 
-  const handleSelectAnswer = (idx) => {
-    if (answeredThisQuestion || isTransitioning) return;
+  const handleSelectAnswer = async (idx) => {
+    if (answeredThisQuestion || isTransitioning || isSubmitting) return;
     const pair = visiblePairs[idx];
     if (!pair) return;
     setSelectedId(pair.id);
     setLastAnswer(pair);
+    if (!question?.round_id || !question?.round_signature) return;
 
-    const isCorrect = pair && correctPair && String(pair.id) === String(correctPair.id);
-    if (isCorrect) {
-      setRoundStatus('win');
+    setIsSubmitting(true);
+    try {
+      const result = await submitQuizAnswer({
+        roundId: question.round_id,
+        roundSignature: question.round_signature,
+        selectedTaxonId: pair.id,
+      });
+      if (questionRef.current !== question) return;
+
+      if (result?.status === 'retry') {
+        setIsTransitioning(true);
+        setLastWrongId(pair.id);
+        setTimeout(() => {
+          if (questionRef.current === question) {
+            setEliminatedIds((prev) => {
+              const next = new Set(prev);
+              next.add(String(pair.id));
+              return next;
+            });
+            setClueIndex((prev) => Math.min(prev + 1, RIDDLE_POINTS.length - 1));
+            setSelectedId(null);
+            setLastWrongId(null);
+            setIsTransitioning(false);
+          }
+        }, 900);
+        return;
+      }
+
+      setValidationResult(result);
+      setRoundStatus(result?.is_correct ? 'win' : 'lose');
+      if (!result?.is_correct) {
+        setLastWrongId(pair.id);
+      }
       setTimeout(() => {
         if (questionRef.current === question) setShowSummary(true);
       }, 1200);
-      return;
-    }
-
-    if (clueIndex < RIDDLE_POINTS.length - 1) {
-      setIsTransitioning(true);
-      setLastWrongId(pair.id);
-      setTimeout(() => {
-        if (questionRef.current === question) {
-          setEliminatedIds((prev) => {
-            const next = new Set(prev);
-            next.add(String(pair.id));
-            return next;
-          });
-          setClueIndex((prev) => Math.min(prev + 1, RIDDLE_POINTS.length - 1));
-          setSelectedId(null);
-          setLastWrongId(null);
-          setIsTransitioning(false);
-        }
-      }, 900);
-    } else {
-      setRoundStatus('lose');
-      setLastWrongId(pair.id);
-      setTimeout(() => {
-        if (questionRef.current === question) setShowSummary(true);
-      }, 1200);
+    } catch (error) {
+      notify(error?.message || t('errors.generic'), { type: 'error' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const isIndexCorrect = (idx) => {
     const pair = visiblePairs[idx];
-    return pair && correctPair && String(pair.id) === String(correctPair.id);
+    return pair && correctTaxonId && String(pair.id) === String(correctTaxonId);
   };
 
   return (
@@ -182,7 +202,7 @@ const RiddleMode = () => {
       {showSummary && isCurrentQuestion && (
         <RoundSummaryModal
           status={isCorrectAnswer ? 'win' : 'lose'}
-          question={question}
+          question={resolvedQuestion}
           scoreInfo={scoreInfo}
           onNext={handleNext}
           userAnswer={lastAnswer}
@@ -223,7 +243,12 @@ const RiddleMode = () => {
                   <button
                     className="btn btn--secondary"
                     onClick={handleAdvanceClue}
-                    disabled={answeredThisQuestion || clueIndex >= RIDDLE_POINTS.length - 1 || isTransitioning}
+                    disabled={
+                      answeredThisQuestion ||
+                      clueIndex >= RIDDLE_POINTS.length - 1 ||
+                      isTransitioning ||
+                      isSubmitting
+                    }
                     type="button"
                   >
                     {t('riddle.next_clue', {}, 'Indice suivant')}
@@ -247,7 +272,7 @@ const RiddleMode = () => {
                     key={p.id ?? p.label}
                     className={buttonClass}
                     onClick={() => handleSelectAnswer(idx)}
-                    disabled={answeredThisQuestion || isTransitioning}
+                    disabled={answeredThisQuestion || isTransitioning || isSubmitting}
                   >
                     <span className="choice-number">{idx + 1}</span>
                     {(() => {

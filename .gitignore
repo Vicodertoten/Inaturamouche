@@ -6,6 +6,9 @@
 # Fichiers de build
 /dist
 /client/dist
+/client/coverage
+/client/dev-dist
+/client/test-results
 
 # Logs
 npm-debug.log*

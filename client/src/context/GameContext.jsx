@@ -27,6 +27,13 @@ export function GameProvider({ children }) {
 
   const gameConfig = useGameConfigState({ packs, packsLoading });
   const gameSession = useGameSessionState();
+  const {
+    isStartingNewGame,
+    question: currentQuestion,
+    error: currentError,
+    setIsStartingNewGame,
+    setError,
+  } = gameSession;
 
   const {
     recentXPGain,
@@ -212,17 +219,12 @@ export function GameProvider({ children }) {
   });
 
   useEffect(() => {
-    if (gameSession.isStartingNewGame && (gameSession.question || gameSession.error)) {
-      gameSession.setIsStartingNewGame(false);
+    if (isStartingNewGame && (currentQuestion || currentError)) {
+      setIsStartingNewGame(false);
     }
-  }, [
-    gameSession.error,
-    gameSession.isStartingNewGame,
-    gameSession.question,
-    gameSession.setIsStartingNewGame,
-  ]);
+  }, [currentError, currentQuestion, isStartingNewGame, setIsStartingNewGame]);
 
-  const clearError = useCallback(() => gameSession.setError(null), [gameSession.setError]);
+  const clearError = useCallback(() => setError(null), [setError]);
 
   const currentMultiplier = 1.0;
   const canStartReview = (profile?.stats?.missedSpecies?.length || 0) >= DEFAULT_MAX_QUESTIONS;

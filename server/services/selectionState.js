@@ -2,7 +2,7 @@
 // Gestion de l'état de sélection par client
 
 import { config } from '../config/index.js';
-import { selectionStateCache, getOrCreateMutex } from '../cache/selectionCache.js';
+import { selectionStateCache } from '../cache/selectionCache.js';
 import { HistoryBuffer, createShuffledDeck, effectiveCooldownN } from '../../lib/quiz-utils.js';
 
 const { cooldownTargetMs, cooldownTargetN, obsHistoryLimit, quizChoices } = config;

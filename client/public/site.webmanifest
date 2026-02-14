@@ -1,7 +1,7 @@
 {
-  "name": "Inaturaquizz",
-  "short_name": "Inaturaquizz",
-  "description": "Un quiz pour tester vos connaissances sur la nature.",
+  "name": "Inaturamouche",
+  "short_name": "Inatura",
+  "description": "Quiz interactif pour apprendre à identifier la biodiversité.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -14,7 +14,7 @@
       "type": "image/png"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#283618",
   "background_color": "#283618"

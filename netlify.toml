@@ -15,7 +15,7 @@
 # Proxy API -> Render (utile si tu veux aussi consommer /api en relatif)
 [[redirects]]
   from = "/api/*"
-  to   = "https://inaturamouche-api.onrender.com/api/:splat"
+  to   = "https://inaturamouche-api.fly.dev/api/:splat"
   status = 200
   force  = true
 
@@ -63,8 +63,8 @@
   for = "/*"
   [headers.values]
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # NOTE: on autorise explicitement https://inaturamouche-api.onrender.com dans connect-src
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://inaturamouche.onrender.com https://api.inaturalist.org https://inaturamouche-api.onrender.com https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com https://*.wikipedia.org; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; media-src 'self' https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https: data: https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
+    # NOTE: on autorise explicitement https://inaturamouche-api.fly.dev dans connect-src
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://inaturamouche-api.fly.dev https://api.inaturalist.org https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com https://*.wikipedia.org; img-src 'self' data: https: https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; media-src 'self' https://static.inaturalist.org https://inaturalist-open-data.s3.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https: data: https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"

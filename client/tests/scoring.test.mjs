@@ -117,7 +117,7 @@ test("computeScore returns correct values for hard mode", () => {
     basePoints: 25,
     guessesRemaining: 3,
   });
-  assert.equal(incorrect.points, 25);
+  assert.equal(incorrect.points, 0);
   assert.equal(incorrect.bonus, 0); // No bonus when incorrect
 });
 

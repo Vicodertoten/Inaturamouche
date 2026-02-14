@@ -4,6 +4,7 @@ import { notify } from "./notifications.js";
 import fr from '../locales/fr.js';
 import en from '../locales/en.js';
 import nl from '../locales/nl.js';
+import { debugWarn } from '../utils/logger.js';
 const MESSAGES = { fr, en, nl };
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
@@ -13,7 +14,7 @@ const getLocalStorage = () => {
   try {
     return window.localStorage;
   } catch (error) {
-    console.warn('Access to localStorage is blocked', error);
+    debugWarn('Access to localStorage is blocked', error);
     return null;
   }
 };
@@ -34,7 +35,6 @@ function getClientSessionId() {
     // Générer un nouvel ID: timestamp + 8 caractères aléatoires
     sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     storage.setItem(CLIENT_SESSION_ID_KEY, sessionId);
-    console.log('[API] Generated new client session ID:', sessionId);
   }
   return sessionId;
 }
@@ -53,7 +53,7 @@ const API_BASE_URL =
   runtimeEnv.VITE_API_URL ||
   (runtimeEnv.DEV
     ? "http://localhost:3001"
-    : "https://inaturamouche-api.onrender.com");
+    : "https://inaturamouche-api.fly.dev");
 
 // Timeout augmenté à 15s pour absorber les cold starts d'iNaturalist
 const DEFAULT_TIMEOUT = 15000;
@@ -86,6 +86,11 @@ export const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) =
       NOT_FOUND: 'not_found',
       POOL_UNAVAILABLE: 'pool_unavailable',
       TAXON_NOT_FOUND: 'taxonomy_not_found',
+      ROUND_EXPIRED: 'generic',
+      INVALID_ROUND_SIGNATURE: 'generic',
+      EXPLAIN_RATE_LIMIT_EXCEEDED: 'rate_limited',
+      EXPLAIN_DAILY_QUOTA_EXCEEDED: 'rate_limited',
+      REPORT_RATE_LIMIT_EXCEEDED: 'rate_limited',
     };
     const key = codeToKey[error.code];
     if (key && MESSAGES[lang].errors && MESSAGES[lang].errors[key]) {
@@ -300,6 +305,44 @@ export const fetchQuizQuestion = (params, options) => {
 };
 
 /**
+ * Soumet une réponse pour validation serveur.
+ * La bonne réponse n'est jamais exposée avant cet appel.
+ */
+export const submitQuizAnswer = (
+  {
+    roundId,
+    roundSignature,
+    selectedTaxonId,
+    submissionId,
+    roundAction,
+    stepIndex,
+  },
+  options
+) => {
+  const payload = {
+    round_id: roundId,
+    round_signature: roundSignature,
+    submission_id: submissionId || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    client_session_id: getClientSessionId(),
+  };
+  if (selectedTaxonId !== undefined && selectedTaxonId !== null) {
+    payload.selected_taxon_id = selectedTaxonId;
+  }
+  if (roundAction) {
+    payload.round_action = roundAction;
+  }
+  if (Number.isInteger(stepIndex)) {
+    payload.step_index = stepIndex;
+  }
+
+  return apiPost(
+    '/api/quiz/submit',
+    payload,
+    options
+  );
+};
+
+/**
  * Récupère l'explication IA pour une réponse incorrecte.
  */
 export const fetchExplanation = (correctId, wrongId, locale = 'fr', focusRank = null) => {
@@ -309,6 +352,21 @@ export const fetchExplanation = (correctId, wrongId, locale = 'fr', focusRank = 
       { timeout: 20000 }
     ); // Timeout plus long pour l'IA
 };
+
+export const submitBugReport = ({
+  description,
+  url = typeof window !== 'undefined' ? window.location.href : '',
+  userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '',
+  website = '',
+}) =>
+  apiPost(
+    '/api/reports',
+    { description, url, userAgent, website },
+    {
+      timeout: 10000,
+      maxRetries: 1,
+    }
+  );
 
 /**
  * Détails complets pour un taxon.

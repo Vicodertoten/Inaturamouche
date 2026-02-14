@@ -4,8 +4,6 @@ import {
   ACHIEVEMENTS,
   ACHIEVEMENT_CATEGORIES,
   REWARD_TYPES,
-  getAllTitlesWithStatus, 
-  getAllBordersWithStatus,
   getTitleDetails,
   getBorderDetails,
   getRewardForAchievement,
@@ -298,15 +296,6 @@ const ProfilePage = () => {
     
     return categories;
   }, []);
-
-  // Titres et bordures disponibles avec statut de déverrouillage
-  const titlesWithStatus = useMemo(() => {
-    return getAllTitlesWithStatus(profile.rewards);
-  }, [profile.rewards]);
-
-  const bordersWithStatus = useMemo(() => {
-    return getAllBordersWithStatus(profile.rewards);
-  }, [profile.rewards]);
 
   if (!profile) {
     return (

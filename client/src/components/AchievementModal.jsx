@@ -45,8 +45,9 @@ const RewardDisplay = ({ reward, t }) => {
         );
 
       case REWARD_TYPES.PERM_MULTIPLIER:
+      {
         const percent = Math.round(reward.value * 100);
-        const filterLabel = reward.filter === 'all' 
+        const filterLabel = reward.filter === 'all'
           ? t('rewards.all_species')
           : reward.filter;
         return (
@@ -58,8 +59,10 @@ const RewardDisplay = ({ reward, t }) => {
             </span>
           </div>
         );
+      }
 
       case REWARD_TYPES.TITLE:
+      {
         const title = getTitleDetails(reward.value);
         return (
           <div className="reward-content reward-title">
@@ -69,8 +72,10 @@ const RewardDisplay = ({ reward, t }) => {
             <span className="reward-label">{t('rewards.new_title')}</span>
           </div>
         );
+      }
 
       case REWARD_TYPES.BORDER:
+      {
         const border = getBorderDetails(reward.value);
         return (
           <div className="reward-content reward-border">
@@ -80,6 +85,7 @@ const RewardDisplay = ({ reward, t }) => {
             <span className="reward-label">{t('rewards.new_border')}</span>
           </div>
         );
+      }
 
       default:
         return null;

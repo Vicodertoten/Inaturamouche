@@ -93,7 +93,7 @@ export function useQuestionQueue(filters = {}, options = {}) {
         inflightRef.current = false;
       }
     }
-  }, []);
+  }, [updateQueue]);
 
   /**
    * Remplit la file jusqu'à atteindre queueSize

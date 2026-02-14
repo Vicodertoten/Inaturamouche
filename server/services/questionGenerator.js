@@ -20,6 +20,190 @@ import { config } from '../config/index.js';
 import { generateRiddle } from './aiService.js';
 
 const { questionQueueSize: QUESTION_QUEUE_SIZE } = config;
+const { quizChoices: QUIZ_CHOICES } = config;
+const HARD_DEFAULT_MAX_GUESSES = 3;
+const HARD_DEFAULT_MAX_HINTS = 1;
+const TAXONOMIC_DEFAULT_MAX_HINTS = 1;
+const SCORE_PER_RANK = {
+  kingdom: 5,
+  phylum: 10,
+  class: 15,
+  order: 20,
+  family: 25,
+  genus: 30,
+  species: 40,
+};
+const MAX_LURE_CLOSENESS = 0.98;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function buildIconicRotationExclusionSet(cacheEntry, avoidIconicTaxonId) {
+  if (!cacheEntry || !Array.isArray(cacheEntry.taxonList) || !avoidIconicTaxonId) return new Set();
+  const avoidId = String(avoidIconicTaxonId);
+  const excluded = new Set();
+  for (const taxonId of cacheEntry.taxonList) {
+    const obs = cacheEntry.byTaxon.get(String(taxonId))?.[0];
+    const iconic = obs?.taxon?.iconic_taxon_id;
+    if (iconic == null) continue;
+    if (String(iconic) === avoidId) excluded.add(String(taxonId));
+  }
+  return excluded;
+}
+
+export function buildUniqueEasyChoicePairs(detailsMap, ids) {
+  const seen = new Set();
+
+  return ids.map((id) => {
+    const idStr = String(id);
+    const detail = detailsMap.get(idStr) || {};
+    const common = getTaxonName(detail);
+    const scientific = String(detail?.name || '').trim();
+    const baseLabel = String(common || scientific || `Taxon ${idStr}`).trim();
+
+    let label = baseLabel;
+    const normalizedBase = label.toLowerCase();
+    if (seen.has(normalizedBase)) {
+      label = scientific && scientific.toLowerCase() !== normalizedBase
+        ? `${baseLabel} (${scientific})`
+        : `${baseLabel} [#${idStr}]`;
+    }
+
+    let normalized = label.toLowerCase();
+    let suffix = 2;
+    while (seen.has(normalized)) {
+      label = `${baseLabel} [#${idStr}-${suffix}]`;
+      normalized = label.toLowerCase();
+      suffix += 1;
+    }
+
+    seen.add(normalized);
+    return { taxon_id: idStr, label };
+  });
+}
+
+function assertStrictChoiceContract({
+  shuffledChoices,
+  choiceIdsInOrder,
+  labelsInOrder,
+  targetTaxonId,
+  easyChoiceIds,
+  easyLabels,
+}) {
+  if (!Array.isArray(shuffledChoices) || shuffledChoices.length !== QUIZ_CHOICES) {
+    const err = new Error('Contrat invalide: nombre de choix incorrect.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+
+  const shuffledTaxonIds = shuffledChoices.map((choice) => String(choice?.taxon_id || ''));
+  const uniqueShuffledTaxa = new Set(shuffledTaxonIds);
+  if (uniqueShuffledTaxa.size !== shuffledChoices.length || shuffledTaxonIds.some((id) => id.length === 0)) {
+    const err = new Error('Contrat invalide: doublons taxonomiques dans les choix.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+
+  const normalizedLabels = shuffledChoices.map((choice) => String(choice?.label || '').trim().toLowerCase());
+  const uniqueLabels = new Set(normalizedLabels);
+  if (uniqueLabels.size !== shuffledChoices.length || normalizedLabels.some((label) => label.length === 0)) {
+    const err = new Error('Contrat invalide: labels de choix non uniques.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+
+  const correctCount = shuffledTaxonIds.filter((id) => id === String(targetTaxonId)).length;
+  if (correctCount !== 1) {
+    const err = new Error('Contrat invalide: réponse correcte absente ou dupliquée.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+
+  if (Array.isArray(choiceIdsInOrder) && choiceIdsInOrder.length !== QUIZ_CHOICES) {
+    const err = new Error('Contrat invalide: ordre initial des choix incomplet.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+  if (Array.isArray(choiceIdsInOrder)) {
+    const normalizedChoiceIds = choiceIdsInOrder.map((id) => String(id || ''));
+    const uniqueChoiceIds = new Set(normalizedChoiceIds);
+    if (uniqueChoiceIds.size !== choiceIdsInOrder.length || normalizedChoiceIds.some((id) => id.length === 0)) {
+      const err = new Error('Contrat invalide: IDs de choix initiaux non uniques.');
+      err.status = 503;
+      err.code = 'INVALID_QUESTION_CONTRACT';
+      throw err;
+    }
+  }
+
+  if (Array.isArray(labelsInOrder) && labelsInOrder.length !== QUIZ_CHOICES) {
+    const err = new Error('Contrat invalide: labels initiaux incomplets.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+  if (Array.isArray(labelsInOrder)) {
+    const normalizedInitialLabels = labelsInOrder.map((label) => String(label || '').trim().toLowerCase());
+    const uniqueInitialLabels = new Set(normalizedInitialLabels);
+    if (
+      uniqueInitialLabels.size !== labelsInOrder.length ||
+      normalizedInitialLabels.some((label) => label.length === 0)
+    ) {
+      const err = new Error('Contrat invalide: labels initiaux non uniques.');
+      err.status = 503;
+      err.code = 'INVALID_QUESTION_CONTRACT';
+      throw err;
+    }
+  }
+
+  if (Array.isArray(easyChoiceIds) && easyChoiceIds.length !== QUIZ_CHOICES) {
+    const err = new Error('Contrat invalide: mode facile incomplet.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+  if (Array.isArray(easyChoiceIds)) {
+    const normalizedEasyIds = easyChoiceIds.map((id) => String(id || ''));
+    const uniqueEasyIds = new Set(normalizedEasyIds);
+    if (uniqueEasyIds.size !== easyChoiceIds.length || normalizedEasyIds.some((id) => id.length === 0)) {
+      const err = new Error('Contrat invalide: IDs mode facile non uniques.');
+      err.status = 503;
+      err.code = 'INVALID_QUESTION_CONTRACT';
+      throw err;
+    }
+    if (Array.isArray(choiceIdsInOrder)) {
+      const initialIds = new Set(choiceIdsInOrder.map((id) => String(id || '')));
+      const mismatch = normalizedEasyIds.some((id) => !initialIds.has(id));
+      if (mismatch || initialIds.size !== uniqueEasyIds.size) {
+        const err = new Error('Contrat invalide: incohérence entre les IDs de choix.');
+        err.status = 503;
+        err.code = 'INVALID_QUESTION_CONTRACT';
+        throw err;
+      }
+    }
+  }
+  if (Array.isArray(easyLabels) && easyLabels.length !== QUIZ_CHOICES) {
+    const err = new Error('Contrat invalide: labels mode facile incomplets.');
+    err.status = 503;
+    err.code = 'INVALID_QUESTION_CONTRACT';
+    throw err;
+  }
+  if (Array.isArray(easyLabels)) {
+    const normalizedEasyLabels = easyLabels.map((label) => String(label || '').trim().toLowerCase());
+    const uniqueEasyLabels = new Set(normalizedEasyLabels);
+    if (uniqueEasyLabels.size !== easyLabels.length || normalizedEasyLabels.some((label) => label.length === 0)) {
+      const err = new Error('Contrat invalide: labels mode facile non uniques.');
+      err.status = 503;
+      err.code = 'INVALID_QUESTION_CONTRACT';
+      throw err;
+    }
+  }
+}
 
 /**
  * Get or create queue entry for question pre-generation
@@ -69,6 +253,7 @@ export async function buildQuizQuestion({
   gameMode,
   geoMode,
   clientId,
+  adaptiveTuning,
   logger,
   requestId,
   rng,
@@ -101,7 +286,6 @@ export async function buildQuizQuestion({
     selectionState,
     questionIndex,
     questionRng,
-    excludeTaxaForTarget,
     targetTaxonId,
     selectionMode: initialSelectionMode,
   } = await mutex.runExclusive(async () => {
@@ -118,13 +302,31 @@ export async function buildQuizQuestion({
         ? selectionState.questionIndex
         : 0;
     const questionRng = hasSeed ? createSeededRandom(`${seed}|q|${questionIndex}`) : rng;
-    const excludeTaxaForTarget = new Set();
-    let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, Date.now(), excludeTaxaForTarget, questionRng, {
+    const now = Date.now();
+    const iconicRotationExclusions = buildIconicRotationExclusionSet(
+      cacheEntry,
+      adaptiveTuning?.avoidIconicTaxonId
+    );
+    const excludeTaxaForTarget = new Set(iconicRotationExclusions);
+    let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
       seed: hasSeed ? seed : undefined,
       questionIndex,
     });
 
     let selectionMode = 'normal';
+    if (!targetTaxonId && excludeTaxaForTarget.size > 0) {
+      excludeTaxaForTarget.clear();
+      targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
+        seed: hasSeed ? seed : undefined,
+        questionIndex,
+      });
+      if (targetTaxonId) {
+        selectionMode = 'adaptive_rotation_relaxed';
+      }
+    }
+    if (targetTaxonId && iconicRotationExclusions.size > 0 && selectionMode === 'normal') {
+      selectionMode = 'adaptive_rotation';
+    }
     if (!targetTaxonId) {
       targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
       selectionMode = 'fallback_relax';
@@ -133,7 +335,7 @@ export async function buildQuizQuestion({
           cacheKey,
           mode: selectionMode,
           pool: cacheEntry.taxonList.length,
-          recentT: cacheEntry.recentTargetTaxa.length,
+          recentT: selectionState?.recentTargetTaxa?.length || 0,
         },
         'Target fallback relax engaged'
       );
@@ -147,7 +349,7 @@ export async function buildQuizQuestion({
     // Sauvegarder le state DANS le mutex avant de le retourner
     selectionStateCache.set(key, selectionState);
 
-    return { selectionState, questionIndex, questionRng, excludeTaxaForTarget, targetTaxonId, selectionMode };
+    return { selectionState, questionIndex, questionRng, targetTaxonId, selectionMode };
   });
 
   const selectionMode = initialSelectionMode;
@@ -174,11 +376,8 @@ export async function buildQuizQuestion({
   let labelsInOrder = [];
   let choiceObjects = [];
   let shuffledChoices = [];
-  let correct_choice_index = -1;
-  let correct_label = '';
   let choix_mode_facile = [];
   let choix_mode_facile_ids = [];
-  let choix_mode_facile_correct_index = -1;
 
   const hasExplicitTaxa = Boolean(params?.taxon_id);
   const excludeFutureTargets = hasExplicitTaxa
@@ -186,6 +385,18 @@ export async function buildQuizQuestion({
     : null;
 
   if (!isTaxonomicMode) {
+    const adaptiveLureDelta = Number(adaptiveTuning?.lureClosenessDelta) || 0;
+    const modeMinCloseness =
+      clamp(
+        (gameMode === 'easy'
+        ? config.easyLureMinCloseness
+        : gameMode === 'riddle'
+          ? config.riddleLureMinCloseness
+          : config.hardLureMinCloseness) + adaptiveLureDelta,
+        0,
+        MAX_LURE_CLOSENESS
+      );
+
     const { lures, buckets: builtBuckets } = await buildLures(
       cacheEntry,
       selectionState,
@@ -199,7 +410,7 @@ export async function buildQuizQuestion({
         excludeTaxonIds: excludeFutureTargets,
         logger,
         requestId,
-        minCloseness: gameMode === 'easy' ? config.easyLureMinCloseness : 0,
+        minCloseness: modeMinCloseness,
       }
     );
     if (!lures || lures.length < config.lureCount) {
@@ -254,21 +465,11 @@ export async function buildQuizQuestion({
     labelsInOrder = makeChoiceLabels(details, choiceIdsInOrder);
     choiceObjects = choiceIdsInOrder.map((id, idx) => ({ taxon_id: id, label: labelsInOrder[idx] }));
     shuffledChoices = shuffleFisherYates(choiceObjects, questionRng);
-    correct_choice_index = shuffledChoices.findIndex((c) => c.taxon_id === String(targetTaxonId));
-    try {
-      correct_label = shuffledChoices[correct_choice_index]?.label || '';
-    } catch {
-      correct_label = '';
-    }
 
-    const facilePairs = choiceIdsInOrder.map((id) => ({
-      taxon_id: id,
-      label: getTaxonName(details.get(String(id))),
-    }));
+    const facilePairs = buildUniqueEasyChoicePairs(details, choiceIdsInOrder);
     const facileShuffled = shuffleFisherYates(facilePairs, questionRng);
     choix_mode_facile = facileShuffled.map((p) => p.label);
     choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
-    choix_mode_facile_correct_index = choix_mode_facile_ids.findIndex((id) => id === String(targetTaxonId));
   } else {
     const ascensionData = await buildTaxonomicAscension({
       pool: cacheEntry,
@@ -297,9 +498,6 @@ export async function buildQuizQuestion({
   let riddle = null;
   if (isRiddleMode) {
     riddle = await generateRiddle(correct, locale, logger);
-  }
-  if (!correct_label) {
-    correct_label = getTaxonName(correct);
   }
   marks.labelsMade = performance.now();
 
@@ -343,50 +541,101 @@ export async function buildQuizQuestion({
     'Quiz timings'
   );
 
-  return {
-    payload: {
-      image_urls,
-      image_meta,
-      sounds: isRiddleMode ? [] : targetObservation.sounds || [],
-      game_mode: gameMode || 'easy',
-      riddle: isRiddleMode && riddle ? { clues: riddle.clues, source: riddle.source } : null,
-      bonne_reponse: {
-        id: correct.id,
-        name: correct.name,
-        preferred_common_name: correct.preferred_common_name || correct.common_name || null,
-        common_name: getTaxonName(correct),
-        ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
-        ancestor_ids: correct.ancestor_ids,
-        iconic_taxon_id: correct.iconic_taxon_id,
-        wikipedia_url: correct.wikipedia_url,
-        url: correct.url, // Add iNaturalist URL
-        default_photo: correct.default_photo, // Add default photo object
-        observations_count: correct.observations_count ?? null,
-        conservation_status: correct.conservation_status ?? null,
-      },
-      choices: shuffledChoices,
-      correct_choice_index,
-      correct_label,
-      choice_taxa_details: choiceTaxaInfo.map(info => ({
-        ...info, // Keep existing info (taxon_id, name, etc.)
-        wikipedia_url: details.get(info.taxon_id)?.wikipedia_url,
-        url: details.get(info.taxon_id)?.url,
-        default_photo: details.get(info.taxon_id)?.default_photo,
-        observations_count: details.get(info.taxon_id)?.observations_count ?? null,
-        conservation_status: details.get(info.taxon_id)?.conservation_status ?? null,
-      })),
-      taxonomic_ascension: isTaxonomicMode
+  const answerPayload = {
+    id: correct.id,
+    name: correct.name,
+    preferred_common_name: correct.preferred_common_name || correct.common_name || null,
+    common_name: getTaxonName(correct),
+    ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
+    ancestor_ids: correct.ancestor_ids,
+    iconic_taxon_id: correct.iconic_taxon_id,
+    wikipedia_url: correct.wikipedia_url,
+    url: correct.url,
+    default_photo: correct.default_photo,
+    observations_count: correct.observations_count ?? null,
+    conservation_status: correct.conservation_status ?? null,
+  };
+
+  if (!isTaxonomicMode) {
+    assertStrictChoiceContract({
+      shuffledChoices,
+      choiceIdsInOrder,
+      labelsInOrder,
+      targetTaxonId,
+      easyChoiceIds: choix_mode_facile_ids,
+      easyLabels: choix_mode_facile,
+    });
+  }
+
+  const payload = {
+    image_urls,
+    image_meta,
+    sounds: isRiddleMode ? [] : targetObservation.sounds || [],
+    game_mode: gameMode || 'easy',
+    riddle: isRiddleMode && riddle ? { clues: riddle.clues, source: riddle.source } : null,
+    choices: shuffledChoices,
+    choice_taxa_details: choiceTaxaInfo.map((info) => ({
+      ...info,
+      wikipedia_url: details.get(info.taxon_id)?.wikipedia_url,
+      url: details.get(info.taxon_id)?.url,
+      default_photo: details.get(info.taxon_id)?.default_photo,
+      observations_count: details.get(info.taxon_id)?.observations_count ?? null,
+      conservation_status: details.get(info.taxon_id)?.conservation_status ?? null,
+    })),
+    taxonomic_ascension: isTaxonomicMode
+      ? {
+          steps: (taxonomicSteps || []).map((step) => ({
+            rank: step.rank,
+            parent: step.parent,
+            options: step.options,
+          })),
+          max_mistakes: taxonomicMeta?.maxMistakes || 0,
+          hint_cost_xp: taxonomicMeta?.hintCost || 0,
+          options_per_step: taxonomicMeta?.optionsPerStep || 0,
+          max_hints: TAXONOMIC_DEFAULT_MAX_HINTS,
+        }
+      : null,
+    hard_mode:
+      gameMode === 'hard'
         ? {
-            steps: taxonomicSteps,
-            max_mistakes: taxonomicMeta?.maxMistakes || 0,
-            hint_cost_xp: taxonomicMeta?.hintCost || 0,
-            options_per_step: taxonomicMeta?.optionsPerStep || 0,
+            max_guesses: HARD_DEFAULT_MAX_GUESSES,
+            max_hints: HARD_DEFAULT_MAX_HINTS,
           }
         : null,
-      choix_mode_facile,
-      choix_mode_facile_ids,
-      choix_mode_facile_correct_index,
+    choix_mode_facile,
+    choix_mode_facile_ids,
+    inaturalist_url: targetObservation.uri,
+  };
+
+  return {
+    payload,
+    validation: {
+      game_mode: gameMode || 'easy',
+      locale: locale || 'fr',
+      correct_taxon_id: String(targetTaxonId),
+      correct_answer: answerPayload,
       inaturalist_url: targetObservation.uri,
+      max_attempts: gameMode === 'riddle' ? 3 : 1,
+      hard_mode:
+        gameMode === 'hard'
+          ? {
+              max_guesses: HARD_DEFAULT_MAX_GUESSES,
+              max_hints: HARD_DEFAULT_MAX_HINTS,
+              score_per_rank: SCORE_PER_RANK,
+            }
+          : null,
+      taxonomic_mode: isTaxonomicMode
+        ? {
+            max_mistakes: taxonomicMeta?.maxMistakes || 0,
+            max_hints: TAXONOMIC_DEFAULT_MAX_HINTS,
+            score_per_rank: SCORE_PER_RANK,
+            steps: (taxonomicSteps || []).map((step) => ({
+              rank: step.rank,
+              correct_taxon_id: String(step.correct_taxon_id),
+              option_taxon_ids: (step.options || []).map((opt) => String(opt.taxon_id)),
+            })),
+          }
+        : null,
     },
     headers: {
       'X-Cache-Key': cacheKey,
@@ -396,6 +645,10 @@ export async function buildQuizQuestion({
       'X-Pool-Obs': String(poolObs),
       'X-Pool-Taxa': String(poolTaxa),
       'X-Selection-Geo': geoMode,
+      'X-Adaptive-Band': String(adaptiveTuning?.difficultyBand || 'normal'),
+      'X-Adaptive-Samples': String(adaptiveTuning?.sampleSize || 0),
+      'X-Adaptive-Accuracy': adaptiveTuning?.accuracyLastN == null ? '' : String(adaptiveTuning.accuracyLastN),
+      'X-Target-Selection-Mode': selectionMode,
       'Server-Timing': serverTiming,
       'X-Timing': xTiming,
     },

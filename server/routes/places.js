@@ -7,6 +7,7 @@ import { fetchInatJSON } from '../services/iNaturalistClient.js';
 import { autocompleteCache } from '../cache/autocompleteCache.js';
 import { proxyLimiter } from '../middleware/rateLimiter.js';
 import { validate, placesSchema, placesByIdSchema } from '../utils/validation.js';
+import { sendError } from '../utils/http.js';
 
 const router = Router();
 
@@ -41,7 +42,11 @@ router.get('/api/places', proxyLimiter, validate(placesSchema), async (req, res)
     res.json(out);
   } catch (e) {
     req.log?.error({ err: e, requestId: req.id }, 'Unhandled places autocomplete error');
-    res.status(500).json([]);
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 
@@ -70,7 +75,11 @@ router.get('/api/places/by-id', proxyLimiter, validate(placesByIdSchema), async 
     res.json(out);
   } catch (e) {
     req.log?.error({ err: e, requestId: req.id }, 'Unhandled places by id error');
-    res.status(500).json([]);
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 

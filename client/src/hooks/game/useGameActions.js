@@ -13,6 +13,7 @@ import { notify } from '../../services/notifications';
 import { notifyApiError } from '../../services/api';
 import { getLevelFromXp } from '../../utils/scoring';
 import { getRarityInfo } from '../../utils/rarityUtils';
+import { computeRoundEconomy } from '../../utils/economy';
 import {
   createSeedSessionId,
   getBiomesForQuestion,
@@ -25,6 +26,47 @@ import {
 
 const LIGHTNING_THRESHOLD_MS = 1500;
 const DAY_MS = 1000 * 60 * 60 * 24;
+const DEFAULT_RARITY_COUNTS = Object.freeze({
+  legendary: 0,
+  epic: 0,
+  rare: 0,
+  uncommon: 0,
+  common: 0,
+});
+
+const createDefaultValidatedStats = () => ({
+  gamesPlayed: 0,
+  totalQuestionsAnswered: 0,
+  correctEasy: 0,
+  easyQuestionsAnswered: 0,
+  accuracyEasy: 0,
+  correctRiddle: 0,
+  riddleQuestionsAnswered: 0,
+  accuracyRiddle: 0,
+  correctHard: 0,
+  hardQuestionsAnswered: 0,
+  accuracyHard: 0,
+  hardGamesCompleted: 0,
+  longestStreak: 0,
+  packsPlayed: {},
+  speciesMastery: {},
+  missedSpecies: [],
+  rarityCounts: { ...DEFAULT_RARITY_COUNTS },
+});
+
+const computeLongestStreakFromEntries = (entries = []) => {
+  let current = 0;
+  let max = 0;
+  entries.forEach((entry) => {
+    if (entry?.wasCorrect) {
+      current += 1;
+      if (current > max) max = current;
+      return;
+    }
+    current = 0;
+  });
+  return max;
+};
 
 export function useGameActions({
   profile,
@@ -35,7 +77,6 @@ export function useGameActions({
   activePack,
   gameMode,
   maxQuestions,
-  mediaType,
   isReviewMode,
   setGameMode,
   setMaxQuestions,
@@ -275,7 +316,6 @@ export function useGameActions({
   const finalizeGame = useCallback(
     async ({
       finalCorrectAnswers,
-      finalScore,
       finalCorrectSpecies,
       finalMissedSpecies,
       speciesEntries = [],
@@ -284,6 +324,18 @@ export function useGameActions({
       const totalQuestions = Array.isArray(speciesEntries)
         ? speciesEntries.length
         : resolveTotalQuestions(maxQuestions, questionCount);
+      const validatedEntries = Array.isArray(speciesEntries)
+        ? speciesEntries.filter((entry) => entry?.validatedEvent === true)
+        : [];
+      const validatedTotalQuestions = validatedEntries.length;
+      const validatedCorrectEntries = validatedEntries.filter((entry) => entry?.wasCorrect);
+      const validatedCorrectAnswers = validatedCorrectEntries.length;
+      const validatedCorrectSpecies = Array.from(
+        new Set(validatedCorrectEntries.map((entry) => entry?.id).filter(Boolean))
+      );
+      const validatedMissedSpecies = Array.from(
+        new Set(validatedEntries.filter((entry) => !entry?.wasCorrect).map((entry) => entry?.id).filter(Boolean))
+      );
 
       profileClone.stats.gamesPlayed = (profileClone.stats.gamesPlayed || 0) + 1;
       profileClone.stats.totalQuestionsAnswered =
@@ -366,6 +418,83 @@ export function useGameActions({
         profileClone.stats.rarityCounts[tier] += 1;
       });
 
+      // Keep a validated-only stats mirror for achievement integrity.
+      profileClone.stats.validated = {
+        ...createDefaultValidatedStats(),
+        ...(profileClone.stats.validated || {}),
+        packsPlayed: { ...(profileClone.stats.validated?.packsPlayed || {}) },
+        speciesMastery: { ...(profileClone.stats.validated?.speciesMastery || {}) },
+        rarityCounts: {
+          ...DEFAULT_RARITY_COUNTS,
+          ...(profileClone.stats.validated?.rarityCounts || {}),
+        },
+      };
+      const validatedStats = profileClone.stats.validated;
+
+      if (validatedTotalQuestions > 0) {
+        validatedStats.gamesPlayed = (validatedStats.gamesPlayed || 0) + 1;
+      }
+      validatedStats.totalQuestionsAnswered =
+        (validatedStats.totalQuestionsAnswered || 0) + validatedTotalQuestions;
+
+      if (gameMode === 'easy') {
+        validatedStats.correctEasy = (validatedStats.correctEasy || 0) + validatedCorrectAnswers;
+        validatedStats.easyQuestionsAnswered =
+          (validatedStats.easyQuestionsAnswered || 0) + validatedTotalQuestions;
+        validatedStats.accuracyEasy =
+          validatedStats.easyQuestionsAnswered > 0
+            ? validatedStats.correctEasy / validatedStats.easyQuestionsAnswered
+            : 0;
+      } else if (gameMode === 'riddle') {
+        validatedStats.correctRiddle = (validatedStats.correctRiddle || 0) + validatedCorrectAnswers;
+        validatedStats.riddleQuestionsAnswered =
+          (validatedStats.riddleQuestionsAnswered || 0) + validatedTotalQuestions;
+        validatedStats.accuracyRiddle =
+          validatedStats.riddleQuestionsAnswered > 0
+            ? validatedStats.correctRiddle / validatedStats.riddleQuestionsAnswered
+            : 0;
+      } else {
+        validatedStats.correctHard = (validatedStats.correctHard || 0) + validatedCorrectAnswers;
+        validatedStats.hardQuestionsAnswered =
+          (validatedStats.hardQuestionsAnswered || 0) + validatedTotalQuestions;
+        validatedStats.accuracyHard =
+          validatedStats.hardQuestionsAnswered > 0
+            ? validatedStats.correctHard / validatedStats.hardQuestionsAnswered
+            : 0;
+        if (validatedTotalQuestions > 0 && gameMode === 'hard') {
+          validatedStats.hardGamesCompleted = (validatedStats.hardGamesCompleted || 0) + 1;
+        }
+      }
+
+      if (!validatedStats.packsPlayed[activePackId]) {
+        validatedStats.packsPlayed[activePackId] = { correct: 0, answered: 0 };
+      }
+      validatedStats.packsPlayed[activePackId].correct += validatedCorrectAnswers;
+      validatedStats.packsPlayed[activePackId].answered += validatedTotalQuestions;
+
+      validatedCorrectSpecies.forEach((speciesId) => {
+        if (!validatedStats.speciesMastery[speciesId]) {
+          validatedStats.speciesMastery[speciesId] = { correct: 0 };
+        }
+        validatedStats.speciesMastery[speciesId].correct += 1;
+      });
+
+      const validatedMissedSet = new Set(validatedStats.missedSpecies || []);
+      validatedMissedSpecies.forEach((id) => validatedMissedSet.add(id));
+      validatedCorrectSpecies.forEach((id) => validatedMissedSet.delete(id));
+      validatedStats.missedSpecies = Array.from(validatedMissedSet);
+
+      validatedEntries.forEach((entry) => {
+        if (!entry?.wasCorrect) return;
+        const tier = entry.rarity_tier;
+        if (!tier || validatedStats.rarityCounts[tier] === undefined) return;
+        validatedStats.rarityCounts[tier] += 1;
+      });
+      validatedStats.longestStreak = Math.max(
+        validatedStats.longestStreak || 0,
+        computeLongestStreakFromEntries(validatedEntries)
+      );
+
       if (isReviewMode) {
         const todayKey = getDateKey(new Date());
         const lastReviewDate = profileClone.stats.lastReviewDate;
@@ -386,22 +515,28 @@ export function useGameActions({
         profileClone.stats.lastReviewDate = todayKey;
       }
 
-      const responseTimes = speciesEntries
+      const responseTimes = validatedEntries
         .map((entry) => entry?.responseTimeMs)
         .filter((value) => typeof value === 'number');
       const averageResponseTimeMs = responseTimes.length
         ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
         : null;
       const uniqueClassIds = new Set();
-      speciesEntries.forEach((entry) => {
+      validatedEntries.forEach((entry) => {
         const classAncestor = entry?.taxon?.ancestors?.find((ancestor) => ancestor.rank === 'class');
         const classId = classAncestor?.id ?? entry?.taxon?.iconic_taxon_id ?? null;
         if (classId) uniqueClassIds.add(classId);
       });
       const uniqueClassesInGame = uniqueClassIds.size;
-      const lastFiveEntries = speciesEntries.slice(-5);
-      const hadErrorBeforeLast5 = speciesEntries.slice(0, -5).some((entry) => !entry?.wasCorrect);
+      const lastFiveEntries = validatedEntries.slice(-5);
+      const hadErrorBeforeLast5 = validatedEntries.slice(0, -5).some((entry) => !entry?.wasCorrect);
       const last5AllCorrect = lastFiveEntries.length === 5 && lastFiveEntries.every((entry) => entry?.wasCorrect);
+      const validatedHintsUsed = validatedEntries.filter((entry) => entry?.hintsUsed).length;
+      const validatedShieldsUsed = validatedEntries.filter((entry) => !entry?.wasCorrect).length;
+      const validatedSessionXP = validatedEntries.reduce(
+        (sum, entry) => sum + (Number.isFinite(entry?.earnedXp) ? entry.earnedXp : 0),
+        0
+      );
 
       const profileWithStreakUpdate = updateDailyStreak(profileClone);
       const profileWithWeekendStats = {
@@ -423,14 +558,14 @@ export function useGameActions({
       const unlocked = checkNewAchievements(profileWithWeekendStats, collectionStats);
       const endOfGameUnlocked = checkEndOfGameAchievements(
         {
-          sessionXP: finalScore,
+          sessionXP: validatedSessionXP,
           gameHour: new Date().getHours(),
-          totalQuestions,
-          correctAnswers: finalCorrectAnswers,
-          hintsUsed: speciesEntries.filter((e) => e.hintsUsed).length,
-          shieldsUsed: speciesEntries.filter((e) => !e.wasCorrect).length,
+          totalQuestions: validatedTotalQuestions,
+          correctAnswers: validatedCorrectAnswers,
+          hintsUsed: validatedHintsUsed,
+          shieldsUsed: validatedShieldsUsed,
           gameMode,
-          gameWon: finalCorrectAnswers > 0,
+          gameWon: validatedCorrectAnswers > 0,
           averageResponseTimeMs,
           uniqueClassesInGame,
           hadErrorBeforeLast5,
@@ -488,9 +623,9 @@ export function useGameActions({
       clearUnlockedLater,
       currentStreak,
       daysBetween,
-      getCollectionStatsForAchievements,
       getDateKey,
       gameMode,
+      isReviewMode,
       longestStreak,
       maxQuestions,
       profile,
@@ -505,10 +640,20 @@ export function useGameActions({
   );
 
   const completeRound = useCallback(
-    ({ points = 0, bonus = 0, streakBonus = 0, isCorrect = null, roundMeta = {} } = {}) => {
-      if (!question) return;
+    ({
+      points = 0,
+      bonus = 0,
+      streakBonus = 0,
+      isCorrect = null,
+      roundMeta = {},
+      resolvedQuestion = null,
+      validationResult = null,
+    } = {}) => {
+      const activeQuestion = resolvedQuestion || question;
+      const resolvedAnswer = activeQuestion?.bonne_reponse || validationResult?.correct_answer || null;
+      if (!activeQuestion || !resolvedAnswer?.id) return;
 
-      const currentQuestionId = question.bonne_reponse.id;
+      const currentQuestionId = resolvedAnswer.id;
       const isCorrectFinal = typeof isCorrect === 'boolean' ? isCorrect : points > 0;
 
       let newStreak = currentStreak;
@@ -534,27 +679,56 @@ export function useGameActions({
 
       setCurrentStreak(newStreak);
 
-      const baseBonus = (bonus || 0) + (streakBonus || 0);
-      const adjustedBonus = baseBonus;
-      const updatedScore = score + points + adjustedBonus;
+      const isValidatedRoundEvent = roundMeta?.serverValidated === true;
+      const modeForRound = roundMeta.mode || gameMode;
+      const hintCountForRound = Math.max(0, Number.parseInt(String(roundMeta?.hintCount || 0), 10) || 0);
+      const repeatCountForTaxon = sessionSpeciesData.filter(
+        (entry) => entry?.id === currentQuestionId && entry?.wasCorrect
+      ).length;
+
+      const adjustedBonus = (bonus || 0) + (streakBonus || 0);
+      const roundEconomyBase = computeRoundEconomy({
+        isCorrect: isCorrectFinal,
+        points,
+        bonus,
+        streakBonus,
+        mode: modeForRound,
+        hintCount: hintCountForRound,
+        repeatCount: repeatCountForTaxon,
+        rarityBonusXp: 0,
+      });
+
+      const updatedScore = score + roundEconomyBase.scoreDelta;
       setScore(updatedScore);
 
-      const rarityInfo = getRarityInfo(question?.bonne_reponse?.observations_count);
-      let baseXP = isCorrectFinal ? points + adjustedBonus : 0;
-      if (isCorrectFinal && rarityInfo.bonusXp > 0) {
-        baseXP += rarityInfo.bonusXp;
+      const rarityInfo = getRarityInfo(resolvedAnswer?.observations_count);
+      const rarityBonusXp = isCorrectFinal ? Math.max(0, rarityInfo.bonusXp || 0) : 0;
+      if (isCorrectFinal && rarityBonusXp > 0) {
         if (rarityInfo.tier === 'legendary' || rarityInfo.tier === 'epic') {
           triggerRarityCelebration(rarityInfo.tier);
-          notify(`✨ ${rarityInfo.label} +${rarityInfo.bonusXp} XP`, {
+          notify(`✨ ${rarityInfo.label} +${rarityBonusXp} XP`, {
             type: 'success',
             duration: 2500,
           });
         }
       }
 
-      if (isReviewMode && baseXP > 0) {
-        const reviewBonus = Math.floor(baseXP * 0.25);
-        baseXP += reviewBonus;
+      const roundEconomyWithRarity = computeRoundEconomy({
+        isCorrect: isCorrectFinal,
+        points,
+        bonus,
+        streakBonus,
+        mode: modeForRound,
+        hintCount: hintCountForRound,
+        repeatCount: repeatCountForTaxon,
+        rarityBonusXp,
+      });
+
+      let xpBeforeProfileMultipliers = roundEconomyWithRarity.xpBeforeProfileMultipliers;
+
+      if (isReviewMode && xpBeforeProfileMultipliers > 0) {
+        const reviewBonus = Math.floor(xpBeforeProfileMultipliers * 0.25);
+        xpBeforeProfileMultipliers += reviewBonus;
 
         if (questionCount === 1) {
           notify('📚 Mode Révision : +25% XP', {
@@ -565,7 +739,7 @@ export function useGameActions({
       }
 
       const xpMultipliers = calculateXPMultipliers(profile, isCorrectFinal ? newStreak : 0);
-      const earnedXP = Math.floor(baseXP * xpMultipliers.totalMultiplier);
+      const earnedXP = Math.floor(xpBeforeProfileMultipliers * xpMultipliers.totalMultiplier);
 
       if (earnedXP > 0) {
         setRecentXPGain(earnedXP);
@@ -607,18 +781,18 @@ export function useGameActions({
       const responseStart = questionStartTimeRef.current;
       const responseTimeMs =
         typeof responseStart === 'number' ? Math.max(0, Math.round(now - responseStart)) : null;
-      const derivedBiomes = getBiomesForQuestion(question, activePack);
+      const derivedBiomes = getBiomesForQuestion(activeQuestion, activePack);
       const genusEntry =
-        question.bonne_reponse?.ancestors?.find((ancestor) => ancestor.rank === 'genus') || null;
+        resolvedAnswer?.ancestors?.find((ancestor) => ancestor.rank === 'genus') || null;
       const fallbackImageUrl =
-        question.bonne_reponse?.default_photo?.square_url ||
-        question.bonne_reponse?.default_photo?.url ||
-        question.bonne_reponse?.photos?.[0]?.square_url ||
-        question.bonne_reponse?.photos?.[0]?.url ||
-        question.image_urls?.[0] ||
+        resolvedAnswer?.default_photo?.square_url ||
+        resolvedAnswer?.default_photo?.url ||
+        resolvedAnswer?.photos?.[0]?.square_url ||
+        resolvedAnswer?.photos?.[0]?.url ||
+        activeQuestion.image_urls?.[0] ||
         null;
       const taxonPayload = {
-        ...question.bonne_reponse,
+        ...resolvedAnswer,
       };
       if (!taxonPayload.rarity_tier && rarityInfo.tier !== 'unknown') {
         taxonPayload.rarity_tier = rarityInfo.tier;
@@ -632,6 +806,7 @@ export function useGameActions({
       const roundDetails = {
         mode: roundMeta.mode || gameMode,
         ...roundMeta,
+        serverValidated: isValidatedRoundEvent,
         wasCorrect: isCorrectFinal,
         responseTimeMs,
         biomes: derivedBiomes,
@@ -647,14 +822,14 @@ export function useGameActions({
 
       const speciesEntry = {
         id: currentQuestionId,
-        name: question.bonne_reponse.name,
-        preferred_common_name: question.bonne_reponse.preferred_common_name,
-        common_name: question.bonne_reponse.preferred_common_name || question.bonne_reponse.common_name,
-        wikipedia_url: question.bonne_reponse.wikipedia_url,
-        inaturalist_url: question.inaturalist_url,
-        observations_count: question.bonne_reponse.observations_count ?? null,
+        name: resolvedAnswer.name,
+        preferred_common_name: resolvedAnswer.preferred_common_name,
+        common_name: resolvedAnswer.preferred_common_name || resolvedAnswer.common_name,
+        wikipedia_url: resolvedAnswer.wikipedia_url,
+        inaturalist_url: activeQuestion.inaturalist_url || validationResult?.inaturalist_url || null,
+        observations_count: resolvedAnswer.observations_count ?? null,
         rarity_tier: taxonPayload.rarity_tier || null,
-        conservation_status: question.bonne_reponse.conservation_status ?? null,
+        conservation_status: resolvedAnswer.conservation_status ?? null,
         default_photo: taxonPayload.default_photo || null,
         square_url: taxonPayload.square_url || null,
         taxon: taxonPayload,
@@ -667,41 +842,64 @@ export function useGameActions({
         genusId: genusEntry?.id || null,
         genusName: genusEntry?.name || null,
         wasCorrect: isCorrectFinal,
+        validatedEvent: isValidatedRoundEvent,
+        earnedXp: earnedXP,
         multiplierApplied: xpMultipliers?.totalMultiplier ?? 1.0,
+        economy: {
+          scoreDelta: roundEconomyWithRarity.scoreDelta,
+          baseXp: roundEconomyWithRarity.baseXp,
+          xpBeforeProfileMultipliers,
+          repeatCount: roundEconomyWithRarity.repeatCount,
+          repeatXpMultiplier: roundEconomyWithRarity.repeatXpMultiplier,
+          hintCount: roundEconomyWithRarity.hintCount,
+          hintXpMultiplier: roundEconomyWithRarity.hintXpMultiplier,
+          gameplayXpMultiplier: roundEconomyWithRarity.gameplayXpMultiplier,
+          rarityBonusXp,
+        },
       };
       if (addSpeciesToCollection) {
         void addSpeciesToCollection(taxonPayload, isCorrectFinal, fallbackImageUrl);
       }
       const nextSpeciesData = [...sessionSpeciesData, speciesEntry];
+      const validatedSpeciesData = nextSpeciesData.filter((entry) => entry?.validatedEvent === true);
       const consecutiveFastAnswers = (() => {
         let count = 0;
-        for (let i = nextSpeciesData.length - 1; i >= 0; i -= 1) {
-          const entry = nextSpeciesData[i];
+        for (let i = validatedSpeciesData.length - 1; i >= 0; i -= 1) {
+          const entry = validatedSpeciesData[i];
           if (!entry?.wasCorrect) break;
           if (typeof entry.responseTimeMs !== 'number' || entry.responseTimeMs > LIGHTNING_THRESHOLD_MS) break;
           count += 1;
         }
         return count;
       })();
-      const hintsUsedInSession = nextSpeciesData.filter((entry) => entry?.hintsUsed).length;
-      const correctAnswersInSession = nextSpeciesData.filter((entry) => entry?.wasCorrect).length;
-      const shieldsUsedInSession = nextSpeciesData.filter((entry) => !entry?.wasCorrect).length;
-
-      const microUnlocks = evaluateMicroChallenges(
-        {
-          currentStreak: newStreak,
-          roundMeta: roundDetails,
-          sessionSpeciesData: nextSpeciesData,
-          consecutiveFastAnswers,
-          sessionXP: updatedScore,
-          totalQuestionsAnswered: nextSpeciesData.length,
-          hintsUsedInSession,
-          correctAnswersInSession,
-          shieldsUsed: shieldsUsedInSession,
-          gameMode,
-        },
-        profile?.achievements || []
+      const hintsUsedInSession = validatedSpeciesData.filter((entry) => entry?.hintsUsed).length;
+      const correctAnswersInSession = validatedSpeciesData.filter((entry) => entry?.wasCorrect).length;
+      const shieldsUsedInSession = validatedSpeciesData.filter((entry) => !entry?.wasCorrect).length;
+      const validatedSessionXP = validatedSpeciesData.reduce(
+        (sum, entry) => sum + (Number.isFinite(entry?.earnedXp) ? entry.earnedXp : 0),
+        0
       );
+
+      const microUnlocks = isValidatedRoundEvent
+        ? evaluateMicroChallenges(
+            {
+              currentStreak: newStreak,
+              roundMeta: {
+                ...roundDetails,
+                serverValidated: isValidatedRoundEvent,
+              },
+              sessionSpeciesData: validatedSpeciesData,
+              consecutiveFastAnswers,
+              sessionXP: validatedSessionXP,
+              totalQuestionsAnswered: validatedSpeciesData.length,
+              hintsUsedInSession,
+              correctAnswersInSession,
+              shieldsUsed: shieldsUsedInSession,
+              gameMode: modeForRound,
+            },
+            profile?.achievements || []
+          )
+        : [];
       if (microUnlocks.length) {
         let freshUnlocks = [];
         updateProfile((prevProfile) => {

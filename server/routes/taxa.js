@@ -10,6 +10,7 @@ import taxonDetailsCache from '../cache/taxonDetailsCache.js';
 import { proxyLimiter } from '../middleware/rateLimiter.js';
 import { validate, autocompleteSchema, taxaBatchSchema, speciesCountsSchema } from '../utils/validation.js';
 import { geoParams } from '../utils/helpers.js';
+import { sendError } from '../utils/http.js';
 
 const router = Router();
 
@@ -58,7 +59,11 @@ router.get('/api/taxa/autocomplete', validate(autocompleteSchema), async (req, r
     res.json(out);
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled autocomplete error');
-    res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 
@@ -72,7 +77,12 @@ router.get('/api/taxon/:id', proxyLimiter, async (req, res) => {
       })
       .safeParse({ id: req.params.id, locale: req.query.locale });
     if (!parsed.success) {
-      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Bad request' }, issues: parsed.error.issues });
+      return sendError(req, res, {
+        status: 400,
+        code: 'BAD_REQUEST',
+        message: 'Bad request',
+        issues: parsed.error.issues,
+      });
     }
     const { id, locale } = parsed.data;
     const response = await fetchInatJSON(
@@ -81,11 +91,21 @@ router.get('/api/taxon/:id', proxyLimiter, async (req, res) => {
       { logger: req.log, requestId: req.id, label: 'taxon-detail' }
     );
     const result = Array.isArray(response.results) ? response.results[0] : undefined;
-    if (!result) return res.status(404).json({ error: { code: 'TAXON_NOT_FOUND', message: 'Taxon not found.' } });
+    if (!result) {
+      return sendError(req, res, {
+        status: 404,
+        code: 'TAXON_NOT_FOUND',
+        message: 'Taxon not found.',
+      });
+    }
     res.json(result);
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled taxon error');
-    res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 
@@ -97,7 +117,11 @@ router.get('/api/taxa', proxyLimiter, validate(taxaBatchSchema), async (req, res
     res.json(taxaDetails);
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled taxa error');
-    res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 
@@ -144,7 +168,11 @@ router.get('/api/observations/species_counts', proxyLimiter, validate(speciesCou
     res.json(data);
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled species_counts error');
-    res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Internal server error' } });
+    return sendError(req, res, {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    });
   }
 });
 

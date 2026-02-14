@@ -2,9 +2,9 @@
 import { config } from '../config/index.js';
 import { SmartCache } from '../../lib/smart-cache.js';
 
-const { aiApiKey } = config;
+const { aiApiKey, aiEnabled } = config;
 const MODEL = 'gemini-2.5-flash-lite';
-const AI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${aiApiKey}`;
+const AI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const EXPLANATION_CACHE_VERSION = 'mamie-v2';
 const RIDDLE_CACHE_VERSION = 'mamie-v1';
 
@@ -290,6 +290,11 @@ export async function generateCustomExplanation(
   logger,
   { focusRank = null } = {}
 ) {
+  if (!aiEnabled) {
+    logger?.warn('AI explanations are disabled by configuration.');
+    return 'Mamie Mouche fait une pause, explication indisponible.';
+  }
+
   if (!aiApiKey) {
     logger?.warn('AI_API_KEY is not configured. Skipping AI explanation.');
     return 'Mamie Mouche fait une infusion, explication indisponible !';
@@ -343,7 +348,10 @@ export async function generateCustomExplanation(
 
           const response = await fetch(AI_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': aiApiKey,
+            },
             body: JSON.stringify(requestBody),
             signal: createTimeoutSignal(API_TIMEOUT_MS),
           });
@@ -414,6 +422,11 @@ export async function generateRiddle(targetTaxon, locale = 'fr', logger) {
   }
 
   const fallbackClues = buildFallbackRiddleClues(targetTaxon);
+  if (!aiEnabled) {
+    logger?.warn('AI riddles are disabled by configuration. Falling back to static clues.');
+    return { clues: fallbackClues, source: 'fallback' };
+  }
+
   if (!aiApiKey) {
     logger?.warn('AI_API_KEY is not configured. Falling back to static riddle clues.');
     return { clues: fallbackClues, source: 'fallback' };
@@ -465,7 +478,10 @@ export async function generateRiddle(targetTaxon, locale = 'fr', logger) {
 
           const response = await fetch(AI_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': aiApiKey,
+            },
             body: JSON.stringify(requestBody),
             signal: createTimeoutSignal(API_TIMEOUT_MS),
           });

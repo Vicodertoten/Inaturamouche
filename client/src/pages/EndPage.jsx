@@ -13,7 +13,6 @@ const EndPage = () => {
     sessionSpeciesData,
     newlyUnlocked,
     startGame,
-    resetToLobby,
     clearSessionFromDB,
     dailySeed,
     isReviewMode,

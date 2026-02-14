@@ -1,15 +1,12 @@
 // server/utils/helpers.js
 // Fonctions utilitaires diverses
 
-import { performance } from 'node:perf_hooks';
 import { createShuffledDeck, drawFromDeck } from '../../lib/quiz-utils.js';
 import {
   hasEligibleObservation,
   isBlockedByTargetCooldown,
-  pickObservationForTaxon,
 } from '../services/selectionState.js';
 import { getTaxonName } from '../services/iNaturalistClient.js';
-import { shuffleFisherYates } from '../../lib/quiz-utils.js';
 
 /**
  * Récupérer l'IP du client en tenant compte des proxies
@@ -83,7 +80,6 @@ export function buildMonthDayFilter(d1, d2) {
  * Extraire les paramètres géographiques
  */
 export function geoParams(q) {
-  const p = {};
   if (q.place_id) {
     const raw = Array.isArray(q.place_id) ? q.place_id.join(',') : String(q.place_id);
     const list = raw

@@ -1,0 +1,17 @@
+# Dockerfile.fly — API seule pour Fly.io (pas de build client)
+FROM node:22-alpine
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Installer les dépendances serveur uniquement
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copier le code serveur + libs partagées
+COPY server ./server
+COPY lib ./lib
+COPY shared ./shared
+
+EXPOSE 8080
+CMD ["node", "server/index.js"]

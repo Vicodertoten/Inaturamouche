@@ -760,12 +760,22 @@ export const TAXON_GROUP_FILTERS = Object.freeze({
  * Vérifie si un succès profile-based doit être débloqué
  * @param {Object} profile - Profil joueur complet
  * @param {Object} collectionStats - Stats de collection (from DB)
- * @param {Object} [sessionContext] - Contexte de session (pour succès temps réel)
  * @returns {Array<string>} IDs des succès débloqués
  */
-export const checkNewAchievements = (profile, collectionStats = {}, sessionContext = {}) => {
+export const checkNewAchievements = (profile, collectionStats = {}) => {
   const unlocked = [];
-  const { xp, stats, achievements = [], dailyStreak = {} } = profile || {};
+  const { xp, achievements = [], dailyStreak = {} } = profile || {};
+  const baseStats = profile?.stats || {};
+  const validatedStats = baseStats?.validated || null;
+  const stats = validatedStats
+    ? {
+        ...baseStats,
+        ...validatedStats,
+        packsPlayed: validatedStats.packsPlayed || baseStats.packsPlayed || {},
+        speciesMastery: validatedStats.speciesMastery || baseStats.speciesMastery || {},
+        rarityCounts: validatedStats.rarityCounts || baseStats.rarityCounts || {},
+      }
+    : baseStats;
   const owned = new Set(achievements);
 
   // Calcul du niveau pour les succès
@@ -1083,7 +1093,9 @@ const TARGET_BIOME = 'tundra';
 export const evaluateMicroChallenges = (snapshot = {}, alreadyUnlocked = []) => {
   const unlocked = [];
   const owned = new Set(alreadyUnlocked || []);
-  const sessionSpeciesData = snapshot.sessionSpeciesData || [];
+  const sessionSpeciesData = (snapshot.sessionSpeciesData || []).filter(
+    (entry) => entry?.validatedEvent === true
+  );
   const roundMeta = snapshot.roundMeta || {};
   const currentStreak = snapshot.currentStreak || 0;
   const sessionXP = snapshot.sessionXP || 0;

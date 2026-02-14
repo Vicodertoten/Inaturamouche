@@ -1,18 +1,28 @@
 // server/config/cors.js
 // Configuration CORS
 
-export const allowedOrigins = [
-  'http://localhost:5173',
-  'https://inaturamouche.netlify.app',
-  'https://inaturaquizz.netlify.app',
-];
+import { config } from './index.js';
+
+export const allowedOrigins = config.corsOrigins;
+const DEV_LOCAL_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/i;
+
+function normalizeOrigin(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/\/+$/, '');
+}
 
 export const corsOptions = {
   origin(origin, cb) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    const isDevLocalOrigin =
+      config.nodeEnv !== 'production' && DEV_LOCAL_ORIGIN_RE.test(normalizedOrigin);
+
+    if (!normalizedOrigin || allowedOrigins.includes(normalizedOrigin) || isDevLocalOrigin) {
       return cb(null, true);
     }
-    return cb(new Error('Origin not allowed by CORS'));
+    const err = new Error('Origin not allowed by CORS');
+    err.status = 403;
+    return cb(err);
   },
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

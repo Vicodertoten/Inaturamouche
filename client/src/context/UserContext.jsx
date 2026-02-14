@@ -6,6 +6,7 @@ import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
 import { getTaxaByIds } from '../services/api';
 import { stats as statsTable, taxa as taxaTable } from '../services/db';
+import { debugError, debugLog, debugWarn } from '../utils/logger';
 
 const UserContext = createContext(null);
 
@@ -22,7 +23,7 @@ const getLocalStorage = () => {
   try {
     return window.localStorage;
   } catch (error) {
-    console.warn('Access to localStorage is blocked', error);
+    debugWarn('Access to localStorage is blocked', error);
     return null;
   }
 };
@@ -33,7 +34,7 @@ const readTutorialSeenFlag = () => {
   try {
     return storage.getItem(TUTORIAL_STORAGE_KEY);
   } catch (error) {
-    console.warn('Unable to read tutorial flag from localStorage', error);
+    debugWarn('Unable to read tutorial flag from localStorage', error);
     return null;
   }
 };
@@ -44,7 +45,7 @@ const writeTutorialSeenFlag = () => {
   try {
     storage.setItem(TUTORIAL_STORAGE_KEY, 'true');
   } catch (error) {
-    console.warn('Unable to persist tutorial completion flag', error);
+    debugWarn('Unable to persist tutorial completion flag', error);
   }
 };
 
@@ -65,7 +66,7 @@ async function seedEncyclopedia() {
       .map(item => item.inaturalist_id)
       .filter(Boolean);
     
-    console.log(`📚 Loading ${inaturalistIds.length} taxa from iNaturalist...`);
+    debugLog(`📚 Loading ${inaturalistIds.length} taxa from iNaturalist...`);
     
     // Process IDs in batches of 50 (server string limit is 500 chars)
     const BATCH_SIZE = 50;
@@ -74,7 +75,7 @@ async function seedEncyclopedia() {
     for (let i = 0; i < inaturalistIds.length; i += BATCH_SIZE) {
       const batchIds = inaturalistIds.slice(i, i + BATCH_SIZE);
       
-      console.log(`  📡 Fetching batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(inaturalistIds.length / BATCH_SIZE)} (${batchIds.length} taxa)...`);
+      debugLog(`  📡 Fetching batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(inaturalistIds.length / BATCH_SIZE)} (${batchIds.length} taxa)...`);
       
       const taxaList = await getTaxaByIds(batchIds, 'en');
       
@@ -84,23 +85,23 @@ async function seedEncyclopedia() {
     }
     
     if (allTaxaList.length === 0) {
-      console.warn('⚠️ No taxa returned from server');
+      debugWarn('⚠️ No taxa returned from server');
       return;
     }
     
-    console.log(`📚 Seeding ${allTaxaList.length} taxa into database...`);
+    debugLog(`📚 Seeding ${allTaxaList.length} taxa into database...`);
     
     // Seed into CollectionService (handles transaction, batching, etc.)
     await CollectionService.seedTaxa(allTaxaList, {
       onProgress: (count) => {
         if (count % 50 === 0) {
-          console.log(`  ✓ Seeded ${count}/${allTaxaList.length}`);
+          debugLog(`  ✓ Seeded ${count}/${allTaxaList.length}`);
         }
       },
     });
     
     const finalCount = await taxaTable.count();
-    console.log(`✅ Encyclopedia seeded: ${finalCount} taxa available`);
+    debugLog(`✅ Encyclopedia seeded: ${finalCount} taxa available`);
     
     // Log breakdown by iconic
     const allTaxa = await taxaTable.toArray();
@@ -110,9 +111,9 @@ async function seedEncyclopedia() {
       if (!byIconic[iconicId]) byIconic[iconicId] = 0;
       byIconic[iconicId]++;
     }
-    console.log('📊 Taxa breakdown by iconic:', byIconic);
+    debugLog('📊 Taxa breakdown by iconic:', byIconic);
   } catch (error) {
-    console.error('❌ Failed to seed encyclopedia:', error);
+    debugError('❌ Failed to seed encyclopedia:', error);
   }
 }
 
@@ -149,7 +150,7 @@ export function UserProvider({ children }) {
       try {
         migrationApplied = await migrateLocalStorageToIndexedDB();
       } catch (migrationError) {
-        console.error('Failed to migrate legacy collection', migrationError);
+        debugError('Failed to migrate legacy collection', migrationError);
       }
       try {
         let loadedProfile = await loadProfileFromStore();
@@ -165,7 +166,7 @@ export function UserProvider({ children }) {
           await saveProfile(loadedProfile);
         }
       } catch (loadError) {
-        console.error('Failed to load profile', loadError);
+        debugError('Failed to load profile', loadError);
         if (isMounted) {
           setProfile(sanitizeProfile());
         }
@@ -176,13 +177,13 @@ export function UserProvider({ children }) {
         const storage = getLocalStorage();
         const seedingFlag = storage?.getItem('SEEDING_COMPLETE_V1');
         const count = await taxaTable.count();
-        console.log(`📊 DB Initialisée : ${count} espèces disponibles.`);
+        debugLog(`📊 DB Initialisée : ${count} espèces disponibles.`);
 
         if (!seedingFlag || count === 0) {
           const reason = !seedingFlag ? 'flag missing' : 'db empty';
           cancelSeeding = scheduleIdleTask(async () => {
             try {
-              console.log(`🌱 Seeding encyclopedia (${reason})...`);
+              debugLog(`🌱 Seeding encyclopedia (${reason})...`);
               await seedEncyclopedia();
               // Only mark seeding complete once it finished without throwing
               storage?.setItem('SEEDING_COMPLETE_V1', '1');
@@ -191,12 +192,12 @@ export function UserProvider({ children }) {
               }
             } catch (seedErr) {
               // Don't set the flag - seeding failed/aborted; let next init attempt retry
-              console.error('❌ Seeding failed, will retry on next launch:', seedErr);
+              debugError('❌ Seeding failed, will retry on next launch:', seedErr);
             }
           });
         }
       } catch (e) {
-        console.error('Erreur lecture DB', e);
+        debugError('Erreur lecture DB', e);
       }
 
       // Rebuild rarity tiers once using locally stored observations_count data.
@@ -208,7 +209,7 @@ export function UserProvider({ children }) {
           storage?.setItem('RARITY_REBUILD_V6', '1');
         }
       } catch (err) {
-        console.warn('Rarity rebuild skipped:', err);
+        debugWarn('Rarity rebuild skipped:', err);
       }
       
       // Update collectionVersion if any data changes happened
@@ -272,7 +273,7 @@ export function UserProvider({ children }) {
       setCollectionVersion((prev) => prev + 1);
       return result;
     } catch (error) {
-      console.error('Failed to record encounter', error);
+      debugError('Failed to record encounter', error);
       return null;
     }
   }, []);
@@ -320,7 +321,7 @@ export function UserProvider({ children }) {
         lastSeenAt,
       };
     } catch (error) {
-      console.error('Failed to read collection stats', error);
+      debugError('Failed to read collection stats', error);
       return {
         totalSpecies: 0,
         seenSpecies: 0,

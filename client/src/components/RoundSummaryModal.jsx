@@ -179,7 +179,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   }
 
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
-  const titleIcon = isWin ? '🎉' : '😟';
   const correctImageUrl = getObservationImageUrl(question?.bonne_reponse) || correctDisplayTaxon.image_url;
 
   return (

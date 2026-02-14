@@ -1,27 +1,32 @@
 // server/middleware/errorHandler.js
 // Gestion globale des erreurs
 
+import { sendError } from '../utils/http.js';
+
 /**
  * Middleware de gestion des erreurs 404
  */
-export function notFoundHandler(_, res) {
-  res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Not Found' } });
+export function notFoundHandler(req, res) {
+  return sendError(req, res, {
+    status: 404,
+    code: 'NOT_FOUND',
+    message: 'Not Found',
+  });
 }
 
 /**
- * Middleware de gestion des erreurs générales (optionnel, non utilisé actuellement)
+ * Middleware de gestion des erreurs générales
  */
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   req.log?.error({ err, requestId: req.id }, 'Unhandled error');
-  
-  const status = err.status || err.statusCode || 500;
-  const code = err.code || 'INTERNAL_SERVER_ERROR';
-  const message = err.message || 'Internal server error';
-  
-  res.status(status).json({
-    error: {
-      code,
-      message,
-    },
+
+  const status = Number.parseInt(String(err?.status ?? err?.statusCode ?? 500), 10) || 500;
+  const code = typeof err?.code === 'string' ? err.code : status === 404 ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR';
+  const message = status >= 500 ? 'Internal server error' : err?.message || 'Error';
+
+  return sendError(req, res, {
+    status,
+    code,
+    message,
   });
 }

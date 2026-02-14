@@ -26,6 +26,6 @@ test('hard mode species guessed with remaining guesses', () => {
 
 test('hard mode lost round', () => {
   const result = computeScore({ mode: 'hard', basePoints: 10, guessesRemaining: 0, isCorrect: false });
-  assert.strictEqual(result.points, 10);
+  assert.strictEqual(result.points, 0);
   assert.strictEqual(result.bonus, 0);
 });
