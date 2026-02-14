@@ -20,95 +20,45 @@ const TutorialOverlay = () => {
         text: t(
           'tutorial.step_welcome_text',
           {},
-          "Ici le Professeur Mouche. Inaturamouche existe pour apprendre le vivant : observer, comprendre, mémoriser."
-        ),
-        note: t(
-          'tutorial.step_welcome_note',
-          {},
-          "Je te guide pas à pas et je te fais visiter l'application."
+          "Je suis Papy Mouche. Je te montre l'essentiel en quelques secondes."
         ),
         route: '/',
         position: 'center',
       },
       {
-        id: 'daily',
-        title: t('tutorial.step_daily_title', {}, 'Défi du jour'),
-        text: t(
-          'tutorial.step_daily_text',
-          {},
-          "Un run court, renouvelé chaque jour. Idéal pour lancer ta streak et croiser des espèces rares."
-        ),
-        route: '/',
-        targetSelector: '.tutorial-daily-challenge',
-        position: 'auto',
-      },
-      {
-        id: 'review',
-        title: t('tutorial.step_review_title', {}, 'Révisions intelligentes'),
-        text: t(
-          'tutorial.step_review_text',
-          {},
-          "Quand tu hésites, je note. Le mode Révision repropose ces espèces pour les ancrer durablement."
-        ),
-        note: t(
-          'tutorial.step_review_note',
-          {},
-          "Si la carte n'apparaît pas encore, elle se débloque après tes premières parties."
-        ),
-        route: '/',
-        targetSelector: '.tutorial-review-card',
-        position: 'auto',
-      },
-      {
         id: 'packs',
-        title: t('tutorial.step_packs_title', {}, 'Packs thématiques'),
+        title: t('tutorial.step_packs_title', {}, 'Choisir un terrain'),
         text: t(
           'tutorial.step_packs_text',
           {},
-          "Choisis un pack pour définir ton terrain d'étude : oiseaux, champignons, arbres..."
+          "Un pack définit les espèces du jeu. Commence avec un pack recommandé."
         ),
-        bullets: [
-          t('tutorial.step_packs_bullet_1', {}, 'Un pack = un écosystème.'),
-          t('tutorial.step_packs_bullet_2', {}, 'Plus de packs = plus de diversité.'),
-          t('tutorial.step_packs_bullet_3', {}, 'Mode personnalisé pour créer ton propre terrain.'),
-        ],
         route: '/',
         targetSelector: '.tutorial-pack-grid',
         position: 'right',
         highlightSelector: '.pack-card, .pack-card-glow',
-        spotlightPadding: 26,
-        spotlightRadius: 28,
+        spotlightPadding: 30,
+        spotlightRadius: 32,
       },
       {
         id: 'modes',
-        title: t('tutorial.step_modes_title', {}, 'Modes de jeu'),
+        title: t('tutorial.step_modes_title', {}, 'Comment jouer'),
         text: t(
           'tutorial.step_modes_text',
           {},
-          "Change de rythme selon ton énergie. Chaque mode entraîne une compétence."
+          'Choisis un mode. Facile est le plus simple pour démarrer.'
         ),
-        bullets: [
-          t('tutorial.step_modes_bullet_1', {}, 'Quiz : choix multiples, parfait pour démarrer.'),
-          t('tutorial.step_modes_bullet_2', {}, 'Énigme : indices progressifs, logique fine.'),
-          t('tutorial.step_modes_bullet_3', {}, 'Difficile : gravis la taxonomie.'),
-          t('tutorial.step_modes_bullet_4', {}, 'Taxonomique : ascension complète (niveau expert).'),
-        ],
         route: '/',
         targetSelector: '.tutorial-mode-cards',
         position: 'auto',
       },
       {
         id: 'settings',
-        title: t('tutorial.step_settings_title', {}, 'Réglages de partie'),
+        title: t('tutorial.step_settings_title', {}, 'Réglages rapides'),
         text: t(
           'tutorial.step_settings_text',
           {},
-          "Choisis la durée et les médias. Les sons sont parfaits pour entraîner l'oreille."
-        ),
-        note: t(
-          'tutorial.step_settings_note',
-          {},
-          "En Énigme, les sons sont désactivés pour garder les indices cohérents."
+          'Durée et médias suffisent pour commencer. Tu peux ajuster plus tard.'
         ),
         route: '/',
         targetSelector: '.tutorial-game-settings',
@@ -120,92 +70,15 @@ const TutorialOverlay = () => {
         text: t(
           'tutorial.step_navigation_text',
           {},
-          "Tout est à portée : collection, profil, signalement, réglages."
+          'Tout est à portée. Tu peux revenir ici à tout moment.'
         ),
         route: '/',
         targetSelector: '.tutorial-main-nav, .tutorial-bottom-nav',
         highlightSelector: '.tutorial-nav-home, .tutorial-nav-collection, .tutorial-nav-profile, .tutorial-nav-report, .tutorial-nav-settings',
         position: 'auto',
         skipScroll: true,
-        nextLabel: t('tutorial.step_navigation_next', {}, 'Voir la collection'),
       },
-      {
-        id: 'collection',
-        title: t('tutorial.step_collection_title', {}, 'Ta collection vivante'),
-        text: t(
-          'tutorial.step_collection_text',
-          {},
-          'Ici, tu vois ce que tu as découvert et ce qui reste à maîtriser.'
-        ),
-        bullets: [
-          t('tutorial.step_collection_bullet_1', {}, "Clique un groupe pour explorer l'ensemble."),
-          t('tutorial.step_collection_bullet_2', {}, 'Filtre et trie tes trouvailles.'),
-          t('tutorial.step_collection_bullet_3', {}, 'Les fantômes = vus mais pas encore maîtrisés.'),
-        ],
-        route: '/collection',
-        targetSelector: '.tutorial-collection-grid',
-        position: 'auto',
-        nextLabel: t('tutorial.step_collection_next', {}, 'Voir le profil'),
-      },
-      {
-        id: 'profile',
-        title: t('tutorial.step_profile_title', {}, 'Ton profil'),
-        text: t(
-          'tutorial.step_profile_text',
-          {},
-          'Ton tableau de bord : niveau, XP, avatar, titres et bordures.'
-        ),
-        bullets: [
-          t('tutorial.step_profile_bullet_1', {}, 'Résumé : progression globale.'),
-          t('tutorial.step_profile_bullet_2', {}, 'Stats : précision et packs joués.'),
-          t('tutorial.step_profile_bullet_3', {}, 'Succès : défis et récompenses.'),
-        ],
-        route: '/profile',
-        targetSelector: '.tutorial-profile-hero',
-        position: 'auto',
-      },
-      {
-        id: 'streaks',
-        title: t('tutorial.step_streaks_title', {}, 'Streaks & boucliers'),
-        text: t(
-          'tutorial.step_streaks_text',
-          {},
-          'La streak quotidienne récompense ta régularité. Les boucliers sauvent ta streak de jeu.'
-        ),
-        note: t(
-          'tutorial.step_streaks_note',
-          {},
-          "En partie, la streak de bonnes réponses monte vite — protège-la !"
-        ),
-        route: '/profile',
-        targetSelector: '.tutorial-streaks',
-        position: 'auto',
-      },
-      {
-        id: 'tabs',
-        title: t('tutorial.step_tabs_title', {}, 'Révisions & progression'),
-        text: t(
-          'tutorial.step_tabs_text',
-          {},
-          'Onglet Statistiques = révisions, packs, précision. Onglet Succès = titres, bordures, bonus.'
-        ),
-        route: '/profile',
-        targetSelector: '.tutorial-profile-tabs',
-        position: 'auto',
-        nextLabel: t('tutorial.step_tabs_next', {}, 'Retour au labo'),
-      },
-      {
-        id: 'wrap',
-        title: t('tutorial.step_wrap_title', {}, 'À toi de jouer !'),
-        text: t(
-          'tutorial.step_wrap_text',
-          {},
-          "Explore, collectionne, reviens demain. Je suis là pour t'aider à apprendre."
-        ),
-        route: '/',
-        targetSelector: '.tutorial-start-game',
-        position: 'auto',
-      },
+
     ],
     [t]
   );
@@ -368,12 +241,15 @@ const TutorialOverlay = () => {
   useEffect(() => {
     if (showTutorial) {
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('tutorial-active');
     } else {
       document.body.style.overflow = '';
+      document.body.classList.remove('tutorial-active');
     }
 
     return () => {
       document.body.style.overflow = '';
+      document.body.classList.remove('tutorial-active');
     };
   }, [showTutorial]);
 
@@ -398,7 +274,7 @@ const TutorialOverlay = () => {
           : 'bottom'
         : step?.position;
 
-  const spotlightPadding = step?.spotlightPadding ?? 12;
+  const spotlightPadding = step?.spotlightPadding ?? 18;
   const spotlightRect = targetRect
     ? (() => {
         const rawLeft = targetRect.left - spotlightPadding;
@@ -416,7 +292,7 @@ const TutorialOverlay = () => {
   const hasSpotlight = Boolean(
     spotlightRect && !isCentered && spotlightRect.width > 0 && spotlightRect.height > 0
   );
-  const spotlightRadius = step?.spotlightRadius ?? 18;
+  const spotlightRadius = step?.spotlightRadius ?? 22;
 
   useLayoutEffect(() => {
     if (!showTutorial || !step) return;
@@ -573,9 +449,18 @@ const TutorialOverlay = () => {
         style={{ ...cardStyle, ...cardVars }}
       >
         <div className="tutorial-header">
-          <span className="tutorial-step">
-            {t('tutorial.step_label', {}, 'Étape')} {currentStepIndex + 1}/{steps.length}
-          </span>
+          <div className="tutorial-header-meta">
+            <span className="tutorial-step">
+              {currentStepIndex + 1}/{steps.length}
+            </span>
+            <button className="tutorial-skip-link" onClick={handleSkip} type="button">
+              {t('tutorial.skip', {}, 'Passer')}
+            </button>
+          </div>
+          <div className="tutorial-professor">
+            <span className="tutorial-professor-avatar" aria-hidden="true">🪰</span>
+            <span className="tutorial-professor-text">Papy Mouche</span>
+          </div>
           <h3>{step.title}</h3>
         </div>
 
@@ -592,28 +477,20 @@ const TutorialOverlay = () => {
         </div>
 
         <div className="tutorial-footer">
-          <div className="tutorial-dots">
-            {steps.map((_, index) => (
+          <div className="tutorial-progress">
+            <div className="tutorial-progress-bar" aria-hidden="true">
               <span
-                key={`dot-${index}`}
-                className={`progress-dot ${index === currentStepIndex ? 'active' : ''}`}
+                className="tutorial-progress-fill"
+                style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
               />
-            ))}
+            </div>
           </div>
 
           <div className="tutorial-buttons">
-            {currentStepIndex > 0 && (
-              <button className="tutorial-back" onClick={handleBack}>
-                {t('tutorial.previous', {}, 'Précédent')}
-              </button>
-            )}
-            <button className="tutorial-skip" onClick={handleSkip}>
-              {t('tutorial.skip', {}, 'Passer')}
-            </button>
             <button className="tutorial-next" onClick={handleNext}>
               {step.nextLabel || (currentStepIndex === steps.length - 1
                 ? t('tutorial.finish', {}, "C'est parti !")
-                : t('tutorial.next', {}, 'Suivant →'))}
+                : t('tutorial.next', {}, 'Suivant'))}
             </button>
           </div>
         </div>

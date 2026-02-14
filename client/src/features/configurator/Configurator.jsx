@@ -168,9 +168,7 @@ function Configurator({ onStartGame }) {
   const { t } = useLanguage();
 
   const packOptions = usePackOptions({ packs, t });
-  const [packView, setPackView] = useState(() =>
-    activePackId === 'custom' ? 'custom' : 'packs'
-  );
+  const [packView, setPackView] = useState('packs');
 
   const activePack = useMemo(
     () => packs.find((pack) => pack.id === activePackId),
@@ -303,7 +301,7 @@ function Configurator({ onStartGame }) {
 
             {isPackView && (
               <>
-                <div className="pack-grid tutorial-pack-grid" role="list">
+                <div className="pack-grid tutorial-pack-grid" role="list" data-test="pack-selector">
                   {packsLoading &&
                     Array.from({ length: 4 }, (_, index) => (
                       <div className="pack-tile pack-tile-skeleton" key={`skeleton-${index}`}>
@@ -370,7 +368,12 @@ function Configurator({ onStartGame }) {
             subtitle={t('home.play_pillar_desc')}
           />
 
-          <div className="mode-cards tutorial-mode-cards" role="radiogroup" aria-label={t('home.play_pillar_title')}>
+          <div 
+            className="mode-cards tutorial-mode-cards" 
+            role="radiogroup" 
+            aria-label={t('home.play_pillar_title')}
+            data-test="mode-selector"
+          >
             <label className={`mode-card ${gameMode === 'easy' ? 'selected' : ''}`}>
               <input
                 type="radio"

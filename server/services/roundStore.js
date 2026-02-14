@@ -41,7 +41,6 @@ const balanceEvents = [];
 const DEFAULT_DEV_SECRET = 'dev-round-secret-change-me';
 const RANK_ORDER = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const DEFAULT_HARD_MAX_GUESSES = 3;
-const DEFAULT_HARD_MAX_HINTS = 1;
 const DEFAULT_TAXONOMIC_MAX_MISTAKES = 2;
 const DEFAULT_TAXONOMIC_MAX_HINTS = 1;
 const DEFAULT_SCORE_PER_RANK = Object.freeze({
@@ -323,42 +322,6 @@ const snapshotTaxon = (taxon) => {
   };
 };
 
-const buildHardTargetLineage = (correctAnswer) => {
-  const lineage = {};
-  if (!correctAnswer) return lineage;
-
-  if (Array.isArray(correctAnswer.ancestors)) {
-    for (const ancestor of correctAnswer.ancestors) {
-      const rank = normalizeRank(ancestor?.rank);
-      if (!rank || !RANK_ORDER.includes(rank)) continue;
-      const snap = snapshotTaxon(ancestor);
-      if (snap) lineage[rank] = snap;
-    }
-  }
-
-  const speciesSnap = snapshotTaxon({ ...correctAnswer, rank: 'species' });
-  if (speciesSnap) {
-    speciesSnap.ancestors = Array.isArray(correctAnswer.ancestors) ? speciesSnap.ancestors : [];
-    lineage.species = speciesSnap;
-  }
-
-  return lineage;
-};
-
-const computePointsFromKnownRanks = (knownTaxa, scorePerRank) =>
-  RANK_ORDER.reduce((sum, rank) => {
-    if (!knownTaxa?.[rank]) return sum;
-    return sum + (scorePerRank?.[rank] || 0);
-  }, 0);
-
-const toPublicKnownTaxa = (knownTaxa) => {
-  const out = {};
-  for (const rank of RANK_ORDER) {
-    if (knownTaxa?.[rank]) out[rank] = knownTaxa[rank];
-  }
-  return out;
-};
-
 const toRoundPublicResult = (result) => {
   const revealSolution = Boolean(result.round_consumed || result.is_correct);
   const payload = {
@@ -430,12 +393,7 @@ export function createRoundSession({
     round.hardState = {
       maxGuesses: Math.max(1, Number(hardMode?.max_guesses) || DEFAULT_HARD_MAX_GUESSES),
       guessesUsed: 0,
-      maxHints: Math.max(0, Number(hardMode?.max_hints) || DEFAULT_HARD_MAX_HINTS),
-      hintCount: 0,
-      scorePerRank: normalizeScorePerRank(hardMode?.score_per_rank),
-      targetLineage: buildHardTargetLineage(correctAnswer),
-      knownTaxa: {},
-      pointsEarned: 0,
+      basePoints: Math.max(0, Number(hardMode?.base_points) || 30),
     };
   }
 
@@ -541,10 +499,6 @@ async function fetchSelectedTaxonDetail(selectedTaxonId, locale, logger, request
   return detail;
 }
 
-function resolveHardHintRank(hardState) {
-  return RANK_ORDER.find((rank) => hardState?.targetLineage?.[rank] && !hardState?.knownTaxa?.[rank]) || null;
-}
-
 async function processHardGuess(round, selectedTaxonId, { logger, requestId } = {}) {
   const hardState = round.hardState;
   if (!hardState) {
@@ -556,34 +510,13 @@ async function processHardGuess(round, selectedTaxonId, { logger, requestId } = 
 
   const selectedDetail = await fetchSelectedTaxonDetail(selectedTaxonId, round.locale, logger, requestId);
   const selectedTaxon = snapshotTaxon(selectedDetail);
-  const selectedLineage = [
-    ...(Array.isArray(selectedDetail.ancestors) ? selectedDetail.ancestors : []),
-    selectedDetail,
-  ];
 
-  const gainedRanks = [];
-  let touchedKnownLineage = false;
-
-  for (const taxon of selectedLineage) {
-    const rank = normalizeRank(taxon?.rank);
-    if (!rank || !RANK_ORDER.includes(rank)) continue;
-    const target = hardState.targetLineage[rank];
-    if (!target) continue;
-    if (String(target.id) !== String(taxon.id)) continue;
-    touchedKnownLineage = true;
-    if (!hardState.knownTaxa[rank]) {
-      hardState.knownTaxa[rank] = target;
-      gainedRanks.push(rank);
-    }
-  }
-
+  const isCorrect = String(selectedTaxonId) === String(round.correctTaxonId);
   hardState.guessesUsed += 1;
   const guessesRemaining = Math.max(0, hardState.maxGuesses - hardState.guessesUsed);
-  hardState.pointsEarned = computePointsFromKnownRanks(hardState.knownTaxa, hardState.scorePerRank);
 
-  const speciesGuessed = Boolean(hardState.knownTaxa?.species);
-  const roundConsumed = speciesGuessed || guessesRemaining <= 0;
-  const status = roundConsumed ? (speciesGuessed ? 'win' : 'lose') : 'playing';
+  const roundConsumed = isCorrect || guessesRemaining <= 0;
+  const status = roundConsumed ? (isCorrect ? 'win' : 'lose') : 'playing';
   if (roundConsumed) round.finalized = true;
 
   return {
@@ -593,87 +526,12 @@ async function processHardGuess(round, selectedTaxonId, { logger, requestId } = 
       roundConsumed,
     }),
     selected_taxon: selectedTaxon,
-    guess_outcome: gainedRanks.length > 0 ? 'progress' : touchedKnownLineage ? 'redundant' : 'wrong',
+    guess_outcome: isCorrect ? 'correct' : 'wrong',
     hard_state: {
-      known_taxa: toPublicKnownTaxa(hardState.knownTaxa),
-      gained_ranks: gainedRanks,
       guesses_used: hardState.guessesUsed,
       guesses_remaining: guessesRemaining,
       max_guesses: hardState.maxGuesses,
-      hint_count: hardState.hintCount,
-      max_hints: hardState.maxHints,
-      points_earned: hardState.pointsEarned,
-    },
-  };
-}
-
-function processHardHint(round) {
-  const hardState = round.hardState;
-  if (!hardState) {
-    const err = new Error('Hard mode state unavailable.');
-    err.status = 500;
-    err.code = 'ROUND_STATE_INVALID';
-    throw err;
-  }
-
-  if (hardState.hintCount >= hardState.maxHints) {
-    const err = new Error('Hint limit reached for this round.');
-    err.status = 409;
-    err.code = 'HARD_HINT_LIMIT';
-    throw err;
-  }
-
-  const rank = resolveHardHintRank(hardState);
-  if (!rank) {
-    const guessesRemaining = Math.max(0, hardState.maxGuesses - hardState.guessesUsed);
-    return {
-      ...makeBaseRoundResult(round, 'playing', {
-        attemptsUsed: hardState.guessesUsed,
-        attemptsRemaining: guessesRemaining,
-        roundConsumed: false,
-      }),
-      guess_outcome: 'hint_none',
-      hard_state: {
-        known_taxa: toPublicKnownTaxa(hardState.knownTaxa),
-        gained_ranks: [],
-        guesses_used: hardState.guessesUsed,
-        guesses_remaining: guessesRemaining,
-        max_guesses: hardState.maxGuesses,
-        hint_count: hardState.hintCount,
-        max_hints: hardState.maxHints,
-        points_earned: hardState.pointsEarned,
-        hint_revealed_rank: null,
-      },
-    };
-  }
-
-  hardState.hintCount += 1;
-  hardState.knownTaxa[rank] = hardState.targetLineage[rank];
-  hardState.pointsEarned = computePointsFromKnownRanks(hardState.knownTaxa, hardState.scorePerRank);
-
-  const speciesGuessed = Boolean(hardState.knownTaxa?.species);
-  const guessesRemaining = Math.max(0, hardState.maxGuesses - hardState.guessesUsed);
-  const roundConsumed = speciesGuessed;
-  const status = roundConsumed ? 'win' : 'playing';
-  if (roundConsumed) round.finalized = true;
-
-  return {
-    ...makeBaseRoundResult(round, status, {
-      attemptsUsed: hardState.guessesUsed,
-      attemptsRemaining: guessesRemaining,
-      roundConsumed,
-    }),
-    guess_outcome: 'hint',
-    hard_state: {
-      known_taxa: toPublicKnownTaxa(hardState.knownTaxa),
-      gained_ranks: [rank],
-      guesses_used: hardState.guessesUsed,
-      guesses_remaining: guessesRemaining,
-      max_guesses: hardState.maxGuesses,
-      hint_count: hardState.hintCount,
-      max_hints: hardState.maxHints,
-      points_earned: hardState.pointsEarned,
-      hint_revealed_rank: rank,
+      base_points: hardState.basePoints,
     },
   };
 }
@@ -910,8 +768,6 @@ export async function submitRoundAnswer({
     result = processEasyOrRiddleAnswer(round, selectedTaxonId);
   } else if (action === 'hard_guess') {
     result = await processHardGuess(round, selectedTaxonId, { logger, requestId });
-  } else if (action === 'hard_hint') {
-    result = processHardHint(round);
   } else if (action === 'taxonomic_select') {
     result = processTaxonomicSelect(round, selectedTaxonId, stepIndex);
   } else if (action === 'taxonomic_hint') {

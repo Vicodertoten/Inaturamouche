@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import EndScreen from '../components/EndScreen';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
+import { markDailyCompleted } from '../utils/dailyChallenge';
 
 const EndPage = () => {
   const navigate = useNavigate();
@@ -22,6 +23,14 @@ const EndPage = () => {
   } = useGameData();
   const { profile } = useUser();
   const isRestartingRef = useRef(false);
+  const isDailyChallenge = Boolean(dailySeed);
+
+  // Mark daily challenge as completed when reaching the end screen
+  useEffect(() => {
+    if (isGameOver && dailySeed) {
+      markDailyCompleted(dailySeed);
+    }
+  }, [isGameOver, dailySeed]);
 
   useEffect(() => {
     if (!isGameOver) {
@@ -34,6 +43,11 @@ const EndPage = () => {
   }, [isGameOver, navigate]);
 
   const handleRestart = useCallback(() => {
+    // Daily challenges cannot be replayed
+    if (isDailyChallenge) {
+      navigate('/');
+      return;
+    }
     isRestartingRef.current = true;
     const restartConfig = {
       review: isReviewMode,
@@ -41,12 +55,9 @@ const EndPage = () => {
       maxQuestions,
       mediaType,
     };
-    if (dailySeed) {
-      restartConfig.seed = dailySeed;
-    }
     startGame(restartConfig);
     navigate('/play');
-  }, [dailySeed, gameMode, isReviewMode, maxQuestions, mediaType, navigate, startGame]);
+  }, [isDailyChallenge, gameMode, isReviewMode, maxQuestions, mediaType, navigate, startGame]);
 
   const handleReturnHome = useCallback(() => {
     // Ensure the saved session is removed so it cannot be resumed later
@@ -65,6 +76,7 @@ const EndPage = () => {
       onRestart={handleRestart}
       onReturnHome={handleReturnHome}
       profile={profile}
+      isDailyChallenge={isDailyChallenge}
     />
   );
 };

@@ -1,0 +1,28 @@
+.help-modal {
+  display: grid;
+  gap: 12px;
+  color: var(--text-color, #1f2a24);
+}
+
+.help-modal-title {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--primary-color, #2e7d32);
+}
+
+.help-modal-intro {
+  margin: 0;
+  color: var(--text-color-muted, #60746a);
+  line-height: 1.5;
+}
+
+.help-modal-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.help-modal-list li {
+  line-height: 1.5;
+}

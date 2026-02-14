@@ -7,17 +7,13 @@ import LevelUpNotification from '../../../components/LevelUpNotification';
 import FloatingXPIndicator from '../../../components/FloatingXPIndicator';
 import './HardMode.css';
 import { computeScore, computeInGameStreakBonus } from '../../../utils/scoring';
-import { HINT_XP_PENALTY_PERCENT } from '../../../utils/economy';
 import { getAudioMimeType, normalizeMediaUrl } from '../../../utils/mediaUtils';
 import { useGameData } from '../../../context/GameContext';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../../../utils/haptics';
-import { notify } from '../../../services/notifications';
 import { submitQuizAnswer } from '../../../services/api';
 
-const RANKS = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
 const INITIAL_GUESSES = 3;
-const MAX_HINTS = 1;
 
 function HardMode() {
   const {
@@ -32,29 +28,22 @@ function HardMode() {
     mediaType,
     questionCount,
     maxQuestions,
+    dailySeedSession,
   } = useGameData();
 
   const { t, getTaxonDisplayNames } = useLanguage();
   const maxGuesses = Math.max(1, Number(question?.hard_mode?.max_guesses) || INITIAL_GUESSES);
-  const maxHints = Math.max(0, Number(question?.hard_mode?.max_hints) || MAX_HINTS);
+  const basePoints = Math.max(0, Number(question?.hard_mode?.base_points) || 30);
 
-  const [knownTaxa, setKnownTaxa] = useState({});
-  const [activeRank, setActiveRank] = useState(RANKS[0]);
   const [guesses, setGuesses] = useState(maxGuesses);
   const [incorrectGuessIds, setIncorrectGuessIds] = useState([]);
   const [roundStatus, setRoundStatus] = useState('playing');
   const [feedback, setFeedback] = useState(null);
   const [scoreInfo, setScoreInfo] = useState(null);
   const [panelEffect, setPanelEffect] = useState('');
-  const [currentScore, setCurrentScore] = useState(0);
   const [isGuessing, setIsGuessing] = useState(false);
   const [liveXPGain, setLiveXPGain] = useState(0);
   const [validationResult, setValidationResult] = useState(null);
-  const [roundMeta, setRoundMeta] = useState({
-    mode: 'hard',
-    hintsUsed: false,
-    hintCount: 0,
-  });
   const [lastGuess, setLastGuess] = useState(null);
 
   const feedbackTimeoutRef = useRef(null);
@@ -66,46 +55,26 @@ function HardMode() {
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
   const showImage = mediaType === 'images' || mediaType === 'both' || (mediaType === 'sounds' && !soundUrl);
   const imageAlt = t('hard.image_alt');
-
-  const firstUnknownRank = useMemo(() => RANKS.find((rank) => !knownTaxa[rank]), [knownTaxa]);
   const isCurrentQuestion = questionRef.current === question;
 
   useEffect(() => {
     questionRef.current = question;
-    setKnownTaxa({});
     setIncorrectGuessIds([]);
     setGuesses(maxGuesses);
     setRoundStatus('playing');
     setFeedback(null);
     setScoreInfo(null);
     setPanelEffect('');
-    setCurrentScore(0);
     setIsGuessing(false);
     setLiveXPGain(0);
     setValidationResult(null);
-    setRoundMeta({
-      mode: 'hard',
-      hintsUsed: false,
-      hintCount: 0,
-    });
     setLastGuess(null);
-    setActiveRank(RANKS[0]);
   }, [question, maxGuesses]);
 
   useEffect(() => () => {
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     if (panelTimeoutRef.current) clearTimeout(panelTimeoutRef.current);
   }, []);
-
-  useEffect(() => {
-    if (!firstUnknownRank) {
-      if (activeRank !== 'species') setActiveRank('species');
-      return;
-    }
-    if (!activeRank || knownTaxa[activeRank]) {
-      setActiveRank(firstUnknownRank);
-    }
-  }, [activeRank, firstUnknownRank, knownTaxa]);
 
   const showFeedback = useCallback((message, type = 'info') => {
     setFeedback({ message, type });
@@ -135,38 +104,6 @@ function HardMode() {
     [getTaxonDisplayNames]
   );
 
-  const applyHardState = useCallback(
-    (result) => {
-      const hardState = result?.hard_state || {};
-      if (hardState.known_taxa && typeof hardState.known_taxa === 'object') {
-        setKnownTaxa(hardState.known_taxa);
-      }
-      if (Number.isFinite(hardState.guesses_remaining)) {
-        setGuesses(Math.max(0, Number(hardState.guesses_remaining)));
-      }
-      if (Number.isFinite(hardState.points_earned)) {
-        setCurrentScore(Math.max(0, Number(hardState.points_earned)));
-      }
-      const hintCount = Math.max(0, Number.parseInt(String(hardState.hint_count || 0), 10) || 0);
-      setRoundMeta((prev) => ({
-        ...prev,
-        hintsUsed: hintCount > 0,
-        hintCount,
-      }));
-      if (result?.selected_taxon) {
-        setLastGuess(mapSelectedTaxonToUserAnswer(result.selected_taxon));
-      }
-
-      return {
-        guessesRemaining: Math.max(0, Number(hardState.guesses_remaining || 0)),
-        pointsEarned: Math.max(0, Number(hardState.points_earned || 0)),
-        gainedRanks: Array.isArray(hardState.gained_ranks) ? hardState.gained_ranks : [],
-        hintRevealedRank: hardState.hint_revealed_rank || null,
-      };
-    },
-    [mapSelectedTaxonToUserAnswer]
-  );
-
   const handleGuess = useCallback(
     async (selection) => {
       if (!selection?.id || roundStatus !== 'playing' || isGuessing) return;
@@ -179,34 +116,42 @@ function HardMode() {
           roundSignature: question.round_signature,
           selectedTaxonId: selection.id,
           roundAction: 'hard_guess',
+          seedSession: dailySeedSession,
         });
 
         if (questionRef.current !== question) return;
 
         setValidationResult(result);
-        const { guessesRemaining, pointsEarned, gainedRanks } = applyHardState(result);
 
-        if (gainedRanks.length > 0) {
-          const gainedPoints = gainedRanks.length > 1 ? null : pointsEarned;
+        const hardState = result?.hard_state || {};
+        const guessesRemaining = Math.max(0, Number(hardState.guesses_remaining || 0));
+        setGuesses(guessesRemaining);
+
+        if (result?.selected_taxon) {
+          setLastGuess(mapSelectedTaxonToUserAnswer(result.selected_taxon));
+        }
+
+        const isCorrect = result?.guess_outcome === 'correct';
+
+        if (isCorrect) {
           vibrateSuccess();
-          setLiveXPGain(
-            Number.isFinite(gainedPoints)
-              ? Math.max(0, gainedPoints - (currentScore || 0))
-              : Math.max(0, pointsEarned - (currentScore || 0))
-          );
-          showFeedback(t('hard.feedback.branch', { points: Math.max(0, pointsEarned - (currentScore || 0)) }), 'success');
-        } else if (result?.guess_outcome === 'redundant') {
-          showFeedback(t('hard.feedback.redundant'), 'info');
+          setLiveXPGain(basePoints);
+          showFeedback(t('hard.feedback.correct', {}, 'Bonne réponse !'), 'success');
         } else {
           vibrateError();
-          showFeedback(t('hard.feedback.wrong_branch'), 'error');
+          showFeedback(
+            guessesRemaining > 0
+              ? t('hard.feedback.wrong', { remaining: guessesRemaining }, `Incorrect. ${guessesRemaining} essai(s) restant(s).`)
+              : t('hard.feedback.wrong_last', {}, 'Incorrect. Plus de tentatives.'),
+            'error'
+          );
           setIncorrectGuessIds((prev) => [...prev, selection.id]);
           triggerPanelShake();
         }
 
         if (result?.round_consumed || result?.status === 'win' || result?.status === 'lose') {
           setScoreInfo({
-            points: pointsEarned,
+            points: isCorrect ? basePoints : 0,
             bonus: 0,
             streakBonus: 0,
             guessesRemaining,
@@ -221,61 +166,17 @@ function HardMode() {
       }
     },
     [
-      applyHardState,
-      currentScore,
+      basePoints,
       isGuessing,
+      mapSelectedTaxonToUserAnswer,
       question,
       roundStatus,
       showFeedback,
       t,
       triggerPanelShake,
+      dailySeedSession,
     ]
   );
-
-  const handleRevealNameHint = useCallback(async () => {
-    if (roundStatus !== 'playing' || isGuessing) return;
-    if (!question?.round_id || !question?.round_signature) return;
-
-    setIsGuessing(true);
-    try {
-      const result = await submitQuizAnswer({
-        roundId: question.round_id,
-        roundSignature: question.round_signature,
-        roundAction: 'hard_hint',
-      });
-      if (questionRef.current !== question) return;
-
-      setValidationResult(result);
-      const { guessesRemaining, pointsEarned, hintRevealedRank } = applyHardState(result);
-
-      if (hintRevealedRank) {
-        const rankLabel = t(`ranks.${hintRevealedRank}`, hintRevealedRank);
-        showFeedback(
-          t('hard.feedback.hint_used', { rank: rankLabel }, `Indice utilisé (${rankLabel})`),
-          'info'
-        );
-        notify(`Malus de manche: -${HINT_XP_PENALTY_PERCENT}% XP`, {
-          type: 'info',
-          duration: 2000,
-        });
-      }
-
-      if (result?.round_consumed || result?.status === 'win' || result?.status === 'lose') {
-        setScoreInfo({
-          points: pointsEarned,
-          bonus: 0,
-          streakBonus: 0,
-          guessesRemaining,
-        });
-        setRoundStatus(result?.status === 'win' ? 'win' : 'lose');
-      }
-    } catch (error) {
-      showFeedback(error?.message || t('hard.feedback.error'), 'error');
-      triggerPanelShake();
-    } finally {
-      setIsGuessing(false);
-    }
-  }, [applyHardState, isGuessing, question, roundStatus, showFeedback, t, triggerPanelShake]);
 
   const resolvedQuestion = useMemo(() => {
     if (!question || !validationResult?.correct_answer) return question;
@@ -311,9 +212,10 @@ function HardMode() {
       ...finalScoreInfo,
       isCorrect,
       roundMeta: {
-        ...roundMeta,
+        mode: 'hard',
         wasCorrect: isCorrect,
-        hintCount: roundMeta.hintCount || 0,
+        hintCount: 0,
+        hintsUsed: false,
         serverValidated: true,
       },
       resolvedQuestion,
@@ -322,8 +224,7 @@ function HardMode() {
   };
 
   const isGameOver = roundStatus !== 'playing';
-  const canUseAnyHint = !!firstUnknownRank && roundMeta.hintCount < maxHints;
-  const placeholderText = t('hard.single_guess_placeholder_species', {}, "Devinez l'espèce.. .");
+  const placeholderText = t('hard.single_guess_placeholder_species', {}, "Devinez l'espèce...");
 
   return (
     <>
@@ -396,30 +297,12 @@ function HardMode() {
                   <div className="guess-bar">
                     <div className="guess-row">
                       <AutocompleteInput
-                        key={`hard-guess-${Object.keys(knownTaxa).length}`}
+                        key={`hard-guess-${guesses}`}
                         onSelect={handleGuess}
                         disabled={isGameOver || guesses <= 0 || isGuessing}
                         placeholder={placeholderText}
                         incorrectAncestorIds={incorrectGuessIds}
                       />
-                      <div className="guess-actions-inline">
-                        <button
-                          onClick={handleRevealNameHint}
-                          disabled={isGameOver || !canUseAnyHint || isGuessing}
-                          className="action-button hint"
-                          aria-label={t(
-                            'hard.reveal_button_xp',
-                            { cost: HINT_XP_PENALTY_PERCENT },
-                            `Révéler (malus -${HINT_XP_PENALTY_PERCENT}% XP)`
-                          )}
-                        >
-                          {t(
-                            'hard.reveal_button_xp',
-                            { cost: HINT_XP_PENALTY_PERCENT },
-                            `Révéler (malus -${HINT_XP_PENALTY_PERCENT}% XP)`
-                          )}
-                        </button>
-                      </div>
                     </div>
                   </div>
                   {feedback?.message && (

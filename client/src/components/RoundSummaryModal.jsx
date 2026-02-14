@@ -42,6 +42,9 @@ const getObservationImageUrl = (taxon) => {
 const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
   const { t, lang, getTaxonDisplayNames } = useLanguage();
   const [explanation, setExplanation] = useState('');
+  const [discriminant, setDiscriminant] = useState('');
+  const [aiSources, setAiSources] = useState([]);
+  const [aiConfidence, setAiConfidence] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
   const buttonRef = useRef(null);
@@ -136,11 +139,19 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             explanationFocusRank
           );
           if (isActive) {
-            setExplanation(data.explanation);
+            setExplanation(data.explanation || '');
+            setDiscriminant(data.discriminant || '');
+            setAiSources(Array.isArray(data.sources) ? data.sources : []);
+            setAiConfidence(data.confidence ?? null);
           }
         } catch (error) {
           console.error('Failed to fetch explanation:', error);
-          if (isActive) setExplanation('');
+          if (isActive) {
+            setExplanation('');
+            setDiscriminant('');
+            setAiSources([]);
+            setAiConfidence(null);
+          }
         } finally {
           if (isActive) setIsLoading(false);
         }
@@ -269,12 +280,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           {/* Explanation Section (only if wrong) */}
           {!isWin && (
             <div className="summary-card explanation-section">
-              {/* Header avec Avatar au lieu du texte statique */}
+              {/* Header avec Avatar Papy Mouche */}
               <div className="explanation-header">
                 <div className="prof-mouche-avatar" aria-hidden="true">
-                  {/* Remplacez cet emoji par une <img> si vous avez un asset */}
                   🪰
                 </div>
+                <span className="explanation-persona-name">{t('summary.explanation_title')}</span>
                 <div className="explanation-bubble-tip"></div>
               </div>
               
@@ -284,7 +295,21 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                     <div className="spinner"></div>
                   </div>
                 ) : (
-                  explanation && <Typewriter text={explanation} speed={20} />
+                  <>
+                    {explanation && <Typewriter text={explanation} speed={20} />}
+                    {discriminant && (
+                      <p className="explanation-discriminant">
+                        <span className="discriminant-icon" aria-hidden="true">🔍</span>
+                        {discriminant}
+                      </p>
+                    )}
+                    {aiSources.length > 0 && (
+                      <p className="explanation-sources">
+                        {t('summary.explanation_sources')}{' '}
+                        {aiSources.join(', ')}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>

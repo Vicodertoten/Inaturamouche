@@ -99,23 +99,27 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
   let pagesFetched = 0;
   let startPage = 1;
   const random = typeof rng === 'function' ? rng : Math.random;
-  try {
-    const probeParams = { ...params, per_page: 1, page: 1 };
-    const probe = await fetchInatJSON(
-      'https://api.inaturalist.org/v1/observations',
-      probeParams,
-      { logger, requestId, label: 'obs-total-probe' }
-    );
-    const totalResults = Number(probe?.total_results) || 0;
-    if (totalResults > 0) {
-      const perPage = Number(params.per_page) || 80;
-      const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
-      const capped = Math.max(1, Math.min(totalPages, 10));
-      startPage = Math.floor(random() * capped) + 1;
+  // For seeded games (daily challenge), always start at page 1 to guarantee
+  // every user fetches the exact same observations.
+  if (!seed) {
+    try {
+      const probeParams = { ...params, per_page: 1, page: 1 };
+      const probe = await fetchInatJSON(
+        'https://api.inaturalist.org/v1/observations',
+        probeParams,
+        { logger, requestId, label: 'obs-total-probe' }
+      );
+      const totalResults = Number(probe?.total_results) || 0;
+      if (totalResults > 0) {
+        const perPage = Number(params.per_page) || 80;
+        const totalPages = Math.max(1, Math.ceil(totalResults / perPage));
+        const capped = Math.max(1, Math.min(totalPages, 10));
+        startPage = Math.floor(random() * capped) + 1;
+      }
+    } catch (prefetchErr) {
+      logger?.warn({ requestId, error: prefetchErr.message }, 'Observation total prefetch failed');
+      startPage = 1;
     }
-  } catch (prefetchErr) {
-    logger?.warn({ requestId, error: prefetchErr.message }, 'Observation total prefetch failed');
-    startPage = 1;
   }
 
   let page = startPage;
@@ -173,16 +177,28 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
   }
 
   const hasExplicitTaxa = Boolean(params?.taxon_id);
-  const minTaxaRequired = hasExplicitTaxa ? 1 : quizChoices;
+  // When taxon_id contains multiple IDs (list pack or multi-taxa custom filter),
+  // we still need enough distinct taxa for a full quiz (target + lures).
+  // Only a single broad taxon (e.g. "3" for Aves) allows minTaxaRequired=1
+  // because lures will come from within that broad taxon's observations.
+  const explicitTaxaCount = hasExplicitTaxa
+    ? String(params.taxon_id).split(',').filter(Boolean).length
+    : 0;
+  const isMultiTaxaList = explicitTaxaCount > 1;
+  const minTaxaRequired = isMultiTaxaList ? quizChoices : (hasExplicitTaxa ? 1 : quizChoices);
   if (taxonList.length < minTaxaRequired) {
     const err = new Error("Pas assez d'espèces différentes pour créer un quiz avec ces critères.");
     err.status = 404;
     throw err;
   }
 
+  // For seeded games, use a deterministic version so that all users
+  // share the same selectionState without triggering resets.
+  const poolVersion = seed ? 1 : Date.now();
+
   const pool = {
     timestamp: Date.now(),
-    version: Date.now(),
+    version: poolVersion,
     byTaxon,
     taxonList,
     taxonSet: new Set(taxonList.map(String)),
@@ -219,7 +235,11 @@ function buildDegradePoolFromCache(params) {
 
   const requestedTaxonIds = parseRequestedTaxonIds(params);
   const hasExplicitTaxa = Boolean(params?.taxon_id);
-  const minTaxaRequired = hasExplicitTaxa ? 1 : quizChoices;
+  const explicitTaxaCount = hasExplicitTaxa
+    ? String(params.taxon_id).split(',').filter(Boolean).length
+    : 0;
+  const isMultiTaxaList = explicitTaxaCount > 1;
+  const minTaxaRequired = isMultiTaxaList ? quizChoices : (hasExplicitTaxa ? 1 : quizChoices);
   const maxTaxa = Math.max(minTaxaRequired, degradePoolMaxTaxa);
   const byTaxon = new Map();
   const seenObsIds = new Set();

@@ -1,24 +1,35 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameData } from '../context/GameContext';
+import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { active_session } from '../services/db';
 import ReviewDashboardCard from '../components/ReviewDashboardCard';
+import GettingStartedModal from '../components/GettingStartedModal';
 import { getReviewStats } from '../services/CollectionService';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
+import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
 
 const Configurator = lazy(() => import('../features/configurator/Configurator'));
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { startGame, resumeGame, clearSessionFromDB, startReviewMode } = useGameData();
+  const { startGame, resumeGame, clearSessionFromDB, startReviewMode, gameMode, activePackId } = useGameData();
+  const { profile, showTutorial } = useUser();
   const { t } = useLanguage();
   const dailyChallengeLabel = t('home.daily_challenge_label');
+  const hasPickedPack = Boolean(activePackId) && activePackId !== 'custom';
+  const hasChosenMode = Boolean(gameMode);
+  const hasPlayedGame = (profile?.stats?.gamesPlayed || 0) > 0;
   
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [resumeSessionData, setResumeSessionData] = useState(null);
   const [reviewStats, setReviewStats] = useState(null);
+  const [isGettingStartedOpen, setIsGettingStartedOpen] = useState(false);
+
+  const todaySeed = getTodayDailySeed();
+  const dailyAlreadyCompleted = isDailyCompleted(todaySeed);
 
   // Vérifier s'il y a une session active au chargement de la page
   useEffect(() => {
@@ -26,8 +37,17 @@ const HomePage = () => {
       try {
         const session = await active_session.get(1);
         if (session) {
-          setHasActiveSession(true);
-          setResumeSessionData(session);
+          // If the session is a daily challenge from a previous day, discard it
+          const sessionSeed = session.gameConfig?.dailySeed;
+          if (sessionSeed && isDailySeedStale(sessionSeed)) {
+            debugLog('[HomePage] Discarding stale daily session (seed: %s)', sessionSeed);
+            await active_session.delete(1);
+            setHasActiveSession(false);
+            setResumeSessionData(null);
+          } else {
+            setHasActiveSession(true);
+            setResumeSessionData(session);
+          }
         } else {
           setHasActiveSession(false);
           setResumeSessionData(null);
@@ -75,6 +95,17 @@ const HomePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!hasPlayedGame && !isCheckingSession && !showTutorial) {
+      setIsGettingStartedOpen(true);
+    } else {
+      setIsGettingStartedOpen(false);
+    }
+  }, [hasPlayedGame, isCheckingSession, showTutorial]);
+
+  // Don't show getting started until tutorial is done
+  const shouldShowGettingStarted = !hasPlayedGame && !isCheckingSession && !showTutorial;
+
   const handleStart = useCallback(
     ({ maxQuestions, mediaType } = {}) => {
       startGame({ maxQuestions, mediaType });
@@ -111,20 +142,31 @@ const HomePage = () => {
   }, [clearSessionFromDB]);
 
   const handleDailyChallenge = useCallback(() => {
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(now.getUTCDate()).padStart(2, '0');
-    const dailySeed = `${year}-${month}-${day}`;
-    // On ajoute un ID de session pour forcer le serveur à repartir de la question 1
-    const seedSession = Date.now().toString();
+    // Guard: already completed today
+    if (isDailyCompleted(todaySeed)) return;
 
-    startGame({ seed: dailySeed, seed_session: seedSession, gameMode: 'hard', maxQuestions: 10 });
+    // If there's already an in-progress daily session for today, resume it instead
+    if (hasActiveSession && resumeSessionData?.gameConfig?.dailySeed === todaySeed) {
+      handleResumeGame();
+      return;
+    }
+
+    // Use the seed itself as session ID so every user shares the same server-side state
+    const seedSession = todaySeed;
+    startGame({ seed: todaySeed, seed_session: seedSession, gameMode: 'hard', maxQuestions: 10 });
     navigate('/play');
-  }, [navigate, startGame]);
+  }, [navigate, startGame, todaySeed, hasActiveSession, resumeSessionData, handleResumeGame]);
 
   return (
     <div className="screen configurator-screen">
+      <GettingStartedModal
+        isOpen={isGettingStartedOpen && shouldShowGettingStarted}
+        onClose={() => setIsGettingStartedOpen(false)}
+        hasChosenMode={hasChosenMode}
+        hasPickedPack={hasPickedPack}
+        hasPlayedGame={hasPlayedGame}
+        onStartGame={handleStart}
+      />
       <div className="home-dashboard card tutorial-home-dashboard">
         
         
@@ -181,11 +223,14 @@ const HomePage = () => {
             <section className="daily-challenge-cta play-button-container">
               <button
                 type="button"
-                className="btn btn--primary start-button play-btn tutorial-daily-challenge"
+                className={`btn start-button play-btn tutorial-daily-challenge ${dailyAlreadyCompleted ? 'btn--secondary' : 'btn--primary'}`}
                 onClick={handleDailyChallenge}
+                disabled={dailyAlreadyCompleted}
                 aria-label={dailyChallengeLabel}
               >
-                {dailyChallengeLabel}
+                {dailyAlreadyCompleted
+                  ? (t('home.daily_challenge_done') || '✅ Défi du jour terminé')
+                  : dailyChallengeLabel}
               </button>
             </section>
 

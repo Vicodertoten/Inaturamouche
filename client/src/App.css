@@ -637,6 +637,69 @@ button:active:not(:disabled),
   margin-top: 0;
 }
 
+.getting-started-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.getting-started-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.getting-started-header p {
+  margin: 0;
+  color: var(--text-color-muted);
+}
+
+.getting-started-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.getting-started-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-color);
+}
+
+.getting-started-list li.is-done {
+  background: rgba(46, 125, 50, 0.15);
+  color: var(--text-color);
+}
+
+.getting-started-list .checkmark {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-color-muted);
+}
+
+.getting-started-list li.is-done .checkmark {
+  background: rgba(46, 125, 50, 0.8);
+  border-color: rgba(46, 125, 50, 0.8);
+  color: #ffffff;
+}
+
 .home-streak-badge-top-left {
   position: fixed;
   top: 1rem;

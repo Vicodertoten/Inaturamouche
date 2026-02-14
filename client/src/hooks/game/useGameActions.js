@@ -222,6 +222,7 @@ export function useGameActions({
       mediaType: nextMediaType,
       gameMode: nextGameMode,
       seed,
+      seed_session,
     } = {}) => {
       abortActiveFetch();
       abortPrefetchFetch();
@@ -236,7 +237,7 @@ export function useGameActions({
       const forcedGameMode = isDailyChallenge ? 'hard' : nextGameMode;
 
       setDailySeed(isDailyChallenge ? normalizedSeed : null);
-      setDailySeedSession(isDailyChallenge ? createSeedSessionId() : null);
+      setDailySeedSession(isDailyChallenge ? (seed_session || createSeedSessionId()) : null);
       setQuestion(null);
       setNextQuestion(null);
       setError(null);

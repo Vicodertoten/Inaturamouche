@@ -21,6 +21,7 @@ const RiddleMode = () => {
     levelUpNotification,
     completeRound,
     endGame,
+    dailySeedSession,
   } = useGameData();
   const { t, getTaxonDisplayNames } = useLanguage();
 
@@ -70,7 +71,7 @@ const RiddleMode = () => {
     [question?.riddle?.clues]
   );
   const activeClue =
-    riddleClues[clueIndex] || t('riddle.fallback_clue', {}, 'Le Professeur cherche ses notes...');
+    riddleClues[clueIndex] || t('riddle.fallback_clue', {}, 'Papy Mouche cherche ses notes...');
 
   useLayoutEffect(() => {
     questionRef.current = question;
@@ -147,6 +148,7 @@ const RiddleMode = () => {
         roundId: question.round_id,
         roundSignature: question.round_signature,
         selectedTaxonId: pair.id,
+        seedSession: dailySeedSession,
       });
       if (questionRef.current !== question) return;
 
@@ -225,7 +227,7 @@ const RiddleMode = () => {
             <div className="image-section">
               <div className="riddle-panel">
                 <div className="riddle-header">
-                  <div className="riddle-title">{t('riddle.title', {}, "L'enigme du Professeur")}</div>
+                  <div className="riddle-title">{t('riddle.title', {}, "L'enigme de Papy Mouche")}</div>
                   <div className="riddle-points">{t('riddle.points', { points: pointsForClue }, `+${pointsForClue} pts`)}</div>
                 </div>
                 <p className="riddle-clue">{activeClue}</p>

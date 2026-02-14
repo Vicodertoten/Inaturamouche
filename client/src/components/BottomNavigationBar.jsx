@@ -1,9 +1,15 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/BottomNavigationBar.css';
-import { HomeIcon, CollectionIcon, ProfileIcon, SettingsIcon, ReportIcon } from './NavigationIcons';
+import { HomeIcon, CollectionIcon, ProfileIcon, SettingsIcon, ReportIcon, HelpIcon } from './NavigationIcons';
 
-const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOpen = false, onReportClick }) => {
+const BottomNavigationBar = ({
+  onNavigationChange,
+  onSettingsClick,
+  isSettingsOpen = false,
+  onReportClick,
+  onHelpClick,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -13,6 +19,7 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
     { path: '/collection', icon: CollectionIcon, label: t('nav.collection_label'), type: 'route', tutorialClass: 'tutorial-nav-collection' },
     { path: '/profile', icon: ProfileIcon, label: t('nav.profile_label'), type: 'route', tutorialClass: 'tutorial-nav-profile' },
     { path: 'report', icon: ReportIcon, label: 'Signaler', type: 'action', tutorialClass: 'tutorial-nav-report' },
+    { path: 'help', icon: HelpIcon, label: t('nav.help_label', {}, 'Aide'), type: 'action' },
     { path: 'settings', icon: SettingsIcon, label: t('nav.settings_label', {}, 'Réglages'), type: 'action', tutorialClass: 'tutorial-nav-settings' },
   ];
 
@@ -23,6 +30,8 @@ const BottomNavigationBar = ({ onNavigationChange, onSettingsClick, isSettingsOp
     } else if (item.type === 'action' && item.path === 'report') {
       // Trigger report modal
       if (onReportClick) onReportClick();
+    } else if (item.type === 'action' && item.path === 'help') {
+      if (onHelpClick) onHelpClick();
     } else {
       navigate(item.path);
       if (onNavigationChange) onNavigationChange(item.path);

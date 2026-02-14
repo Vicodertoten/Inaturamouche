@@ -56,12 +56,13 @@ const submitAnswerSchema = z.object({
   round_id: z.string().trim().min(8).max(120),
   round_signature: z.string().trim().min(32).max(256),
   round_action: z
-    .enum(['answer', 'hard_guess', 'hard_hint', 'taxonomic_select', 'taxonomic_hint'])
+    .enum(['answer', 'hard_guess', 'taxonomic_select', 'taxonomic_hint'])
     .optional(),
   selected_taxon_id: z.union([z.string(), z.number()]).optional(),
   step_index: z.coerce.number().int().min(0).max(30).optional(),
   submission_id: z.string().trim().min(3).max(120).optional(),
   client_session_id: z.string().trim().max(120).optional(),
+  seed_session: z.string().trim().max(120).optional(),
 }).superRefine((value, ctx) => {
   const action = value.round_action || 'answer';
   const selectedRequired = action === 'answer' || action === 'hard_guess' || action === 'taxonomic_select';
@@ -104,7 +105,7 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
       });
     }
 
-    const explanation = await generateCustomExplanation(
+    const result = await generateCustomExplanation(
       correctTaxon,
       wrongTaxon,
       locale,
@@ -112,7 +113,13 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
       { focusRank }
     );
 
-    res.json({ explanation });
+    // Pipeline v4 — retourne explication + discriminant + sources
+    res.json({
+      explanation: result.explanation,
+      discriminant: result.discriminant || null,
+      sources: result.sources || [],
+      fallback: result.fallback || false,
+    });
 
   } catch (err) {
     logger.error({ err, requestId }, 'Failed to generate AI explanation');
@@ -140,6 +147,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       d2,
       seed,
       seed_session,
+      question_index,
       locale = 'fr',
       media_type,
       game_mode,
@@ -205,7 +213,9 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
         if (d2 && isValidISODate(d2)) params.d2 = d2;
       }
     }
-    const cacheKeyParams = { ...params, game_mode: gameMode };
+    // game_mode is intentionally excluded from pool cache key:
+    // it doesn't affect the iNat API fetch, so pools are identical across modes.
+    const cacheKeyParams = { ...params };
     if (monthDayFilter) {
       cacheKeyParams.d1 = d1 || '';
       cacheKeyParams.d2 = d2 || '';
@@ -219,11 +229,12 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     questionQueueCache.prune();
     const clientIp = getClientIp(req);
 
-    // Construire une clé client persistante : d'abord le session ID, puis IP, puis anon
+    // Construire une clé client persistante
     let clientKey;
-    if (hasSeed && normalizedSeedSession) {
-      // Jeux avec seed : incluent le seed dans la clé
-      clientKey = `${client_session_id || clientIp || 'anon'}|${normalizedSeedSession}`;
+    if (hasSeed) {
+      // Jeux avec seed (défi du jour) : clé FIXE basée sur le seed uniquement
+      // pour que TOUS les utilisateurs partagent le même état de sélection
+      clientKey = `daily|${normalizedSeed}`;
     } else {
       // Jeux normaux : utiliser le session ID s'il existe, sinon l'IP
       clientKey = client_session_id || clientIp || 'anon';
@@ -235,6 +246,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     );
 
     const queueKey = `${cacheKey}|${clientKey || 'anon'}`;
+    const clientQuestionIndex = hasSeed && Number.isInteger(question_index) ? question_index : undefined;
     const context = {
       params,
       cacheKey,
@@ -243,6 +255,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       gameMode,
       geoMode: geo.mode,
       clientId: clientKey,
+      hasPackFilter: Boolean(pack_id),
       adaptiveTuning: hasSeed
         ? null
         : getAdaptiveQuestionTuning({
@@ -254,12 +267,21 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       rng,
       poolRng,
       seed: hasSeed ? normalizedSeed : '',
+      clientQuestionIndex,
     };
 
-    const queueEntry = getQueueEntry(queueKey);
-    let item = queueEntry.queue.shift();
-    if (!item) {
+    // For seeded games (daily challenge), bypass the shared queue entirely:
+    // each user must get the same question for a given index, so we generate
+    // on-the-fly using a deterministic RNG seeded from the date + question index.
+    let item;
+    if (hasSeed) {
       item = await buildQuizQuestion(context);
+    } else {
+      const queueEntry = getQueueEntry(queueKey);
+      item = queueEntry.queue.shift();
+      if (!item) {
+        item = await buildQuizQuestion(context);
+      }
     }
     if (!item?.payload) {
       return sendError(req, res, {
@@ -293,9 +315,13 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     }
     res.json(item.payload);
 
-    fillQuestionQueue(queueEntry, context).catch((err) => {
-      req.log?.warn({ err, requestId: req.id }, 'Background queue fill failed');
-    });
+    // Skip background queue fill for seeded games (each question is deterministic)
+    if (!hasSeed) {
+      const queueEntry = getQueueEntry(queueKey);
+      fillQuestionQueue(queueEntry, context).catch((err) => {
+        req.log?.warn({ err, requestId: req.id }, 'Background queue fill failed');
+      });
+    }
   } catch (err) {
     req.log?.error({ err, requestId: req.id }, 'Unhandled quiz route error');
     if (res.headersSent) return;
@@ -324,10 +350,19 @@ router.post('/api/quiz/submit', quizLimiter, validate(submitAnswerSchema), async
       step_index,
       submission_id,
       client_session_id,
+      seed_session,
     } = req.valid;
 
     const clientIp = getClientIp(req);
-    const clientKey = client_session_id || clientIp || 'anon';
+    const normalizedSeedSession = typeof seed_session === 'string' ? seed_session.trim() : '';
+    // For daily challenges, seed_session IS the seed (e.g. "2026-02-14"),
+    // so use the same fixed key pattern as the quiz-question route.
+    const looksLikeDailySeed = /^\d{4}-\d{2}-\d{2}$/.test(normalizedSeedSession);
+    const clientKey = looksLikeDailySeed
+      ? `daily|${normalizedSeedSession}`
+      : normalizedSeedSession
+        ? `${client_session_id || clientIp || 'anon'}|${normalizedSeedSession}`
+        : client_session_id || clientIp || 'anon';
 
     const result = await submitRoundAnswer({
       roundId: round_id,

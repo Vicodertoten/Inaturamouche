@@ -6,7 +6,8 @@ import ReportModal from './ReportModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
-import { CollectionIcon, ProfileIcon as SharedProfileIcon, ReportIcon } from './NavigationIcons';
+import { CollectionIcon, ProfileIcon as SharedProfileIcon, ReportIcon, HelpIcon } from './NavigationIcons';
+import HelpCenterModal from './HelpCenterModal';
 import titleImage from '../assets/inaturamouche-title.png';
 import logoImage from '../assets/inaturamouche-logo.webp';
 import { useGameData } from '../context/GameContext';
@@ -23,6 +24,7 @@ const AppLayout = () => {
   const { t } = useLanguage();
   const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const handleTitleClick = useCallback(() => {
     if (isGameActive || isGameOver) {
@@ -33,6 +35,8 @@ const AppLayout = () => {
 
   const showReport = useCallback(() => setIsReportVisible(true), []);
   const closeReport = useCallback(() => setIsReportVisible(false), []);
+  const openHelp = useCallback(() => setIsHelpOpen(true), []);
+  const closeHelp = useCallback(() => setIsHelpOpen(false), []);
 
   const showProfile = useCallback(() => {
     if (location.pathname !== '/profile') navigate('/profile');
@@ -47,6 +51,7 @@ const AppLayout = () => {
   return (
     <div className="App">
       {isReportVisible && <ReportModal onClose={closeReport} />}
+      {isHelpOpen && <HelpCenterModal isOpen={isHelpOpen} onClose={closeHelp} />}
       {achievementQueue[0] && (
         <AchievementModal achievementId={achievementQueue[0]} onClose={popAchievement} />
       )}
@@ -64,6 +69,15 @@ const AppLayout = () => {
             type="button"
           >
             <ReportIcon />
+          </button>
+          <button
+            className="nav-pill nav-icon nav-elevated"
+            onClick={openHelp}
+            aria-label={t('nav.help_label', {}, 'Aide et informations')}
+            title={t('nav.help_label', {}, 'Aide et informations')}
+            type="button"
+          >
+            <HelpIcon />
           </button>
           <button
             className="nav-pill nav-icon nav-elevated tutorial-nav-collection"
@@ -91,7 +105,12 @@ const AppLayout = () => {
       <PreferencesMenu isOpen={isPreferencesOpen} onToggle={togglePreferences} isMobileControlled />
 
       {/* Mobile Bottom Navigation - Hidden on Desktop */}
-      <BottomNavigationBar onSettingsClick={togglePreferences} isSettingsOpen={isPreferencesOpen} onReportClick={showReport} />
+      <BottomNavigationBar
+        onSettingsClick={togglePreferences}
+        isSettingsOpen={isPreferencesOpen}
+        onReportClick={showReport}
+        onHelpClick={openHelp}
+      />
 
       <header className="app-header">
         <img

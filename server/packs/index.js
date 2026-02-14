@@ -14,6 +14,11 @@ import europeanTrees from "../../shared/data/common_european_trees.json" with { 
 /**
  * @type {PackDefinition[]}
  */
+const normalizeTaxaIds = (items = []) =>
+  items
+    .map((item) => Number(item?.inaturalist_id))
+    .filter((id) => Number.isFinite(id));
+
 const PACK_DEFINITIONS = [
   {
     id: "custom",
@@ -26,14 +31,14 @@ const PACK_DEFINITIONS = [
     type: "list",
     titleKey: "packs.european_mushrooms.title",
     descriptionKey: "packs.european_mushrooms.description",
-    taxa_ids: europeanMushrooms.map((item) => item.inaturalist_id),
+    taxa_ids: normalizeTaxaIds(europeanMushrooms),
   },
   {
     id: "european_trees",
     type: "list",
     titleKey: "packs.european_trees.title",
     descriptionKey: "packs.european_trees.description",
-    taxa_ids: europeanTrees.map((item) => item.inaturalist_id),
+    taxa_ids: normalizeTaxaIds(europeanTrees),
   },
   {
     id: "world_birds",

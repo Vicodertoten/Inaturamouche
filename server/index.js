@@ -3,7 +3,7 @@
 
 import { createApp } from './app.js';
 import { config } from './config/index.js';
-import { warmDefaultObservationPool } from './services/warmup.js';
+import { warmDefaultObservationPool, warmPackPools } from './services/warmup.js';
 
 const { app, logger } = createApp();
 
@@ -11,6 +11,7 @@ const { app, logger } = createApp();
 if (config.nodeEnv !== 'test') {
   setTimeout(() => {
     warmDefaultObservationPool({ logger }).catch(() => {});
+    warmPackPools({ logger }).catch(() => {});
   }, 1000).unref();
   const server = app.listen(config.port, () => {
     logger.info(`Serveur Inaturamouche démarré sur le port ${config.port}`);

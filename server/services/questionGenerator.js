@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { createSeededRandom, shuffleFisherYates } from '../../lib/quiz-utils.js';
 import { getObservationPool } from './observationPool.js';
 import {
+  createSelectionState,
   getSelectionStateForClient,
   rememberObservation,
   pickObservationForTaxon,
@@ -22,17 +23,8 @@ import { generateRiddle } from './aiService.js';
 const { questionQueueSize: QUESTION_QUEUE_SIZE } = config;
 const { quizChoices: QUIZ_CHOICES } = config;
 const HARD_DEFAULT_MAX_GUESSES = 3;
-const HARD_DEFAULT_MAX_HINTS = 1;
 const TAXONOMIC_DEFAULT_MAX_HINTS = 1;
-const SCORE_PER_RANK = {
-  kingdom: 5,
-  phylum: 10,
-  class: 15,
-  order: 20,
-  family: 25,
-  genus: 30,
-  species: 40,
-};
+const HARD_BASE_POINTS = 30;
 const MAX_LURE_CLOSENESS = 0.98;
 
 function clamp(value, min, max) {
@@ -253,12 +245,14 @@ export async function buildQuizQuestion({
   gameMode,
   geoMode,
   clientId,
+  hasPackFilter,
   adaptiveTuning,
   logger,
   requestId,
   rng,
   poolRng,
   seed,
+  clientQuestionIndex,
 }) {
   const marks = {};
   marks.start = performance.now();
@@ -288,69 +282,91 @@ export async function buildQuizQuestion({
     questionRng,
     targetTaxonId,
     selectionMode: initialSelectionMode,
-  } = await mutex.runExclusive(async () => {
-    const { state: selectionState, key } = getSelectionStateForClient(
-      cacheKey,
-      clientId,
-      cacheEntry,
-      Date.now(),
-      rng
-    );
-
-    const questionIndex =
-      Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
-        ? selectionState.questionIndex
-        : 0;
-    const questionRng = hasSeed ? createSeededRandom(`${seed}|q|${questionIndex}`) : rng;
-    const now = Date.now();
-    const iconicRotationExclusions = buildIconicRotationExclusionSet(
-      cacheEntry,
-      adaptiveTuning?.avoidIconicTaxonId
-    );
-    const excludeTaxaForTarget = new Set(iconicRotationExclusions);
-    let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
-      seed: hasSeed ? seed : undefined,
-      questionIndex,
-    });
-
-    let selectionMode = 'normal';
-    if (!targetTaxonId && excludeTaxaForTarget.size > 0) {
-      excludeTaxaForTarget.clear();
-      targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
-        seed: hasSeed ? seed : undefined,
-        questionIndex,
-      });
-      if (targetTaxonId) {
-        selectionMode = 'adaptive_rotation_relaxed';
-      }
-    }
-    if (targetTaxonId && iconicRotationExclusions.size > 0 && selectionMode === 'normal') {
-      selectionMode = 'adaptive_rotation';
-    }
-    if (!targetTaxonId) {
-      targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
-      selectionMode = 'fallback_relax';
-      logger?.info(
-        {
+  } = await (hasSeed
+    // ── Seeded games (daily challenge): fully deterministic, no shared state ──
+    // Create a fresh ephemeral selectionState for each request so that
+    // different users never interfere with each other's question generation.
+    ? (async () => {
+        const questionIndex = Number.isInteger(clientQuestionIndex) ? clientQuestionIndex : 0;
+        const questionRng = createSeededRandom(`${seed}|q|${questionIndex}`);
+        // Fresh ephemeral state — not cached, not shared
+        const selectionState = createSelectionState(cacheEntry, rng);
+        const targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, Date.now(), new Set(), questionRng, {
+          seed,
+          questionIndex,
+        });
+        if (!targetTaxonId) {
+          const err = new Error("Pool d'observations indisponible, réessayez.");
+          err.status = 503;
+          throw err;
+        }
+        return { selectionState, questionIndex, questionRng, targetTaxonId, selectionMode: 'seeded' };
+      })()
+    // ── Normal games: persistent per-client state ──
+    : mutex.runExclusive(async () => {
+        const { state: selectionState, key } = getSelectionStateForClient(
           cacheKey,
-          mode: selectionMode,
-          pool: cacheEntry.taxonList.length,
-          recentT: selectionState?.recentTargetTaxa?.length || 0,
-        },
-        'Target fallback relax engaged'
-      );
-    }
-    if (!targetTaxonId) {
-      const err = new Error("Pool d'observations indisponible, réessayez.");
-      err.status = 503;
-      throw err;
-    }
+          clientId,
+          cacheEntry,
+          Date.now(),
+          rng
+        );
 
-    // Sauvegarder le state DANS le mutex avant de le retourner
-    selectionStateCache.set(key, selectionState);
+        const questionIndex =
+          Number.isInteger(selectionState.questionIndex) && selectionState.questionIndex >= 0
+            ? selectionState.questionIndex
+            : 0;
+        const questionRng = rng;
+        const now = Date.now();
+        const iconicRotationExclusions = buildIconicRotationExclusionSet(
+          cacheEntry,
+          adaptiveTuning?.avoidIconicTaxonId
+        );
+        const excludeTaxaForTarget = new Set(iconicRotationExclusions);
+        let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
+          seed: undefined,
+          questionIndex,
+        });
 
-    return { selectionState, questionIndex, questionRng, targetTaxonId, selectionMode };
-  });
+        let selectionMode = 'normal';
+        if (!targetTaxonId && excludeTaxaForTarget.size > 0) {
+          excludeTaxaForTarget.clear();
+          targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
+            seed: undefined,
+            questionIndex,
+          });
+          if (targetTaxonId) {
+            selectionMode = 'adaptive_rotation_relaxed';
+          }
+        }
+        if (targetTaxonId && iconicRotationExclusions.size > 0 && selectionMode === 'normal') {
+          selectionMode = 'adaptive_rotation';
+        }
+        if (!targetTaxonId) {
+          targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
+          selectionMode = 'fallback_relax';
+          logger?.info(
+            {
+              cacheKey,
+              mode: selectionMode,
+              pool: cacheEntry.taxonList.length,
+              recentT: selectionState?.recentTargetTaxa?.length || 0,
+            },
+            'Target fallback relax engaged'
+          );
+        }
+        if (!targetTaxonId) {
+          const err = new Error("Pool d'observations indisponible, réessayez.");
+          err.status = 503;
+          throw err;
+        }
+
+        // Sauvegarder le state DANS le mutex avant de le retourner
+        selectionStateCache.set(key, selectionState);
+
+        return { selectionState, questionIndex, questionRng, targetTaxonId, selectionMode };
+      })
+  );
 
   const selectionMode = initialSelectionMode;
   const isFirstQuestion = questionIndex === 0;
@@ -380,9 +396,21 @@ export async function buildQuizQuestion({
   let choix_mode_facile_ids = [];
 
   const hasExplicitTaxa = Boolean(params?.taxon_id);
-  const excludeFutureTargets = hasExplicitTaxa
-    ? new Set((selectionState.taxonDeck || []).map((id) => String(id)))
-    : null;
+  // Only exclude a small window of upcoming targets from lures to avoid
+  // "spoiling" future questions.  For small pools (e.g. list packs like
+  // mushrooms with ≤49 taxa) excluding the entire deck would starve the
+  // lure builder of candidates.
+  const excludeFutureTargets = (() => {
+    if (!hasExplicitTaxa) return null;
+    const deck = selectionState.taxonDeck || [];
+    if (deck.length === 0) return null;
+    const poolSize = cacheEntry.taxonList?.length || 0;
+    // Keep at least quizChoices taxa available for lures + target.
+    const maxExclude = Math.max(0, poolSize - config.quizChoices - 1);
+    if (maxExclude === 0) return null;
+    const windowSize = Math.min(deck.length, maxExclude, config.questionQueueSize);
+    return new Set(deck.slice(-windowSize).map((id) => String(id)));
+  })();
 
   if (!isTaxonomicMode) {
     const adaptiveLureDelta = Number(adaptiveTuning?.lureClosenessDelta) || 0;
@@ -397,7 +425,7 @@ export async function buildQuizQuestion({
         MAX_LURE_CLOSENESS
       );
 
-    const { lures, buckets: builtBuckets } = await buildLures(
+    let { lures, buckets: builtBuckets } = await buildLures(
       cacheEntry,
       selectionState,
       targetTaxonId,
@@ -406,13 +434,50 @@ export async function buildQuizQuestion({
       questionRng,
       {
         allowExternalLures: hasExplicitTaxa,
-        allowMixedIconic: hasExplicitTaxa,
+        allowMixedIconic: hasExplicitTaxa || hasPackFilter,
         excludeTaxonIds: excludeFutureTargets,
         logger,
         requestId,
         minCloseness: modeMinCloseness,
+        locale: locale || 'fr',
+        recentLureTaxa: selectionState.recentLureTaxa || null,
       }
     );
+
+    // Retry with relaxed closeness if lures are insufficient (common for
+    // phylogenetically diverse packs like mushrooms where LCA closeness
+    // between species of different orders falls below the threshold).
+    if ((!lures || lures.length < config.lureCount) && modeMinCloseness > 0) {
+      logger?.info(
+        {
+          requestId,
+          targetTaxonId: String(targetTaxonId),
+          luresFound: lures?.length || 0,
+          lureCount: config.lureCount,
+          modeMinCloseness,
+        },
+        'Lure closeness too strict, retrying with minCloseness=0'
+      );
+      ({ lures, buckets: builtBuckets } = await buildLures(
+        cacheEntry,
+        selectionState,
+        targetTaxonId,
+        targetObservation,
+        config.lureCount,
+        questionRng,
+        {
+          allowExternalLures: hasExplicitTaxa,
+          allowMixedIconic: true,
+          excludeTaxonIds: excludeFutureTargets,
+          logger,
+          requestId,
+          minCloseness: 0,
+          locale: locale || 'fr',
+          recentLureTaxa: selectionState.recentLureTaxa || null,
+        }
+      ));
+    }
+
     if (!lures || lures.length < config.lureCount) {
       const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
       err.status = 404;
@@ -420,6 +485,23 @@ export async function buildQuizQuestion({
     }
     buckets = builtBuckets;
     marks.builtLures = performance.now();
+
+    // Track lure taxa to avoid repetition in subsequent questions
+    if (!selectionState.recentLureTaxa) {
+      selectionState.recentLureTaxa = new Set();
+    }
+    const LURE_COOLDOWN_LIMIT = Math.min(8, Math.max(0, cacheEntry.taxonList.length - config.quizChoices));
+    for (const lure of lures) {
+      selectionState.recentLureTaxa.add(String(lure.taxonId));
+    }
+    // Evict oldest entries when over limit
+    if (selectionState.recentLureTaxa.size > LURE_COOLDOWN_LIMIT) {
+      const entries = Array.from(selectionState.recentLureTaxa);
+      const toRemove = entries.length - LURE_COOLDOWN_LIMIT;
+      for (let i = 0; i < toRemove; i++) {
+        selectionState.recentLureTaxa.delete(entries[i]);
+      }
+    }
 
     choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
     const fallbackDetails = new Map();
@@ -519,11 +601,15 @@ export async function buildQuizQuestion({
   marks.end = performance.now();
 
   // MUTEX-PROTECTED: Mise à jour de questionIndex
-  await mutex.runExclusive(async () => {
-    selectionState.questionIndex = questionIndex + 1;
-    const stateKey = `${cacheKey}|${clientId || 'anon'}`;
-    selectionStateCache.set(stateKey, selectionState);
-  });
+  // For seeded games, the question index comes from the client, so we don't
+  // increment the shared state — it would cause race conditions between users.
+  if (!hasSeed) {
+    await mutex.runExclusive(async () => {
+      selectionState.questionIndex = questionIndex + 1;
+      const stateKey = `${cacheKey}|${clientId || 'anon'}`;
+      selectionStateCache.set(stateKey, selectionState);
+    });
+  }
 
   const { timing, serverTiming, xTiming } = buildTimingData(marks, { pagesFetched, poolObs, poolTaxa });
 
@@ -599,7 +685,7 @@ export async function buildQuizQuestion({
       gameMode === 'hard'
         ? {
             max_guesses: HARD_DEFAULT_MAX_GUESSES,
-            max_hints: HARD_DEFAULT_MAX_HINTS,
+            base_points: HARD_BASE_POINTS,
           }
         : null,
     choix_mode_facile,
@@ -620,8 +706,7 @@ export async function buildQuizQuestion({
         gameMode === 'hard'
           ? {
               max_guesses: HARD_DEFAULT_MAX_GUESSES,
-              max_hints: HARD_DEFAULT_MAX_HINTS,
-              score_per_rank: SCORE_PER_RANK,
+              base_points: HARD_BASE_POINTS,
             }
           : null,
       taxonomic_mode: isTaxonomicMode

@@ -56,7 +56,7 @@ const fr = {
   home: {
     easy_mode: 'Facile',
     easy_mode_description: 'Quatre propositions, une bonne réponse.',
-    riddle_mode: "L'Enigme du Professeur",
+    riddle_mode: "L'Enigme de Papy Mouche",
     riddle_mode_description: 'Trois indices textuels, points decroissants, zero photo.',
     hard_mode: 'Difficile',
     hard_mode_description: 'Devinez la taxonomie avec essais limités.',
@@ -73,6 +73,7 @@ const fr = {
     recommended_pack_cta: 'Utiliser ce pack',
     recommended_pack_active: 'Pack sélectionné',
     daily_challenge_label: '📅 Défi du Jour',
+    daily_challenge_done: '✅ Défi du jour terminé',
     resume_game_title: '▶ Reprendre votre partie',
     resume_game_subtitle: 'Vous avez une partie en cours',
     resume_game_meta: 'Question',
@@ -216,37 +217,27 @@ const fr = {
     score_label: 'Score : {score}',
   },
   riddle: {
-    title: "L'Enigme du Professeur",
+    title: "L'Enigme de Papy Mouche",
     points: '+{points} pts',
     clue_progress: 'Indice {current}/{total}',
     next_clue: 'Indice suivant',
-    fallback_clue: 'Le Professeur cherche ses notes...',
+    fallback_clue: 'Papy Mouche cherche ses notes...',
     fallback_tag: 'Indice maison',
   },
   hard: {
     title: "Identifier l'espèce",
-    stats_line: 'Chances : {guesses} | Score : {score}',
     stats: {
       score: 'Score',
       guesses: 'Vies',
       question: 'Question de quiz',
     },
-    reveal_button: 'Révéler (-{cost} chances)',
     image_alt: 'Espèce à identifier',
-    rank_placeholder: 'Entrez un {rank}...',
+    single_guess_placeholder_species: "Devinez l'espèce...",
     feedback: {
-      branch: 'Bonne branche ! +{points} points !',
-      redundant: "Correct, mais cette proposition n'a pas révélé de nouveau rang.",
-      wrong_branch: "Incorrect. Cette suggestion n'est pas dans la bonne lignée.",
+      correct: 'Bonne réponse !',
+      wrong: 'Incorrect. {remaining} essai(s) restant(s).',
+      wrong_last: 'Incorrect. Plus de tentatives.',
       error: 'Une erreur est survenue lors de la vérification.',
-      not_enough_guesses: 'Pas assez de chances pour cet indice !',
-      hint_used: 'Indice utilisé ! Le rang "{rank}" a été révélé.',
-    },
-    phylo: {
-      title: 'Arbre phylogénétique',
-      root: 'Vie',
-      more: 'Ouvrir Wikipédia',
-      unavailable: 'Informations non disponibles',
     },
   },
   taxonomic: {
@@ -284,7 +275,8 @@ const fr = {
   summary: {
     win_title: 'Espèce trouvée !',
     lose_title: 'Dommage !',
-    explanation_title: 'Le Professeur Mouche dit...',
+    explanation_title: 'Papy Mouche dit...',
+    explanation_sources: 'Sources :',
     correct_answer: 'Bonne réponse',
     your_answer: 'Votre réponse',
     answer_intro: 'La réponse était :',
@@ -463,7 +455,7 @@ const fr = {
         description: '300 espèces dans le Pokédex.',
       },
       MASTERY_PROFESSOR_10: {
-        title: 'Le Professeur',
+        title: 'Le Naturaliste Expert',
         description: 'Maîtrise max sur 10 espèces.',
       },
       MASTERY_GENIUS_25: {
@@ -493,11 +485,11 @@ const fr = {
       // --- NOUVEAUX SUCCÈS : ENIGME ---
       RIDDLE_SOLVER_10: {
         title: 'Apprenti Enigmes',
-        description: 'Reussir 10 enigmes du Professeur.',
+        description: 'Reussir 10 enigmes de Papy Mouche.',
       },
       RIDDLE_SOLVER_50: {
         title: 'Maitre des Enigmes',
-        description: 'Reussir 50 enigmes du Professeur.',
+        description: 'Reussir 50 enigmes de Papy Mouche.',
       },
       // --- NOUVEAUX SUCCÈS : ÉLITE ---
       HARD_VETERAN_50: {
@@ -703,7 +695,7 @@ const fr = {
   titles: {
     default: 'Naturaliste',
     explorateur_marin: 'Explorateur Marin',
-    professeur: 'Professeur',
+    professeur: 'Naturaliste',
     flash: 'Flash',
     gardien_du_temps: 'Gardien du Temps',
     alpha: 'Alpha',
@@ -747,9 +739,9 @@ const fr = {
     modes_easy:
       'Facile : un quiz à choix multiples. Idéal pour découvrir de nouvelles espèces de manière détendue.',
     modes_riddle:
-      "Enigme : trois indices generes par le Professeur Mouche, du plus difficile au plus evident.",
+      "Enigme : trois indices generes par Papy Mouche, du plus difficile au plus evident.",
     modes_hard:
-      'Difficile : retrouvez la classification complète (règne, classe, etc.). Chaque bonne proposition révèle un rang supplémentaire.',
+      'Difficile : identifiez directement l\'espèce à partir de la photo. Vous avez 3 tentatives.',
     packs_title: 'Packs de jeu',
     packs_body:
       'Choisissez un pack thématique (oiseaux du monde, mammifères de France...) ou créez votre partie personnalisée !',

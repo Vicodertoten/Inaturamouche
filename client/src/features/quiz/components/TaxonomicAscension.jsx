@@ -51,6 +51,7 @@ function TaxonomicAscension() {
     levelUpNotification,
     completeRound,
     endGame,
+    dailySeedSession,
   } = useGameData();
   const ascension = question?.taxonomic_ascension;
   const steps = useMemo(() => ascension?.steps ?? [], [ascension?.steps]);
@@ -177,6 +178,7 @@ function TaxonomicAscension() {
         selectedTaxonId: option.taxon_id,
         roundAction: 'taxonomic_select',
         stepIndex: currentStepIndex,
+        seedSession: dailySeedSession,
       });
       if (questionRef.current !== question) return;
 
@@ -219,6 +221,7 @@ function TaxonomicAscension() {
         roundSignature: question.round_signature,
         roundAction: 'taxonomic_hint',
         stepIndex: currentStepIndex,
+        seedSession: dailySeedSession,
       });
       if (questionRef.current !== question) return;
 

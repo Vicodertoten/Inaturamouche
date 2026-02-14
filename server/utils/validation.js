@@ -20,6 +20,7 @@ export const quizSchema = z.object({
   d2: z.string().optional(),
   seed: z.string().optional(),
   seed_session: z.string().optional(),
+  question_index: z.coerce.number().int().min(0).max(50).optional(),
   locale: z.string().default('fr'),
   media_type: z.enum(['images', 'sounds', 'both']).optional(),
   game_mode: z.enum(['easy', 'hard', 'riddle', 'taxonomic']).optional(),

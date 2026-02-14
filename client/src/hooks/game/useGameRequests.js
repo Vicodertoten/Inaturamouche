@@ -64,6 +64,10 @@ export function useGameRequests({
     if (isDailyChallenge) {
       params.set('seed', dailySeed);
       if (dailySeedSession) params.set('seed_session', dailySeedSession);
+      // Send the client-side question index (0-based) so the server
+      // can pick the correct deterministic question for this user,
+      // regardless of other users' progress on the same daily seed.
+      params.set('question_index', String(questionCount - 1));
       return params;
     }
 
@@ -128,6 +132,7 @@ export function useGameRequests({
     dailySeed,
     dailySeedSession,
     profileMissedSpecies,
+    questionCount,
   ]);
 
   const fetchQuestion = useCallback(

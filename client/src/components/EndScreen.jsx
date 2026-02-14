@@ -17,6 +17,7 @@ const EndScreen = ({
   onRestart,
   onReturnHome,
   profile,
+  isDailyChallenge = false,
 }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
   const { initialSessionXP } = useGameData();
@@ -252,9 +253,11 @@ const EndScreen = ({
         )}
 
         <div className="end-actions">
-          <button onClick={onRestart} className="btn btn--primary">
-            {t('common.replay')}
-          </button>
+          {!isDailyChallenge && (
+            <button onClick={onRestart} className="btn btn--primary">
+              {t('common.replay')}
+            </button>
+          )}
           <button onClick={onReturnHome} className="btn btn--secondary">{t('common.home')}</button>
         </div>
       </div>

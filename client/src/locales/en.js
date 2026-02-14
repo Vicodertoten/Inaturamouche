@@ -56,7 +56,7 @@ const en = {
   home: {
     easy_mode: 'Easy',
     easy_mode_description: 'Four options, one correct answer.',
-    riddle_mode: "Professor's Riddle",
+    riddle_mode: "Grandpa Mouche's Riddle",
     riddle_mode_description: 'Three text clues, shrinking points, no photos.',
     hard_mode: 'Hard',
     hard_mode_description: 'Guess the taxonomy with limited attempts.',
@@ -73,6 +73,7 @@ const en = {
     recommended_pack_cta: 'Use this pack',
     recommended_pack_active: 'Pack selected',
     daily_challenge_label: '📅 Daily challenge',
+    daily_challenge_done: '✅ Daily challenge completed',
     resume_game_title: '▶ Resume your game',
     resume_game_subtitle: 'You have a game in progress',
     resume_game_meta: 'Question',
@@ -216,37 +217,27 @@ const en = {
     score_label: 'Score: {score}',
   },
   riddle: {
-    title: "Professor's Riddle",
+    title: "Grandpa Mouche's Riddle",
     points: '+{points} pts',
     clue_progress: 'Clue {current}/{total}',
     next_clue: 'Next clue',
-    fallback_clue: 'The Professor is checking his notes...',
+    fallback_clue: 'Grandpa Mouche is checking his notes...',
     fallback_tag: 'House clue',
   },
   hard: {
     title: 'Identify the species',
-    stats_line: 'Chances: {guesses} | Score: {score}',
     stats: {
       score: 'Score',
       guesses: 'Lives',
       question: 'Question',
     },
-    reveal_button: 'Reveal (-{cost} chances)',
     image_alt: 'Species to identify',
-    rank_placeholder: 'Enter a {rank}...',
+    single_guess_placeholder_species: 'Guess the species...',
     feedback: {
-      branch: 'Great branch! +{points} points!',
-      redundant: 'Correct, but this guess did not reveal a new rank.',
-      wrong_branch: 'Incorrect. This suggestion is not on the right lineage.',
+      correct: 'Correct answer!',
+      wrong: 'Incorrect. {remaining} attempt(s) remaining.',
+      wrong_last: 'Incorrect. No more attempts.',
       error: 'An error occurred while checking.',
-      not_enough_guesses: 'Not enough chances for that hint!',
-      hint_used: 'Hint used! The "{rank}" rank has been revealed.',
-    },
-    phylo: {
-      title: 'Phylogenetic tree',
-      root: 'Life',
-      more: 'Open Wikipedia',
-      unavailable: 'Information unavailable',
     },
   },
   taxonomic: {
@@ -284,7 +275,8 @@ const en = {
   summary: {
     win_title: 'Species found!',
     lose_title: 'Too bad!',
-    explanation_title: 'Professor Mouche says...',
+    explanation_title: 'Grandpa Mouche says...',
+    explanation_sources: 'Sources:',
     correct_answer: 'Correct Answer',
     your_answer: 'Your Answer',
     answer_intro: 'The answer was:',
@@ -463,7 +455,7 @@ const en = {
         description: '300 species in the Pokédex.',
       },
       MASTERY_PROFESSOR_10: {
-        title: 'The Professor',
+        title: 'Expert Naturalist',
         description: 'Max mastery on 10 species.',
       },
       MASTERY_GENIUS_25: {
@@ -493,11 +485,11 @@ const en = {
       // --- NEW ACHIEVEMENTS: RIDDLE ---
       RIDDLE_SOLVER_10: {
         title: 'Riddle Apprentice',
-        description: "Solve 10 of the Professor's riddles.",
+        description: "Solve 10 of Grandpa Mouche's riddles.",
       },
       RIDDLE_SOLVER_50: {
         title: 'Riddle Scholar',
-        description: "Solve 50 of the Professor's riddles.",
+        description: "Solve 50 of Grandpa Mouche's riddles.",
       },
       // --- NEW ACHIEVEMENTS: ELITE ---
       HARD_VETERAN_50: {
@@ -703,7 +695,7 @@ const en = {
   titles: {
     default: 'Naturalist',
     explorateur_marin: 'Marine Explorer',
-    professeur: 'Professor',
+    professeur: 'Naturalist',
     flash: 'Flash',
     gardien_du_temps: 'Time Keeper',
     alpha: 'Alpha',
@@ -745,9 +737,9 @@ const en = {
       'Identify animals, plants, or fungi from visual or textual clues. The game relies on real observations from iNaturalist.',
     modes_title: 'Game modes',
     modes_easy: 'Easy: a multiple-choice quiz, perfect for relaxed discovery.',
-    modes_riddle: 'Riddle: three clues from Professor Mouche, hardest to easiest.',
+    modes_riddle: 'Riddle: three clues from Grandpa Mouche, hardest to easiest.',
     modes_hard:
-      'Hard: rebuild the full taxonomy (kingdom, class, etc.). Every correct guess reveals a new rank.',
+      'Hard: identify the species directly from the photo. You have 3 attempts.',
     packs_title: 'Game packs',
     packs_body: 'Pick a themed pack (world birds, French mammals...) or craft your own custom run!',
     confirm: 'Got it!',

@@ -34,6 +34,7 @@ const EasyMode = () => {
     nextImageUrl,
     completeRound,
     endGame,
+    dailySeedSession,
   } = useGameData();
   // Paires (id, label) alignées.
   const { t, getTaxonDisplayNames } = useLanguage();
@@ -144,6 +145,7 @@ const EasyMode = () => {
         roundId: question.round_id,
         roundSignature: question.round_signature,
         selectedTaxonId: selected.id,
+        seedSession: dailySeedSession,
       });
 
       if (questionRef.current !== question) return;

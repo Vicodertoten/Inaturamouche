@@ -3,9 +3,10 @@
 
 import { buildCacheKey } from '../../lib/quiz-utils.js';
 import { getObservationPool } from './observationPool.js';
+import { findPackById } from '../packs/index.js';
 
 const DEFAULT_LOCALE = 'fr';
-const DEFAULT_GAME_MODE = 'easy';
+const PACKS_TO_WARMUP = ['european_mushrooms', 'european_trees', 'world_birds'];
 
 /**
  * Pre-warm the default observation pool to reduce first-question latency.
@@ -20,7 +21,7 @@ export async function warmDefaultObservationPool({ logger } = {}) {
     locale: DEFAULT_LOCALE,
   };
 
-  const cacheKey = buildCacheKey({ ...params, game_mode: DEFAULT_GAME_MODE });
+  const cacheKey = buildCacheKey(params);
 
   try {
     await getObservationPool({
@@ -33,6 +34,45 @@ export async function warmDefaultObservationPool({ logger } = {}) {
     logger?.info?.({ cacheKey }, 'Warmup observation pool completed');
   } catch (err) {
     logger?.warn?.({ error: err?.message, cacheKey }, 'Warmup observation pool failed');
+  }
+}
+
+/**
+ * Pre-warm pack-specific observation pools.
+ */
+export async function warmPackPools({ logger } = {}) {
+  for (const packId of PACKS_TO_WARMUP) {
+    const pack = findPackById(packId);
+    if (!pack) continue;
+
+    const params = {
+      quality_grade: 'research',
+      photos: true,
+      rank: 'species',
+      per_page: 80,
+      locale: DEFAULT_LOCALE,
+    };
+
+    if (pack.type === 'list' && Array.isArray(pack.taxa_ids)) {
+      params.taxon_id = pack.taxa_ids.join(',');
+    } else if (pack.api_params) {
+      Object.assign(params, pack.api_params);
+    }
+
+    const cacheKey = buildCacheKey(params);
+
+    try {
+      await getObservationPool({
+        cacheKey,
+        params,
+        monthDayFilter: null,
+        logger,
+        requestId: `warmup-${packId}`,
+      });
+      logger?.info?.({ packId, cacheKey }, `Warmup pack pool (${packId}) completed`);
+    } catch (err) {
+      logger?.warn?.({ packId, error: err?.message, cacheKey }, `Warmup pack pool (${packId}) failed`);
+    }
   }
 }
 

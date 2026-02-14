@@ -46,8 +46,12 @@ export async function buildLures(
     logger,
     requestId,
     minCloseness = 0,
+    locale = 'fr',
+    recentLureTaxa,
   } = options;
   const isExcluded = (tid) => excludeTaxonIds && excludeTaxonIds.has(String(tid));
+  // Soft-avoid recently used lure taxa (they can still be picked if pool is small)
+  const isRecentLure = (tid) => recentLureTaxa && recentLureTaxa.has(String(tid));
 
   const targetAnc = Array.isArray(targetObservation?.taxon?.ancestor_ids)
     ? targetObservation.taxon.ancestor_ids
@@ -105,10 +109,34 @@ export async function buildLures(
     else far.push(s);
   }
 
-  const jitterSort = (arr) => arr.sort((a, b) => b.depth + random() * 0.01 - (a.depth + random() * 0.01));
-  jitterSort(near);
-  jitterSort(mid);
-  jitterSort(far);
+  // Shuffle within same-depth groups: group by depth, shuffle each group, then concatenate
+  const shuffleByDepthGroups = (arr) => {
+    if (arr.length <= 1) return arr;
+    const groups = new Map();
+    for (const s of arr) {
+      const key = s.depth;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(s);
+    }
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => b - a);
+    const result = [];
+    for (const key of sortedKeys) {
+      const group = groups.get(key);
+      // Fisher-Yates shuffle within same-depth group
+      for (let i = group.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [group[i], group[j]] = [group[j], group[i]];
+      }
+      result.push(...group);
+    }
+    // Overwrite arr in-place
+    arr.length = 0;
+    arr.push(...result);
+    return arr;
+  };
+  shuffleByDepthGroups(near);
+  shuffleByDepthGroups(mid);
+  shuffleByDepthGroups(far);
 
   const filterByCloseness = (arr) =>
     closenessFloor > 0 ? arr.filter((candidate) => candidate.closeness >= closenessFloor) : arr;
@@ -118,10 +146,23 @@ export async function buildLures(
 
   const out = [];
   const pickFromArr = (arr) => {
+    // Two-pass: prefer non-recent-lure taxa first, then allow recent ones as fallback
+    const preferred = [];
+    const fallback = [];
     for (const s of arr) {
+      if (seenTaxa.has(s.tid)) continue;
+      if (isRecentLure(s.tid)) {
+        fallback.push(s);
+      } else {
+        preferred.push(s);
+      }
+    }
+    for (const s of [...preferred, ...fallback]) {
       if (out.length >= lureCount) return;
       if (seenTaxa.has(s.tid)) continue;
-      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
+      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: false }, rng)
+        || pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng)
+        || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs, closeness: s.closeness, depth: s.depth });
         seenTaxa.add(s.tid);
@@ -162,14 +203,27 @@ export async function buildLures(
     const scoredMap = new Map(scored.map((s) => [s.tid, s]));
 
     // Pick from similar species first (only if present in pool and has same iconic_taxon_id)
+    // Prefer non-recently-used lures, then allow recent ones as fallback
+    const freshSimilar = [];
+    const recentSimilar = [];
     for (const sid of similarIds) {
-      if (out.length >= lureCount) break;
       if (!scoredMap.has(sid)) continue;
       if (isExcluded(sid)) continue;
       if (seenTaxa.has(sid)) continue;
       const s = scoredMap.get(sid);
       if (s.closeness < closenessFloor) continue;
-      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng) || s.rep;
+      if (isRecentLure(sid)) {
+        recentSimilar.push(s);
+      } else {
+        freshSimilar.push(s);
+      }
+    }
+    for (const s of [...freshSimilar, ...recentSimilar]) {
+      if (out.length >= lureCount) break;
+      if (seenTaxa.has(s.tid)) continue;
+      const obs = pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: false }, rng)
+        || pickObservationForTaxon(pool, selectionState, s.tid, { allowSeen: true }, rng)
+        || s.rep;
       if (obs) {
         out.push({ taxonId: s.tid, obs });
         seenTaxa.add(s.tid);
@@ -194,6 +248,7 @@ export async function buildLures(
           photos: true,
           quality_grade: 'research',
           per_page: 5,
+          locale: locale || 'fr',
         },
         { logger, requestId, label: 'lure-obs' }
       );
@@ -212,7 +267,7 @@ export async function buildLures(
     47126: 'Plantae',
     47158: 'Insecta',
     3: 'Aves',
-    47119: 'Fungi',
+    47170: 'Fungi',
     40151: 'Mammalia',
     26036: 'Reptilia',
     20978: 'Amphibia',
@@ -232,6 +287,7 @@ export async function buildLures(
           photos: true,
           quality_grade: 'research',
           per_page: Math.min(60, Math.max(20, limit * 10)),
+          locale: locale || 'fr',
         },
         { logger, requestId, label: 'lure-iconic' }
       );
@@ -306,16 +362,19 @@ export async function buildLures(
 
   // FALLBACK STRATEGY: LCA-only (near/mid/far buckets)
   // Used when API times out, fails, or returns no results
-  if (out.length < lureCount && near.length) pickFromArr([near[0]]);
-  if (out.length < lureCount && mid.length) pickFromArr([mid[0]]);
+  // Pick from shuffled arrays (already randomized within depth groups)
   if (out.length < lureCount) pickFromArr(near);
   if (out.length < lureCount) pickFromArr(mid);
-  if (out.length < lureCount && far.length) pickFromArr([far[0]]);
   if (out.length < lureCount) pickFromArr(far);
   if (out.length < lureCount) {
-    const rest = scored
-      .slice()
-      .sort((a, b) => b.closeness - a.closeness || b.depth - a.depth || (random() - 0.5) * 0.01);
+    const rest = scored.slice();
+    // Fisher-Yates shuffle for maximum diversity in final fallback
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    // Then stable-sort by closeness (preserving shuffle order for ties)
+    rest.sort((a, b) => b.closeness - a.closeness);
     pickFromArr(rest);
   }
 
@@ -330,15 +389,12 @@ export async function buildLures(
       else if (s.closeness >= LURE_MID_THRESHOLD) relaxedMid.push(s);
       else relaxedFar.push(s);
     }
-    const relaxedJitter = (arr) =>
-      arr.sort((a, b) => b.depth + random() * 0.01 - (a.depth + random() * 0.01));
-    relaxedJitter(relaxedNear);
-    relaxedJitter(relaxedMid);
-    relaxedJitter(relaxedFar);
-    if (out.length < lureCount && relaxedNear.length) pickFromArr(relaxedNear);
-    if (out.length < lureCount && relaxedMid.length) pickFromArr(relaxedMid);
-    if (out.length < lureCount && relaxedFar.length) pickFromArr([relaxedFar[0]]);
-    if (out.length < lureCount && relaxedFar.length) pickFromArr(relaxedFar);
+    shuffleByDepthGroups(relaxedNear);
+    shuffleByDepthGroups(relaxedMid);
+    shuffleByDepthGroups(relaxedFar);
+    if (out.length < lureCount) pickFromArr(relaxedNear);
+    if (out.length < lureCount) pickFromArr(relaxedMid);
+    if (out.length < lureCount) pickFromArr(relaxedFar);
   }
 
   return {

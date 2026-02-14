@@ -162,7 +162,7 @@ function PreferencesMenu({ isOpen: externalIsOpen, onToggle: externalOnToggle, i
           title={t('common.preferences_menu_label', {}, 'Open preferences')}
           onClick={toggleMenu}
         >
-          <SettingsIcon />
+          <SettingsIcon className="preferences-gear-icon" />
         </button>
       )}
 

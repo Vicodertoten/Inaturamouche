@@ -235,7 +235,43 @@
   font-family: var(--font-family-main);
   font-size: 1rem;
   margin: 0;
-  /* Optionnel : style curseur pour typewriter */
+}
+
+.explanation-persona-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-color-muted, #666);
+  margin-left: var(--space-1, 4px);
+  align-self: center;
+}
+
+.explanation-discriminant {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1, 4px);
+  margin-top: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: var(--surface-accent, rgba(255, 193, 7, 0.08));
+  border-left: 3px solid var(--accent-color, #ffc107);
+  border-radius: var(--radius-1, 4px);
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+.discriminant-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  margin-top: 1px;
+}
+
+.explanation-sources {
+  margin-top: var(--space-2, 8px);
+  font-size: 0.78rem;
+  color: var(--text-color-muted, #888);
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* --- Footer --- */

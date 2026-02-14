@@ -316,6 +316,7 @@ export const submitQuizAnswer = (
     submissionId,
     roundAction,
     stepIndex,
+    seedSession,
   },
   options
 ) => {
@@ -325,6 +326,9 @@ export const submitQuizAnswer = (
     submission_id: submissionId || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     client_session_id: getClientSessionId(),
   };
+  if (seedSession) {
+    payload.seed_session = seedSession;
+  }
   if (selectedTaxonId !== undefined && selectedTaxonId !== null) {
     payload.selected_taxon_id = selectedTaxonId;
   }

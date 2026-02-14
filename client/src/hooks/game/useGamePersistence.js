@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { active_session } from '../../services/db';
 import { DEFAULT_MAX_QUESTIONS, DEFAULT_MEDIA_TYPE, normalizeGameMode } from './gameUtils';
 import { debugError, debugLog } from '../../utils/logger';
+import { isDailySeedStale, isDailyCompleted } from '../../utils/dailyChallenge';
 
 export function useGamePersistence({
   isGameActive,
@@ -131,6 +132,21 @@ export function useGamePersistence({
       if (!sessionData) {
         debugLog('[GameContext] No active session found');
         return null;
+      }
+
+      // Reject stale or already-completed daily challenge sessions
+      const savedDailySeed = sessionData.gameConfig?.dailySeed;
+      if (savedDailySeed) {
+        if (isDailySeedStale(savedDailySeed)) {
+          debugLog('[GameContext] Discarding stale daily session (seed: %s)', savedDailySeed);
+          await active_session.delete(1);
+          return null;
+        }
+        if (isDailyCompleted(savedDailySeed)) {
+          debugLog('[GameContext] Daily challenge already completed (seed: %s)', savedDailySeed);
+          await active_session.delete(1);
+          return null;
+        }
       }
 
       debugLog('[GameContext] Session resumed from DB', {
