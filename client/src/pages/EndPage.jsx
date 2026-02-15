@@ -16,14 +16,16 @@ const EndPage = () => {
     startGame,
     clearSessionFromDB,
     dailySeed,
+    isChallenge,
     isReviewMode,
     gameMode,
     maxQuestions,
     mediaType,
+    activePackId,
   } = useGameData();
   const { profile } = useUser();
   const isRestartingRef = useRef(false);
-  const isDailyChallenge = Boolean(dailySeed);
+  const isDailyChallenge = Boolean(dailySeed) && !isChallenge;
 
   // Mark daily challenge as completed when reaching the end screen
   useEffect(() => {
@@ -77,6 +79,10 @@ const EndPage = () => {
       onReturnHome={handleReturnHome}
       profile={profile}
       isDailyChallenge={isDailyChallenge}
+      activePackId={activePackId}
+      gameMode={gameMode}
+      maxQuestions={maxQuestions}
+      mediaType={mediaType}
     />
   );
 };

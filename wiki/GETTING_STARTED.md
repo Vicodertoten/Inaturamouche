@@ -20,7 +20,7 @@ git --version
 
 ```bash
 git clone <repo-url>
-cd Inaturamouche
+cd iNaturaQuizz
 npm ci
 npm --prefix client ci
 cp .env.example .env
@@ -112,8 +112,8 @@ npm start
 Docker API:
 
 ```bash
-docker build -t inaturamouche-api .
-docker run -p 3001:3001 --env-file .env inaturamouche-api
+docker build -t inaturaquizz-api .
+docker run -p 3001:3001 --env-file .env inaturaquizz-api
 ```
 
 ## Smoke test

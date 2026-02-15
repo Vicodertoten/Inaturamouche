@@ -153,10 +153,9 @@ export const updateDailyStreak = (profile) => {
       // Only trigger if not recently triggered (within last minute)
       if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[7] = true;
-        updatedProfile.dailyStreak.streakBonusXP = 0.1;
         updatedProfile.dailyStreak[milestoneKey] = nowTimestamp;
 
-        notify('🔥 Streak 7 jours! +10% XP permanent activé', {
+        notify('🔥 Streak 7 jours! Continue comme ça !', {
           type: 'success',
           duration: 5000,
         });
@@ -171,10 +170,9 @@ export const updateDailyStreak = (profile) => {
       const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
       if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[14] = true;
-        updatedProfile.dailyStreak.streakBonusXP = 0.2;
         updatedProfile.dailyStreak[milestoneKey] = nowTimestamp;
 
-        notify('🔥🔥 Streak 14 jours! +20% XP permanent activé', {
+        notify('🔥🔥 Streak 14 jours! Tu es inarrêtable !', {
           type: 'success',
           duration: 5000,
         });
@@ -189,10 +187,9 @@ export const updateDailyStreak = (profile) => {
       const lastMilestoneTime = updatedProfile.dailyStreak[milestoneKey] || 0;
       if (nowTimestamp - lastMilestoneTime > ONE_MINUTE) {
         updatedProfile.dailyStreak.streakMilestones[30] = true;
-        updatedProfile.dailyStreak.streakBonusXP = 0.3;
         updatedProfile.dailyStreak[milestoneKey] = nowTimestamp;
 
-        notify('🔥🔥🔥 Streak 30 jours! +30% XP permanent activé', {
+        notify('🔥🔥🔥 Streak 30 jours! Légendaire !', {
           type: 'success',
           duration: 6000,
         });

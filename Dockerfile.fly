@@ -13,5 +13,6 @@ COPY server ./server
 COPY lib ./lib
 COPY shared ./shared
 
+USER node
 EXPOSE 8080
 CMD ["node", "server/index.js"]

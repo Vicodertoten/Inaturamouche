@@ -3,9 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo } from 'reac
 import { useUser } from './UserContext';
 import { useLanguage } from './LanguageContext.jsx';
 import { usePacks } from './PacksContext.jsx';
-import { useXP } from './XPContext.jsx';
-import { useStreak } from './StreakContext.jsx';
-import { useAchievement } from './AchievementContext.jsx';
+import { useGameMetaStore, calculateXPMultipliers } from '../state/gameMetaStore';
 import { useGameConfigState } from '../hooks/game/useGameConfigState';
 import { useGameSessionState } from '../hooks/game/useGameSessionState';
 import { useGameRequests } from '../hooks/game/useGameRequests';
@@ -21,7 +19,7 @@ const GameDataContext = createContext(null);
 const GameUIContext = createContext(null);
 
 export function GameProvider({ children }) {
-  const { profile, updateProfile, queueAchievements, addSpeciesToCollection } = useUser();
+  const { profile, updateProfile, queueAchievements, recordEncounter } = useUser();
   const { language, t } = useLanguage();
   const { packs, loading: packsLoading } = usePacks();
 
@@ -35,28 +33,27 @@ export function GameProvider({ children }) {
     setError,
   } = gameSession;
 
-  const {
-    recentXPGain,
-    setRecentXPGain,
-    initialSessionXP,
-    setInitialSessionXP,
-    levelUpNotification,
-    setLevelUpNotification,
-    calculateXPMultipliers,
-  } = useXP();
+  // Zustand store — replaces XPContext, StreakContext, AchievementContext
+  const recentXPGain = useGameMetaStore((s) => s.recentXPGain);
+  const setRecentXPGain = useGameMetaStore((s) => s.setRecentXPGain);
+  const initialSessionXP = useGameMetaStore((s) => s.initialSessionXP);
+  const setInitialSessionXP = useGameMetaStore((s) => s.setInitialSessionXP);
+  const levelUpNotification = useGameMetaStore((s) => s.levelUpNotification);
+  const setLevelUpNotification = useGameMetaStore((s) => s.setLevelUpNotification);
 
-  const {
-    currentStreak,
-    setCurrentStreak,
-    longestStreak,
-    setLongestStreak,
-    inGameShields,
-    setInGameShields,
-    hasPermanentShield,
-    setHasPermanentShield,
-  } = useStreak();
+  const currentStreak = useGameMetaStore((s) => s.currentStreak);
+  const setCurrentStreak = useGameMetaStore((s) => s.setCurrentStreak);
+  const longestStreak = useGameMetaStore((s) => s.longestStreak);
+  const setLongestStreak = useGameMetaStore((s) => s.setLongestStreak);
+  const inGameShields = useGameMetaStore((s) => s.inGameShields);
+  const setInGameShields = useGameMetaStore((s) => s.setInGameShields);
+  const hasPermanentShield = useGameMetaStore((s) => s.hasPermanentShield);
+  const setHasPermanentShield = useGameMetaStore((s) => s.setHasPermanentShield);
 
-  const { newlyUnlocked, setNewlyUnlocked, clearAchievementsTimer, clearUnlockedLater } = useAchievement();
+  const newlyUnlocked = useGameMetaStore((s) => s.newlyUnlocked);
+  const setNewlyUnlocked = useGameMetaStore((s) => s.setNewlyUnlocked);
+  const clearAchievementsTimer = useGameMetaStore((s) => s.clearAchievementsTimer);
+  const clearUnlockedLater = useGameMetaStore((s) => s.clearUnlockedLater);
 
   useGameProfileSync({
     profile,
@@ -155,7 +152,7 @@ export function GameProvider({ children }) {
     profile,
     updateProfile,
     queueAchievements,
-    addSpeciesToCollection,
+    recordEncounter,
     activePackId: gameConfig.activePackId,
     activePack: gameConfig.activePack,
     gameMode: gameConfig.gameMode,
@@ -169,6 +166,7 @@ export function GameProvider({ children }) {
     setReviewTaxonIds: gameConfig.setReviewTaxonIds,
     setDailySeed: gameConfig.setDailySeed,
     setDailySeedSession: gameConfig.setDailySeedSession,
+    setIsChallenge: gameConfig.setIsChallenge,
     isGameActive: gameSession.isGameActive,
     setIsGameActive: gameSession.setIsGameActive,
     setIsStartingNewGame: gameSession.setIsStartingNewGame,
@@ -249,6 +247,7 @@ export function GameProvider({ children }) {
       setMediaType: gameConfig.setMediaType,
       dailySeed: gameConfig.dailySeed,
       dailySeedSession: gameConfig.dailySeedSession,
+      isChallenge: gameConfig.isChallenge,
       score: gameSession.score,
       sessionStats: gameSession.sessionStats,
       sessionCorrectSpecies: gameSession.sessionCorrectSpecies,
@@ -282,7 +281,6 @@ export function GameProvider({ children }) {
       clearSessionFromDB,
     }),
     [
-      calculateXPMultipliers,
       canStartReview,
       clearSessionFromDB,
       completeRound,
@@ -295,6 +293,7 @@ export function GameProvider({ children }) {
       gameConfig.dailySeedSession,
       gameConfig.dispatchCustomFilters,
       gameConfig.gameMode,
+      gameConfig.isChallenge,
       gameConfig.isReviewMode,
       gameConfig.maxQuestions,
       gameConfig.mediaType,

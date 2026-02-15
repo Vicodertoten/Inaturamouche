@@ -10,6 +10,7 @@ export function useGameConfigState({ packs, packsLoading }) {
   const [mediaType, setMediaType] = useState(DEFAULT_MEDIA_TYPE);
   const [dailySeed, setDailySeed] = useState(null);
   const [dailySeedSession, setDailySeedSession] = useState(null);
+  const [isChallenge, setIsChallenge] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [reviewTaxonIds, setReviewTaxonIds] = useState([]);
 
@@ -49,6 +50,8 @@ export function useGameConfigState({ packs, packsLoading }) {
     setDailySeed,
     dailySeedSession,
     setDailySeedSession,
+    isChallenge,
+    setIsChallenge,
     isReviewMode,
     setIsReviewMode,
     reviewTaxonIds,

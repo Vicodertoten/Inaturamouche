@@ -95,6 +95,9 @@
   --shadow-2: 0 10px 30px rgba(0,0,0,0.32);
 
   /* Z-INDEX LAYERS */
+  --z-dropdown: 100;
+  --z-nav: 200;
+  --z-tooltip: 500;
   --z-modal: 1000;
   --z-toast: 1200;
   --z-offline-indicator: 1300;  /* Higher than toast for critical network status */

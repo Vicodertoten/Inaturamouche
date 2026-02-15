@@ -48,7 +48,7 @@ const ReviewCard = () => {
       <div className="review-count">
         <div className="count-number">{stats.dueToday}</div>
         <div className="count-label">
-          espèce{stats.dueToday > 1 ? 's' : ''} à réviser
+          {t('review.species_to_review', { count: stats.dueToday }, `${stats.dueToday} espèce${stats.dueToday > 1 ? 's' : ''} à réviser`)}
         </div>
       </div>
       
@@ -60,11 +60,11 @@ const ReviewCard = () => {
       
       <div className="review-stats">
         <div className="review-stat">
-          <span className="stat-label">Demain</span>
+          <span className="stat-label">{t('review.tomorrow_label', {}, 'Demain')}</span>
           <span className="stat-value">{stats.dueTomorrow}</span>
         </div>
         <div className="review-stat">
-          <span className="stat-label">En révision</span>
+          <span className="stat-label">{t('review.in_review_label', {}, 'En révision')}</span>
           <span className="stat-value">{stats.totalInReviewSystem}</span>
         </div>
       </div>

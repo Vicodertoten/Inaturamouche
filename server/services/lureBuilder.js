@@ -109,40 +109,33 @@ export async function buildLures(
     else far.push(s);
   }
 
-  // Shuffle within same-depth groups: group by depth, shuffle each group, then concatenate
-  const shuffleByDepthGroups = (arr) => {
-    if (arr.length <= 1) return arr;
-    const groups = new Map();
-    for (const s of arr) {
-      const key = s.depth;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(s);
+  // Full Fisher-Yates shuffle within each bucket.
+  // The near/mid/far stratification already ensures phylogenetic quality;
+  // shuffling fully within each bucket prevents the same high-depth taxon
+  // from being systematically picked first every time.
+  const shuffleArray = (arr) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    const sortedKeys = Array.from(groups.keys()).sort((a, b) => b - a);
-    const result = [];
-    for (const key of sortedKeys) {
-      const group = groups.get(key);
-      // Fisher-Yates shuffle within same-depth group
-      for (let i = group.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [group[i], group[j]] = [group[j], group[i]];
-      }
-      result.push(...group);
-    }
-    // Overwrite arr in-place
-    arr.length = 0;
-    arr.push(...result);
     return arr;
   };
-  shuffleByDepthGroups(near);
-  shuffleByDepthGroups(mid);
-  shuffleByDepthGroups(far);
+  shuffleArray(near);
+  shuffleArray(mid);
+  shuffleArray(far);
 
-  const filterByCloseness = (arr) =>
-    closenessFloor > 0 ? arr.filter((candidate) => candidate.closeness >= closenessFloor) : arr;
-  const nearPreferred = filterByCloseness(near);
-  const midPreferred = filterByCloseness(mid);
-  const farPreferred = filterByCloseness(far);
+  // Apply closeness floor filter directly to the buckets.
+  // This is the single authoritative filter — no second pass needed later.
+  if (closenessFloor > 0) {
+    const applyFloor = (arr) => {
+      const filtered = arr.filter((c) => c.closeness >= closenessFloor);
+      arr.length = 0;
+      arr.push(...filtered);
+    };
+    applyFloor(near);
+    applyFloor(mid);
+    applyFloor(far);
+  }
 
   const out = [];
   const pickFromArr = (arr) => {
@@ -178,14 +171,18 @@ export async function buildLures(
   let similarIds = [];
 
   if (!similarResults) {
-    // Warm cache in background to avoid blocking first-question latency.
-    fetchSimilarSpeciesWithTimeout(targetId, 900)
-      .then((results) => {
-        if (Array.isArray(results) && results.length > 0) {
-          similarSpeciesCache.set(cacheKey, results);
-        }
-      })
-      .catch(() => {});
+    // Fetch similar species synchronously (with 900ms timeout) so we can
+    // actually USE the results for THIS question instead of only warming
+    // the cache for a future (typically different) taxon.
+    try {
+      const fetched = await fetchSimilarSpeciesWithTimeout(targetId, 900);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        similarSpeciesCache.set(cacheKey, fetched);
+        similarResults = fetched;
+      }
+    } catch (_) {
+      // Timeout or error — fall back to LCA-only silently
+    }
   }
 
   if (Array.isArray(similarResults) && similarResults.length > 0) {
@@ -354,12 +351,6 @@ export async function buildLures(
     }
   }
 
-  if (closenessFloor > 0) {
-    if (out.length < lureCount) pickFromArr(nearPreferred);
-    if (out.length < lureCount) pickFromArr(midPreferred);
-    if (out.length < lureCount) pickFromArr(farPreferred);
-  }
-
   // FALLBACK STRATEGY: LCA-only (near/mid/far buckets)
   // Used when API times out, fails, or returns no results
   // Pick from shuffled arrays (already randomized within depth groups)
@@ -389,9 +380,9 @@ export async function buildLures(
       else if (s.closeness >= LURE_MID_THRESHOLD) relaxedMid.push(s);
       else relaxedFar.push(s);
     }
-    shuffleByDepthGroups(relaxedNear);
-    shuffleByDepthGroups(relaxedMid);
-    shuffleByDepthGroups(relaxedFar);
+    shuffleArray(relaxedNear);
+    shuffleArray(relaxedMid);
+    shuffleArray(relaxedFar);
     if (out.length < lureCount) pickFromArr(relaxedNear);
     if (out.length < lureCount) pickFromArr(relaxedMid);
     if (out.length < lureCount) pickFromArr(relaxedFar);

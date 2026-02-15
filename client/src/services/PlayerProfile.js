@@ -1,27 +1,10 @@
-import { openDB } from 'idb';
+import { profiles } from './db.js';
 import { notify } from './notifications.js';
 import { getDefaultRewardState, mergeRewardState } from '../core/achievements/rewards.js';
 
 const LEGACY_STORAGE_KEY = 'inaturamouche_playerProfile';
-const DB_NAME = 'inaturamouche-player';
-const DB_VERSION = 1;
-const STORE_NAME = 'playerProfiles';
-const PROFILE_STORE_KEY = 'playerProfile';
-
-let dbPromise;
-
-const getDb = () => {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      },
-    });
-  }
-  return dbPromise;
-};
+const LEGACY_IDB_NAME = 'inaturamouche-player';
+const PROFILE_KEY = 'playerProfile';
 
 export const getDefaultProfile = () => ({
   xp: 0,
@@ -160,18 +143,73 @@ const migrateLegacyProfile = () => {
   }
 };
 
+/**
+ * Migrate profile from the old idb-based 'inaturamouche-player' database.
+ * Returns the stored profile or null. Deletes the legacy DB once migrated.
+ */
+const migrateLegacyIdbProfile = async () => {
+  try {
+    const dbs = await indexedDB.databases?.();
+    const legacyExists = dbs?.some((d) => d.name === LEGACY_IDB_NAME);
+    if (!legacyExists) return null;
+
+    return new Promise((resolve) => {
+      const req = indexedDB.open(LEGACY_IDB_NAME, 1);
+      req.onerror = () => resolve(null);
+      req.onsuccess = (event) => {
+        const db = event.target.result;
+        try {
+          if (!db.objectStoreNames.contains('playerProfiles')) {
+            db.close();
+            return resolve(null);
+          }
+          const tx = db.transaction('playerProfiles', 'readonly');
+          const store = tx.objectStore('playerProfiles');
+          const getReq = store.get('playerProfile');
+          getReq.onsuccess = () => {
+            const data = getReq.result;
+            db.close();
+            // Delete legacy database
+            indexedDB.deleteDatabase(LEGACY_IDB_NAME);
+            console.log('[PlayerProfile] Migrated from legacy idb database');
+            resolve(data || null);
+          };
+          getReq.onerror = () => {
+            db.close();
+            resolve(null);
+          };
+        } catch {
+          db.close();
+          resolve(null);
+        }
+      };
+      req.onupgradeneeded = (event) => {
+        // Legacy DB doesn't exist yet — nothing to migrate
+        event.target.transaction.abort();
+        resolve(null);
+      };
+    });
+  } catch {
+    return null;
+  }
+};
+
 export const loadProfileWithDefaults = () => getDefaultProfile();
 
 export const loadProfileFromStore = async () => {
   try {
-    const db = await getDb();
-    let stored = await db.get(STORE_NAME, PROFILE_STORE_KEY);
+    const row = await profiles.get(PROFILE_KEY);
+    let stored = row?.data ?? null;
+
     if (!stored) {
-      const legacy = migrateLegacyProfile();
-      if (legacy) {
-        stored = legacy;
+      // Try legacy idb database first, then localStorage
+      stored = await migrateLegacyIdbProfile();
+      if (!stored) {
+        stored = migrateLegacyProfile();
+      }
+      if (stored) {
         try {
-          await db.put(STORE_NAME, stored, PROFILE_STORE_KEY);
+          await profiles.put({ key: PROFILE_KEY, data: stored });
         } catch (error) {
           console.warn('Failed to persist migrated profile to IndexedDB', error);
         }
@@ -193,8 +231,7 @@ export const loadProfileFromStore = async () => {
  */
 export const saveProfile = async (profile) => {
   try {
-    const db = await getDb();
-    await db.put(STORE_NAME, profile, PROFILE_STORE_KEY);
+    await profiles.put({ key: PROFILE_KEY, data: profile });
     return { success: true };
   } catch (error) {
     notify('Impossible de sauvegarder le profil.', { type: 'error' });
@@ -204,8 +241,7 @@ export const saveProfile = async (profile) => {
 
 export const resetProfile = async () => {
   try {
-    const db = await getDb();
-    await db.delete(STORE_NAME, PROFILE_STORE_KEY);
+    await profiles.delete(PROFILE_KEY);
   } catch (error) {
     notify('Impossible de reinitialiser le profil.', { type: 'error' });
   }

@@ -1,22 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  computeHintXpMultiplier,
-  computeTaxonRepeatMultiplier,
-  computeRoundEconomy,
-} from '../src/utils/economy.js';
-
-test('computeHintXpMultiplier uses no penalty for riddle mode', () => {
-  assert.equal(computeHintXpMultiplier({ mode: 'riddle', hintCount: 0 }), 1);
-  assert.equal(computeHintXpMultiplier({ mode: 'riddle', hintCount: 2 }), 1);
-});
-
-test('computeTaxonRepeatMultiplier applies diminishing returns', () => {
-  assert.equal(computeTaxonRepeatMultiplier(0), 1);
-  assert.equal(computeTaxonRepeatMultiplier(1), 0.85);
-  assert.equal(computeTaxonRepeatMultiplier(2), 0.7);
-  assert.equal(computeTaxonRepeatMultiplier(99), 0.6);
-});
+import { computeRoundEconomy } from '../src/utils/economy.js';
 
 test('computeRoundEconomy produces deterministic score/xp breakdown', () => {
   const result = computeRoundEconomy({
@@ -25,15 +9,26 @@ test('computeRoundEconomy produces deterministic score/xp breakdown', () => {
     bonus: 5,
     streakBonus: 10,
     rarityBonusXp: 3,
-    mode: 'hard',
-    hintCount: 1,
-    repeatCount: 1,
   });
 
-  assert.equal(result.scoreDelta, 35);
-  assert.equal(result.baseXp, 38);
-  assert.equal(result.hintXpMultiplier, 0.85);
-  assert.equal(result.repeatXpMultiplier, 0.85);
-  assert.equal(result.xpBeforeProfileMultipliers, 27);
+  assert.equal(result.scoreDelta, 35);        // 20 + 5 + 10
+  assert.equal(result.baseXp, 25);             // 20 + 5 (points + bonus, no streak)
+  assert.equal(result.streakBonus, 10);
+  assert.equal(result.rarityBonus, 3);
+  assert.equal(result.xp, 38);                 // 35 + 3 = 38
+});
+
+test('computeRoundEconomy returns 0 xp for incorrect answer', () => {
+  const result = computeRoundEconomy({
+    isCorrect: false,
+    points: 0,
+    bonus: 0,
+    streakBonus: 0,
+    rarityBonusXp: 5,
+  });
+
+  assert.equal(result.scoreDelta, 0);
+  assert.equal(result.xp, 0);
+  assert.equal(result.rarityBonus, 0);
 });
 

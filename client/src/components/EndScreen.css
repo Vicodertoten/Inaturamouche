@@ -109,6 +109,45 @@
   filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.3));
 }
 
+/* XP Breakdown */
+.xp-breakdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3, 12px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius, 8px);
+  font-size: 0.9rem;
+  color: var(--text-color-muted, #999);
+}
+
+.xp-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.xp-breakdown-label {
+  opacity: 0.8;
+}
+
+.xp-breakdown-value {
+  font-weight: 700;
+}
+
+.xp-breakdown-row.streak .xp-breakdown-value {
+  color: var(--color-streak, #ff9500);
+}
+
+.xp-breakdown-row.rarity .xp-breakdown-value {
+  color: var(--color-rare, #a855f7);
+}
+
 .level-progress-info {
   display: flex;
   align-items: center;

@@ -3,16 +3,13 @@ import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import GameHeader from './GameHeader';
 import LevelUpNotification from './LevelUpNotification';
-import { computeScore } from '../utils/scoring';
-import { HINT_XP_PENALTY_PERCENT } from '../utils/economy';
+import { computeScore, computeInGameStreakBonus } from '../utils/scoring';
 import { getAudioMimeType, normalizeMediaUrl } from '../utils/mediaUtils';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../utils/haptics';
 import { notify } from '../services/notifications';
 import { submitQuizAnswer } from '../services/api';
-
-const HINT_COST_XP = HINT_XP_PENALTY_PERCENT;
 
 /**
  * Easy mode:
@@ -47,7 +44,6 @@ const EasyMode = () => {
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
-  const emptyRemovedRef = useRef(new Set());
 
   const choiceDetailMap = useMemo(() => {
     const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
@@ -73,13 +69,9 @@ const EasyMode = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationResult, setValidationResult] = useState(null);
 
-  // Indice (ids supprimés)
-  const [removedIds, setRemovedIds] = useState(new Set());
-  const [hintUsed, setHintUsed] = useState(false);
-  const [roundMeta, setRoundMeta] = useState({
+  // Indice supprimé (Phase 3)
+  const [roundMeta] = useState({
     mode: 'easy',
-    hintsUsed: false,
-    hintCount: 0,
   });
 
   useLayoutEffect(() => {
@@ -87,41 +79,23 @@ const EasyMode = () => {
     setAnswered(false);
     setSelectedIndex(null);
     setShowSummary(false);
-    setRemovedIds(new Set());
-    setHintUsed(false);
-    setRoundMeta({
-      mode: 'easy',
-      hintsUsed: false,
-      hintCount: 0,
-    });
     setValidationResult(null);
     setIsSubmitting(false);
   }, [question]);
 
   const isCurrentQuestion = questionRef.current === question;
   const answeredThisQuestion = answered && isCurrentQuestion;
-  const hintUsedThisQuestion = hintUsed && isCurrentQuestion;
-  const activeRemovedIds = isCurrentQuestion ? removedIds : emptyRemovedRef.current;
 
-  const remainingPairs = easyPairs.filter(p => !activeRemovedIds.has(String(p.id)));
+  const remainingPairs = easyPairs;
   const correctTaxonId = validationResult?.correct_taxon_id ? String(validationResult.correct_taxon_id) : null;
 
   const isCorrectAnswer = answeredThisQuestion && selectedIndex !== null
     ? Boolean(validationResult?.is_correct)
     : false;
 
-  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
+  const streakBonus = isCorrectAnswer ? computeInGameStreakBonus(currentStreak + 1) : 0;
   const baseScoreInfo = computeScore({ mode: 'easy', isCorrect: isCorrectAnswer });
-  
-  // Hint penalty is applied later in the shared XP economy model.
-  const scoreInfo = { 
-    ...baseScoreInfo, 
-    streakBonus 
-  };
-
-  const hintsTemporarilyDisabled = true;
-
-
+  const scoreInfo = { ...baseScoreInfo, streakBonus };
 
   const resolvedQuestion = useMemo(() => {
     if (!question || !validationResult?.correct_answer) return question;
@@ -180,41 +154,6 @@ const EasyMode = () => {
     });
   };
 
-  const handleHint = () => {
-    if (hintsTemporarilyDisabled) {
-      notify(t('errors.generic', {}, 'Fonction indisponible pour le moment'), {
-        type: 'info',
-        duration: 2000,
-      });
-      return;
-    }
-    if (hintUsedThisQuestion || answeredThisQuestion) return;
-
-    // On choisit au hasard un leurre restant (≠ correct) parmi les non-supprimés
-    const incorrectRemaining = correctTaxonId
-      ? remainingPairs.filter((p) => String(p.id) !== String(correctTaxonId))
-      : remainingPairs.slice();
-    if (incorrectRemaining.length <= 1) return; // garder au moins 1 leurre
-    const toRemove = incorrectRemaining[Math.floor(Math.random() * incorrectRemaining.length)];
-    const newSet = new Set(removedIds);
-    newSet.add(String(toRemove.id));
-    setRemovedIds(newSet);
-    setHintUsed(true);
-    
-    notify(`Malus de manche: -${HINT_COST_XP}% XP`, {
-      type: 'info',
-      duration: 2000,
-    });
-    
-    setRoundMeta((prev) => {
-      return {
-        ...prev,
-        hintsUsed: true,
-        hintCount: (prev.hintCount || 0) + 1,
-      };
-    });
-  };
-
   // Pour déterminer les classes d'état, on compare via IDs
   const isIndexCorrect = (idx) => {
     const pair = remainingPairs[idx];
@@ -245,21 +184,10 @@ const EasyMode = () => {
         <GameHeader
           mode="easy"
           currentStreak={currentStreak}
-          inGameShields={inGameShields}
-          hasPermanentShield={hasPermanentShield}
           questionCount={questionCount}
           maxQuestions={maxQuestions}
           onQuit={endGame}
           isGameOver={answeredThisQuestion}
-          onHint={handleHint}
-          hintDisabled={
-          hintUsedThisQuestion ||
-          hintsTemporarilyDisabled ||
-          answeredThisQuestion ||
-          isSubmitting ||
-          remainingPairs.length <= 2
-          }
-          hintCost={HINT_COST_XP}
         />
         <div className="card">
           <main className="game-main">

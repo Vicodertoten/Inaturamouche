@@ -2,7 +2,7 @@
 
 ## ✅ Résumé des Changements Effectués
 
-Ce document récapitule l'implémentation complète du système de streak en partie amélioré pour Inaturamouche.
+Ce document récapitule l'implémentation complète du système de streak en partie amélioré pour iNaturaQuizz.
 
 ---
 

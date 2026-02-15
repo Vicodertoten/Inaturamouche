@@ -8,8 +8,9 @@ import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
 import { CollectionIcon, ProfileIcon as SharedProfileIcon, ReportIcon, HelpIcon } from './NavigationIcons';
 import HelpCenterModal from './HelpCenterModal';
-import titleImage from '../assets/inaturamouche-title.png';
-import logoImage from '../assets/inaturamouche-logo.webp';
+import Footer from './Footer';
+import titleImage from '../assets/inaturaquizz-title.png';
+import logoImage from '../assets/inaturaquizz-logo.webp';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -47,6 +48,8 @@ const AppLayout = () => {
   }, []);
 
   const outletContext = useMemo(() => ({ showReport }), [showReport]);
+
+  const isPlayScreen = location.pathname === '/play';
 
   return (
     <div className="App">
@@ -108,8 +111,6 @@ const AppLayout = () => {
       <BottomNavigationBar
         onSettingsClick={togglePreferences}
         isSettingsOpen={isPreferencesOpen}
-        onReportClick={showReport}
-        onHelpClick={openHelp}
       />
 
       <header className="app-header">
@@ -139,6 +140,8 @@ const AppLayout = () => {
       <main className="screen-container">
         <Outlet context={outletContext} />
       </main>
+
+      {!isPlayScreen && <Footer />}
     </div>
   );
 };

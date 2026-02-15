@@ -98,47 +98,122 @@
   gap: var(--space-3);
 }
 
-.pack-tile {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius);
-  padding: var(--space-3);
+/* ── Pack catalog — chip pills with horizontal scroll ── */
+.pack-catalog {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pack-region-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pack-region-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-color, #dda15e);
+  opacity: 0.85;
+}
+
+.pack-scroll-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+.pack-scroll-row::-webkit-scrollbar { display: none; }
+
+/* ── Pack chip (pill shape) ── */
+.pack-chip {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  text-align: left;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
-
-.pack-tile:hover,
-.pack-tile:focus-visible {
+.pack-chip:hover {
   border-color: var(--accent-color);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  background: rgba(221, 161, 94, 0.1);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
-
-.pack-tile.selected {
+.pack-chip:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.pack-chip--active {
   border-color: var(--accent-color);
-  background: linear-gradient(130deg, rgba(221, 161, 94, 0.22), rgba(96, 108, 56, 0.45));
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(130deg, rgba(221, 161, 94, 0.18), rgba(96, 108, 56, 0.35));
+  box-shadow: 0 0 0 1px rgba(221, 161, 94, 0.2);
 }
-
-.pack-tile-skeleton {
-  min-height: 64px;
-  align-items: center;
-  justify-content: center;
+.pack-chip--active:hover {
+  transform: none;
+  box-shadow: 0 0 0 1px rgba(221, 161, 94, 0.3);
+}
+.pack-chip--skeleton {
+  min-width: 100px;
+  min-height: 36px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
   pointer-events: none;
 }
 
-.pack-emoji {
-  font-size: 1.6rem;
+.pack-chip__icon {
+  font-size: 1rem;
   line-height: 1;
+  flex-shrink: 0;
+}
+.pack-chip__label {
+  line-height: 1.2;
 }
 
-.pack-title {
-  font-weight: 600;
-  color: var(--text-color);
+/* ── Description bar (below pack rows on hover) ── */
+.pack-desc-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius, 14px);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  animation: pack-desc-bar-in 0.18s ease;
+}
+.pack-desc-bar__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.pack-desc-bar__text {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-color-muted);
+}
+@keyframes pack-desc-bar-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .pack-selector {
@@ -303,6 +378,25 @@
 .mode-card.selected {
   border-color: var(--accent-color);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Beta / Labo badge */
+.mode-card-beta {
+  opacity: 0.85;
+  position: relative;
+}
+.beta-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--accent-color, #dda15e);
+  color: var(--surface-color, #1a2410);
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 0.4em;
 }
 
 .mode-card input {
@@ -675,6 +769,7 @@
 
 .autocomplete-container .suggestions-list li:hover {
   background-color: var(--primary-color);
+  color: #fff;
 }
 
 .autocomplete-container .suggestions-list .rank {

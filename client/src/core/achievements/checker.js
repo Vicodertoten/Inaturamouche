@@ -30,16 +30,6 @@ export const checkStreakAchievements = (profile) => {
     newAchievements.push('STREAK_LEGEND_10');
   }
 
-  // Check STREAK_TITAN_20
-  if (longestStreak >= 20 && !achievements.has('STREAK_TITAN_20')) {
-    newAchievements.push('STREAK_TITAN_20');
-  }
-
-  // Check STREAK_GUARDIAN (ultimate achievement)
-  if (longestStreak >= 50 && !achievements.has('STREAK_GUARDIAN')) {
-    newAchievements.push('STREAK_GUARDIAN');
-  }
-
   return newAchievements;
 };
 

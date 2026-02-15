@@ -43,15 +43,7 @@ const RANK_ORDER = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 's
 const DEFAULT_HARD_MAX_GUESSES = 3;
 const DEFAULT_TAXONOMIC_MAX_MISTAKES = 2;
 const DEFAULT_TAXONOMIC_MAX_HINTS = 1;
-const DEFAULT_SCORE_PER_RANK = Object.freeze({
-  kingdom: 5,
-  phylum: 10,
-  class: 15,
-  order: 20,
-  family: 25,
-  genus: 30,
-  species: 40,
-});
+import { SCORE_PER_RANK as DEFAULT_SCORE_PER_RANK } from '../../shared/scoring.js';
 const GAME_MODES = ['easy', 'riddle', 'hard', 'taxonomic'];
 
 function getAdaptiveProfile(clientId) {

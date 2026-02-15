@@ -1,0 +1,61 @@
+/* ═══════════════════════════════════════════════
+   ShareButtons — End screen share/copy/challenge
+   ═══════════════════════════════════════════════ */
+
+.share-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  justify-content: center;
+  margin-top: var(--space-3, 0.75rem);
+}
+
+.share-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.15s ease;
+}
+
+.btn--share {
+  background: linear-gradient(135deg, rgba(96, 108, 56, 0.5), rgba(96, 108, 56, 0.3));
+  color: #fff;
+}
+.btn--share:hover {
+  background: linear-gradient(135deg, rgba(96, 108, 56, 0.7), rgba(96, 108, 56, 0.5));
+  transform: translateY(-1px);
+}
+
+.btn--copy {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-color);
+}
+.btn--copy:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn--challenge {
+  background: linear-gradient(135deg, rgba(221, 161, 94, 0.4), rgba(221, 161, 94, 0.2));
+  color: #fff;
+}
+.btn--challenge:hover {
+  background: linear-gradient(135deg, rgba(221, 161, 94, 0.6), rgba(221, 161, 94, 0.4));
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .share-buttons {
+    flex-direction: column;
+  }
+  .share-buttons .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

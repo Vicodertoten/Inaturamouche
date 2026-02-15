@@ -3,11 +3,11 @@
 
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { z } from 'zod';
 import { config } from '../config/index.js';
 import { reportsLimiter } from '../middleware/rateLimiter.js';
 import { getClientIp } from '../utils/helpers.js';
-import { validate } from '../utils/validation.js';
+import { validate, reportSchema } from '../utils/validation.js';
+import { isAuthorized, isConfiguredToken } from '../utils/auth.js';
 import { sendError } from '../utils/http.js';
 
 const router = Router();
@@ -18,28 +18,6 @@ const MAX_REPORTS = 200;
 const REPORTS_WRITE_TOKEN = process.env.REPORTS_WRITE_TOKEN;
 const REPORTS_READ_TOKEN = process.env.REPORTS_READ_TOKEN;
 const { reportsRequireWriteToken } = config;
-
-const reportSchema = z.object({
-  description: z.string().trim().min(5).max(2000),
-  url: z.string().trim().max(500).optional().default(''),
-  userAgent: z.string().trim().max(500).optional().default(''),
-  website: z.string().trim().max(200).optional().default(''),
-});
-
-const getAuthToken = (req) => {
-  const header = req.headers.authorization || '';
-  if (!header) return '';
-  if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim();
-  return header.trim();
-};
-
-const isAuthorized = (req, expectedToken) => {
-  if (!expectedToken) return false;
-  const token = getAuthToken(req);
-  return token && token === expectedToken;
-};
-
-const isConfiguredToken = (value) => typeof value === 'string' && value.trim().length > 0;
 
 // Endpoint pour recevoir un rapport
 router.post('/api/reports', reportsLimiter, validate(reportSchema), (req, res) => {

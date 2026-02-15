@@ -1,0 +1,209 @@
+/* =============================================
+   AdvancedSettings — collapsible accordion
+   ============================================= */
+
+.advanced-settings {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius, 14px);
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+/* ── Toggle button ── */
+.advanced-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.advanced-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.advanced-toggle-icon {
+  font-size: 1.1rem;
+}
+
+.advanced-toggle-label {
+  flex: 1;
+  text-align: left;
+}
+
+.advanced-toggle-summary {
+  font-size: 0.8rem;
+  color: var(--text-color-muted);
+  font-weight: 400;
+}
+
+.advanced-chevron {
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+.advanced-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* ── Body (expanded) ── */
+.advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+  padding: 0 1rem 1rem;
+  animation: adv-slide-in 0.2s ease;
+}
+
+@keyframes adv-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Group ── */
+.adv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.adv-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-color-muted);
+}
+
+.adv-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-color-muted);
+  line-height: 1.4;
+}
+
+/* ── Mode chips ── */
+.adv-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.adv-mode-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.adv-mode-chip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.adv-mode-chip:hover { border-color: var(--accent-color); }
+.adv-mode-chip.active {
+  background: linear-gradient(120deg, rgba(221, 161, 94, 0.22), rgba(96, 108, 56, 0.45));
+  border-color: var(--accent-color);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.adv-mode-chip.lab {
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+.adv-mode-chip.lab.active { opacity: 1; }
+
+.beta-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--accent-color, #dda15e);
+  color: var(--surface-color, #1a2410);
+  padding: 0.05em 0.4em;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* ── Option row (questions / media) ── */
+.adv-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.adv-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-small, 10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.adv-option input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.adv-option:hover { border-color: var(--accent-color); }
+.adv-option.active {
+  background: linear-gradient(120deg, rgba(221, 161, 94, 0.24), rgba(96, 108, 56, 0.45));
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px rgba(221, 161, 94, 0.3);
+}
+.adv-option.disabled { opacity: 0.45; cursor: not-allowed; }
+
+.option-icon { display: inline-flex; align-items: center; }
+.media-icon { width: 16px; height: 16px; }
+.media-icon-stack { display: inline-flex; gap: 0.15rem; }
+
+/* ── Custom filter button ── */
+.adv-custom-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-small, 10px);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-color-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.adv-custom-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--text-color);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adv-custom-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius, 14px);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* ── Lab section divider ── */
+.adv-lab {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}

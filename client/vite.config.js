@@ -1,4 +1,4 @@
-// vite.config.js — Inaturamouche (PWA : règles séparées pour quiz vs meta-API)
+// vite.config.js — iNaturaQuizz (PWA : règles séparées pour quiz vs meta-API)
 // Basé sur ton fichier : manifeste conservé, SW en generateSW, proxy dev.
 // Changements clés PWA :
 //  - /api/quiz-question => NetworkOnly (toujours frais, anti-répétitions)
@@ -35,8 +35,8 @@ export default defineConfig({
         'fonts/*.woff2', // Include fonts for caching
       ],
       manifest: {
-        name: "Inaturamouche",
-        short_name: "Inatura",
+        name: "iNaturaQuizz",
+        short_name: "iNatura",
         start_url: "/",
         display: "standalone",
         background_color: "#ffffff",
@@ -49,8 +49,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Workaround for Workbox/Terser instability observed in production minification.
-        mode: "development",
+        mode: "production",
         sourcemap: false,
         disableDevLogs: true,
         cleanupOutdatedCaches: true,

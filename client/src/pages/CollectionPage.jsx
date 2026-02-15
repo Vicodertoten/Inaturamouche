@@ -9,13 +9,24 @@ import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './CollectionPage.css';
 
-const COLUMN_WIDTH = 180;
-
 const getIconicLabel = (iconicTaxonId, t) => {
   const entry = Object.entries(ICONIC_TAXA).find(([, value]) => value.id === iconicTaxonId);
   if (!entry) return t('collection.title');
   const [key, value] = entry;
   return t(`collection.iconic_taxa.${key}`, {}, value.name);
+};
+
+const ICONIC_ICONS = {
+  47126: '🌿', // Plantae
+  47158: '🦋', // Insecta
+  3:     '🐦', // Aves
+  47119: '🍄', // Fungi
+  40151: '🦊', // Mammalia
+  26036: '🦎', // Reptilia
+  20978: '🐸', // Amphibia
+  47178: '🐚', // Mollusca
+  47686: '🕷️', // Arachnida
+  1:     '🐾', // Animalia
 };
 
 // ============== IconicTaxaGrid Component ==============
@@ -55,27 +66,38 @@ function IconicTaxaGrid({ onSelectIconic }) {
             progressPercent: 0,
             masteryBreakdown: {},
           };
+          const icon = ICONIC_ICONS[iconicTaxon.id] || '🔬';
 
           return (
             <div
               key={iconicTaxon.id}
-              className="iconic-taxon-card"
+              className={`iconic-taxon-card ${stats.seenCount > 0 ? '' : 'iconic-empty'}`}
               role="button"
               tabIndex={0}
               onClick={() => onSelectIconic(iconicTaxon.id)}
               onKeyDown={(event) => handleCardKeyDown(event, iconicTaxon.id)}
             >
-              <div className="iconic-card-header">
-                <h2>{getIconicLabel(iconicTaxon.id, t)}</h2>
-              </div>
-              <div className="iconic-card-body">
-                <p className="iconic-stat">
-                  {t('collection.species_seen', { count: stats.seenCount })}
-                </p>
-                <p className="iconic-stat">
-                  {t('collection.mastered_count', { count: stats.masteredCount })}
-                </p>
-              </div>
+              <span className="iconic-icon" aria-hidden="true">{icon}</span>
+              <h2>{getIconicLabel(iconicTaxon.id, t)}</h2>
+              <p className="iconic-stat">
+                {stats.seenCount} {t('collection.species_discovered', {}, 'découvertes')}
+              </p>
+              {stats.seenCount > 0 && stats.masteredCount > 0 && (
+                <div className="iconic-mastery-dots">
+                  {(stats.masteryBreakdown?.[MASTERY_LEVELS.DIAMOND] || 0) > 0 && (
+                    <span className="mastery-dot mastery-dot-diamond" title={t('collection.mastery_diamond', {}, 'Diamant')}>💎 {stats.masteryBreakdown[MASTERY_LEVELS.DIAMOND]}</span>
+                  )}
+                  {(stats.masteryBreakdown?.[MASTERY_LEVELS.GOLD] || 0) > 0 && (
+                    <span className="mastery-dot mastery-dot-gold" title={t('collection.mastery_gold', {}, 'Or')}>🥇 {stats.masteryBreakdown[MASTERY_LEVELS.GOLD]}</span>
+                  )}
+                  {(stats.masteryBreakdown?.[MASTERY_LEVELS.SILVER] || 0) > 0 && (
+                    <span className="mastery-dot mastery-dot-silver" title={t('collection.mastery_silver', {}, 'Argent')}>🥈 {stats.masteryBreakdown[MASTERY_LEVELS.SILVER]}</span>
+                  )}
+                  {(stats.masteryBreakdown?.[MASTERY_LEVELS.BRONZE] || 0) > 0 && (
+                    <span className="mastery-dot mastery-dot-bronze" title={t('collection.mastery_bronze', {}, 'Bronze')}>🥉 {stats.masteryBreakdown[MASTERY_LEVELS.BRONZE]}</span>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -91,10 +113,16 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const { t } = useLanguage();
   const [sortOrder, setSortOrder] = useState('mastery');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterRarity, setFilterRarity] = useState('all');
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
+
+  // Debounce search input — 300ms delay before triggering fetch
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const [species, setSpecies] = useState([]);
   const [total, setTotal] = useState(0);
@@ -114,7 +142,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   // Reset page when search, filter or sort changes
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, filterStatus, filterRarity, sortOrder, iconicTaxonId]);
+  }, [debouncedSearch, filterStatus, sortOrder, iconicTaxonId]);
 
   // Fetch species data
   useEffect(() => {
@@ -128,11 +156,9 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
           offset: page * PAGE_SIZE,
           limit: PAGE_SIZE,
           sort: sortOrder,
-          searchQuery: searchQuery.trim(),
+          searchQuery: debouncedSearch,
           filterStatus,
-          filterRarity,
         });
-        console.log(`✅ Fetched ${result.species.length} species (total: ${result.total})`);
         if (isMounted) {
           setSpecies(result.species);
           setTotal(result.total || 0);
@@ -149,7 +175,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     return () => {
       isMounted = false;
     };
-  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, filterRarity, page, collectionVersion]);
+  }, [iconicTaxonId, sortOrder, debouncedSearch, filterStatus, page, collectionVersion]);
 
   // Listen for collection updates
   useEffect(() => {
@@ -158,14 +184,14 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
         try {
           const result = await CollectionService.getSpeciesPage({
             iconicId: iconicTaxonId,
-            offset: 0,
-            limit: 500,
+            offset: page * PAGE_SIZE,
+            limit: PAGE_SIZE,
             sort: sortOrder,
-            searchQuery: searchQuery.trim(),
+            searchQuery: debouncedSearch,
             filterStatus,
-            filterRarity,
           });
           setSpecies(result.species);
+          setTotal(result.total || 0);
         } catch (err) {
           console.error('Failed to refresh:', err);
         }
@@ -173,13 +199,36 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
       void fetch();
     });
     return unsubscribe;
-  }, [iconicTaxonId, sortOrder, searchQuery, filterStatus, filterRarity]);
+  }, [iconicTaxonId, sortOrder, debouncedSearch, filterStatus, page]);
+
+  const retryFetch = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    CollectionService.getSpeciesPage({
+      iconicId: iconicTaxonId,
+      offset: page * PAGE_SIZE,
+      limit: PAGE_SIZE,
+      sort: sortOrder,
+      searchQuery: debouncedSearch,
+      filterStatus,
+    }).then((result) => {
+      setSpecies(result.species);
+      setTotal(result.total || 0);
+      setLoading(false);
+    }).catch((err) => {
+      setError(err.message);
+      setLoading(false);
+    });
+  }, [iconicTaxonId, page, sortOrder, debouncedSearch, filterStatus]);
 
   if (error) {
     return (
       <div className="collection-error">
         <button onClick={onBack} className="back-button">{t('common.back')}</button>
         <p>{t('errors.title')}: {error}</p>
+        <button onClick={retryFetch} className="btn btn--primary">
+          {t('common.retry', {}, 'Réessayer')}
+        </button>
       </div>
     );
   }
@@ -187,64 +236,41 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   return (
     <>
       <div className="collection-header">
-        <button onClick={onBack} className="back-button">{t('common.back')}</button>
-        <h1>{iconicTaxonName}</h1>
+        <button onClick={onBack} className="back-button">← {iconicTaxonName}</button>
 
         <div className="collection-controls">
-          <div className="search-control">
-            <input
-              type="search"
-              placeholder={t('collection.search_placeholder') || 'Rechercher...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label={t('collection.search_placeholder') || 'Search species'}
-            />
-          </div>
+          <input
+            type="search"
+            className="collection-search"
+            placeholder={t('collection.search_placeholder') || 'Rechercher...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label={t('collection.search_placeholder') || 'Search species'}
+          />
 
-          <div className="filter-control">
-            <label htmlFor="filter-select">{t('collection.filter_label') || 'Filtre'}</label>
-            <select
-              id="filter-select"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">{t('collection.filter.all') || 'Tout'}</option>
-              <option value="seen">{t('collection.filter.seen') || 'Découverts'}</option>
-              <option value="mastered">{t('collection.filter.mastered') || 'Maîtrisés'}</option>
-              <option value="to_learn">{t('collection.filter.to_learn') || "À apprendre"}</option>
-            </select>
-          </div>
+          <select
+            className="collection-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            aria-label={t('collection.filter_label') || 'Filtre'}
+          >
+            <option value="all">{t('collection.filter.all') || 'Tout'}</option>
+            <option value="seen">{t('collection.filter.seen') || 'Découverts'}</option>
+            <option value="mastered">{t('collection.filter.mastered') || 'Maîtrisés'}</option>
+            <option value="to_learn">{t('collection.filter.to_learn') || "À apprendre"}</option>
+          </select>
 
-          <div className="filter-control">
-            <label htmlFor="rarity-filter-select">{t('collection.filter_rarity_label') || 'Rareté'}</label>
-            <select
-              id="rarity-filter-select"
-              value={filterRarity}
-              onChange={(e) => setFilterRarity(e.target.value)}
-            >
-              <option value="all">{t('collection.filter_rarity.all') || 'Toutes'}</option>
-              <option value="legendary">{t('collection.filter_rarity.legendary') || 'Légendaire'}</option>
-              <option value="epic">{t('collection.filter_rarity.epic') || 'Épique'}</option>
-              <option value="rare">{t('collection.filter_rarity.rare') || 'Rare'}</option>
-              <option value="uncommon">{t('collection.filter_rarity.uncommon') || 'Peu commun'}</option>
-              <option value="common">{t('collection.filter_rarity.common') || 'Commun'}</option>
-            </select>
-          </div>
-
-          <div className="sort-controls">
-            <label htmlFor="sort-select">{t('collection.sort_label')}</label>
-            <select
-              id="sort-select"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-            >
-              <option value="mastery">{t('collection.sort.mastery')}</option>
-              <option value="recent">{t('collection.sort.recent')}</option>
-              <option value="alpha">{t('collection.sort.alpha')}</option>
-              <option value="rarity">{t('collection.sort.rarity')}</option>
-              <option value="rarity_common">{t('collection.sort.rarity_common')}</option>
-            </select>
-          </div>
+          <select
+            className="collection-select"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            aria-label={t('collection.sort_label')}
+          >
+            <option value="mastery">{t('collection.sort.mastery')}</option>
+            <option value="recent">{t('collection.sort.recent')}</option>
+            <option value="alpha">{t('collection.sort.alpha')}</option>
+            <option value="rarity">{t('collection.sort.rarity')}</option>
+          </select>
         </div>
       </div>
 

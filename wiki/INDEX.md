@@ -1,4 +1,4 @@
-# Wiki Inaturamouche
+# Wiki iNaturaQuizz
 
 Ce dossier est la source de verite de la documentation projet.
 

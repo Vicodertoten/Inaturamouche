@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import CustomFilter from './components/CustomFilter';
 import ErrorModal from '../../components/ErrorModal';
+import PackIcon from '../../components/PackIcons';
 import './Configurator.css';
 import { useGameData, useGameUI } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { usePacks } from '../../context/PacksContext.jsx';
+import { useDetectedRegion } from '../../hooks/useGeoDefaultPack';
 
 const ModeVisual = ({ variant }) => {
   const gradientId = useMemo(
@@ -139,17 +141,6 @@ const usePackOptions = ({ packs, t }) =>
     }));
   }, [packs, t]);
 
-const PACK_EMOJIS = {
-  european_mushrooms: '🍄',
-  european_trees: '🌳',
-  world_birds: '🐦',
-  france_mammals: '🦊',
-  belgium_herps: '🦎',
-  amazing_insects: '🦋',
-  mediterranean_flora: '🌿',
-  great_barrier_reef_life: '🐠',
-};
-
 function Configurator({ onStartGame }) {
   const {
     activePackId,
@@ -169,6 +160,7 @@ function Configurator({ onStartGame }) {
 
   const packOptions = usePackOptions({ packs, t });
   const [packView, setPackView] = useState('packs');
+  const detectedRegion = useDetectedRegion();
 
   const activePack = useMemo(
     () => packs.find((pack) => pack.id === activePackId),
@@ -203,6 +195,43 @@ function Configurator({ onStartGame }) {
     () => packOptions.filter((pack) => pack.id !== 'custom'),
     [packOptions]
   );
+
+  /* ── Region-grouped packs ── */
+  const REGION_ORDER = ['belgium', 'france', 'europe', 'world'];
+  const regionGroupedPacks = useMemo(() => {
+    if (packsLoading) return [];
+    const order = [...REGION_ORDER];
+    const idx = order.indexOf(detectedRegion);
+    if (idx > 0) { order.splice(idx, 1); order.unshift(detectedRegion); }
+    const groups = {};
+    for (const pack of packs.filter((p) => p.id !== 'custom')) {
+      const region = pack.region || 'world';
+      if (!groups[region]) groups[region] = [];
+      const option = prefabPacks.find((o) => o.id === pack.id);
+      if (option) groups[region].push({ ...pack, label: option.label });
+    }
+    return order.filter((r) => groups[r]?.length > 0).map((r) => ({
+      region: r,
+      label: t(`packs._regions.${r}`, {}, r),
+      packs: groups[r],
+    }));
+  }, [packsLoading, packs, prefabPacks, detectedRegion, t]);
+
+  /* ── Hover description with delay ── */
+  const hoverTimerRef = useRef(null);
+  const [hoveredPackId, setHoveredPackId] = useState(null);
+  const handleTileMouseEnter = useCallback((packId) => {
+    hoverTimerRef.current = setTimeout(() => setHoveredPackId(packId), 400);
+  }, []);
+  const handleTileMouseLeave = useCallback(() => {
+    clearTimeout(hoverTimerRef.current);
+    setHoveredPackId(null);
+  }, []);
+
+  const hoveredPack = useMemo(() => {
+    if (!hoveredPackId) return null;
+    return packs.find((p) => p.id === hoveredPackId) || null;
+  }, [hoveredPackId, packs]);
 
   const handlePackSelect = useCallback(
     (packId) => {
@@ -301,42 +330,51 @@ function Configurator({ onStartGame }) {
 
             {isPackView && (
               <>
-                <div className="pack-grid tutorial-pack-grid" role="list" data-test="pack-selector">
+                <div className="pack-catalog" data-test="pack-selector">
                   {packsLoading &&
-                    Array.from({ length: 4 }, (_, index) => (
-                      <div className="pack-tile pack-tile-skeleton" key={`skeleton-${index}`}>
-                        <SkeletonLine width="60%" />
+                    <div className="pack-scroll-row">
+                      {Array.from({ length: 4 }, (_, index) => (
+                        <div className="pack-chip pack-chip--skeleton" key={`skeleton-${index}`}>
+                          <SkeletonLine width="60%" />
+                        </div>
+                      ))}
+                    </div>
+                  }
+                  {!packsLoading &&
+                    regionGroupedPacks.map(({ region, label, packs: regionPacks }) => (
+                      <div className="pack-region-group" key={region}>
+                        <p className="pack-region-label">{label}</p>
+                        <div className="pack-scroll-row" role="list">
+                          {regionPacks.map((option) => {
+                            const isSelected = activePackId === option.id;
+                            return (
+                              <button
+                                key={option.id}
+                                type="button"
+                                className={`pack-chip${isSelected ? ' pack-chip--active' : ''}`}
+                                onClick={() => handlePackSelect(option.id)}
+                                onMouseEnter={() => handleTileMouseEnter(option.id)}
+                                onMouseLeave={handleTileMouseLeave}
+                                aria-pressed={isSelected}
+                                role="listitem"
+                              >
+                                <PackIcon packId={option.id} className="pack-chip__icon" />
+                                <span className="pack-chip__label">{option.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
-                  {!packsLoading &&
-                    prefabPacks.map((option) => {
-                      const isSelected = activePackId === option.id;
-                      const emoji = PACK_EMOJIS[option.id] ?? '🎒';
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          className={`pack-tile ${isSelected ? 'selected' : ''}`}
-                          onClick={() => handlePackSelect(option.id)}
-                          aria-pressed={isSelected}
-                        >
-                          <span className="pack-emoji" aria-hidden="true">
-                            {emoji}
-                          </span>
-                          <span className="pack-title">{option.label}</span>
-                        </button>
-                      );
-                    })}
-                </div>
-                <div className="pack-details">
-                  {packsLoading && (
-                    <>
-                      <SkeletonLine width="74%" />
-                      <SkeletonLine width="54%" />
-                    </>
-                  )}
-                  {!packsLoading && packDescription && activePackId !== 'custom' && (
-                    <p className="pack-description">{packDescription}</p>
+
+                  {/* description bar on hover */}
+                  {hoveredPack && (
+                    <div className="pack-desc-bar">
+                      <PackIcon packId={hoveredPack.id} className="pack-desc-bar__icon" />
+                      <span className="pack-desc-bar__text">
+                        {hoveredPack.descriptionKey ? t(hoveredPack.descriptionKey) : hoveredPack.label}
+                      </span>
+                    </div>
                   )}
                 </div>
               </>
@@ -422,7 +460,7 @@ function Configurator({ onStartGame }) {
               </div>
             </label>
 
-            <label className={`mode-card ${gameMode === 'taxonomic' ? 'selected' : ''}`}>
+            <label className={`mode-card mode-card-beta ${gameMode === 'taxonomic' ? 'selected' : ''}`}>
               <input
                 type="radio"
                 name="mode"
@@ -433,7 +471,7 @@ function Configurator({ onStartGame }) {
               />
               <ModeVisual variant="hard" />
               <div className="mode-content">
-                <h4>{t('home.taxonomic_mode')}</h4>
+                <h4>{t('home.taxonomic_mode')} <span className="beta-badge">Labo β</span></h4>
                 <p className="mode-description">{t('home.taxonomic_mode_description')}</p>
               </div>
             </label>

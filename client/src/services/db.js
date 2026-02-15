@@ -137,6 +137,22 @@ db.version(7).stores({
 });
 
 /**
+ * Version 8: Add profiles store — unify all IndexedDB on Dexie.
+ * Migrates player profile from the legacy 'inaturamouche-player' idb database.
+ * PK: 'key' (always 'playerProfile')
+ */
+db.version(8).stores({
+  taxa: 'id,iconic_taxon_id,updatedAt,name,rarity_tier,observations_count',
+  stats: 'id,iconic_taxon_id,[iconic_taxon_id+masteryLevel],[iconic_taxon_id+lastSeenAt],lastSeenAt,nextReviewDate',
+  collection: 'taxon_id,masteryLevel',
+  species: 'id,iconic_taxon_id',
+  taxonomy_cache: 'id',
+  taxon_groups: 'id,parent_id',
+  active_session: 'id',
+  profiles: 'key',
+});
+
+/**
  * Helper function to retrieve stats for a taxon.
  * @param {number} taxonId - The iNaturalist taxon ID.
  * @returns {Promise<Object|null>}
@@ -183,6 +199,7 @@ export const speciesTable = db.species;
 export const statsTable = db.stats; // Alias for consistency
 export const taxonGroupsTable = db.taxon_groups;
 export const taxonomy_cache = db.taxonomy_cache;
+export const profiles = db.profiles;
 
 // Helper functions
 export const helpers = {

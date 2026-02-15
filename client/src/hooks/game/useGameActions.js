@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   checkEndOfGameAchievements,
   checkNewAchievements,
@@ -85,6 +85,7 @@ export function useGameActions({
   setReviewTaxonIds,
   setDailySeed,
   setDailySeedSession,
+  setIsChallenge,
   isGameActive,
   setIsGameActive,
   setIsStartingNewGame,
@@ -128,6 +129,18 @@ export function useGameActions({
   clearUnlockedLater,
   setRarityCelebration,
 }) {
+  // Refs to track pending timers for cleanup on unmount
+  const xpGainTimerRef = useRef(null);
+  const levelUpTimerRef = useRef(null);
+
+  // Cleanup timers on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (xpGainTimerRef.current) clearTimeout(xpGainTimerRef.current);
+      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+    };
+  }, []);
+
   const getDateKey = useCallback((date) => new Date(date).toISOString().split('T')[0], []);
 
   const daysBetween = useCallback((fromDateKey, toDateKey) => {
@@ -192,6 +205,7 @@ export function useGameActions({
       }
       setDailySeed(null);
       setDailySeedSession(null);
+      setIsChallenge(false);
     },
     [
       abortActiveFetch,
@@ -200,6 +214,7 @@ export function useGameActions({
       resetSessionState,
       setDailySeed,
       setDailySeedSession,
+      setIsChallenge,
       setError,
       setIsGameActive,
       setIsGameOver,
@@ -223,6 +238,7 @@ export function useGameActions({
       gameMode: nextGameMode,
       seed,
       seed_session,
+      isChallenge = false,
     } = {}) => {
       abortActiveFetch();
       abortPrefetchFetch();
@@ -232,19 +248,23 @@ export function useGameActions({
       );
       setIsStartingNewGame(true);
       const normalizedSeed = typeof seed === 'string' ? seed.trim() : '';
-      const isDailyChallenge = normalizedSeed.length > 0;
+      const hasSeed = normalizedSeed.length > 0;
+      // Daily challenge: has seed but is NOT a friend challenge → force hard/10Q
+      // Friend challenge: has seed AND isChallenge → use the caller's config
+      const isDailyChallenge = hasSeed && !isChallenge;
       const forcedMaxQuestions = isDailyChallenge ? 10 : nextMaxQuestions;
       const forcedGameMode = isDailyChallenge ? 'hard' : nextGameMode;
 
-      setDailySeed(isDailyChallenge ? normalizedSeed : null);
-      setDailySeedSession(isDailyChallenge ? (seed_session || createSeedSessionId()) : null);
+      setDailySeed(hasSeed ? normalizedSeed : null);
+      setDailySeedSession(hasSeed ? (seed_session || createSeedSessionId()) : null);
+      setIsChallenge(isChallenge);
       setQuestion(null);
       setNextQuestion(null);
       setError(null);
       setQuestionCount(1);
       setIsGameActive(true);
       setIsGameOver(false);
-      setIsReviewMode(isDailyChallenge ? false : review);
+      setIsReviewMode(hasSeed ? false : review);
       if (!review) {
         setReviewTaxonIds([]);
       }
@@ -263,6 +283,7 @@ export function useGameActions({
       resetSessionState,
       setDailySeed,
       setDailySeedSession,
+      setIsChallenge,
       setError,
       setGameMode,
       setInitialSessionXP,
@@ -745,8 +766,10 @@ export function useGameActions({
       if (earnedXP > 0) {
         setRecentXPGain(earnedXP);
 
-        setTimeout(() => {
+        if (xpGainTimerRef.current) clearTimeout(xpGainTimerRef.current);
+        xpGainTimerRef.current = setTimeout(() => {
           setRecentXPGain(0);
+          xpGainTimerRef.current = null;
         }, 2000);
 
         updateProfile((prev) => {
@@ -763,8 +786,10 @@ export function useGameActions({
               timestamp: Date.now(),
             });
 
-            setTimeout(() => {
+            if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+            levelUpTimerRef.current = setTimeout(() => {
               setLevelUpNotification(null);
+              levelUpTimerRef.current = null;
             }, 4000);
           }
 

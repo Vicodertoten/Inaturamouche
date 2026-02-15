@@ -1,0 +1,261 @@
+{
+  "rewardTypes": {
+    "XP_FLAT": "XP_FLAT",
+    "PERM_MULTIPLIER": "PERM_MULTIPLIER",
+    "TITLE": "TITLE",
+    "BORDER": "BORDER"
+  },
+  "categories": {
+    "TAXONOMY": "TAXONOMY",
+    "COLLECTION": "COLLECTION",
+    "SKILL": "SKILL",
+    "HABIT": "HABIT"
+  },
+  "borders": {
+    "default": { "id": "default", "nameKey": "borders.default", "css": "" },
+    "silver_frame": { "id": "silver_frame", "nameKey": "borders.silver_frame", "css": "border-silver" },
+    "gold_book_frame": { "id": "gold_book_frame", "nameKey": "borders.gold_book_frame", "css": "border-gold-book" },
+    "hardened_steel": { "id": "hardened_steel", "nameKey": "borders.hardened_steel", "css": "border-steel" },
+    "platinum_ring": { "id": "platinum_ring", "nameKey": "borders.platinum_ring", "css": "border-platinum" },
+    "diamond_frame": { "id": "diamond_frame", "nameKey": "borders.diamond_frame", "css": "border-diamond" }
+  },
+  "titles": {
+    "default": { "id": "default", "nameKey": "titles.default" },
+    "professeur": { "id": "professeur", "nameKey": "titles.professeur", "value": "Professeur" },
+    "flash": { "id": "flash", "nameKey": "titles.flash", "value": "Flash" },
+    "gardien_du_temps": { "id": "gardien_du_temps", "nameKey": "titles.gardien_du_temps", "value": "Gardien du Temps" }
+  },
+  "iconicTaxonMap": {
+    "1": "Animalia",
+    "3": "Aves",
+    "20978": "Amphibia",
+    "26036": "Reptilia",
+    "40151": "Mammalia",
+    "47178": "Actinopterygii",
+    "47115": "Mollusca",
+    "47119": "Arachnida",
+    "47158": "Insecta",
+    "47126": "Plantae",
+    "47170": "Fungi",
+    "48222": "Protozoa"
+  },
+  "taxonGroupFilters": {
+    "Aves": [3],
+    "Plantae": [47126],
+    "Insecta": [47158],
+    "Fungi": [47170],
+    "all": null
+  },
+  "achievements": {
+    "first_game": {
+      "titleKey": "achievements.list.first_game.title",
+      "descriptionKey": "achievements.list.first_game.description",
+      "category": "HABIT",
+      "icon": "🎮",
+      "reward": { "type": "XP_FLAT", "value": 100 }
+    },
+    "ten_games": {
+      "titleKey": "achievements.list.ten_games.title",
+      "descriptionKey": "achievements.list.ten_games.description",
+      "category": "HABIT",
+      "icon": "🎯",
+      "reward": { "type": "XP_FLAT", "value": 300 }
+    },
+    "GAMES_50": {
+      "titleKey": "achievements.list.GAMES_50.title",
+      "descriptionKey": "achievements.list.GAMES_50.description",
+      "category": "HABIT",
+      "icon": "🎮",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "EARLY_BIRD": {
+      "titleKey": "achievements.list.EARLY_BIRD.title",
+      "descriptionKey": "achievements.list.EARLY_BIRD.description",
+      "category": "HABIT",
+      "icon": "🌅",
+      "reward": { "type": "XP_FLAT", "value": 300 }
+    },
+    "NIGHT_OWL": {
+      "titleKey": "achievements.list.NIGHT_OWL.title",
+      "descriptionKey": "achievements.list.NIGHT_OWL.description",
+      "category": "HABIT",
+      "icon": "🦉",
+      "reward": { "type": "XP_FLAT", "value": 300 }
+    },
+    "WEEKEND_WARRIOR": {
+      "titleKey": "achievements.list.WEEKEND_WARRIOR.title",
+      "descriptionKey": "achievements.list.WEEKEND_WARRIOR.description",
+      "category": "HABIT",
+      "icon": "⚔️",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "WEEKLY_RITUAL_7": {
+      "titleKey": "achievements.list.WEEKLY_RITUAL_7.title",
+      "descriptionKey": "achievements.list.WEEKLY_RITUAL_7.description",
+      "category": "HABIT",
+      "icon": "📅",
+      "reward": { "type": "TITLE", "value": "gardien_du_temps" }
+    },
+    "FIRST_REVIEW": {
+      "titleKey": "achievements.list.FIRST_REVIEW.title",
+      "descriptionKey": "achievements.list.FIRST_REVIEW.description",
+      "category": "HABIT",
+      "icon": "📚",
+      "reward": { "type": "XP_FLAT", "value": 50 }
+    },
+    "LEVEL_5": {
+      "titleKey": "achievements.list.LEVEL_5.title",
+      "descriptionKey": "achievements.list.LEVEL_5.description",
+      "category": "SKILL",
+      "icon": "⭐",
+      "reward": { "type": "XP_FLAT", "value": 250 }
+    },
+    "LEVEL_10": {
+      "titleKey": "achievements.list.LEVEL_10.title",
+      "descriptionKey": "achievements.list.LEVEL_10.description",
+      "category": "SKILL",
+      "icon": "🌟",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "STREAK_STARTER_3": {
+      "titleKey": "achievements.list.STREAK_STARTER_3.title",
+      "descriptionKey": "achievements.list.STREAK_STARTER_3.description",
+      "category": "SKILL",
+      "icon": "🔥",
+      "reward": { "type": "XP_FLAT", "value": 150 }
+    },
+    "STREAK_MASTER_5": {
+      "titleKey": "achievements.list.STREAK_MASTER_5.title",
+      "descriptionKey": "achievements.list.STREAK_MASTER_5.description",
+      "category": "SKILL",
+      "icon": "🔥",
+      "reward": { "type": "XP_FLAT", "value": 300 }
+    },
+    "STREAK_LEGEND_10": {
+      "titleKey": "achievements.list.STREAK_LEGEND_10.title",
+      "descriptionKey": "achievements.list.STREAK_LEGEND_10.description",
+      "category": "SKILL",
+      "icon": "🔥",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "PERFECT_GAME": {
+      "titleKey": "achievements.list.PERFECT_GAME.title",
+      "descriptionKey": "achievements.list.PERFECT_GAME.description",
+      "category": "SKILL",
+      "icon": "💎",
+      "reward": { "type": "XP_FLAT", "value": 750 }
+    },
+    "FLAWLESS_HARD": {
+      "titleKey": "achievements.list.FLAWLESS_HARD.title",
+      "descriptionKey": "achievements.list.FLAWLESS_HARD.description",
+      "category": "SKILL",
+      "icon": "👑",
+      "reward": { "type": "BORDER", "value": "hardened_steel" }
+    },
+    "ACCURACY_HARD_75": {
+      "titleKey": "achievements.list.ACCURACY_HARD_75.title",
+      "descriptionKey": "achievements.list.ACCURACY_HARD_75.description",
+      "category": "SKILL",
+      "icon": "🎯",
+      "reward": { "type": "XP_FLAT", "value": 750 }
+    },
+    "RIDDLE_SOLVER_10": {
+      "titleKey": "achievements.list.RIDDLE_SOLVER_10.title",
+      "descriptionKey": "achievements.list.RIDDLE_SOLVER_10.description",
+      "category": "SKILL",
+      "icon": "🧩",
+      "reward": { "type": "XP_FLAT", "value": 300 }
+    },
+    "SCORING_JACKPOT": {
+      "titleKey": "achievements.list.SCORING_JACKPOT.title",
+      "descriptionKey": "achievements.list.SCORING_JACKPOT.description",
+      "category": "SKILL",
+      "icon": "💰",
+      "reward": { "type": "XP_FLAT", "value": 1000 }
+    },
+    "SPEED_LIGHTNING": {
+      "titleKey": "achievements.list.SPEED_LIGHTNING.title",
+      "descriptionKey": "achievements.list.SPEED_LIGHTNING.description",
+      "category": "SKILL",
+      "icon": "⚡",
+      "reward": { "type": "TITLE", "value": "flash" }
+    },
+    "RECOVERY_KING": {
+      "titleKey": "achievements.list.RECOVERY_KING.title",
+      "descriptionKey": "achievements.list.RECOVERY_KING.description",
+      "category": "SKILL",
+      "icon": "💪",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "globetrotter": {
+      "titleKey": "achievements.list.globetrotter.title",
+      "descriptionKey": "achievements.list.globetrotter.description",
+      "category": "COLLECTION",
+      "icon": "🌍",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "COLL_ROOKIE_50": {
+      "titleKey": "achievements.list.COLL_ROOKIE_50.title",
+      "descriptionKey": "achievements.list.COLL_ROOKIE_50.description",
+      "category": "COLLECTION",
+      "icon": "📖",
+      "reward": { "type": "BORDER", "value": "silver_frame" }
+    },
+    "COLL_EXPERT_150": {
+      "titleKey": "achievements.list.COLL_EXPERT_150.title",
+      "descriptionKey": "achievements.list.COLL_EXPERT_150.description",
+      "category": "COLLECTION",
+      "icon": "📚",
+      "reward": { "type": "BORDER", "value": "gold_book_frame" }
+    },
+    "MASTER_5_SPECIES": {
+      "titleKey": "achievements.list.MASTER_5_SPECIES.title",
+      "descriptionKey": "achievements.list.MASTER_5_SPECIES.description",
+      "category": "COLLECTION",
+      "icon": "📚",
+      "reward": { "type": "XP_FLAT", "value": 500 }
+    },
+    "MASTERY_PROFESSOR_10": {
+      "titleKey": "achievements.list.MASTERY_PROFESSOR_10.title",
+      "descriptionKey": "achievements.list.MASTERY_PROFESSOR_10.description",
+      "category": "COLLECTION",
+      "icon": "🎓",
+      "reward": { "type": "TITLE", "value": "professeur" }
+    },
+    "PACK_EXPLORER_5": {
+      "titleKey": "achievements.list.PACK_EXPLORER_5.title",
+      "descriptionKey": "achievements.list.PACK_EXPLORER_5.description",
+      "category": "COLLECTION",
+      "icon": "🗺️",
+      "reward": { "type": "BORDER", "value": "platinum_ring" }
+    },
+    "RARITY_LEGEND_HUNTER_3": {
+      "titleKey": "achievements.list.RARITY_LEGEND_HUNTER_3.title",
+      "descriptionKey": "achievements.list.RARITY_LEGEND_HUNTER_3.description",
+      "category": "COLLECTION",
+      "icon": "🏹",
+      "reward": { "type": "BORDER", "value": "diamond_frame" }
+    },
+    "SPEC_ORNITHOLOGIST": {
+      "titleKey": "achievements.list.SPEC_ORNITHOLOGIST.title",
+      "descriptionKey": "achievements.list.SPEC_ORNITHOLOGIST.description",
+      "category": "TAXONOMY",
+      "icon": "🐦",
+      "reward": { "type": "PERM_MULTIPLIER", "value": 0.02, "filter": "Aves" }
+    },
+    "SPEC_BOTANIST": {
+      "titleKey": "achievements.list.SPEC_BOTANIST.title",
+      "descriptionKey": "achievements.list.SPEC_BOTANIST.description",
+      "category": "TAXONOMY",
+      "icon": "🌿",
+      "reward": { "type": "PERM_MULTIPLIER", "value": 0.02, "filter": "Plantae" }
+    },
+    "SPEC_MYCOLOGIST": {
+      "titleKey": "achievements.list.SPEC_MYCOLOGIST.title",
+      "descriptionKey": "achievements.list.SPEC_MYCOLOGIST.description",
+      "category": "TAXONOMY",
+      "icon": "🍄",
+      "reward": { "type": "XP_FLAT", "value": 1000 }
+    }
+  }
+}

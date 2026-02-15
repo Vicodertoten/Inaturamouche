@@ -6,21 +6,11 @@ import LevelUpNotification from '../../../components/LevelUpNotification';
 import FloatingXPIndicator from '../../../components/FloatingXPIndicator';
 import { useGameData } from '../../../context/GameContext';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
-import { HINT_XP_PENALTY_PERCENT } from '../../../utils/economy';
 import { computeInGameStreakBonus } from '../../../utils/scoring';
 import { notify } from '../../../services/notifications';
 import { submitQuizAnswer } from '../../../services/api';
+import { SCORE_PER_RANK } from '../../../utils/scoring';
 import './TaxonomicAscension.css';
-
-const SCORE_PER_RANK = {
-  kingdom: 5,
-  phylum: 10,
-  class: 15,
-  order: 20,
-  family: 25,
-  genus: 30,
-  species: 40,
-};
 
 const getRankPrompt = (t, rank) => {
   const defaultLabel = t(`ranks.${rank}`, rank);
@@ -57,7 +47,7 @@ function TaxonomicAscension() {
   const steps = useMemo(() => ascension?.steps ?? [], [ascension?.steps]);
   const maxMistakes = ascension?.max_mistakes ?? 2;
   const maxHints = ascension?.max_hints ?? 1;
-  const hintPenaltyPercent = ascension?.hint_cost_xp ?? HINT_XP_PENALTY_PERCENT;
+  const hintPenaltyPercent = ascension?.hint_cost_xp ?? 15;
   const { t } = useLanguage();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -330,8 +320,6 @@ function TaxonomicAscension() {
         <GameHeader
           mode="hard"
           currentStreak={currentStreak}
-          inGameShields={inGameShields}
-          hasPermanentShield={hasPermanentShield}
           questionCount={questionCount}
           maxQuestions={maxQuestions}
           guesses={guessesLabel}
@@ -379,8 +367,6 @@ function TaxonomicAscension() {
           <GameHeader
             mode="hard"
             currentStreak={currentStreak}
-            inGameShields={inGameShields}
-            hasPermanentShield={hasPermanentShield}
             questionCount={questionCount}
             maxQuestions={maxQuestions}
             guesses={guessesLabel}

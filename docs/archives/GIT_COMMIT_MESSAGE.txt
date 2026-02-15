@@ -1,7 +1,7 @@
 feat: refactor mobile UI for native app experience with bottom navigation and immersive gameplay
 
 ## Overview
-Complete mobile interface redesign for Inaturamouche with focus on native app feel, thumb-driven ergonomics, and immersive gameplay experience.
+Complete mobile interface redesign for iNaturaQuizz with focus on native app feel, thumb-driven ergonomics, and immersive gameplay experience.
 
 ## Changes
 

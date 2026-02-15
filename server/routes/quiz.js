@@ -21,24 +21,10 @@ import {
 } from '../services/roundStore.js';
 import { config } from '../config/index.js';
 import { sendError } from '../utils/http.js';
+import { isAuthorized, isConfiguredToken } from '../utils/auth.js';
 
 const router = Router();
 const { balanceDashboardToken, balanceDashboardRequireToken } = config;
-
-const getAuthToken = (req) => {
-  const header = req.headers.authorization || '';
-  if (!header) return '';
-  if (header.toLowerCase().startsWith('bearer ')) return header.slice(7).trim();
-  return header.trim();
-};
-
-const isAuthorized = (req, expectedToken) => {
-  if (!expectedToken) return false;
-  const token = getAuthToken(req);
-  return token && token === expectedToken;
-};
-
-const isConfiguredToken = (value) => typeof value === 'string' && value.trim().length > 0;
 
 const explainSchema = z
   .object({
@@ -355,14 +341,12 @@ router.post('/api/quiz/submit', quizLimiter, validate(submitAnswerSchema), async
 
     const clientIp = getClientIp(req);
     const normalizedSeedSession = typeof seed_session === 'string' ? seed_session.trim() : '';
-    // For daily challenges, seed_session IS the seed (e.g. "2026-02-14"),
+    // For daily challenges, seed_session IS the seed (e.g. "2026-02-15"),
     // so use the same fixed key pattern as the quiz-question route.
     const looksLikeDailySeed = /^\d{4}-\d{2}-\d{2}$/.test(normalizedSeedSession);
     const clientKey = looksLikeDailySeed
       ? `daily|${normalizedSeedSession}`
-      : normalizedSeedSession
-        ? `${client_session_id || clientIp || 'anon'}|${normalizedSeedSession}`
-        : client_session_id || clientIp || 'anon';
+      : client_session_id || clientIp || 'anon';
 
     const result = await submitRoundAnswer({
       roundId: round_id,

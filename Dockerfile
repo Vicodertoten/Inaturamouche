@@ -21,5 +21,6 @@ COPY lib ./lib
 COPY shared ./shared
 COPY --from=client-build /app/client/dist ./client/dist
 
+USER node
 EXPOSE 3001
 CMD ["node", "server/index.js"]

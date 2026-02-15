@@ -49,7 +49,7 @@ const nl = {
     help_label: 'Help en informatie',
     profile_label: 'Mijn profiel',
     collection_label: 'Mijn veldgids',
-    title_alt: 'Inaturamouche-logo',
+    title_alt: 'iNaturaQuizz-logo',
     title_tooltip: 'Terug naar het hoofdmenu',
     main_label: 'Hoofdnavigatie',
   },
@@ -76,10 +76,18 @@ const nl = {
     daily_challenge_done: '✅ Dagelijkse uitdaging voltooid',
     resume_game_title: '▶ Hervat je spel',
     resume_game_subtitle: 'Je hebt een spel in uitvoering',
+    resume_progress: 'Vraag {current} van {total}',
     resume_game_meta: 'Vraag',
     resume_game_button: '▶ Hervat',
     abandon_session: 'Geef dit spel op',
     abandon_session_tooltip: 'Verwijder het spel en begin opnieuw',
+    daily_chip: 'Dagelijks duel',
+    daily_done_short: 'Klaar ✅',
+    review_chip: 'Herziening',
+    pick_pack: 'Kies een pack',
+    advanced_settings: 'Geavanceerde instellingen',
+    lab_modes: 'Labomodi',
+    custom_filter_btn: 'Aangepaste modus',
   },
   configurator: {
     pack_label: 'Kies een spelpack:',
@@ -134,9 +142,65 @@ const nl = {
       title: 'Middellandse Zee-flora',
       description: 'Planten, bomen en bloemen van het Middellandse Zeegebied.',
     },
-    great_barrier_reef_life: {
-      title: 'Leven van het Great Barrier Reef',
-      description: 'Vissen, koralen en weekdieren van het grootste rif ter wereld.',
+    // ── Belgian packs ──
+    belgium_butterflies: {
+      title: 'Vlinders van België',
+      description: 'Herken de dag- en nachtvlinders die in België voorkomen.',
+    },
+    belgium_birds: {
+      title: 'Vogels van België',
+      description: 'De meest waargenomen vogelsoorten in België.',
+    },
+    belgium_wildflowers: {
+      title: 'Wilde bloemen van België',
+      description: 'Weilanden, wegbermen en bossen: de wilde bloemen van onze streek.',
+    },
+    belgium_mammals: {
+      title: 'Zoogdieren van België',
+      description: 'Vossen, dassen, vleermuizen… de zoogdieren van België.',
+    },
+    belgium_mushrooms: {
+      title: 'Paddenstoelen van België',
+      description: 'De meest voorkomende paddenstoelen in Belgische bossen.',
+    },
+    belgium_trees: {
+      title: 'Bomen & struiken van België',
+      description: 'Leer de bomen herkennen in onze parken en bossen.',
+    },
+    belgium_dragonflies: {
+      title: 'Libellen van België',
+      description: 'Libellen en juffers bij Belgische rivieren en vijvers.',
+    },
+    belgium_spiders: {
+      title: 'Spinnen van België',
+      description: 'Ontdek de spinachtigen in tuinen en huizen.',
+    },
+    belgium_fish: {
+      title: 'Zoetwatervissen van België',
+      description: 'Snoeken, forellen en zeelten: vissen uit onze waterlopen.',
+    },
+    belgium_beetles: {
+      title: 'Kevers van België',
+      description: 'Mestkevers, lieveheersbeestjes en vliegend herten uit België.',
+    },
+    belgium_mosses_lichens: {
+      title: 'Mossen & korstmossen van België',
+      description: 'De stille wereld van bryofyten en korstmossen op rotsen en boomschors.',
+    },
+    belgium_mollusks: {
+      title: 'Weekdieren van België',
+      description: 'Slakken en naaktslakken: de weekdieren van België.',
+    },
+    belgium_edible_plants: {
+      title: 'Eetbare wilde planten',
+      description: '50 eetbare wilde planten van België: brandnetel, daslook, paardenbloem en nog veel meer.',
+    },
+    // ── Region labels ──
+    _regions: {
+      belgium: '🇧🇪 België',
+      france: '🇫🇷 Frankrijk',
+      europe: '🇪🇺 Europa',
+      world: '🌍 Wereld',
     },
   },
   collection: {
@@ -183,6 +247,11 @@ const nl = {
         common: 'Gewoon',
       },
       page_prefix: 'Pagina',
+      mastery_diamond: 'Diamant',
+      mastery_gold: 'Goud',
+      mastery_silver: 'Zilver',
+      mastery_bronze: 'Brons',
+      species_discovered: 'ontdekt',
   },
   customFilter: { 
     include_title: 'In te sluiten taxa',
@@ -323,9 +392,59 @@ const nl = {
       wikipedia: 'Wikipedia-pagina',
     },
     new_discovery: '✨ Nieuwe soort toegevoegd aan je veldgids!',
+    xp_earned: 'XP verdiend deze sessie',
+    xp_base: 'Basis',
+    xp_streak: 'Reeks',
+    xp_rarity: 'Zeldzaamheid',
+    level_up: 'Opgestegen naar niveau',
+    level_from: 'Niveau {level}',
+    level_to: 'Niveau {level}',
+    multi_level: '{count} niveaus!',
+    session_complete: '✨ Sessie Voltooid',
+    new_discoveries: '✨ Nieuwe Ontdekkingen',
+    species_added: 'soort(en) toegevoegd aan de gids',
+    achievements_unlocked: '🏆 Prestaties Vrijgespeeld',
+  },
+  share: {
+    share_result: 'Delen',
+    copy_text: 'Kopiëren',
+    copied: 'Resultaat gekopieerd!',
+    challenge_friend: 'Daag een vriend uit',
+    challenge_copied: 'Uitdagingslink gekopieerd! Stuur het naar een vriend.',
+  },
+  daily: {
+    leaderboard_title: '🏆 Dagelijks Klassement',
+    submit_hint: 'Voer een bijnaam in om op het klassement te verschijnen!',
+    pseudo_placeholder: 'Jouw bijnaam…',
+    submit_score: 'Publiceren',
+    your_rank: 'Je bent #{rank} van {total} spelers!',
+    first_player: 'Je bent de eerste vandaag! 🎉',
+  },
+  challenge: {
+    title: 'Uitdaging van een vriend!',
+    description: 'Een vriend daagt je uit om beter te scoren op hetzelfde pack en dezelfde instellingen. Jouw beurt!',
+    description_score: 'Een vriend scoorde {score}/{total}. Kun je beter op hetzelfde pack?',
+    accept: 'Uitdaging accepteren!',
+    invalid_title: 'Ongeldige link',
+    invalid_text: 'Deze uitdagingslink is niet geldig of is verlopen.',
+  },
+  collection_share: {
+    invalid: 'Collectie niet gevonden',
+    invalid_text: 'Deze collectielink is niet geldig.',
+    species_title: '{count} soorten ontdekt',
+    empty: 'Nog geen soorten.',
+    play_too: 'Speel ook!',
+    link_copied: 'Collectielink gekopieerd!',
   },
   achievements: {
     modal_title: 'Prestatie vrijgespeeld!',
+    reward_label: 'Beloning',
+    categories: {
+      taxonomy: 'Specialisatie',
+      collection: 'Collectie',
+      skill: 'Prestatie',
+      habit: 'Gewoontes',
+    },
     list: {
       first_game: {
         title: 'Eerste stappen',
@@ -384,15 +503,15 @@ const nl = {
         description: 'Los 50 raadsels van Opa Mouche op.',
       },
       STREAK_STARTER_3: {
-        title: '🔥 Eerste Vlam',
+        title: 'Eerste Vlam',
         description: 'Bereik een reeks van 3 correcte antwoorden',
       },
       STREAK_MASTER_5: {
-        title: '🔥🔥 Meester van het Vuur',
+        title: 'Meester van het Vuur',
         description: 'Bereik een reeks van 5 correcte antwoorden',
       },
       STREAK_LEGEND_10: {
-        title: '🔥🔥🔥 Gloeiende Legende',
+        title: 'Gloeiende Legende',
         description: 'Bereik een reeks van 10 correcte antwoorden',
       },
       STREAK_TITAN_20: {
@@ -404,11 +523,11 @@ const nl = {
         description: 'Bereik een reeks van 50 correcte antwoorden. Ontgrendelt een permanent schild!',
       },
       PERFECT_GAME: {
-        title: '💎 Perfect Spel',
+        title: 'Perfect Spel',
         description: 'Voltooi een 5-vragenspel zonder fouten (zonder schilden te gebruiken)',
       },
       FLAWLESS_HARD: {
-        title: '👑 Extreme Volmaaktheid',
+        title: 'Extreme Volmaaktheid',
         description: 'Voltooi een 10-vragenmoeilijk spel zonder fouten of schilden',
       },
       RARITY_LEGEND_HUNTER_3: {
@@ -426,6 +545,243 @@ const nl = {
       RARITY_EPIC_SEEKER_25: {
         title: 'Epische verzamelaar',
         description: 'Identificeer 25 epische soorten.',
+      },
+      // --- TAXONOMIE ---
+      SPEC_ORNITHOLOGIST: {
+        title: 'Amateurornitholoog',
+        description: 'Identificeer 50 verschillende vogels.',
+      },
+      SPEC_BOTANIST: {
+        title: 'Groene Vingers',
+        description: 'Identificeer 50 verschillende planten.',
+      },
+      SPEC_ENTOMOLOGIST: {
+        title: 'Insectenjager',
+        description: 'Identificeer 50 insecten of spinachtigen.',
+      },
+      SPEC_MYCOLOGIST: {
+        title: 'Paddenstoelzoeker',
+        description: 'Identificeer 20 paddenstoelen.',
+      },
+      SPEC_HERPETOLOGIST: {
+        title: 'Koud Bloed',
+        description: 'Identificeer 20 reptielen of amfibieën.',
+      },
+      SPEC_MAMMALOGIST: {
+        title: 'Spoorzoeker',
+        description: 'Identificeer 20 zoogdieren.',
+      },
+      SPEC_DIVER: {
+        title: 'Het Grote Blauw',
+        description: 'Identificeer 20 mariene soorten.',
+      },
+      // --- COLLECTIE ---
+      COLL_ROOKIE_50: {
+        title: 'Natuurnieuwsgierig',
+        description: '50 soorten in de Pokédex.',
+      },
+      COLL_EXPERT_150: {
+        title: 'Ervaren Naturalist',
+        description: '150 soorten in de Pokédex.',
+      },
+      COLL_MASTER_300: {
+        title: 'Levende Bibliotheek',
+        description: '300 soorten in de Pokédex.',
+      },
+      MASTERY_PROFESSOR_10: {
+        title: 'Natuurexpert',
+        description: 'Max beheersing op 10 soorten.',
+      },
+      MASTERY_GENIUS_25: {
+        title: 'Taxonomisch Genie',
+        description: 'Max beheersing op 25 soorten.',
+      },
+      FAMILY_REUNION: {
+        title: 'Familiereünie',
+        description: 'Beheers 5 soorten van dezelfde familie.',
+      },
+      // --- ENIGMA ---
+      RIDDLE_SOLVER_10: {
+        title: 'Raadselleerling',
+        description: 'Los 10 raadsels van Opa Mouche op.',
+      },
+      RIDDLE_SOLVER_50: {
+        title: 'Raadselkenner',
+        description: 'Los 50 raadsels van Opa Mouche op.',
+      },
+      // --- ELITE ---
+      HARD_VETERAN_50: {
+        title: 'Geharde Veteraan',
+        description: '50 goede antwoorden in Moeilijk (totaal).',
+      },
+      HARD_VETERAN_200: {
+        title: 'Hardcore Legende',
+        description: '200 goede antwoorden in Moeilijk (totaal).',
+      },
+      SCORING_JACKPOT: {
+        title: 'Jackpot',
+        description: 'Verdien 2000 XP in één spel.',
+      },
+      SPEED_LIGHTNING: {
+        title: 'Bliksemreflexen',
+        description: '5 antwoorden < 1,5s op rij.',
+      },
+      PURIST_NO_HINT: {
+        title: 'Purist',
+        description: 'Perfect spel (10+ vragen) zonder hints.',
+      },
+      // --- GEWOONTES ---
+      GAMES_50: {
+        title: 'Vaste Klant',
+        description: 'Speel 50 spellen.',
+      },
+      GAMES_100: {
+        title: 'Verslaafd',
+        description: 'Speel 100 spellen.',
+      },
+      EARLY_BIRD: {
+        title: 'Vroege Vogel',
+        description: 'Win een spel tussen 5:00 en 8:00.',
+      },
+      NIGHT_OWL: {
+        title: 'Nachtuil',
+        description: 'Win een spel tussen 0:00 en 4:00.',
+      },
+      STREAK_MONTH: {
+        title: 'Bewaker van de Maand',
+        description: 'Dagelijkse reeks van 30 dagen.',
+      },
+      SHIELD_HOARDER: {
+        title: 'Paranoïde',
+        description: '5 schilden bezitten.',
+      },
+      WEEKEND_WARRIOR: {
+        title: 'Weekendstrijder',
+        description: 'Speel op zaterdag EN zondag.',
+      },
+      // --- ORDRES & FAMILLES ---
+      TAXON_LEPIDOPTERA: {
+        title: 'Vlinder-effect',
+        description: 'Identificeer 20 vlinders (Lepidoptera).',
+      },
+      TAXON_COLEOPTERA: {
+        title: 'Gouden Kever',
+        description: 'Identificeer 20 kevers.',
+      },
+      TAXON_HYMENOPTERA: {
+        title: 'De Bijenkorf',
+        description: 'Identificeer 20 bijen, wespen of mieren.',
+      },
+      TAXON_ODONATA: {
+        title: 'De Rode Baron',
+        description: 'Identificeer 10 libellen (Odonata).',
+      },
+      TAXON_CARNIVORA: {
+        title: 'Superroofdier',
+        description: 'Identificeer 15 roofdieren.',
+      },
+      TAXON_RODENTIA: {
+        title: 'Klein Muisje',
+        description: 'Identificeer 15 knaagdieren.',
+      },
+      TAXON_ROSACEAE: {
+        title: 'In Naam van de Roos',
+        description: 'Identificeer 10 soorten Rosaceae.',
+      },
+      TAXON_ASTERACEAE: {
+        title: 'Ik hou van je, een beetje...',
+        description: 'Identificeer 10 Asteraceae (madeliefjes, enz.).',
+      },
+      TAXON_FAGACEAE: {
+        title: 'De Eik en het Riet',
+        description: 'Identificeer 5 bomen van de familie Fagaceae.',
+      },
+      TAXON_AMPHIBIA: {
+        title: 'Kikkerpins',
+        description: 'Identificeer 10 amfibieën.',
+      },
+      // --- MEESTERSCHAP & UITHOUDINGSVERMOGEN ---
+      XP_HOARDER_50K: {
+        title: 'Halfgod',
+        description: 'Bereik 50.000 totale XP.',
+      },
+      XP_HOARDER_100K: {
+        title: 'Godheid van de Natuur',
+        description: 'Bereik 100.000 totale XP.',
+      },
+      QUIZ_MASTER_500: {
+        title: 'Quizgek',
+        description: 'Beantwoord 500 vragen (totaal).',
+      },
+      QUIZ_MASTER_1000: {
+        title: 'Levende Encyclopedie',
+        description: 'Beantwoord 1000 vragen (totaal).',
+      },
+      MASTER_SAGE_50: {
+        title: 'Geleerde',
+        description: 'Beheers 50 soorten volledig.',
+      },
+      SEEN_OBSERVER_500: {
+        title: 'Ultieme Waarnemer',
+        description: 'Ontmoet 500 verschillende soorten.',
+      },
+      STREAK_UNSTOPPABLE_30: {
+        title: 'Onstuitbaar',
+        description: 'Record reeks van 30 goede antwoorden.',
+      },
+      STREAK_INVINCIBLE_50: {
+        title: 'Onoverwinnelijk',
+        description: 'Record reeks van 50 goede antwoorden.',
+      },
+      HARD_SPARTAN_50: {
+        title: 'Spartaan',
+        description: 'Speel 50 volledige spellen in Moeilijke modus.',
+      },
+      // --- TIJD & KALENDER ---
+      WEEKLY_RITUAL_7: {
+        title: 'Een Week Natuur',
+        description: 'Dagelijkse reeks van 7 dagen.',
+      },
+      TWO_WEEKS_NOTICE: {
+        title: 'Verankerde Gewoonte',
+        description: 'Dagelijkse reeks van 14 dagen.',
+      },
+      LUNCH_BREAK: {
+        title: 'Natuurpauze',
+        description: 'Voltooi een spel tussen 12:00 en 14:00.',
+      },
+      TEA_TIME: {
+        title: 'Five O\'Clock',
+        description: 'Voltooi een spel tussen 16:00 en 18:00.',
+      },
+      MIDNIGHT_CLUB: {
+        title: 'Slaaploos',
+        description: 'Voltooi een spel tussen middernacht en 2:00.',
+      },
+      // --- MICRO-UITDAGINGEN ---
+      SPEED_CHEETAH: {
+        title: 'Cheetah',
+        description: 'Gemiddelde < 2s/vraag in een spel (>10 vragen).',
+      },
+      SIXTH_SENSE: {
+        title: 'Zesde Zintuig',
+        description: 'Perfect spel (>10 vragen) zonder enige hint.',
+      },
+      PACK_EXPLORER_5: {
+        title: 'Wereldreiziger V2',
+        description: '5 verschillende packs gespeeld.',
+      },
+      DIVERSITY_CHAMP: {
+        title: 'Eclectisch',
+        description: 'Identificeer 5 verschillende klassen in één spel.',
+      },
+      HIGH_SCORE_5K: {
+        title: 'Legendarische Score',
+        description: 'Behaal 5000+ XP in één spel.',
+      },
+      RECOVERY_KING: {
+        title: 'Veerkracht',
+        description: 'Eindig een spel met 100% op de laatste 5 vragen na een fout.',
       },
       FIRST_REVIEW: {
         title: 'Eerste herziening',
@@ -490,7 +846,7 @@ const nl = {
     level_up: '🥇 Niveau {level} behaald voor {name}!',
   },
   help: { 
-    title: 'Welkom bij Inaturamouche!',
+    title: 'Welkom bij iNaturaQuizz!',
     gameplay_title: 'Doel van het spel',
     gameplay_body:
       'Identificeer dieren, planten of schimmels met visuele of tekstuele aanwijzingen. Het spel gebruikt echte waarnemingen van iNaturalist.',
@@ -504,15 +860,18 @@ const nl = {
     confirm: 'Begrepen!',
   },
   tutorial: {
-    step1_title: 'Welkom bij Inaturamouche!',
-    step1_content: 'Het doel is om soorten dieren, planten en schimmels te identificeren om ze te verzamelen. Hoe meer je correct identificeert, hoe groter je collectie groeit!',
-    step2_title: 'Levens- en streak-systeem',
-    step2_content: 'Houd je streak in leven! Elk correct antwoord verhoogt je teller. Schilden 🛡️ beschermen je tegen fouten en behouden je streak.',
-    step3_title: 'Spelmodi',
-    step3_content: 'Kies je modus: Quiz (gemakkelijke meerkeuze) of Raadsel (progressieve aanwijzingen). Raadsel-modus is uitdagender maar lonender!',
+    professor_name: 'Opa Mouche',
+    step_welcome_title: 'Welkom, naturalist!',
+    step_welcome_text: 'Ik ben Opa Mouche. Ik laat je in een paar seconden het belangrijkste zien.',
+    step_play_title: 'Een spel starten',
+    step_play_text: 'Tik hier om meteen te spelen. Er is al een pack voor je gekozen!',
+    step_packs_title: 'Kies een terrein',
+    step_packs_text: 'Wissel van pack om andere soorten te ontdekken. Elk pack is een andere speelplaats.',
+    step_navigation_title: 'Snelle navigatie',
+    step_navigation_text: 'Alles is binnen handbereik. Je kunt hier altijd terugkomen.',
     next: 'Volgende',
     previous: 'Vorige',
-    finish: 'Begin met spelen!',
+    finish: 'Laten we beginnen!',
     skip: 'Overslaan',
     start: 'Laten we gaan!',
   },
@@ -535,6 +894,8 @@ const nl = {
     back: '← Terug',
     title: 'Spelersprofiel',
     edit_name: 'Naam bewerken',
+    edit_profile: 'Profiel bewerken',
+    save_success: 'Profiel bijgewerkt!',
     tabs: {
       summary: 'Overzicht',
       stats: 'Statistieken',
@@ -557,14 +918,28 @@ const nl = {
       riddle: 'Raadselmodus',
       hard: 'Moeilijke modus',
     },
+    detailed_stats: 'Gedetailleerde statistieken',
+    share_collection: 'Mijn collectie delen',
     pack_stats_title: 'Pack-statistieken',
     pack_accuracy: '{correct}/{answered} ({accuracy}%)',
     no_pack_stats: 'Nog geen pack gespeeld.',
+    totals: 'Totalen',
+    total_answered: '{count} vragen beantwoord',
+    total_correct: '{count} correcte antwoorden',
+    daily_streak: 'Dagelijkse reeks',
+    best_streak: 'Beste reeks',
     mastery_title: 'Meesterschap (Top 5)',
     mastery_loading: 'Laden...',
     mastery_empty: 'Nog geen soorten meester.',
     mastery_count: '{count} keer beheerst',
     achievements_title: 'Prestaties ({count} / {total})',
+    customize_profile: 'Aanpassen',
+    select_title: 'Kies een titel',
+    select_border: 'Kies een rand',
+    avatar_style: 'Avatarstijl',
+    avatar_default: 'Initiaal',
+    avatar_upload: 'Foto',
+    avatar_emoji: 'Kies een emoji',
     loading: 'Profiel laden…',
   },
   ranks: {
@@ -578,6 +953,77 @@ const nl = {
   },
   streak: {
     aria_label: 'Reeks van {count} goede antwoorden',
+    days_label: 'Reeks {count} dagen',
+    tooltip: 'Reeks: {current} dagen | Record: {longest} dagen',
+    daily_title: 'Dagelijkse Reeks',
+    days_unit: 'dagen',
+    shields_label: 'Schilden:',
+  },
+  xp: {
+    level_label: 'Niveau',
+    next_level: 'Niveau {level}',
+  },
+  error: {
+    icon_label: 'bug',
+    title: 'Oeps!',
+    message: 'Er ging iets mis.',
+    reload: 'Herladen',
+  },
+  report: {
+    title: 'Een probleem melden',
+    description: 'iNaturalist-gegevens zijn door de gemeenschap verzameld. Als je een foto van slechte kwaliteit of een onjuiste identificatie opmerkt, meld het hier zodat we de ervaring kunnen verbeteren.',
+    label: 'Probleembeschrijving:',
+    placeholder: 'Beschrijf het probleem (bv. onscherpe foto, foutieve identificatie, enz.)',
+    sending: 'Verzenden...',
+    submit: 'Melding verzenden',
+    success: 'Bedankt voor je melding!',
+    error: 'Fout bij het verzenden. Probeer het opnieuw.',
+  },
+  tutorial: {
+    professor_name: 'Opa Vlieg',
+    step_welcome_title: 'Welkom, naturalist!',
+    step_welcome_text: 'Ik ben Opa Vlieg. Laat me je het belangrijkste tonen in een paar seconden.',
+    step_play_title: 'Start een spel',
+    step_play_text: 'Tik hier om meteen te spelen. Er is al een pack voor je geselecteerd!',
+    step_packs_title: 'Kies een terrein',
+    step_packs_text: 'Wissel van pack om andere soorten te verkennen. Elk pack is een ander speelveld.',
+    step_navigation_title: 'Snelle navigatie',
+    step_navigation_text: 'Alles is binnen handbereik. Je kunt altijd hier terugkomen.',
+    skip: 'Overslaan',
+    finish: 'Laten we gaan!',
+    next: 'Volgende',
+  },
+  footer: {
+    legal_notice: 'Juridische kennisgeving',
+    terms: 'Gebruiksvoorwaarden',
+    privacy: 'Privacy',
+    inat_attribution: 'Natuurgegevens geleverd door iNaturalist (CC BY-NC). Foto\'s © hun respectieve auteurs.',
+    open_source: 'Open source project',
+  },
+  legal: {
+    page_title: 'Juridische kennisgeving',
+    legal_notice_title: 'Juridische kennisgeving',
+    project_description: 'Inaturamouche is een open source non-profit educatief project gericht op het vergroten van het publieke bewustzijn van biodiversiteit. Dit project is niet verbonden aan een commercieel bedrijf.',
+    hosting: 'De applicatie wordt gehost door Netlify (front-end) en Fly.io (API). Er worden geen persoonlijke gegevens verzameld door deze hosts buiten standaard serverlogboeken.',
+    terms_title: 'Gebruiksvoorwaarden',
+    terms_intro: 'Door Inaturamouche te gebruiken, ga je akkoord met de volgende voorwaarden:',
+    terms_1: 'De applicatie wordt geleverd "zoals ze is" zonder enige garantie.',
+    terms_2: 'Inhoud (foto\'s, soortnamen) komt van iNaturalist en zijn bijdragers.',
+    terms_3: 'De applicatie is gratis en zal dat blijven. Er worden geen gegevens verkocht.',
+    terms_4: 'Commercieel gebruik van de inhoud vereist toestemming van de oorspronkelijke auteurs.',
+    privacy_title: 'Privacybeleid & AVG',
+    data_collected_title: 'Verzamelde gegevens',
+    data_1: 'Spelvoortgang: lokaal opgeslagen in je browser (IndexedDB). Er worden geen gegevens naar een server gestuurd.',
+    data_2: 'Voorkeuren (taal, thema, modus): lokaal opgeslagen (localStorage).',
+    data_3: 'Geschatte geolocatie: alleen client-side gebruikt om regionale packs voor te stellen. Nooit naar de server verstuurd.',
+    no_tracking_title: 'Geen tracking',
+    no_tracking: 'Inaturamouche gebruikt geen cookies van derden, geen trackingpixels en geen analysetools (geen Google Analytics, geen Facebook Pixel). Er worden geen persoonlijke gegevens gedeeld met derden.',
+    your_rights_title: 'Je rechten',
+    your_rights: 'In overeenstemming met de AVG kun je al je lokale gegevens op elk moment verwijderen door de sitegegevens in je browserinstellingen te wissen.',
+    attribution_title: 'Attributie & Credits',
+    inat_credit: 'Natuurgegevens (foto\'s, waarnemingen, taxonomie) worden geleverd door de iNaturalist API. iNaturalist is een gezamenlijk initiatief van de California Academy of Sciences en de National Geographic Society.',
+    photo_license: 'Soortfoto\'s vallen onder Creative Commons-licenties gekozen door hun auteurs (CC BY, CC BY-NC, enz.). Attributie wordt bij elke foto in het spel weergegeven.',
+    inat_terms_link: 'iNaturalist Gebruiksvoorwaarden',
   },
 };
 

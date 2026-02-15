@@ -54,14 +54,13 @@ export function useGameRequests({
 
   const buildQuizParams = useCallback(() => {
     const params = new URLSearchParams();
-    const isDailyChallenge = typeof dailySeed === 'string' && dailySeed.length > 0;
-    const effectiveMediaType = isDailyChallenge ? DEFAULT_MEDIA_TYPE : mediaType;
+    const hasSeed = typeof dailySeed === 'string' && dailySeed.length > 0;
     const effectiveGameMode = normalizeGameMode(gameMode, 'easy');
-    const resolvedMediaType = effectiveGameMode === 'riddle' ? DEFAULT_MEDIA_TYPE : effectiveMediaType;
+    const resolvedMediaType = effectiveGameMode === 'riddle' ? DEFAULT_MEDIA_TYPE : mediaType;
     params.set('locale', language);
     params.set('media_type', resolvedMediaType);
     params.set('game_mode', effectiveGameMode);
-    if (isDailyChallenge) {
+    if (hasSeed) {
       params.set('seed', dailySeed);
       if (dailySeedSession) params.set('seed_session', dailySeedSession);
       // Send the client-side question index (0-based) so the server

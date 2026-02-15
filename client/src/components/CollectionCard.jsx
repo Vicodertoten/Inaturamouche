@@ -6,6 +6,7 @@ import './CollectionCard.css';
 // Memoize the component to prevent re-renders in react-window
 const CollectionCard = React.memo(({ taxon, collection, style }) => {
   const masteryLevel = collection?.masteryLevel || MASTERY_LEVELS.NONE;
+  const isUnseen = masteryLevel === MASTERY_LEVELS.NONE && (!collection || collection.seenCount === 0);
   
   // "Ghost" species: seen but never identified correctly
   const isGhost = collection?.seenCount > 0 && collection?.correctCount === 0;
@@ -14,11 +15,7 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
     'collection-card',
     `mastery-${masteryLevel}`,
     isGhost ? 'ghost' : '',
-  ].filter(Boolean).join(' ');
-
-  const imageClasses = [
-    'card-image',
-    isGhost ? 'grayscale' : '',
+    isUnseen ? 'unseen' : '',
   ].filter(Boolean).join(' ');
 
   const rarityInfo = getRarityInfoForTaxon(taxon);
@@ -40,7 +37,7 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
   return (
     <div className={cardClasses} style={style}>
       <div className="card-image-wrapper">
-        <img src={imageUrl} alt={taxon.name} className={imageClasses} loading="lazy" />
+        <img src={imageUrl} alt={taxon.name} className="card-image" loading="lazy" />
         {rarityInfo?.tier && rarityInfo.tier !== 'unknown' && (
           <span
             className={`rarity-badge rarity-${rarityInfo.tier}`}

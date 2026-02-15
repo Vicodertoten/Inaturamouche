@@ -62,21 +62,20 @@ function ReportModal({ onClose }) {
       >
         <button onClick={onClose} className="close-button" title={t('common.close')} aria-label={t('common.close')}>×</button>
         
-        <h2 id={titleId} className="modal-title">🚩 Signaler un problème</h2>
+        <h2 id={titleId} className="modal-title">🚩 {t('report.title', {}, 'Signaler un problème')}</h2>
 
         <p>
-          Les données iNaturalist sont communautaires. Si vous remarquez une photo de mauvaise qualité ou une identification incorrecte, 
-          signalez-le ici pour que nous puissions améliorer l'expérience.
+          {t('report.description', {}, 'Les données iNaturalist sont communautaires. Si vous remarquez une photo de mauvaise qualité ou une identification incorrecte, signalez-le ici pour que nous puissions améliorer l\'expérience.')}
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="report-description">Description du problème :</label>
+            <label htmlFor="report-description">{t('report.label', {}, 'Description du problème :')}</label>
             <textarea
               id="report-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez le problème (ex: photo floue, mauvaise identification, etc.)"
+              placeholder={t('report.placeholder', {}, 'Décrivez le problème (ex: photo floue, mauvaise identification, etc.)')}
               required
               rows={4}
             />
@@ -93,10 +92,10 @@ function ReportModal({ onClose }) {
 
           <div className="form-actions">
             <button type="button" onClick={onClose} className="btn btn--secondary">
-              Annuler
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn--primary" disabled={isSubmitting || !description.trim()}>
-              {isSubmitting ? 'Envoi...' : 'Envoyer le signalement'}
+              {isSubmitting ? t('report.sending', {}, 'Envoi...') : t('report.submit', {}, 'Envoyer le signalement')}
             </button>
           </div>
         </form>

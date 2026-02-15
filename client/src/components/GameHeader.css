@@ -1,20 +1,19 @@
 /**
- * GameHeader.css - Styles pour le composant GameHeader réutilisable
- * Nouvelle structure en 2 lignes pour meilleure hiérarchie visuelle
+ * GameHeader.css - Minimal game header styles
+ * Single row: question counter | streak | lives (hard) | quit button
  */
 
 .game-header {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   font-size: 1.1rem;
   font-weight: 600;
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 20;
-  padding: 0.95rem 1.15rem;
+  padding: 0.75rem 1.15rem;
   border: 1px solid var(--border-color);
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
@@ -27,148 +26,21 @@
   max-width: 1200px;
 }
 
-.easy-mode-header {
-  width: min(100%, 900px);
-  max-width: 900px;
-}
-
-.game-screen.easy-mode .game-header.easy-mode-header {
-  width: min(100%, 900px);
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
+.easy-mode-header,
 .riddle-mode-header {
   width: min(100%, 900px);
   max-width: 900px;
 }
 
-.game-screen.riddle-mode .game-header.riddle-mode-header {
-  width: min(100%, 900px);
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 /* ========================================
-   Auto-save Indicator
+   Single row: Question | Lives | Streak | Quit
    ======================================== */
 
-.auto-save-indicator {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  background: rgba(40, 167, 69, 0.15);
-  border: 1px solid rgba(40, 167, 69, 0.3);
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #28a745;
-  animation: fadeInOut 2s ease-in-out;
-  z-index: 30;
-}
-
-.save-icon {
-  font-size: 0.9em;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-.save-text {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-/* ========================================
-   Ligne 1: Niveau | Barre XP
-   ======================================== */
-
-.header-row-1 {
+.header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-3, 0.75rem);
-  width: 100%;
-}
-
-.level-xp-container {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 0.75rem);
-  flex: 1;
-  min-width: 0;
-}
-
-.level-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.85rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-  border: 2px solid rgba(102, 126, 234, 0.4);
-  border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-  flex-shrink: 0;
-}
-
-.level-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.level-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #667eea;
-  text-shadow: 0 0 8px rgba(102, 126, 234, 0.5);
-}
-
-.xp-bar-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
-  overflow: visible; /* Allow XP popup to overflow header container */
-}
-
-.xp-text {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* ========================================
-   Ligne 2: Question | Vies | Streak+Shields | Boutons
-   ======================================== */
-
-.header-row-2 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-3, 0.75rem);
-  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -230,54 +102,76 @@
 }
 
 .streak-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  height: 100%;
+  gap: 0.35rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  background: rgba(255, 152, 0, 0.08);
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-left: auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.streak-flame {
+  font-size: 1rem;
 }
 
-.hint-button-easy {
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-color);
-  font-weight: 700;
-  font-size: 0.95rem;
+.streak-number {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-color, #eebb4d);
+}
+
+/* Discreet XP / Level chip */
+.xp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.hint-button-easy:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent-color);
+.xp-chip-level {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-color-muted, #aaa);
+  white-space: nowrap;
 }
 
-.hint-button-easy:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.xp-chip-bar {
+  width: 32px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
-/* Insufficient XP state for hint buttons */
-.hint-button-easy.insufficient-xp,
-.action-button.hint.insufficient-xp {
-  border-color: var(--warning-color, #f59e0b);
-  color: var(--warning-color, #f59e0b);
-  opacity: 0.7;
+.xp-chip-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color, #7b8c48), var(--accent-color, #eebb4d));
+  transition: width 0.4s ease;
+  border-radius: 99px;
 }
 
-.hint-button-easy.insufficient-xp::after,
-.action-button.hint.insufficient-xp::after {
-  content: '⚠️';
-  margin-left: 0.25rem;
+.xp-chip-fill.xp-gain {
+  animation: xp-glow 0.8s ease-out;
+}
+
+@keyframes xp-glow {
+  0% {
+    box-shadow: 0 0 6px 2px rgba(76, 175, 80, 0.7);
+    filter: brightness(1.6);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(255, 152, 0, 0.5);
+    filter: brightness(1.3);
+  }
+  100% {
+    box-shadow: none;
+    filter: brightness(1);
+  }
 }
 
 .action-button {
@@ -313,7 +207,7 @@
 }
 
 /* ========================================
-   Responsive - Mobile Optimization
+   Responsive
    ======================================== */
 
 @media (max-width: 991px) {
@@ -324,42 +218,12 @@
 
 @media (max-width: 640px) {
   .game-header {
-    padding: 0.75rem;
-  }
-
-  .header-row-1 {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .level-xp-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .level-badge {
-    justify-content: center;
-  }
-
-  .xp-bar-container {
-    max-width: 100%;
-  }
-
-  .header-row-2 {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
   }
 
   .header-stats {
     justify-content: space-between;
     width: 100%;
-  }
-
-  .header-actions {
-    width: 100%;
-    margin-left: 0;
-    justify-content: space-between;
   }
 
   .stat-pill {
@@ -368,6 +232,6 @@
   }
 
   .action-button {
-    flex: 1;
+    flex: 0 0 auto;
   }
 }

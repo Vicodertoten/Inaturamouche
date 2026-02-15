@@ -7,6 +7,15 @@ import { warmDefaultObservationPool, warmPackPools } from './services/warmup.js'
 
 const { app, logger } = createApp();
 
+// Warn if HMAC secret is not configured
+if (!config.roundHmacSecret || config.roundHmacSecret.trim().length === 0) {
+  const msg = '⚠️  ROUND_HMAC_SECRET is not set — round signatures use a weak dev default. Set it in .env for production!';
+  if (config.nodeEnv === 'production') {
+    throw new Error(msg);
+  }
+  console.warn(msg);
+}
+
 // Démarrer le serveur seulement si pas en mode test
 if (config.nodeEnv !== 'test') {
   setTimeout(() => {
@@ -14,7 +23,7 @@ if (config.nodeEnv !== 'test') {
     warmPackPools({ logger }).catch(() => {});
   }, 1000).unref();
   const server = app.listen(config.port, () => {
-    logger.info(`Serveur Inaturamouche démarré sur le port ${config.port}`);
+    logger.info(`Serveur iNaturaQuizz démarré sur le port ${config.port}`);
   });
 
   server.on('error', (err) => {

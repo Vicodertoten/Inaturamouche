@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import XPProgressBar from './XPProgressBar';
+import ShareButtons from './ShareButtons';
+import DailyLeaderboard from './DailyLeaderboard';
 import { getLevelFromXp } from '../utils/scoring';
 import { useGameData } from '../context/GameContext';
 import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { usePacks } from '../context/PacksContext.jsx';
 import { notify } from '../services/notifications';
 import { MASTERY_NAMES } from '../services/CollectionService';
 import './EndScreen.css';
@@ -18,15 +21,35 @@ const EndScreen = ({
   onReturnHome,
   profile,
   isDailyChallenge = false,
+  activePackId,
+  gameMode,
+  maxQuestions,
+  mediaType,
 }) => {
   const { t, getTaxonDisplayNames } = useLanguage();
   const { initialSessionXP } = useGameData();
+  const { packs } = usePacks();
   
-  // Prefer the larger of local session `score` or the profile-based difference.
-  // This preserves existing tests (which mock profile.xp) while still showing
-  // immediate XP when the profile hasn't been updated yet.
+  // XP breakdown from per-round economy data (computed first as it's the canonical source)
+  const xpBreakdown = React.useMemo(() => {
+    if (!sessionSpeciesData || sessionSpeciesData.length === 0) return null;
+    let totalBase = 0;
+    let totalStreak = 0;
+    let totalRarity = 0;
+    sessionSpeciesData.forEach((sp) => {
+      if (!sp?.economy) return;
+      totalBase += sp.economy.baseXp || 0;
+      totalStreak += sp.economy.streakBonus || 0;
+      totalRarity += sp.economy.rarityBonus || 0;
+    });
+    const total = totalBase + totalStreak + totalRarity;
+    if (total === 0) return null;
+    return { totalBase, totalStreak, totalRarity, total };
+  }, [sessionSpeciesData]);
+
+  // Session XP: prefer the precise breakdown total, fall back to profile diff or score
   const profileDiff = Math.max(0, (profile?.xp || 0) - (initialSessionXP || 0));
-  const sessionXPGained = Math.max(score || 0, profileDiff);
+  const sessionXPGained = xpBreakdown?.total || Math.max(score || 0, profileDiff);
   // Visual current XP is initial + session gain to force the progress animation
   const currentXP = (initialSessionXP || 0) + sessionXPGained;
   const startLevel = getLevelFromXp(initialSessionXP || 0);
@@ -114,14 +137,35 @@ const EndScreen = ({
               <span className="xp-gained-value">+{sessionXPGained}</span>
             </div>
           )}
+
+          {xpBreakdown && (
+            <div className="xp-breakdown">
+              <div className="xp-breakdown-row">
+                <span className="xp-breakdown-label">🎯 {t('end.xp_base', {}, 'Base')}</span>
+                <span className="xp-breakdown-value">+{xpBreakdown.totalBase}</span>
+              </div>
+              {xpBreakdown.totalStreak > 0 && (
+                <div className="xp-breakdown-row streak">
+                  <span className="xp-breakdown-label">🔥 {t('end.xp_streak', {}, 'Streak')}</span>
+                  <span className="xp-breakdown-value">+{xpBreakdown.totalStreak}</span>
+                </div>
+              )}
+              {xpBreakdown.totalRarity > 0 && (
+                <div className="xp-breakdown-row rarity">
+                  <span className="xp-breakdown-label">💎 {t('end.xp_rarity', {}, 'Rareté')}</span>
+                  <span className="xp-breakdown-value">+{xpBreakdown.totalRarity}</span>
+                </div>
+              )}
+            </div>
+          )}
           
           {leveledUp && (
             <div className="level-progress-info">
-              <span className="level-from">Niveau {startLevel}</span>
+              <span className="level-from">{t('end.level_from', { level: startLevel }, `Niveau ${startLevel}`)}</span>
               <span className="level-arrow">→</span>
-              <span className="level-to">Niveau {endLevel}</span>
+              <span className="level-to">{t('end.level_to', { level: endLevel }, `Niveau ${endLevel}`)}</span>
               {(endLevel - startLevel) > 1 && (
-                <span className="multi-level-badge">{endLevel - startLevel} niveaux! 🚀</span>
+                <span className="multi-level-badge">{t('end.multi_level', { count: endLevel - startLevel }, `${endLevel - startLevel} niveaux!`)} 🚀</span>
               )}
             </div>
           )}
@@ -253,6 +297,42 @@ const EndScreen = ({
         )}
 
         <div className="end-actions">
+          {/* Share & Challenge */}
+          <ShareButtons
+            score={sessionCorrectSpecies.length}
+            total={sessionSpeciesData.length}
+            packName={(() => {
+              const pack = packs?.find(p => p.id === activePackId);
+              return pack?.titleKey ? t(pack.titleKey) : '';
+            })()}
+            topSpecies={(() => {
+              if (sessionCorrectSpecies.length === 0) return '';
+              const first = sessionSpeciesData.find(sp => sessionCorrectSpecies.includes(sp.id));
+              if (!first) return '';
+              const { primary } = getTaxonDisplayNames(first);
+              return primary || '';
+            })()}
+            isDaily={isDailyChallenge}
+            mode={gameMode === 'hard' ? t('config.mode_hard', {}, 'Difficile') : t('config.mode_easy', {}, 'Facile')}
+            activePackId={activePackId}
+            gameMode={gameMode}
+            maxQuestions={maxQuestions}
+            mediaType={mediaType}
+          />
+
+          {/* Daily Leaderboard */}
+          {isDailyChallenge && (
+            <DailyLeaderboard
+              playerScore={sessionCorrectSpecies.length}
+              playerTotal={sessionSpeciesData.length}
+              playerPseudo={(() => {
+                try { return localStorage.getItem('daily_pseudo') || ''; } catch { return ''; }
+              })()}
+            />
+          )}
+        </div>
+
+        <div className="end-actions end-nav-actions">
           {!isDailyChallenge && (
             <button onClick={onRestart} className="btn btn--primary">
               {t('common.replay')}

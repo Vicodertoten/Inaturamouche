@@ -278,21 +278,7 @@ export function UserProvider({ children }) {
     }
   }, []);
 
-  /**
-   * Legacy alias for recordEncounter (maintains backward compatibility).
-   */
-  const addSpeciesToCollection = useCallback(
-    (taxon, isCorrect = false, thumbnail) => recordEncounter(taxon, isCorrect, thumbnail),
-    [recordEncounter]
-  );
 
-  /**
-   * Legacy alias for recordEncounter.
-   */
-  const updatePokedex = useCallback(
-    (species, isCorrect, thumbnail) => recordEncounter(species, isCorrect, thumbnail),
-    [recordEncounter]
-  );
 
   /**
    * Get collection stats/summary across all species.
@@ -372,8 +358,6 @@ export function UserProvider({ children }) {
     queueAchievements,
     popAchievement,
     recordEncounter,
-    addSpeciesToCollection, // Legacy
-    updatePokedex, // Legacy
     getCollectionStats,
     getSpeciesDetail,
     getSpeciesById, // Legacy

@@ -84,14 +84,14 @@ export const config = {
   explainDailyQuotaPerIp: parseIntWithFallback(process.env.EXPLAIN_DAILY_QUOTA_PER_IP, 60, { min: 1, max: 5000 }),
 
   // Reports
-  reportsRequireWriteToken: parseBoolean(process.env.REPORTS_REQUIRE_WRITE_TOKEN, false),
+  reportsRequireWriteToken: parseBoolean(process.env.REPORTS_REQUIRE_WRITE_TOKEN, true),
   reportsRateLimitPerWindow: parseIntWithFallback(process.env.REPORTS_RATE_LIMIT_PER_WINDOW, 8, { min: 1, max: 200 }),
   reportsRateLimitWindowMs: parseIntWithFallback(process.env.REPORTS_RATE_LIMIT_WINDOW_MS, 10 * 60 * 1000, {
     min: 10 * 1000,
     max: 24 * 60 * 60 * 1000,
   }),
   balanceDashboardToken: process.env.BALANCE_DASHBOARD_TOKEN || '',
-  balanceDashboardRequireToken: parseBoolean(process.env.BALANCE_DASHBOARD_REQUIRE_TOKEN, false),
+  balanceDashboardRequireToken: parseBoolean(process.env.BALANCE_DASHBOARD_REQUIRE_TOKEN, true),
   balanceDashboardEventLimit: parseIntWithFallback(process.env.BALANCE_DASHBOARD_EVENT_LIMIT, 2000, {
     min: 100,
     max: 20000,

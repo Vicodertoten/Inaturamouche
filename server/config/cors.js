@@ -25,7 +25,7 @@ export const corsOptions = {
     return cb(err);
   },
   credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
     'X-Requested-With',

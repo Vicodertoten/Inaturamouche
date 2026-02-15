@@ -1,6 +1,6 @@
 # Server
 
-API Express de Inaturamouche.
+API Express de iNaturaQuizz.
 
 ## Entree
 

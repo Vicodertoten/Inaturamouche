@@ -1,0 +1,54 @@
+/* ═══════════════════════════════════════════════
+   ChallengePage — Accept a friend's challenge
+   ═══════════════════════════════════════════════ */
+
+.challenge-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: var(--space-4, 1rem);
+}
+
+.challenge-card {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  padding: var(--space-6, 2rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+}
+
+.challenge-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.challenge-desc {
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.challenge-details {
+  display: flex;
+  gap: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.challenge-detail {
+  padding: 0.35rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.challenge-accept {
+  margin-top: var(--space-2, 0.5rem);
+  font-size: 1.05rem;
+  padding: 0.75rem 2rem;
+}

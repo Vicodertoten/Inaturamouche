@@ -26,43 +26,32 @@ const TutorialOverlay = () => {
         position: 'center',
       },
       {
+        id: 'play',
+        title: t('tutorial.step_play_title', {}, 'Lancer une partie'),
+        text: t(
+          'tutorial.step_play_text',
+          {},
+          'Appuie ici pour jouer tout de suite. Un pack est déjà choisi pour toi !'
+        ),
+        route: '/',
+        targetSelector: '.tutorial-hero-cta',
+        position: 'bottom',
+        spotlightPadding: 12,
+        spotlightRadius: 20,
+      },
+      {
         id: 'packs',
         title: t('tutorial.step_packs_title', {}, 'Choisir un terrain'),
         text: t(
           'tutorial.step_packs_text',
           {},
-          "Un pack définit les espèces du jeu. Commence avec un pack recommandé."
+          'Change de pack pour explorer d\'autres espèces. Chaque pack est un terrain de jeu différent.'
         ),
         route: '/',
         targetSelector: '.tutorial-pack-grid',
-        position: 'right',
-        highlightSelector: '.pack-card, .pack-card-glow',
-        spotlightPadding: 30,
-        spotlightRadius: 32,
-      },
-      {
-        id: 'modes',
-        title: t('tutorial.step_modes_title', {}, 'Comment jouer'),
-        text: t(
-          'tutorial.step_modes_text',
-          {},
-          'Choisis un mode. Facile est le plus simple pour démarrer.'
-        ),
-        route: '/',
-        targetSelector: '.tutorial-mode-cards',
         position: 'auto',
-      },
-      {
-        id: 'settings',
-        title: t('tutorial.step_settings_title', {}, 'Réglages rapides'),
-        text: t(
-          'tutorial.step_settings_text',
-          {},
-          'Durée et médias suffisent pour commencer. Tu peux ajuster plus tard.'
-        ),
-        route: '/',
-        targetSelector: '.tutorial-game-settings',
-        position: 'auto',
+        spotlightPadding: 16,
+        spotlightRadius: 20,
       },
       {
         id: 'navigation',
@@ -74,7 +63,7 @@ const TutorialOverlay = () => {
         ),
         route: '/',
         targetSelector: '.tutorial-main-nav, .tutorial-bottom-nav',
-        highlightSelector: '.tutorial-nav-home, .tutorial-nav-collection, .tutorial-nav-profile, .tutorial-nav-report, .tutorial-nav-settings',
+        highlightSelector: '.tutorial-nav-home, .tutorial-nav-collection, .tutorial-nav-profile, .tutorial-nav-settings',
         position: 'auto',
         skipScroll: true,
       },
@@ -459,7 +448,7 @@ const TutorialOverlay = () => {
           </div>
           <div className="tutorial-professor">
             <span className="tutorial-professor-avatar" aria-hidden="true">🪰</span>
-            <span className="tutorial-professor-text">Papy Mouche</span>
+            <span className="tutorial-professor-text">{t('tutorial.professor_name', {}, 'Papy Mouche')}</span>
           </div>
           <h3>{step.title}</h3>
         </div>

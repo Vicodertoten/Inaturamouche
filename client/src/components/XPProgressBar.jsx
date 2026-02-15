@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useLevelProgress } from '../hooks/useLevelProgress';
 import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import './XPProgressBar.css';
 
 /**
@@ -23,6 +24,8 @@ const XPProgressBar = ({
   size = 'default',
   onLevelUp = null,
 }) => {
+  const { t } = useLanguage();
+
   // If a startXP is provided we will animate the bar from startXP -> currentXP
   const initialXP = startXP == null ? currentXP : startXP;
   const [displayedXP, setDisplayedXP] = useState(initialXP);
@@ -193,7 +196,7 @@ const XPProgressBar = ({
       {showDetailed && (
         <div className="xp-progress-header">
           <div className={`xp-level-badge ${isLevelingUp ? 'leveling-up' : ''}`}>
-            <span className="xp-level-label">Niveau</span>
+            <span className="xp-level-label">{t('xp.level_label', {}, 'Niveau')}</span>
             <span className="xp-level-value">{displayedLevel}</span>
           </div>
           <div className="xp-details">
@@ -227,7 +230,7 @@ const XPProgressBar = ({
         {/* Indicateur du prochain niveau */}
         {!isCompact && (
           <div className="xp-next-level">
-            Niveau {nextLevel}
+            {t('xp.next_level', { level: nextLevel }, `Niveau ${nextLevel}`)}
           </div>
         )}
       </div>

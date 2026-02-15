@@ -135,7 +135,8 @@ function HardMode() {
 
         if (isCorrect) {
           vibrateSuccess();
-          setLiveXPGain(basePoints);
+          const guessXP = basePoints + guessesRemaining * 5;
+          setLiveXPGain(guessXP);
           showFeedback(t('hard.feedback.correct', {}, 'Bonne réponse !'), 'success');
         } else {
           vibrateError();
@@ -193,7 +194,7 @@ function HardMode() {
     setScoreInfo(null);
 
     const isCorrect = roundStatus === 'win';
-    const streakBonusCalc = isCorrect ? computeInGameStreakBonus(currentStreak, 'hard') : 0;
+    const streakBonusCalc = isCorrect ? computeInGameStreakBonus(currentStreak + 1) : 0;
 
     const baseScoreInfo = computeScore({
       mode: 'hard',

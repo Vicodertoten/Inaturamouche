@@ -205,11 +205,6 @@
 }
 
 /* Border theme classes */
-.border-scales {
-  border-color: #2E7D32;
-  background: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
-}
-
 .border-silver {
   border-color: #9E9E9E;
   background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%);
@@ -228,6 +223,11 @@
 .border-platinum {
   border-color: #7C4DFF;
   background: linear-gradient(135deg, #B388FF 0%, #7C4DFF 100%);
+}
+
+.border-diamond {
+  border-color: #4DD0E1;
+  background: linear-gradient(135deg, #E0F7FA 0%, #4DD0E1 100%);
 }
 
 /* Close Button */

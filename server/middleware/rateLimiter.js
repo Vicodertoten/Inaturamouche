@@ -25,7 +25,7 @@ function buildLimiter({ windowMs, limit, code, message }) {
 // Rate limit global pour /api
 export const apiLimiter = buildLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 300,
+  limit: 600,
   code: 'RATE_LIMIT_EXCEEDED',
   message: 'Too many requests. Please try again later.',
 });

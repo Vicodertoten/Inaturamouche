@@ -1,0 +1,106 @@
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { decodeChallenge } from '../utils/challengeSeed';
+import { useGameData } from '../context/GameContext';
+import { useLanguage } from '../context/LanguageContext.jsx';
+import { usePacks } from '../context/PacksContext.jsx';
+import './ChallengePage.css';
+
+const ChallengePage = () => {
+  const { token } = useParams();
+  const navigate = useNavigate();
+  const { startGame, setActivePackId } = useGameData();
+  const { t } = useLanguage();
+  const { packs, loading: packsLoading } = usePacks();
+  const [challenge, setChallenge] = useState(null);
+  const [error, setError] = useState(false);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (!token) {
+      setError(true);
+      return;
+    }
+    const decoded = decodeChallenge(token);
+    if (!decoded) {
+      setError(true);
+      return;
+    }
+    setChallenge(decoded);
+  }, [token]);
+
+  // Resolve pack name for display
+  const packInfo = challenge && packs?.find((p) => p.id === challenge.packId);
+
+  const handleAccept = () => {
+    if (!challenge || startedRef.current) return;
+    startedRef.current = true;
+
+    // Set the pack and start a normal game with the same settings
+    setActivePackId(challenge.packId);
+    startGame({
+      gameMode: challenge.gameMode,
+      maxQuestions: challenge.maxQuestions,
+      mediaType: challenge.mediaType,
+    });
+    navigate('/play');
+  };
+
+  if (error) {
+    return (
+      <div className="screen challenge-screen">
+        <div className="card challenge-card">
+          <h2>❌ {t('challenge.invalid_title', {}, 'Lien invalide')}</h2>
+          <p>{t('challenge.invalid_text', {}, 'Ce lien de défi n\'est pas valide ou a expiré.')}</p>
+          <button type="button" className="btn btn--primary" onClick={() => navigate('/')}>
+            {t('common.home', {}, 'Accueil')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!challenge || packsLoading) return null;
+
+  return (
+    <div className="screen challenge-screen">
+      <div className="card challenge-card">
+        <div className="challenge-icon" aria-hidden="true">⚔️</div>
+        <h2>{t('challenge.title', {}, 'Défi d\'un ami !')}</h2>
+        <p className="challenge-desc">
+          {challenge.score != null && challenge.total != null
+            ? t('challenge.description_score', { score: challenge.score, total: challenge.total },
+                `Un ami a fait ${challenge.score}/${challenge.total}. Fais mieux sur le même pack et les mêmes réglages !`
+              )
+            : t('challenge.description', {},
+                'Un ami te défie de faire mieux sur le même pack et les mêmes réglages. À toi de jouer !'
+              )
+          }
+        </p>
+        <div className="challenge-details">
+          {packInfo && (
+            <span className="challenge-detail">
+              📦 {packInfo.titleKey ? t(packInfo.titleKey) : challenge.packId}
+            </span>
+          )}
+          <span className="challenge-detail">
+            🎮 {challenge.gameMode === 'hard'
+              ? t('config.mode_hard', {}, 'Difficile')
+              : challenge.gameMode === 'riddle'
+                ? t('config.mode_riddle', {}, 'Énigme')
+                : t('config.mode_easy', {}, 'Facile')}
+          </span>
+          <span className="challenge-detail">❓ {challenge.maxQuestions} questions</span>
+        </div>
+        <button type="button" className="btn btn--primary challenge-accept" onClick={handleAccept}>
+          {t('challenge.accept', {}, 'Relever le défi !')}
+        </button>
+        <button type="button" className="btn btn--secondary" onClick={() => navigate('/')}>
+          {t('common.home', {}, 'Accueil')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ChallengePage;

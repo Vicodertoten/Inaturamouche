@@ -19,12 +19,12 @@ import taxonDetailsCache from '../cache/taxonDetailsCache.js';
 import { nextEligibleTaxonId, pickRelaxedTaxon, makeChoiceLabels, buildTimingData } from '../utils/helpers.js';
 import { config } from '../config/index.js';
 import { generateRiddle } from './aiService.js';
+import { SCORE_PER_RANK, HARD_BASE_POINTS } from '../../shared/scoring.js';
 
 const { questionQueueSize: QUESTION_QUEUE_SIZE } = config;
 const { quizChoices: QUIZ_CHOICES } = config;
 const HARD_DEFAULT_MAX_GUESSES = 3;
 const TAXONOMIC_DEFAULT_MAX_HINTS = 1;
-const HARD_BASE_POINTS = 30;
 const MAX_LURE_CLOSENESS = 0.98;
 
 function clamp(value, min, max) {
@@ -486,11 +486,18 @@ export async function buildQuizQuestion({
     buckets = builtBuckets;
     marks.builtLures = performance.now();
 
-    // Track lure taxa to avoid repetition in subsequent questions
+    // Track lure taxa to avoid repetition in subsequent questions.
+    // The cooldown window should be large enough so that lures from the
+    // last ~5 questions are avoided before they can reappear.
+    // With 3 lures/question, we want at least 5*3 = 15 recent entries,
+    // capped to (poolSize - quizChoices) to avoid deadlocking small pools.
     if (!selectionState.recentLureTaxa) {
       selectionState.recentLureTaxa = new Set();
     }
-    const LURE_COOLDOWN_LIMIT = Math.min(8, Math.max(0, cacheEntry.taxonList.length - config.quizChoices));
+    const LURE_COOLDOWN_LIMIT = Math.min(
+      config.lureCount * 5,
+      Math.max(0, cacheEntry.taxonList.length - config.quizChoices)
+    );
     for (const lure of lures) {
       selectionState.recentLureTaxa.add(String(lure.taxonId));
     }

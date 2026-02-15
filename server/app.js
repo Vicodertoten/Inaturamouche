@@ -81,9 +81,14 @@ export function createApp() {
   // Cache policy
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
+      // Pack preview images can be cached by the browser
+      if (req.path.match(/^\/api\/packs\/[^/]+\/preview$/)) {
+        res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=7200');
+      } else {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+      }
       res.set('Vary', 'Origin, Accept-Language');
     } else {
       res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');

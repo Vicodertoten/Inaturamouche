@@ -154,7 +154,7 @@
   z-index: 10001;
   top: 0;
   left: 0;
-  background: var(--surface-color, #ffffff);
+  background: var(--surface-color, #263321);
   color: var(--text-color, #1f2a24);
   padding: 24px;
   border-radius: 22px;

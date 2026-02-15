@@ -18,7 +18,7 @@ const createTimeoutSignal = (ms) => {
 const safeFetch = async (url, { timeoutMs = 5_000, logger } = {}) => {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Inaturamouche/2.0 (nature quiz app)' },
+      headers: { 'User-Agent': 'iNaturaQuizz/2.0 (nature quiz app)' },
       signal: createTimeoutSignal(timeoutMs),
     });
     if (!res.ok) return null;

@@ -16,7 +16,7 @@
     rgba(255, 107, 53, 0.3),
     rgba(247, 147, 30, 0.3)
   );
-  border: 2px solid var(--accent-color, #ff6b35);
+  border: 2px solid var(--accent-color, #eebb4d);
   box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
   animation: pulse-glow 2s infinite;
 }
@@ -57,11 +57,11 @@
 .streak-count .number {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--accent-color, #ff6b35);
+  color: var(--accent-color, #eebb4d);
 }
 
 .tier-badge {
-  background: var(--accent-color, #ff6b35);
+  background: var(--accent-color, #eebb4d);
   color: var(--bg-color, #1a1a1a);
   padding: 0.25rem 0.5rem;
   border-radius: 8px;

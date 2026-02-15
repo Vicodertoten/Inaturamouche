@@ -13,7 +13,7 @@
 - **Issue**: Production deployment blocker – `CMD ["node", "server.js"]` referenced deprecated monolithic file
 - **Fix**: Updated to `CMD ["node", "server/index.js"]` in [Dockerfile](Dockerfile)
 - **Impact**: Docker builds now work correctly with new modular architecture
-- **Verification**: Run `docker build -t inaturamouche .` to confirm
+- **Verification**: Run `docker build -t inaturaquizz .` to confirm
 
 #### Removed Dead Code 🔴
 - **Issue**: 68KB backup file (`server.js.backup`) cluttering repository
@@ -227,7 +227,7 @@
 
 ## 🔍 Structural Findings
 
-### What Makes Inaturamouche Excellent
+### What Makes iNaturaQuizz Excellent
 
 1. **Post-Migration Architecture** ✅
    - Successfully transitioned from 68KB monolith to modular structure
@@ -267,7 +267,7 @@
 
 ## 🎓 The 5 Rules of Excellence (Manifesto)
 
-Based on this audit, Inaturamouche should follow these principles:
+Based on this audit, iNaturaQuizz should follow these principles:
 
 ### 1. **Separation of Concerns is Sacred**
 - Keep routes thin (delegation only)

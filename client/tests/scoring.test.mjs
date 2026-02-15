@@ -7,41 +7,18 @@ import {
   getXpForLevel,
 } from "../src/utils/scoring.js";
 
-// FIX #2: Test that streak bonus returns floating point values
-test("computeInGameStreakBonus returns floating point values for precision", () => {
-  // Easy mode streak 1 should return exact value (not rounded)
-  const easyStreak1 = computeInGameStreakBonus(1, "easy");
-  assert.equal(easyStreak1, 5);
+// Linear streak bonus: +2 per streak, cap +20
+test("computeInGameStreakBonus returns linear bonus capped at 20", () => {
+  assert.equal(computeInGameStreakBonus(0, "easy"), 0);
+  assert.equal(computeInGameStreakBonus(1, "easy"), 2);
+  assert.equal(computeInGameStreakBonus(5, "easy"), 10);
+  assert.equal(computeInGameStreakBonus(10, "easy"), 20);  // cap
+  assert.equal(computeInGameStreakBonus(15, "easy"), 20);  // still capped
   
-  // Easy mode streak 2 should return floating point
-  const easyStreak2 = computeInGameStreakBonus(2, "easy");
-  assert.equal(easyStreak2, 7); // 5 * 1.4^1 = 7.0
-  
-  // Easy mode streak 3 should return floating point (not Math.floor)
-  const easyStreak3 = computeInGameStreakBonus(3, "easy");
-  assert.ok(easyStreak3 > 9.79 && easyStreak3 < 9.81); // 5 * 1.4^2 = 9.8
-  
-  // Hard mode streak 1
-  const hardStreak1 = computeInGameStreakBonus(1, "hard");
-  assert.equal(hardStreak1, 10);
-  
-  // Hard mode streak 3 should return floating point
-  const hardStreak3 = computeInGameStreakBonus(3, "hard");
-  assert.ok(hardStreak3 > 22.4 && hardStreak3 < 22.6); // 10 * 1.5^2 = 22.5
-});
-
-// Test that streak is capped at 15
-test("computeInGameStreakBonus caps streak at 15", () => {
-  const streak15Easy = computeInGameStreakBonus(15, "easy");
-  const streak20Easy = computeInGameStreakBonus(20, "easy");
-  
-  // Should be same value because of cap
-  assert.equal(streak15Easy, streak20Easy);
-  
-  const streak15Hard = computeInGameStreakBonus(15, "hard");
-  const streak20Hard = computeInGameStreakBonus(20, "hard");
-  
-  assert.equal(streak15Hard, streak20Hard);
+  // Same for hard mode (mode param no longer matters)
+  assert.equal(computeInGameStreakBonus(1, "hard"), 2);
+  assert.equal(computeInGameStreakBonus(10, "hard"), 20);
+  assert.equal(computeInGameStreakBonus(20, "hard"), 20);
 });
 
 // FIX #6: Test edge cases for level/XP functions
@@ -109,7 +86,7 @@ test("computeScore returns correct values for hard mode", () => {
     guessesRemaining: 3,
   });
   assert.equal(correct.points, 25);
-  assert.equal(correct.bonus, 15); // 3 * 5
+  assert.equal(correct.bonus, 30); // 3 * 10 (rebalanced HARD_GUESS_BONUS)
   
   const incorrect = computeScore({
     mode: "hard",
@@ -121,35 +98,18 @@ test("computeScore returns correct values for hard mode", () => {
   assert.equal(incorrect.bonus, 0); // No bonus when incorrect
 });
 
-// Test XP accumulation without rounding errors
-test("XP accumulation maintains precision with floating point", () => {
-  // Simulate 10 rounds with streak bonuses
+// Test XP accumulation with linear streak
+test("XP accumulation with linear streak is predictable", () => {
   let totalXP = 0;
   
   for (let round = 1; round <= 10; round++) {
     const basePoints = 10; // Easy mode
     const streakBonus = computeInGameStreakBonus(round, "easy");
-    const roundXP = basePoints + streakBonus;
-    totalXP += roundXP;
+    totalXP += basePoints + streakBonus;
   }
   
-  // With floating point accumulation, we should have more precise total
-  // Round only once at the end
-  const finalXP = Math.floor(totalXP);
-  
-  // Verify it's different from if we rounded each time
-  let totalXPWithRounding = 0;
-  for (let round = 1; round <= 10; round++) {
-    const basePoints = 10;
-    const streakBonus = Math.floor(computeInGameStreakBonus(round, "easy"));
-    const roundXP = basePoints + streakBonus;
-    totalXPWithRounding += roundXP;
-  }
-  
-  // The difference shows the cumulative precision loss
-  const precisionGained = finalXP - totalXPWithRounding;
-  assert.ok(
-    precisionGained >= 0,
-    `Gained ${precisionGained} XP by rounding once at end`
-  );
+  // 10 rounds: base 10 each = 100
+  // streak: 2+4+6+8+10+12+14+16+18+20 = 110
+  // total = 210
+  assert.equal(totalXP, 210);
 });

@@ -157,7 +157,7 @@
   button:focus-visible,
   a:focus-visible,
   [role="button"]:focus-visible {
-    outline: 3px solid var(--accent-color, #ff6b35);
+    outline: 3px solid var(--accent-color, #eebb4d);
     outline-offset: 2px;
   }
 }

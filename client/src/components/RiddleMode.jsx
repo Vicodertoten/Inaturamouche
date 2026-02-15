@@ -6,6 +6,7 @@ import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { submitQuizAnswer } from '../services/api';
 import { notify } from '../services/notifications';
+import { computeInGameStreakBonus } from '../utils/scoring';
 import './RiddleMode.css';
 
 const RIDDLE_POINTS = [10, 5, 1];
@@ -108,7 +109,7 @@ const RiddleMode = () => {
   const correctTaxonId = validationResult?.correct_taxon_id ? String(validationResult.correct_taxon_id) : null;
 
   const pointsForClue = RIDDLE_POINTS[clueIndex] ?? 1;
-  const streakBonus = isCorrectAnswer ? 2 * (currentStreak + 1) : 0;
+  const streakBonus = isCorrectAnswer ? computeInGameStreakBonus(currentStreak + 1) : 0;
   const scoreInfo = { points: isCorrectAnswer ? pointsForClue : 0, bonus: 0, streakBonus };
   const resolvedQuestion = useMemo(() => {
     if (!question || !validationResult?.correct_answer) return question;
@@ -215,8 +216,6 @@ const RiddleMode = () => {
         <GameHeader
           mode="riddle"
           currentStreak={currentStreak}
-          inGameShields={inGameShields}
-          hasPermanentShield={hasPermanentShield}
           questionCount={questionCount}
           maxQuestions={maxQuestions}
           onQuit={endGame}

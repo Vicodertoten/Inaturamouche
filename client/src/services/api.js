@@ -1,11 +1,8 @@
 /// <reference path="../../../types/inaturalist.d.ts" />
 // src/services/api.js
 import { notify } from "./notifications.js";
-import fr from '../locales/fr.js';
-import en from '../locales/en.js';
-import nl from '../locales/nl.js';
+import { getApiErrorMessage, isApiLanguageSupported, CODE_TO_KEY } from './apiErrors.js';
 import { debugWarn } from '../utils/logger.js';
-const MESSAGES = { fr, en, nl };
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
 
@@ -43,7 +40,7 @@ function getCurrentLanguage() {
   if (typeof window === 'undefined') return 'fr';
   const storage = getLocalStorage();
   const stored = storage?.getItem(LANGUAGE_STORAGE_KEY);
-  return stored && MESSAGES[stored] ? stored : 'fr';
+  return stored && isApiLanguageSupported(stored) ? stored : 'fr';
 }
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
@@ -52,8 +49,17 @@ const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : 
 const API_BASE_URL =
   runtimeEnv.VITE_API_URL ||
   (runtimeEnv.DEV
-    ? "http://localhost:3001"
+    ? ""
     : "https://inaturamouche-api.fly.dev");
+
+/**
+ * Build a full URL from a path + optional base.
+ * When API_BASE_URL is empty (dev proxy), use window.location.origin.
+ */
+function buildApiUrl(path) {
+  const base = API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
+  return new URL(path, base);
+}
 
 // Timeout augmenté à 15s pour absorber les cold starts d'iNaturalist
 const DEFAULT_TIMEOUT = 15000;
@@ -78,23 +84,11 @@ export const notifyApiError = (error, fallbackMessage = DEFAULT_ERROR_MESSAGE) =
   // If API provided a structured error with code, try to translate it client-side
   const lang = getCurrentLanguage();
   let message = fallbackMessage;
-  if (error && error.code && MESSAGES[lang]?.errors) {
-    // Map server codes to keys in locale files
-    const codeToKey = {
-      INTERNAL_SERVER_ERROR: 'internal',
-      BAD_REQUEST: 'bad_request',
-      NOT_FOUND: 'not_found',
-      POOL_UNAVAILABLE: 'pool_unavailable',
-      TAXON_NOT_FOUND: 'taxonomy_not_found',
-      ROUND_EXPIRED: 'generic',
-      INVALID_ROUND_SIGNATURE: 'generic',
-      EXPLAIN_RATE_LIMIT_EXCEEDED: 'rate_limited',
-      EXPLAIN_DAILY_QUOTA_EXCEEDED: 'rate_limited',
-      REPORT_RATE_LIMIT_EXCEEDED: 'rate_limited',
-    };
-    const key = codeToKey[error.code];
-    if (key && MESSAGES[lang].errors && MESSAGES[lang].errors[key]) {
-      message = MESSAGES[lang].errors[key];
+  if (error && error.code) {
+    const key = CODE_TO_KEY[error.code];
+    const translated = key ? getApiErrorMessage(lang, key) : null;
+    if (translated) {
+      message = translated;
     } else if (error.message) {
       message = error.message;
     }
@@ -154,7 +148,7 @@ async function apiGet(path, params = {}, options = {}) {
   const { signal, timeout = DEFAULT_TIMEOUT, maxRetries = MAX_RETRIES } = options;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const url = new URL(path, API_BASE_URL);
+    const url = buildApiUrl(path);
     url.search = buildSearchParams(params).toString();
 
     const controller = new AbortController();
@@ -225,7 +219,7 @@ async function apiPost(path, body = {}, options = {}) {
   const { signal, timeout = DEFAULT_TIMEOUT, maxRetries = MAX_RETRIES } = options;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const url = new URL(path, API_BASE_URL);
+    const url = buildApiUrl(path);
 
     const controller = new AbortController();
     const abortHandler = () => controller.abort(signal?.reason);

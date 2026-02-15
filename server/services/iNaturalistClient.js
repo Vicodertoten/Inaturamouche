@@ -101,7 +101,7 @@ export async function fetchJSON(
           signal: controller.signal,
           headers: {
             Accept: 'application/json',
-            'User-Agent': 'Inaturamouche/1.0 (+contact: you@example.com)',
+            'User-Agent': 'iNaturaQuizz/1.0 (+https://inaturaquizz.com)',
           },
         });
       } finally {

@@ -5,16 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Inaturamouche est un quiz nature pour apprendre à identifier animaux, plantes et champignons à partir de vraies observations iNaturalist."
+      content="iNaturaQuizz est un quiz nature pour apprendre à identifier animaux, plantes et champignons à partir de vraies observations iNaturalist."
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <meta name="author" content="Inaturamouche" />
+    <meta name="author" content="iNaturaQuizz" />
     <link rel="canonical" href="https://inaturaquizz.com/" />
 
+    <!-- hreflang for multilingual SEO -->
+    <link rel="alternate" hreflang="fr" href="https://inaturaquizz.com/" />
+    <link rel="alternate" hreflang="en" href="https://inaturaquizz.com/" />
+    <link rel="alternate" hreflang="nl" href="https://inaturaquizz.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://inaturaquizz.com/" />
+
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Inaturamouche" />
+    <meta property="og:site_name" content="iNaturaQuizz" />
     <meta property="og:locale" content="fr_FR" />
-    <meta property="og:title" content="Inaturamouche - Quiz nature interactif" />
+    <meta property="og:title" content="iNaturaQuizz - Quiz nature interactif" />
     <meta
       property="og:description"
       content="Teste et améliore tes connaissances naturalistes avec des observations réelles iNaturalist."
@@ -23,14 +29,14 @@
     <meta property="og:image" content="https://inaturaquizz.com/android-chrome-512x512.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Inaturamouche - Quiz nature interactif" />
+    <meta name="twitter:title" content="iNaturaQuizz - Quiz nature interactif" />
     <meta
       name="twitter:description"
       content="Apprends à reconnaître la biodiversité via un quiz basé sur iNaturalist."
     />
     <meta name="twitter:image" content="https://inaturaquizz.com/android-chrome-512x512.png" />
 
-    <title>Inaturamouche</title>
+    <title>iNaturaQuizz</title>
 
     <!-- Preload critical fonts to avoid FOUT (Flash of Unstyled Text) -->
     <link rel="preload" href="/fonts/poppins-600.woff2" as="font" type="font/woff2" crossorigin />
@@ -51,9 +57,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="Inaturamouche" />
+    <meta name="apple-mobile-web-app-title" content="iNaturaQuizz" />
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "iNaturaQuizz",
+      "url": "https://inaturaquizz.com",
+      "description": "Quiz interactif pour apprendre à identifier la faune et la flore grâce aux données iNaturalist.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All",
+      "inLanguage": ["fr", "en", "nl"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "iNaturaQuizz"
+      }
+    }
+    </script>
   </head>
   <body>
+    <noscript>
+      <div style="padding:2rem;text-align:center;font-family:system-ui,sans-serif;background:#263321;color:#fefae0;min-height:100vh;display:flex;align-items:center;justify-content:center;">
+        <div>
+          <h1>iNaturaQuizz</h1>
+          <p>JavaScript est requis pour utiliser cette application.</p>
+          <p>JavaScript is required to use this application.</p>
+        </div>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

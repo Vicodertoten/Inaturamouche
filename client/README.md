@@ -1,6 +1,6 @@
 # Client
 
-SPA React de Inaturamouche (Vite + PWA).
+SPA React de iNaturaQuizz (Vite + PWA).
 
 ## Stack
 

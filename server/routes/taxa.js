@@ -2,13 +2,12 @@
 // Routes pour les taxons (autocomplete, detail, batch, species_counts)
 
 import { Router } from 'express';
-import { z } from 'zod';
 import { buildCacheKey } from '../../lib/quiz-utils.js';
 import { fetchInatJSON, getFullTaxaDetails } from '../services/iNaturalistClient.js';
 import { autocompleteCache } from '../cache/autocompleteCache.js';
 import taxonDetailsCache from '../cache/taxonDetailsCache.js';
 import { proxyLimiter } from '../middleware/rateLimiter.js';
-import { validate, autocompleteSchema, taxaBatchSchema, speciesCountsSchema } from '../utils/validation.js';
+import { validate, autocompleteSchema, taxaBatchSchema, speciesCountsSchema, taxonDetailParamsSchema } from '../utils/validation.js';
 import { geoParams } from '../utils/helpers.js';
 import { sendError } from '../utils/http.js';
 
@@ -70,12 +69,7 @@ router.get('/api/taxa/autocomplete', validate(autocompleteSchema), async (req, r
 // Détail d'un taxon
 router.get('/api/taxon/:id', proxyLimiter, async (req, res) => {
   try {
-    const parsed = z
-      .object({
-        id: z.coerce.number().int().positive(),
-        locale: z.string().default('fr'),
-      })
-      .safeParse({ id: req.params.id, locale: req.query.locale });
+    const parsed = taxonDetailParamsSchema.safeParse({ id: req.params.id, locale: req.query.locale });
     if (!parsed.success) {
       return sendError(req, res, {
         status: 400,

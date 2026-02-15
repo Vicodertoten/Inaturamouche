@@ -1,0 +1,97 @@
+/* ═══════════════════════════════════════════════
+   SharedCollectionPage — Public collection view
+   ═══════════════════════════════════════════════ */
+
+.shared-collection-screen {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 80vh;
+  padding: var(--space-4, 1rem);
+}
+
+.shared-collection-card {
+  max-width: 500px;
+  width: 100%;
+  padding: var(--space-5, 1.5rem);
+}
+
+.shared-header {
+  text-align: center;
+  margin-bottom: var(--space-4, 1rem);
+}
+
+.shared-name {
+  font-size: 1.4rem;
+  margin-bottom: var(--space-2, 0.5rem);
+}
+
+.shared-meta {
+  display: flex;
+  gap: var(--space-3, 0.75rem);
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  color: var(--text-color-muted);
+}
+
+.shared-level,
+.shared-xp,
+.shared-games {
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Species list ── */
+.shared-species-list {
+  list-style: none;
+  margin: var(--space-3, 0.75rem) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.shared-species-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.shared-species-item:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.shared-species-mastery {
+  flex-shrink: 0;
+}
+
+.shared-species-id {
+  color: var(--text-color-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+}
+
+.shared-species-stats {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-color-muted);
+}
+
+.shared-empty {
+  text-align: center;
+  color: var(--text-color-muted);
+  font-style: italic;
+}
+
+.shared-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4, 1rem);
+}

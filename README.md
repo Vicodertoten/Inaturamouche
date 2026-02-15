@@ -1,4 +1,4 @@
-# Inaturamouche
+# iNaturaQuizz
 
 Quiz naturaliste (React + Express) base sur des observations iNaturalist, avec modes `easy`, `hard`, `riddle` et `taxonomic`.
 

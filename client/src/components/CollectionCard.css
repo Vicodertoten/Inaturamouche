@@ -82,6 +82,21 @@
     opacity: 0.6;
 }
 
+/* ============== UNSEEN STATE (Silhouette) ============== */
+
+.collection-card.unseen {
+    opacity: 0.55;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.collection-card.unseen .card-image {
+    filter: grayscale(100%) brightness(0.25) contrast(1.4);
+}
+
+.collection-card.unseen .card-common-name {
+    color: var(--text-color-muted);
+}
+
 /* ============== CARD IMAGE ============== */
 
 .card-image-wrapper {
