@@ -24,7 +24,7 @@ const RiddleMode = () => {
     endGame,
     dailySeedSession,
   } = useGameData();
-  const { t, getTaxonDisplayNames } = useLanguage();
+  const { t, getTaxonDisplayNames, nameFormat } = useLanguage();
 
   const questionRef = useRef(question);
   const [clueIndex, setClueIndex] = useState(0);
@@ -286,7 +286,9 @@ const RiddleMode = () => {
                       return (
                         <span className="choice-label">
                           <span className="choice-primary">{primary}</span>
-                          {secondary && <span className="choice-secondary">{secondary}</span>}
+                          {nameFormat !== 'scientific' && secondary && (
+                            <span className="choice-secondary">{secondary}</span>
+                          )}
                         </span>
                       );
                     })()}

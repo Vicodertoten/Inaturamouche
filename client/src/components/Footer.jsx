@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './Footer.css';
 
-const Footer = () => {
+const Footer = ({ onReportClick }) => {
   const { t } = useLanguage();
   const year = new Date().getFullYear();
 
@@ -29,6 +29,13 @@ const Footer = () => {
             'Données naturalistes fournies par iNaturalist (CC BY-NC). Photos © leurs auteurs respectifs.'
           )}
         </p>
+        <button
+          type="button"
+          className="footer-report-btn"
+          onClick={() => onReportClick?.()}
+        >
+          {t('footer.report_bug', {}, 'Signaler un bug')}
+        </button>
         <p className="footer-copy">
           © {year} Inaturamouche — {t('footer.open_source', {}, 'Projet open source')}
         </p>

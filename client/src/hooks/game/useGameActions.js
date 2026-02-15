@@ -125,6 +125,7 @@ export function useGameActions({
   setInitialSessionXP,
   setLevelUpNotification,
   calculateXPMultipliers,
+  nameFormat,
   clearAchievementsTimer,
   clearUnlockedLater,
   setRarityCelebration,
@@ -746,7 +747,7 @@ export function useGameActions({
         rarityBonusXp,
       });
 
-      let xpBeforeProfileMultipliers = roundEconomyWithRarity.xpBeforeProfileMultipliers;
+      let xpBeforeProfileMultipliers = Math.max(0, roundEconomyWithRarity.xp || 0);
 
       if (isReviewMode && xpBeforeProfileMultipliers > 0) {
         const reviewBonus = Math.floor(xpBeforeProfileMultipliers * 0.25);
@@ -761,7 +762,10 @@ export function useGameActions({
       }
 
       const xpMultipliers = calculateXPMultipliers(profile, isCorrectFinal ? newStreak : 0);
-      const earnedXP = Math.floor(xpBeforeProfileMultipliers * xpMultipliers.totalMultiplier);
+      const profileXpMultiplier = Number(xpMultipliers?.totalMultiplier) || 1;
+      const scientificXpMultiplier = nameFormat === 'scientific' ? 2 : 1;
+      const totalXpMultiplier = profileXpMultiplier * scientificXpMultiplier;
+      const earnedXP = Math.floor(xpBeforeProfileMultipliers * totalXpMultiplier);
 
       if (earnedXP > 0) {
         setRecentXPGain(earnedXP);
@@ -820,6 +824,9 @@ export function useGameActions({
       const taxonPayload = {
         ...resolvedAnswer,
       };
+      if (!taxonPayload.rank) {
+        taxonPayload.rank = 'species';
+      }
       if (!taxonPayload.rarity_tier && rarityInfo.tier !== 'unknown') {
         taxonPayload.rarity_tier = rarityInfo.tier;
       }
@@ -870,16 +877,17 @@ export function useGameActions({
         wasCorrect: isCorrectFinal,
         validatedEvent: isValidatedRoundEvent,
         earnedXp: earnedXP,
-        multiplierApplied: xpMultipliers?.totalMultiplier ?? 1.0,
+        multiplierApplied: totalXpMultiplier,
         economy: {
           scoreDelta: roundEconomyWithRarity.scoreDelta,
           baseXp: roundEconomyWithRarity.baseXp,
+          streakBonus: roundEconomyWithRarity.streakBonus,
+          rarityBonus: roundEconomyWithRarity.rarityBonus,
           xpBeforeProfileMultipliers,
-          repeatCount: roundEconomyWithRarity.repeatCount,
-          repeatXpMultiplier: roundEconomyWithRarity.repeatXpMultiplier,
-          hintCount: roundEconomyWithRarity.hintCount,
-          hintXpMultiplier: roundEconomyWithRarity.hintXpMultiplier,
-          gameplayXpMultiplier: roundEconomyWithRarity.gameplayXpMultiplier,
+          profileXpMultiplier,
+          scientificXpMultiplier,
+          totalXpMultiplier,
+          finalXp: earnedXP,
           rarityBonusXp,
         },
       };
@@ -986,6 +994,7 @@ export function useGameActions({
       isReviewMode,
       longestStreak,
       maxQuestions,
+      nameFormat,
       nextQuestion,
       profile,
       question,

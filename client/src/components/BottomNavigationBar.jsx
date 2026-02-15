@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import '../styles/BottomNavigationBar.css';
-import { HomeIcon, CollectionIcon, ProfileIcon, SettingsIcon } from './NavigationIcons';
+import { HomeIcon, CollectionIcon, ProfileIcon, LanguageIcon } from './NavigationIcons';
 
 const BottomNavigationBar = ({
   onNavigationChange,
@@ -16,7 +16,7 @@ const BottomNavigationBar = ({
     { path: '/', icon: HomeIcon, label: t('nav.home_label', {}, 'Jouer'), type: 'route', tutorialClass: 'tutorial-nav-home' },
     { path: '/collection', icon: CollectionIcon, label: t('nav.collection_label'), type: 'route', tutorialClass: 'tutorial-nav-collection' },
     { path: '/profile', icon: ProfileIcon, label: t('nav.profile_label'), type: 'route', tutorialClass: 'tutorial-nav-profile' },
-    { path: 'settings', icon: SettingsIcon, label: t('nav.settings_label', {}, 'Réglages'), type: 'action', tutorialClass: 'tutorial-nav-settings' },
+    { path: 'settings', icon: LanguageIcon, label: t('common.language_switcher_label', {}, 'Langue'), type: 'action', tutorialClass: 'tutorial-nav-settings' },
   ];
 
   const handleNavClick = (item) => {

@@ -24,7 +24,7 @@
   background: rgba(0, 0, 0, 0.36);
 }
 
-.preferences-gear-icon {
+.preferences-language-icon {
   width: 20px;
   height: 20px;
 }
@@ -33,7 +33,7 @@
   position: absolute;
   top: 115%;
   right: 0;
-  min-width: 260px;
+  min-width: 220px;
   padding: 0.85rem 1rem;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -81,14 +81,6 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.75rem;
-}
-
-.preferences-section-title {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0;
-  color: var(--text-color-muted);
 }
 
 .preferences-language-options {

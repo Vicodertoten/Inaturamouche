@@ -60,6 +60,25 @@
   letter-spacing: 0.02em;
 }
 
+.footer-report-btn {
+  border: 1px dashed rgba(221, 161, 94, 0.35);
+  background: rgba(221, 161, 94, 0.08);
+  color: var(--text-color, #f1f5e9);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.footer-report-btn:hover,
+.footer-report-btn:focus-visible {
+  border-color: var(--accent-color, #dda15e);
+  background: rgba(221, 161, 94, 0.16);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 480px) {
   .app-footer {
     padding: 1rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));

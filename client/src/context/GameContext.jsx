@@ -20,7 +20,7 @@ const GameUIContext = createContext(null);
 
 export function GameProvider({ children }) {
   const { profile, updateProfile, queueAchievements, recordEncounter } = useUser();
-  const { language, t } = useLanguage();
+  const { language, t, nameFormat } = useLanguage();
   const { packs, loading: packsLoading } = usePacks();
 
   const gameConfig = useGameConfigState({ packs, packsLoading });
@@ -152,7 +152,7 @@ export function GameProvider({ children }) {
     profile,
     updateProfile,
     queueAchievements,
-    recordEncounter,
+    addSpeciesToCollection: recordEncounter,
     activePackId: gameConfig.activePackId,
     activePack: gameConfig.activePack,
     gameMode: gameConfig.gameMode,
@@ -206,6 +206,7 @@ export function GameProvider({ children }) {
     setInitialSessionXP,
     setLevelUpNotification,
     calculateXPMultipliers,
+    nameFormat,
     clearAchievementsTimer,
     clearUnlockedLater,
     setRarityCelebration: gameSession.setRarityCelebration,

@@ -31,6 +31,7 @@ export const autocompleteSchema = z.object({
   q: z.string().min(2),
   rank: z.string().optional(),
   locale: z.string().default('fr'),
+  name_format: z.enum(['vernacular', 'scientific']).default('vernacular'),
 });
 
 export const speciesCountsSchema = z.object({

@@ -12,16 +12,19 @@ import { notify } from '../services/notifications';
 import AdvancedSettings from '../components/AdvancedSettings';
 import CustomFilter from '../features/configurator/components/CustomFilter';
 import PackIcon from '../components/PackIcons';
+import { SettingsIcon } from '../components/NavigationIcons';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
 import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
 import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
+const REGION_ORDER_DEFAULT = ['belgium', 'france', 'europe', 'world'];
+
 const HomePage = () => {
   const navigate = useNavigate();
   const {
     startGame, resumeGame, clearSessionFromDB, startReviewMode,
-    gameMode, setGameMode, activePackId, setActivePackId, maxQuestions, mediaType, setMediaType,
+    gameMode, setGameMode, activePackId, setActivePackId, maxQuestions, mediaType,
     customFilters, dispatchCustomFilters,
   } = useGameData();
   const { profile } = useUser();
@@ -34,6 +37,7 @@ const HomePage = () => {
   const [resumeSessionData, setResumeSessionData] = useState(null);
   const [reviewStats, setReviewStats] = useState(null);
   const [geoApplied, setGeoApplied] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const todaySeed = getTodayDailySeed();
   const dailyAlreadyCompleted = isDailyCompleted(todaySeed);
@@ -97,6 +101,7 @@ const HomePage = () => {
 
   /* ── Handlers ── */
   const handleStart = useCallback(() => {
+    setAdvancedOpen(false);
     startGame({ maxQuestions, mediaType });
     navigate('/play');
   }, [navigate, startGame, maxQuestions, mediaType]);
@@ -114,7 +119,7 @@ const HomePage = () => {
         duration: 4000,
       });
     }
-  }, [navigate, resumeGame]);
+  }, [navigate, resumeGame, t]);
 
   const handleAbandonSession = useCallback(async () => {
     await clearSessionFromDB();
@@ -141,12 +146,9 @@ const HomePage = () => {
     setActivePackId(packId);
   }, [setActivePackId]);
 
-  const [customOpen, setCustomOpen] = useState(activePackId === 'custom');
-
-  const handleModeChange = useCallback((mode) => {
-    setGameMode(mode);
-    if (mode === 'riddle') setMediaType('images');
-  }, [setGameMode, setMediaType]);
+  const [customOpen, setCustomOpen] = useState(false);
+  const advancedPanelRef = useRef(null);
+  const advancedButtonRef = useRef(null);
 
   /* ── Derived ── */
   const detectedRegion = useDetectedRegion();
@@ -160,8 +162,41 @@ const HomePage = () => {
   const qLabel = maxQuestions ? `${maxQuestions} Q` : '∞';
   const isResuming = hasActiveSession && !isCheckingSession && resumeSessionData;
 
+  useEffect(() => {
+    if (isResuming) return;
+    if (gameMode !== 'easy' && gameMode !== 'hard') {
+      setGameMode('easy');
+    }
+  }, [gameMode, isResuming, setGameMode]);
+
+  useEffect(() => {
+    if (!advancedOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+      if (advancedPanelRef.current?.contains(target)) return;
+      if (advancedButtonRef.current?.contains(target)) return;
+      setAdvancedOpen(false);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setAdvancedOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [advancedOpen]);
+
   /* ── Region-grouped packs (sorted by geo proximity) ── */
-  const REGION_ORDER_DEFAULT = ['belgium', 'france', 'europe', 'world'];
   const regionGroupedPacks = useMemo(() => {
     if (packsLoading) return [];
     const order = [...REGION_ORDER_DEFAULT];
@@ -228,12 +263,52 @@ const HomePage = () => {
             </button>
           </div>
         ) : (
-          <button type="button" className="hero-cta hero-cta--play tutorial-hero-cta" onClick={handleStart} disabled={packsLoading}>
-            <span className="hero-cta-label">{t('common.start_game', {}, '🎮 Jouer')}</span>
-            <span className="hero-cta-meta">
-              <PackIcon packId={activePackId} className="hero-cta-pack-icon" /> {activePackLabel} · {modeName} · {qLabel}
-            </span>
-          </button>
+          <div className="hero-cta-shell">
+            <button type="button" className="hero-cta hero-cta--play tutorial-hero-cta" onClick={handleStart} disabled={packsLoading}>
+              <span className="hero-cta-label">
+                <span className="hero-cta-play-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+                {t('common.start_game', {}, 'Jouer')}
+              </span>
+              <span className="hero-cta-meta">
+                <PackIcon packId={activePackId} className="hero-cta-pack-icon" /> {activePackLabel} · {modeName} · {qLabel}
+              </span>
+            </button>
+            <button
+              type="button"
+              ref={advancedButtonRef}
+              className={`hero-advanced-gear nav-pill nav-icon nav-elevated tutorial-nav-settings ${advancedOpen ? 'open' : ''}`}
+              onClick={() => setAdvancedOpen((v) => !v)}
+              aria-label={t('home.advanced_settings', {}, 'Paramètres avancés')}
+              aria-expanded={advancedOpen}
+              aria-controls="home-advanced-settings-panel"
+            >
+              <SettingsIcon className="hero-advanced-gear-icon" />
+            </button>
+            {advancedOpen && (
+              <div
+                id="home-advanced-settings-panel"
+                ref={advancedPanelRef}
+                className="home-advanced-popover"
+                role="dialog"
+                aria-modal="false"
+                aria-label={t('home.advanced_settings', {}, 'Paramètres avancés')}
+              >
+                <p className="home-advanced-popover-title">
+                  {t('home.advanced_settings', {}, 'Paramètres avancés')}
+                </p>
+                <AdvancedSettings
+                  open={advancedOpen}
+                  onOpenChange={setAdvancedOpen}
+                  showToggle={false}
+                  className="home-advanced-settings-popover"
+                />
+              </div>
+            )}
+          </div>
         )}
 
         {/* Quick-action chips */}
@@ -259,34 +334,6 @@ const HomePage = () => {
               <span className="chip-badge">{reviewStats.dueToday}</span>
             </button>
           )}
-        </div>
-      </section>
-
-      {/* ═══════ MODE SELECTOR ═══════ */}
-      <section className="home-mode">
-        <div className="home-mode-row" role="radiogroup" aria-label={t('home.play_pillar_title', {}, 'Mode')}>
-          <label className={`home-mode-chip ${gameMode === 'easy' ? 'active' : ''}`}>
-            <input type="radio" name="home-mode" value="easy" checked={gameMode === 'easy'} onChange={() => handleModeChange('easy')} />
-            <span className="mode-chip-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor" opacity="0.25" />
-              </svg>
-            </span>
-            <span>{t('home.easy_mode')}</span>
-          </label>
-          <label className={`home-mode-chip ${gameMode === 'hard' ? 'active' : ''}`}>
-            <input type="radio" name="home-mode" value="hard" checked={gameMode === 'hard'} onChange={() => handleModeChange('hard')} />
-            <span className="mode-chip-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="6" width="20" height="12" rx="3" />
-                <line x1="7" y1="10" x2="7" y2="14" strokeWidth="2" opacity="0.8" />
-                <text x="10" y="14.5" fill="currentColor" stroke="none" fontSize="7" fontWeight="600" fontFamily="sans-serif" opacity="0.5">abc</text>
-              </svg>
-            </span>
-            <span>{t('home.hard_mode')}</span>
-          </label>
         </div>
       </section>
 
@@ -320,20 +367,37 @@ const HomePage = () => {
 
         {/* Custom filter button */}
         {!packsLoading && (
-          <button
-            type="button"
-            className={`pack-card pack-card--custom ${activePackId === 'custom' ? 'selected' : ''}`}
-            onClick={() => { handlePackSelect('custom'); setCustomOpen(true); }}
-            aria-pressed={activePackId === 'custom'}
-          >
-            <PackIcon packId="custom" className="pack-card-icon" />
-            <span className="pack-card-title">{t('home.custom_filter_btn', {}, 'Personnalisé')}</span>
-          </button>
+          <div className="home-custom-center">
+            <button
+              type="button"
+              className={`home-custom-trigger ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
+              onClick={() => {
+                const wasCustomActive = activePackId === 'custom';
+                handlePackSelect('custom');
+                setCustomOpen(wasCustomActive ? !customOpen : true);
+              }}
+              aria-pressed={activePackId === 'custom'}
+              aria-expanded={customOpen}
+              aria-controls="home-custom-panel"
+            >
+              <span className="home-custom-trigger-icon" aria-hidden="true">
+                <PackIcon packId="custom" className="pack-card-icon" />
+              </span>
+              <span className="home-custom-trigger-copy">
+                <span className="home-custom-trigger-title">{t('home.custom_filter_btn', {}, 'Personnalisé')}</span>
+                <span className="home-custom-trigger-subtitle">
+                  {t('home.custom_card_subtitle', {}, 'Taxons, lieu, période')}
+                </span>
+              </span>
+              <span className={`home-custom-trigger-chevron ${customOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
+              <span className="home-custom-trigger-badge">{t('home.custom_badge', {}, 'Filtres')}</span>
+            </button>
+          </div>
         )}
 
         {/* ── Custom filter panel (collapsible) ── */}
         {customOpen && (
-          <div className="home-custom-panel">
+          <div className="home-custom-panel" id="home-custom-panel">
             <div className="home-custom-header">
               <p className="home-section-label">🎒 {t('home.custom_filter_btn', {}, 'Mode personnalisé')}</p>
               <button type="button" className="home-custom-close" onClick={() => setCustomOpen(false)} aria-label="Fermer">
@@ -345,8 +409,6 @@ const HomePage = () => {
         )}
       </section>
 
-      {/* ═══════ ADVANCED SETTINGS ═══════ */}
-      <AdvancedSettings />
     </div>
   );
 };

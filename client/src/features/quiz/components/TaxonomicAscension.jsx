@@ -48,7 +48,7 @@ function TaxonomicAscension() {
   const maxMistakes = ascension?.max_mistakes ?? 2;
   const maxHints = ascension?.max_hints ?? 1;
   const hintPenaltyPercent = ascension?.hint_cost_xp ?? 15;
-  const { t } = useLanguage();
+  const { t, nameFormat } = useLanguage();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [mistakes, setMistakes] = useState(0);
@@ -428,10 +428,10 @@ function TaxonomicAscension() {
                         disabled={roundStatus !== 'playing' || isSubmitting}
                       >
                         <span className="taxonomic-option-title">
-                          {option.preferred_common_name || option.name}
+                          {nameFormat === 'scientific' ? option.name : (option.preferred_common_name || option.name)}
                         </span>
-                        {option.preferred_common_name && (
-                          <span className="taxonomic-option-subtitle">{option.name}</span>
+                        {nameFormat !== 'scientific' && option.preferred_common_name && (
+                          <span className="taxonomic-option-scientific">{option.name}</span>
                         )}
                       </button>
                     );

@@ -2,7 +2,6 @@
 // CRUD operations for the taxa/stats IndexedDB tables.
 
 import db, { taxa as taxaTable, stats as statsTable } from '../db.js';
-import Dexie from 'dexie';
 import { queueTaxonForEnrichment } from '../TaxonomyService.js';
 import { getRarityTier, normalizeObservationsCount } from '../../utils/rarityUtils';
 import {
@@ -20,6 +19,10 @@ import {
 
 const PLACEHOLDER_IMAGE_URL = '/placeholder.svg';
 const BROADCAST_CHANNEL_NAME = 'COLLECTION_UPDATED';
+const COLLECTION_TAXON_RANK = 'species';
+
+const isCollectionSpeciesTaxon = (taxon) =>
+  String(taxon?.rank || '').toLowerCase() === COLLECTION_TAXON_RANK;
 
 /**
  * Broadcast collection update to other tabs.
@@ -168,13 +171,22 @@ export async function upsertTaxon(taxonData, opts = {}) {
       const incomingObservationsCount = normalizeObservationsCount(taxonData?.observations_count);
       const existingObservationsCount = normalizeObservationsCount(existing?.observations_count);
       const observationsCount = incomingObservationsCount ?? existingObservationsCount ?? null;
+      const incomingRank =
+        typeof taxonData?.rank === 'string' ? taxonData.rank.trim().toLowerCase() : '';
+      const existingRank =
+        typeof existing?.rank === 'string' ? existing.rank.trim().toLowerCase() : '';
+      const rank =
+        incomingRank ||
+        (existingRank && existingRank !== 'unknown'
+          ? existingRank
+          : COLLECTION_TAXON_RANK);
 
       const merged = {
         id: taxonId,
         name: taxonData.name || existing?.name,
         preferred_common_name:
           taxonData.preferred_common_name || existing?.preferred_common_name || taxonData.name,
-        rank: taxonData.rank || existing?.rank || 'unknown',
+        rank,
         iconic_taxon_id: taxonData.iconic_taxon_id ?? existing?.iconic_taxon_id,
         ancestor_ids: ancestorIds,
         square_url: imageUrl,
@@ -291,7 +303,8 @@ export async function getIconicSummary() {
   try {
     const allStats = await statsTable.toArray();
     const summary = {};
-    const allTaxa = await taxaTable.toArray();
+    const allTaxa = (await taxaTable.toArray()).filter(isCollectionSpeciesTaxon);
+    const taxonById = new Map(allTaxa.map((taxon) => [taxon.id, taxon]));
     const iconicIds = new Set(allTaxa.map((t) => t.iconic_taxon_id).filter(Boolean));
 
     for (const iconicId of iconicIds) {
@@ -311,7 +324,7 @@ export async function getIconicSummary() {
     }
 
     for (const stat of allStats) {
-      const taxon = allTaxa.find((t) => t.id === stat.id);
+      const taxon = taxonById.get(stat.id);
       if (!taxon) continue;
       const iconicId = taxon.iconic_taxon_id;
       if (!iconicId || !summary[iconicId]) continue;
@@ -371,14 +384,21 @@ export async function getSpeciesPage(params = {}) {
 
   const normalizedRarity =
     filterRarity && filterRarity !== 'all' ? String(filterRarity) : null;
+  const normalizedSearch = searchQuery.trim().toLowerCase();
   const matchesRarity = (taxon) =>
     !normalizedRarity || taxon?.rarity_tier === normalizedRarity;
-  const matchesStatus = (statObj) => {
-    if (filterStatus === 'seen') return Boolean(statObj);
+  const matchesSearch = (taxon) => {
+    if (!normalizedSearch) return true;
+    const scientific = String(taxon?.name || '').toLowerCase();
+    const common = String(taxon?.preferred_common_name || '').toLowerCase();
+    return scientific.includes(normalizedSearch) || common.includes(normalizedSearch);
+  };
+  const matchesStatus = (rawStat) => {
+    if (filterStatus === 'seen') return Boolean(rawStat);
     if (filterStatus === 'mastered')
-      return Boolean(statObj?.masteryLevel > MASTERY_LEVELS.NONE);
+      return Boolean(rawStat?.masteryLevel > MASTERY_LEVELS.NONE);
     if (filterStatus === 'to_learn')
-      return !(statObj?.masteryLevel > MASTERY_LEVELS.NONE);
+      return !(rawStat?.masteryLevel > MASTERY_LEVELS.NONE);
     return true;
   };
   const sortSpecies = (list) => {
@@ -413,173 +433,33 @@ export async function getSpeciesPage(params = {}) {
 
   try {
     return await db.transaction('r', taxaTable, statsTable, async () => {
-      // -------------- SEARCH PATH --------------
-      if (searchQuery && searchQuery.trim().length > 0) {
-        const q = searchQuery.trim();
-        const base = taxaTable
-          .where('name')
-          .startsWithIgnoreCase(q)
-          .and((t) => t.iconic_taxon_id === iconicId && matchesRarity(t));
+      const taxaInIconic = await taxaTable.where('iconic_taxon_id').equals(iconicId).toArray();
+      const eligibleTaxa = taxaInIconic.filter(
+        (taxon) =>
+          isCollectionSpeciesTaxon(taxon) &&
+          matchesRarity(taxon) &&
+          matchesSearch(taxon)
+      );
+      const taxonIds = eligibleTaxa.map((taxon) => taxon.id);
+      const statsForTaxa = taxonIds.length > 0 ? await statsTable.bulkGet(taxonIds) : [];
 
-        const total = await base.count();
-        const collected = [];
-        let cursor = offset;
-        const CHUNK = Math.max(limit * 3, 50);
-
-        while (collected.length < limit) {
-          const chunk = await base.offset(cursor).limit(CHUNK).toArray();
-          if (!chunk.length) break;
-          const ids = chunk.map((t) => t.id);
-          const statsArr = await statsTable.bulkGet(ids);
-
-          for (let i = 0; i < chunk.length && collected.length < limit; i++) {
-            const taxon = chunk[i];
-            const stat = statsArr[i] || null;
-            if (!matchesStatus(stat)) continue;
-            collected.push({ taxon, stats: stat || defaultStatsFor(taxon.id) });
-          }
-          cursor += chunk.length;
-          if (chunk.length < CHUNK) break;
-        }
-        return { species: sortSpecies(collected), total };
-      }
-
-      const shouldUseRarityIndex = Boolean(normalizedRarity);
-      const requiresRaritySort = sort === 'rarity' || sort === 'rarity_common';
-
-      if (shouldUseRarityIndex || requiresRaritySort) {
-        const taxaBase = shouldUseRarityIndex
-          ? await taxaTable
-              .where('rarity_tier')
-              .equals(normalizedRarity)
-              .and((t) => t.iconic_taxon_id === iconicId)
-              .toArray()
-          : await taxaTable.where('iconic_taxon_id').equals(iconicId).toArray();
-        const statsForTaxa = await statsTable.bulkGet(taxaBase.map((t) => t.id));
-        let combined = taxaBase.map((taxon, i) => ({
+      let combined = eligibleTaxa.map((taxon, index) => {
+        const rawStats = statsForTaxa[index] || null;
+        return {
           taxon,
-          stats: statsForTaxa[i] || defaultStatsFor(taxon.id),
-        }));
-        combined = combined.filter((entry) => matchesStatus(entry.stats));
-        const sorted = sortSpecies(combined);
-        return { species: sorted.slice(offset, offset + limit), total: sorted.length };
-      }
+          stats: rawStats || defaultStatsFor(taxon.id),
+          _rawStats: rawStats,
+        };
+      });
 
-      // -------------- NO SEARCH PATH --------------
-      if (
-        filterStatus === 'seen' ||
-        filterStatus === 'mastered' ||
-        sort === 'recent' ||
-        sort === 'mastery'
-      ) {
-        let statsCollection = null;
-        if (sort === 'mastery') {
-          statsCollection = statsTable
-            .where('[iconic_taxon_id+masteryLevel]')
-            .between([iconicId, Dexie.minKey], [iconicId, Dexie.maxKey])
-            .reverse();
-        } else if (sort === 'recent') {
-          statsCollection = statsTable
-            .where('[iconic_taxon_id+lastSeenAt]')
-            .between([iconicId, Dexie.minKey], [iconicId, Dexie.maxKey])
-            .reverse();
-        } else {
-          statsCollection = statsTable.where('iconic_taxon_id').equals(iconicId);
-        }
+      combined = combined.filter((entry) => matchesStatus(entry._rawStats));
+      combined = sortSpecies(combined);
 
-        if (filterStatus === 'mastered' && sort === 'mastery') {
-          statsCollection = statsTable
-            .where('[iconic_taxon_id+masteryLevel]')
-            .between([iconicId, 1], [iconicId, Dexie.maxKey])
-            .reverse();
-        }
+      const total = combined.length;
+      const species = combined
+        .slice(offset, offset + limit)
+        .map(({ taxon, stats }) => ({ taxon, stats }));
 
-        const totalSeen = await statsCollection.count();
-
-        if (filterStatus === 'seen' || filterStatus === 'mastered') {
-          const statsPage = await statsCollection.offset(offset).limit(limit).toArray();
-          const taxonIds = statsPage.map((s) => s.id);
-          const taxa = await taxaTable.bulkGet(taxonIds);
-          const species = statsPage
-            .map((s, i) => ({ taxon: taxa[i] || null, stats: s }))
-            .filter((entry) => matchesRarity(entry.taxon));
-          return { species, total: totalSeen };
-        }
-
-        if (filterStatus === 'all' && (sort === 'mastery' || sort === 'recent')) {
-          const seenPage = await statsCollection
-            .offset(offset)
-            .limit(limit)
-            .toArray();
-          if (seenPage.length === limit) {
-            const taxonIds = seenPage.map((s) => s.id);
-            const taxa = await taxaTable.bulkGet(taxonIds);
-            const filteredSpecies = seenPage
-              .map((s, i) => ({ taxon: taxa[i] || null, stats: s }))
-              .filter((entry) => matchesRarity(entry.taxon));
-            return {
-              species: filteredSpecies,
-              total: await taxaTable.where('iconic_taxon_id').equals(iconicId).count(),
-            };
-          }
-
-          const seenCount = await statsTable
-            .where('iconic_taxon_id')
-            .equals(iconicId)
-            .count();
-          const remaining = limit - seenPage.length;
-          const unseen = [];
-          let cursor = Math.max(0, offset - seenCount);
-          const CHUNK = Math.max(100, remaining * 5);
-
-          while (unseen.length < remaining) {
-            const chunk = await taxaTable
-              .where('iconic_taxon_id')
-              .equals(iconicId)
-              .offset(cursor)
-              .limit(CHUNK)
-              .toArray();
-            if (!chunk.length) break;
-            const ids = chunk.map((t) => t.id);
-            const statsArr = await statsTable.bulkGet(ids);
-            for (let i = 0; i < chunk.length && unseen.length < remaining; i++) {
-              if (statsArr[i]) continue;
-              unseen.push({ taxon: chunk[i], stats: defaultStatsFor(chunk[i].id) });
-            }
-            cursor += chunk.length;
-            if (chunk.length < CHUNK) break;
-          }
-
-          const taxonIds = seenPage.map((s) => s.id);
-          const taxa = await taxaTable.bulkGet(taxonIds);
-          const mappedSeen = seenPage
-            .map((s, i) => ({ taxon: taxa[i] || null, stats: s }))
-            .filter((entry) => matchesRarity(entry.taxon));
-          const combined = [...mappedSeen, ...unseen].slice(0, limit);
-          const total = await taxaTable
-            .where('iconic_taxon_id')
-            .equals(iconicId)
-            .count();
-          return { species: combined, total };
-        }
-      }
-
-      // Default: alpha sort or fallback
-      const base = taxaTable.where('iconic_taxon_id').equals(iconicId);
-      const total = await base.count();
-      const taxaPage = await base.offset(offset).limit(limit).toArray();
-      const statsForPage = await statsTable.bulkGet(taxaPage.map((t) => t.id));
-      const species = taxaPage
-        .map((taxon, i) => ({
-          taxon,
-          stats: statsForPage[i] || defaultStatsFor(taxon.id),
-        }))
-        .filter((entry) => matchesRarity(entry.taxon));
-      if (sort === 'alpha') {
-        species.sort((a, b) =>
-          (a.taxon?.name || '').localeCompare(b.taxon?.name || ''),
-        );
-      }
       return { species, total };
     });
   } catch (error) {

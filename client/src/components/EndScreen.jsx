@@ -36,15 +36,19 @@ const EndScreen = ({
     let totalBase = 0;
     let totalStreak = 0;
     let totalRarity = 0;
+    let totalFinal = 0;
     sessionSpeciesData.forEach((sp) => {
       if (!sp?.economy) return;
       totalBase += sp.economy.baseXp || 0;
       totalStreak += sp.economy.streakBonus || 0;
       totalRarity += sp.economy.rarityBonus || 0;
+      totalFinal += sp.economy.finalXp || sp.earnedXp || 0;
     });
-    const total = totalBase + totalStreak + totalRarity;
+    const totalBaseAndBonuses = totalBase + totalStreak + totalRarity;
+    const totalScientificBonus = Math.max(0, totalFinal - totalBaseAndBonuses);
+    const total = totalBaseAndBonuses + totalScientificBonus;
     if (total === 0) return null;
-    return { totalBase, totalStreak, totalRarity, total };
+    return { totalBase, totalStreak, totalRarity, totalScientificBonus, total };
   }, [sessionSpeciesData]);
 
   // Session XP: prefer the precise breakdown total, fall back to profile diff or score
@@ -154,6 +158,12 @@ const EndScreen = ({
                 <div className="xp-breakdown-row rarity">
                   <span className="xp-breakdown-label">💎 {t('end.xp_rarity', {}, 'Rareté')}</span>
                   <span className="xp-breakdown-value">+{xpBreakdown.totalRarity}</span>
+                </div>
+              )}
+              {xpBreakdown.totalScientificBonus > 0 && (
+                <div className="xp-breakdown-row streak">
+                  <span className="xp-breakdown-label">🧪 {t('end.xp_scientific_mode', {}, 'Nom scientifique (x2)')}</span>
+                  <span className="xp-breakdown-value">+{xpBreakdown.totalScientificBonus}</span>
                 </div>
               )}
             </div>

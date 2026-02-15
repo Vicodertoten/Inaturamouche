@@ -134,6 +134,26 @@ describe('CollectionService', () => {
       expect(result.stats.correctCount).toBe(1);
     });
 
+    it('should default missing rank to species so collection entries remain visible', async () => {
+      const taxonData = {
+        id: 42,
+        name: 'Unknown Rank Species',
+        iconic_taxon_id: 3,
+      };
+
+      await recordEncounter(taxonData, { isCorrect: true });
+
+      const storedTaxon = await taxa.get(42);
+      expect(storedTaxon.rank).toBe('species');
+
+      const page = await getSpeciesPage({
+        iconicId: 3,
+        offset: 0,
+        limit: 10,
+      });
+      expect(page.species.some((item) => item.taxon.id === 42)).toBe(true);
+    });
+
     it('should calculate BRONZE mastery after 1 correct', async () => {
       const taxonData = { id: 1, name: 'Species', iconic_taxon_id: 3 };
 

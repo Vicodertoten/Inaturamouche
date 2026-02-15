@@ -16,9 +16,9 @@ const router = Router();
 // Autocomplete taxons
 router.get('/api/taxa/autocomplete', validate(autocompleteSchema), async (req, res) => {
   try {
-    const { q, rank, locale = 'fr' } = req.valid;
+    const { q, rank, locale = 'fr', name_format = 'vernacular' } = req.valid;
     autocompleteCache.prune();
-    const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale });
+    const cacheKey = buildCacheKey({ q: String(q).trim(), rank, locale, name_format });
     const out = await autocompleteCache.getOrFetch(
       cacheKey,
       async () => {
@@ -41,9 +41,12 @@ router.get('/api/taxa/autocomplete', validate(autocompleteSchema), async (req, r
 
         return initial.map((t) => {
           const d = byId.get(t.id);
+          const displayName = name_format === 'scientific'
+            ? t.name
+            : (t.preferred_common_name ? `${t.preferred_common_name} (${t.name})` : t.name);
           return {
             id: t.id,
-            name: t.preferred_common_name ? `${t.preferred_common_name} (${t.name})` : t.name,
+            name: displayName,
             rank: t.rank,
             ancestor_ids: Array.isArray(d?.ancestors) ? d.ancestors.map((a) => a.id) : [],
           };

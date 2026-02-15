@@ -978,6 +978,7 @@ const fr = {
     terms: 'CGU',
     privacy: 'Confidentialité',
     inat_attribution: 'Données naturalistes fournies par iNaturalist (CC BY-NC). Photos © leurs auteurs respectifs.',
+    report_bug: 'Signaler un bug',
     open_source: 'Projet open source',
   },
   legal: {

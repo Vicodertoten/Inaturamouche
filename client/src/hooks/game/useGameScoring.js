@@ -182,6 +182,9 @@ export function useGameScoring({
         activeQuestion.image_urls?.[0] ||
         null;
       const taxonPayload = { ...resolvedAnswer };
+      if (!taxonPayload.rank) {
+        taxonPayload.rank = 'species';
+      }
       if (!taxonPayload.rarity_tier && rarityInfo.tier !== 'unknown') {
         taxonPayload.rarity_tier = rarityInfo.tier;
       }

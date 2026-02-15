@@ -34,7 +34,7 @@ const EasyMode = () => {
     dailySeedSession,
   } = useGameData();
   // Paires (id, label) alignées.
-  const { t, getTaxonDisplayNames } = useLanguage();
+  const { t, getTaxonDisplayNames, nameFormat } = useLanguage();
   const soundUrl = normalizeMediaUrl(question?.sounds?.[0]?.file_url);
   const soundType = getAudioMimeType(soundUrl);
   const showAudio = (mediaType === 'sounds' || mediaType === 'both') && !!soundUrl;
@@ -245,7 +245,9 @@ const EasyMode = () => {
                       return (
                         <span className="choice-label">
                           <span className="choice-primary">{primary}</span>
-                          {secondary && <span className="choice-secondary">{secondary}</span>}
+                          {nameFormat !== 'scientific' && secondary && (
+                            <span className="choice-secondary">{secondary}</span>
+                          )}
                         </span>
                       );
                     })()}

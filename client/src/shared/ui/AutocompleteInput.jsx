@@ -21,7 +21,7 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
   const debouncedSearchTerm = useDebounce(inputValue, 400);
   const containerRef = useRef(null);
   const listId = useId();
-  const { language } = useLanguage();
+  const { language, nameFormat } = useLanguage();
 
   const fetchSuggestions = useCallback(async (searchTerm) => {
     if (searchTerm.length < 2) {
@@ -30,13 +30,17 @@ function AutocompleteInput({ placeholder, onSelect, extraParams, disabled, incor
     }
     setIsLoading(true);
     try {
-      const data = await autocompleteTaxa(searchTerm, extraParams, language);
+      const data = await autocompleteTaxa(
+        searchTerm,
+        { ...extraParams, name_format: nameFormat },
+        language
+      );
       setSuggestions(data);
     } catch (error) {
       setSuggestions([]);
     }
     setIsLoading(false);
-  }, [extraParams, language]);
+  }, [extraParams, language, nameFormat]);
 
   useEffect(() => {
     if (debouncedSearchTerm && !disabled) {

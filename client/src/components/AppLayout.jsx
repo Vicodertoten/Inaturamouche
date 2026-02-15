@@ -6,7 +6,7 @@ import ReportModal from './ReportModal';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
-import { CollectionIcon, ProfileIcon as SharedProfileIcon, ReportIcon, HelpIcon } from './NavigationIcons';
+import { CollectionIcon, ProfileIcon as SharedProfileIcon, HelpIcon } from './NavigationIcons';
 import HelpCenterModal from './HelpCenterModal';
 import Footer from './Footer';
 import titleImage from '../assets/inaturaquizz-title.png';
@@ -64,15 +64,6 @@ const AppLayout = () => {
       {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
       <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">
-          <button
-            className="nav-pill nav-icon nav-elevated tutorial-nav-report"
-            onClick={showReport}
-            aria-label="Signaler un problème"
-            title="Signaler un problème"
-            type="button"
-          >
-            <ReportIcon />
-          </button>
           <button
             className="nav-pill nav-icon nav-elevated"
             onClick={openHelp}
@@ -141,7 +132,7 @@ const AppLayout = () => {
         <Outlet context={outletContext} />
       </main>
 
-      {!isPlayScreen && <Footer />}
+      {!isPlayScreen && <Footer onReportClick={showReport} />}
     </div>
   );
 };

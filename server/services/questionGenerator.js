@@ -614,6 +614,7 @@ export async function buildQuizQuestion({
     name: correct.name,
     preferred_common_name: correct.preferred_common_name || correct.common_name || null,
     common_name: getTaxonName(correct),
+    rank: correct.rank || 'species',
     ancestors: Array.isArray(correct.ancestors) ? correct.ancestors : [],
     ancestor_ids: correct.ancestor_ids,
     iconic_taxon_id: correct.iconic_taxon_id,

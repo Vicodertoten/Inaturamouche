@@ -998,6 +998,7 @@ const nl = {
     terms: 'Gebruiksvoorwaarden',
     privacy: 'Privacy',
     inat_attribution: 'Natuurgegevens geleverd door iNaturalist (CC BY-NC). Foto\'s © hun respectieve auteurs.',
+    report_bug: 'Bug melden',
     open_source: 'Open source project',
   },
   legal: {

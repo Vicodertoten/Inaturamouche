@@ -975,6 +975,7 @@ const en = {
     terms: 'Terms of use',
     privacy: 'Privacy',
     inat_attribution: 'Naturalist data provided by iNaturalist (CC BY-NC). Photos © their respective authors.',
+    report_bug: 'Report a bug',
     open_source: 'Open source project',
   },
   legal: {
