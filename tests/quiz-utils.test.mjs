@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildCacheKey, effectiveCooldownN, lcaDepth, shuffleFisherYates } from "../lib/quiz-utils.js";
+import { buildCacheKey, effectiveCooldownN, HistoryBuffer, lcaDepth, shuffleFisherYates } from "../lib/quiz-utils.js";
 import { SmartCache } from "../lib/smart-cache.js";
 
 test("buildCacheKey sorts keys and flattens arrays", () => {

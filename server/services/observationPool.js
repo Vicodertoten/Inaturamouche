@@ -4,6 +4,7 @@
 import { config } from '../config/index.js';
 import { fetchInatJSON } from './iNaturalistClient.js';
 import { questionCache } from '../cache/questionCache.js';
+import { buildConfusionMap } from './confusionMap.js';
 
 const {
   maxObsPages,
@@ -203,8 +204,17 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
     taxonList,
     taxonSet: new Set(taxonList.map(String)),
     observationCount: results.length,
+    confusionMap: null, // populated below
     source: 'inat',
   };
+
+  // Build the confusion map for this pool (pre-compute all lure candidates).
+  // This calls similar_species in batched parallel for every taxon, cached 7d.
+  try {
+    pool.confusionMap = await buildConfusionMap(pool, { logger, requestId });
+  } catch (err) {
+    logger?.warn?.({ requestId, error: err?.message }, 'Confusion map build failed, lures will use LCA-only');
+  }
 
   return { pool, pagesFetched, poolObs: results.length, poolTaxa: taxonList.length };
 }
@@ -279,6 +289,7 @@ function buildDegradePoolFromCache(params) {
     taxonList,
     taxonSet: new Set(taxonList.map(String)),
     observationCount,
+    confusionMap: null, // degrade pool has no confusion map — will use LCA-only fallback
     source: 'degrade-local',
   };
 }

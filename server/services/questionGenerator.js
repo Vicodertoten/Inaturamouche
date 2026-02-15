@@ -425,7 +425,9 @@ export async function buildQuizQuestion({
         MAX_LURE_CLOSENESS
       );
 
-    let { lures, buckets: builtBuckets } = await buildLures(
+    // buildLures is now synchronous — it reads from the pre-computed
+    // confusion map (built once at pool construction time).
+    let { lures } = buildLures(
       cacheEntry,
       selectionState,
       targetTaxonId,
@@ -433,20 +435,13 @@ export async function buildQuizQuestion({
       config.lureCount,
       questionRng,
       {
-        allowExternalLures: hasExplicitTaxa,
-        allowMixedIconic: hasExplicitTaxa || hasPackFilter,
         excludeTaxonIds: excludeFutureTargets,
-        logger,
-        requestId,
         minCloseness: modeMinCloseness,
-        locale: locale || 'fr',
-        recentLureTaxa: selectionState.recentLureTaxa || null,
+        lureUsageCount: selectionState.lureUsageCount || null,
       }
     );
 
-    // Retry with relaxed closeness if lures are insufficient (common for
-    // phylogenetically diverse packs like mushrooms where LCA closeness
-    // between species of different orders falls below the threshold).
+    // Retry with relaxed closeness if lures are insufficient.
     if ((!lures || lures.length < config.lureCount) && modeMinCloseness > 0) {
       logger?.info(
         {
@@ -458,7 +453,7 @@ export async function buildQuizQuestion({
         },
         'Lure closeness too strict, retrying with minCloseness=0'
       );
-      ({ lures, buckets: builtBuckets } = await buildLures(
+      ({ lures } = buildLures(
         cacheEntry,
         selectionState,
         targetTaxonId,
@@ -466,14 +461,9 @@ export async function buildQuizQuestion({
         config.lureCount,
         questionRng,
         {
-          allowExternalLures: hasExplicitTaxa,
-          allowMixedIconic: true,
-          excludeTaxonIds: excludeFutureTargets,
-          logger,
-          requestId,
+          excludeTaxonIds: null,
           minCloseness: 0,
-          locale: locale || 'fr',
-          recentLureTaxa: selectionState.recentLureTaxa || null,
+          lureUsageCount: null,
         }
       ));
     }
@@ -483,30 +473,15 @@ export async function buildQuizQuestion({
       err.status = 404;
       throw err;
     }
-    buckets = builtBuckets;
     marks.builtLures = performance.now();
 
-    // Track lure taxa to avoid repetition in subsequent questions.
-    // The cooldown window should be large enough so that lures from the
-    // last ~5 questions are avoided before they can reappear.
-    // With 3 lures/question, we want at least 5*3 = 15 recent entries,
-    // capped to (poolSize - quizChoices) to avoid deadlocking small pools.
-    if (!selectionState.recentLureTaxa) {
-      selectionState.recentLureTaxa = new Set();
-    }
-    const LURE_COOLDOWN_LIMIT = Math.min(
-      config.lureCount * 5,
-      Math.max(0, cacheEntry.taxonList.length - config.quizChoices)
-    );
-    for (const lure of lures) {
-      selectionState.recentLureTaxa.add(String(lure.taxonId));
-    }
-    // Evict oldest entries when over limit
-    if (selectionState.recentLureTaxa.size > LURE_COOLDOWN_LIMIT) {
-      const entries = Array.from(selectionState.recentLureTaxa);
-      const toRemove = entries.length - LURE_COOLDOWN_LIMIT;
-      for (let i = 0; i < toRemove; i++) {
-        selectionState.recentLureTaxa.delete(entries[i]);
+    // Increment lure usage counters for diversity weighting.
+    // The counter persists across questions so that lures used more often
+    // get progressively lower weight in future selections.
+    if (selectionState.lureUsageCount) {
+      for (const lure of lures) {
+        const tid = String(lure.taxonId);
+        selectionState.lureUsageCount.set(tid, (selectionState.lureUsageCount.get(tid) || 0) + 1);
       }
     }
 

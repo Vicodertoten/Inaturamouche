@@ -21,6 +21,10 @@ export function createSelectionState(pool, rng) {
     recentTargetSet: new Set(),
     cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
     observationHistory: new HistoryBuffer(historyLimit),
+    // Lure usage counter: Map<taxonId, number> — how many times each lure
+    // has been shown. Used by buildLures() to weight selection and ensure
+    // diversity without a fixed cooldown window.
+    lureUsageCount: new Map(),
     taxonDeck: createShuffledDeck(pool.taxonList, rng),
     questionIndex: 0,
     version: pool.version,
@@ -45,6 +49,10 @@ export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
       nextState.observationHistory = previousHistory;
       nextState.observationHistory.resize(historyLimit);
     }
+    // Migrate lure usage counts across pool version changes
+    if (state?.lureUsageCount instanceof Map) {
+      nextState.lureUsageCount = state.lureUsageCount;
+    }
     if (state?.recentTargetTaxa?.length && pool?.taxonSet) {
       nextState.recentTargetTaxa = state.recentTargetTaxa.filter((id) => pool.taxonSet.has(String(id)));
       nextState.recentTargetSet = new Set(nextState.recentTargetTaxa.map(String));
@@ -55,6 +63,10 @@ export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
     state.observationHistory = new HistoryBuffer(historyLimit);
   } else {
     state.observationHistory.resize(historyLimit);
+  }
+  // Ensure lureUsageCount is always a Map (guard for legacy states)
+  if (!(state.lureUsageCount instanceof Map)) {
+    state.lureUsageCount = new Map();
   }
   if (!Number.isInteger(state.questionIndex) || state.questionIndex < 0) {
     state.questionIndex = 0;
