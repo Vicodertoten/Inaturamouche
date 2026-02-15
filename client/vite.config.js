@@ -145,12 +145,6 @@ export default defineConfig({
           ) {
             return "zz_leaflet";
           }
-          if (
-            normalizedId.includes("/node_modules/react-dom/") ||
-            normalizedId.includes("/node_modules/react/")
-          ) {
-            return "react";
-          }
           if (normalizedId.includes("/node_modules/d3")) return "d3";
           return "vendor";
         },
