@@ -179,12 +179,18 @@ function TaxonomicAscension() {
         finalizeFromServer(result, statePayload);
       }
     } catch (error) {
+      if (error?.code === 'ROUND_EXPIRED') {
+        notify(t('errors.round_expired', {}, 'Question expirée, passage à la suivante…'), { type: 'warning' });
+        completeRound({ points: 0, bonus: 0, streakBonus: 0, isCorrect: false, roundMeta: { mode: 'taxonomic', wasCorrect: false, serverValidated: false, skippedExpired: true } });
+        return;
+      }
       notify(error?.message || t('errors.generic'), { type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   }, [
     applyTaxonomicState,
+    completeRound,
     currentStep,
     currentStepIndex,
     finalizeFromServer,
@@ -225,12 +231,18 @@ function TaxonomicAscension() {
         finalizeFromServer(result, statePayload);
       }
     } catch (error) {
+      if (error?.code === 'ROUND_EXPIRED') {
+        notify(t('errors.round_expired', {}, 'Question expirée, passage à la suivante…'), { type: 'warning' });
+        completeRound({ points: 0, bonus: 0, streakBonus: 0, isCorrect: false, roundMeta: { mode: 'taxonomic', wasCorrect: false, serverValidated: false, skippedExpired: true } });
+        return;
+      }
       notify(error?.message || t('errors.generic'), { type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   }, [
     applyTaxonomicState,
+    completeRound,
     currentStep,
     currentStepIndex,
     finalizeFromServer,

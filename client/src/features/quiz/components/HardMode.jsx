@@ -12,6 +12,7 @@ import { useGameData } from '../../../context/GameContext';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../../../utils/haptics';
 import { submitQuizAnswer } from '../../../services/api';
+import { notify } from '../../../services/notifications';
 
 const INITIAL_GUESSES = 3;
 
@@ -160,6 +161,11 @@ function HardMode() {
           setRoundStatus(result?.status === 'win' ? 'win' : 'lose');
         }
       } catch (error) {
+        if (error?.code === 'ROUND_EXPIRED') {
+          notify(t('errors.round_expired', {}, 'Question expirée, passage à la suivante…'), { type: 'warning' });
+          completeRound({ points: 0, bonus: 0, streakBonus: 0, isCorrect: false, roundMeta: { mode: 'hard', wasCorrect: false, serverValidated: false, skippedExpired: true } });
+          return;
+        }
         showFeedback(error?.message || t('hard.feedback.error'), 'error');
         triggerPanelShake();
       } finally {
@@ -168,6 +174,7 @@ function HardMode() {
     },
     [
       basePoints,
+      completeRound,
       isGuessing,
       mapSelectedTaxonToUserAnswer,
       question,
