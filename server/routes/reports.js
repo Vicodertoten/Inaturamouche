@@ -17,12 +17,13 @@ let reports = [];
 const MAX_REPORTS = 200;
 const REPORTS_WRITE_TOKEN = process.env.REPORTS_WRITE_TOKEN;
 const REPORTS_READ_TOKEN = process.env.REPORTS_READ_TOKEN;
-const { reportsRequireWriteToken } = config;
+const { reportsRequireWriteToken, nodeEnv } = config;
+const requireWriteToken = reportsRequireWriteToken || nodeEnv === 'production';
 
 // Endpoint pour recevoir un rapport
 router.post('/api/reports', reportsLimiter, validate(reportSchema), (req, res) => {
   try {
-    if (reportsRequireWriteToken) {
+    if (requireWriteToken) {
       if (!isConfiguredToken(REPORTS_WRITE_TOKEN)) {
         req.log?.error({ route: '/api/reports' }, 'REPORTS_WRITE_TOKEN is required but not configured');
         return sendError(req, res, {

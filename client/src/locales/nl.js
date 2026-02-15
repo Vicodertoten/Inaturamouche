@@ -391,7 +391,7 @@ const nl = {
       inaturalist: 'Bekijk op iNaturalist',
       wikipedia: 'Wikipedia-pagina',
     },
-    new_discovery: '✨ Nieuwe soort toegevoegd aan je veldgids!',
+    new_discovery: 'Nieuwe soort toegevoegd aan je veldgids!',
     xp_earned: 'XP verdiend deze sessie',
     xp_base: 'Basis',
     xp_streak: 'Reeks',
@@ -400,10 +400,10 @@ const nl = {
     level_from: 'Niveau {level}',
     level_to: 'Niveau {level}',
     multi_level: '{count} niveaus!',
-    session_complete: '✨ Sessie Voltooid',
-    new_discoveries: '✨ Nieuwe Ontdekkingen',
+    session_complete: 'Sessie voltooid',
+    new_discoveries: 'Nieuwe ontdekkingen',
     species_added: 'soort(en) toegevoegd aan de gids',
-    achievements_unlocked: '🏆 Prestaties Vrijgespeeld',
+    achievements_unlocked: 'Prestaties vrijgespeeld',
   },
   share: {
     share_result: 'Delen',
@@ -413,12 +413,12 @@ const nl = {
     challenge_copied: 'Uitdagingslink gekopieerd! Stuur het naar een vriend.',
   },
   daily: {
-    leaderboard_title: '🏆 Dagelijks Klassement',
+    leaderboard_title: 'Dagelijks klassement',
     submit_hint: 'Voer een bijnaam in om op het klassement te verschijnen!',
     pseudo_placeholder: 'Jouw bijnaam…',
     submit_score: 'Publiceren',
     your_rank: 'Je bent #{rank} van {total} spelers!',
-    first_player: 'Je bent de eerste vandaag! 🎉',
+    first_player: 'Je bent de eerste vandaag!',
   },
   challenge: {
     title: 'Uitdaging van een vriend!',
@@ -842,8 +842,8 @@ const nl = {
     ocean_depth: 'Oceaandiepte',
   },
   notifications: {
-    new_species: '🦋 Nieuwe soort: {name} !',
-    level_up: '🥇 Niveau {level} behaald voor {name}!',
+    new_species: 'Nieuwe soort: {name} !',
+    level_up: 'Niveau {level} behaald voor {name}!',
   },
   help: { 
     title: 'Welkom bij iNaturaQuizz!',

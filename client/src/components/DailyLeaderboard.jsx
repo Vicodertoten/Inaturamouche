@@ -61,7 +61,7 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
   return (
     <div className="daily-leaderboard">
       <h3 className="section-title">
-        {t('daily.leaderboard_title', {}, '🏆 Classement du Jour')}
+        {t('daily.leaderboard_title', {}, 'Classement du jour')}
       </h3>
 
       {!submitted && (
@@ -70,7 +70,11 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
             {t('daily.submit_hint', {}, 'Entre un pseudo pour apparaître au classement !')}
           </p>
           <div className="daily-submit-row">
+            <label className="sr-only" htmlFor="daily-pseudo-input">
+              {t('daily.pseudo_label', {}, 'Pseudo')}
+            </label>
             <input
+              id="daily-pseudo-input"
               type="text"
               className="daily-pseudo-input"
               value={pseudo}
@@ -101,7 +105,7 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
             return (
               <li key={e.rank} className={`daily-entry ${isPlayer ? 'is-player' : ''}`}>
                 <span className="daily-entry-rank">
-                  {e.rank <= 3 ? ['🥇', '🥈', '🥉'][e.rank - 1] : `#${e.rank}`}
+                  {`#${e.rank}`}
                 </span>
                 <span className="daily-entry-pseudo">{e.pseudo}</span>
                 <span className="daily-entry-score">{e.score}/{e.total}</span>
@@ -112,7 +116,7 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
       )}
 
       {entries.length === 0 && submitted && (
-        <p className="daily-empty">{t('daily.first_player', {}, 'Tu es le premier aujourd\'hui ! 🎉')}</p>
+        <p className="daily-empty">{t('daily.first_player', {}, 'Tu es le premier aujourd\'hui !')}</p>
       )}
     </div>
   );

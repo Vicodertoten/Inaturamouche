@@ -50,7 +50,7 @@ const ChallengePage = () => {
     return (
       <div className="screen challenge-screen">
         <div className="card challenge-card">
-          <h2>❌ {t('challenge.invalid_title', {}, 'Lien invalide')}</h2>
+          <h1>❌ {t('challenge.invalid_title', {}, 'Lien invalide')}</h1>
           <p>{t('challenge.invalid_text', {}, 'Ce lien de défi n\'est pas valide ou a expiré.')}</p>
           <button type="button" className="btn btn--primary" onClick={() => navigate('/')}>
             {t('common.home', {}, 'Accueil')}
@@ -66,7 +66,7 @@ const ChallengePage = () => {
     <div className="screen challenge-screen">
       <div className="card challenge-card">
         <div className="challenge-icon" aria-hidden="true">⚔️</div>
-        <h2>{t('challenge.title', {}, 'Défi d\'un ami !')}</h2>
+        <h1>{t('challenge.title', {}, 'Défi d\'un ami !')}</h1>
         <p className="challenge-desc">
           {challenge.score != null && challenge.total != null
             ? t('challenge.description_score', { score: challenge.score, total: challenge.total },

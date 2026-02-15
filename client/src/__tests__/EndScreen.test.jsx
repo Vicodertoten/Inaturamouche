@@ -12,6 +12,10 @@ vi.mock('../context/GameContext.jsx', () => ({
   useGameData: () => ({ initialSessionXP: 100 }),
 }));
 
+vi.mock('../context/PacksContext.jsx', () => ({
+  usePacks: () => ({ packs: [] }),
+}));
+
 vi.mock('../services/notifications', () => ({
   notify: () => {},
 }));

@@ -69,6 +69,11 @@ const DEFAULT_ERROR_MESSAGE = "Une erreur est survenue.";
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff in ms
 const RETRYABLE_ERRORS = ['Failed to fetch', 'NetworkError', 'Timeout', 'AbortError'];
+const NON_RETRYABLE_ERROR_CODES = new Set([
+  'POOL_UNAVAILABLE',
+  'INAT_UNAVAILABLE',
+  'INAT_TIMEOUT',
+]);
 
 const inatFetcher =
   typeof window !== "undefined" && typeof window.fetch === "function"
@@ -127,6 +132,10 @@ function isRetryableError(error) {
   if (!error) return false;
   const message = error.message || '';
   const name = error.name || '';
+
+  if (error.code && NON_RETRYABLE_ERROR_CODES.has(String(error.code))) {
+    return false;
+  }
   
   // Don't retry 4xx errors (client errors)
   if (error.status >= 400 && error.status < 500) return false;

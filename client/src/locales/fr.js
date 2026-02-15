@@ -393,7 +393,7 @@ const fr = {
       inaturalist: 'Consulter sur iNaturalist',
       wikipedia: 'Page Wikipédia',
     },
-    new_discovery: '✨ Découverte Sauvage ajoutée au Classeur !',
+    new_discovery: 'Découverte sauvage ajoutée au classeur !',
     xp_earned: 'XP gagné cette session',
     xp_base: 'Base',
     xp_streak: 'Streak',
@@ -402,10 +402,10 @@ const fr = {
     level_from: 'Niveau {level}',
     level_to: 'Niveau {level}',
     multi_level: '{count} niveaux!',
-    session_complete: '✨ Session Terminée',
-    new_discoveries: '✨ Nouvelles Découvertes',
+    session_complete: 'Session terminée',
+    new_discoveries: 'Nouvelles découvertes',
     species_added: 'espèce(s) ajoutée(s) au guide',
-    achievements_unlocked: '🏆 Succès Débloqués',
+    achievements_unlocked: 'Succès débloqués',
   },
   share: {
     share_result: 'Partager',
@@ -415,12 +415,12 @@ const fr = {
     challenge_copied: 'Lien de défi copié ! Envoie-le à un ami.',
   },
   daily: {
-    leaderboard_title: '🏆 Classement du Jour',
+    leaderboard_title: 'Classement du jour',
     submit_hint: 'Entre un pseudo pour apparaître au classement !',
     pseudo_placeholder: 'Ton pseudo…',
     submit_score: 'Publier',
     your_rank: 'Tu es {rank}e sur {total} joueurs !',
-    first_player: "Tu es le premier aujourd'hui ! 🎉",
+    first_player: "Tu es le premier aujourd'hui !",
   },
   challenge: {
     title: "Défi d'un ami !",
@@ -839,8 +839,8 @@ const fr = {
     ocean_depth: 'Profondeurs Océanes',
   },
   notifications: {
-    new_species: '🦋 Nouvelle espèce : {name} !',
-    level_up: '🥇 Niveau {level} atteint pour {name} !',
+    new_species: 'Nouvelle espèce : {name} !',
+    level_up: 'Niveau {level} atteint pour {name} !',
   },
   help: { 
     title: 'Bienvenue sur iNaturaQuizz !',

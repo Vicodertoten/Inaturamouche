@@ -16,7 +16,7 @@ import '../components/ProfileModal.css';
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { profile, refreshProfile, updateProfile } = useUser();
-  const { t, formatNumber } = useLanguage();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('summary');
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
@@ -40,6 +40,9 @@ const ProfilePage = () => {
       totalCorrect,
     };
   }, [
+    profile?.stats?.accuracyEasy,
+    profile?.stats?.accuracyHard,
+    profile?.stats?.accuracyRiddle,
     profile?.stats?.correctEasy,
     profile?.stats?.correctHard,
     profile?.stats?.correctRiddle,
@@ -89,6 +92,7 @@ const ProfilePage = () => {
 
   return (
     <div className="screen profile-screen">
+      <h1 className="sr-only">{t('profile.title')}</h1>
       <div className="profile-modal profile-page-card profile-dashboard">
         <button className="back-button" onClick={handleBack} aria-label={t('profile.back')}>
           {t('profile.back')}

@@ -9,8 +9,22 @@ import './LevelUpNotification.css';
  * @param {Function} onClose - Callback de fermeture
  */
 const LevelUpNotification = ({ oldLevel, newLevel, onClose }) => {
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClose?.();
+    }
+  };
+
   return (
-    <div className="level-up-notification" onClick={onClose}>
+    <div
+      className="level-up-notification"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Close level up notification. Niveau ${oldLevel} vers ${newLevel}.`}
+    >
       <div className="level-up-content">
         <div className="level-up-icon">🎉</div>
         <div className="level-up-text">

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import AutocompleteInput from '../../../shared/ui/AutocompleteInput';
-import GeoFilter from '../../../components/GeoFilter.jsx';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
+
+const GeoFilter = lazy(() => import('../../../components/GeoFilter.jsx'));
 
 const TaxonPill = React.memo(({ onRemove, label, removeLabel }) => (
   <div className="taxon-pill">
@@ -89,7 +90,15 @@ function CustomFilter({ filters, dispatch }) {
         onToggle={() => dispatch({ type: 'TOGGLE_PLACE' })}
       >
         <p className="custom-filter-description">{t('customFilter.place_helper')}</p>
-        <GeoFilter value={filters.geo} onChange={(v) => dispatch({ type: 'SET_GEO', payload: v })} />
+        <Suspense
+          fallback={
+            <p className="custom-filter-description">
+              {t('customFilter.map_loading', {}, 'Chargement de la carte...')}
+            </p>
+          }
+        >
+          <GeoFilter value={filters.geo} onChange={(v) => dispatch({ type: 'SET_GEO', payload: v })} />
+        </Suspense>
       </FilterSection>
 
       <FilterSection

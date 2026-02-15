@@ -67,7 +67,7 @@ export function createApp() {
     })
   );
   app.disable('x-powered-by');
-  app.set('etag', false);
+  app.set('etag', 'weak');
 
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
@@ -81,9 +81,25 @@ export function createApp() {
   // Cache policy
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
-      // Pack preview images can be cached by the browser
-      if (req.path.match(/^\/api\/packs\/[^/]+\/preview$/)) {
+      const isPackPreview = /^\/api\/packs\/[^/]+\/preview$/.test(req.path);
+      const isPackCatalog = req.path === '/api/packs';
+      const isAutocompleteEndpoint =
+        req.path === '/api/taxa/autocomplete' || req.path === '/api/places';
+      const isLookupEndpoint =
+        req.path === '/api/places/by-id' ||
+        req.path === '/api/taxa' ||
+        /^\/api\/taxon\/[^/]+$/.test(req.path) ||
+        req.path === '/api/observations/species_counts';
+
+      // Cache only stable/read-only endpoints. Quiz/session endpoints remain strictly no-store.
+      if (isPackPreview) {
         res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=7200');
+      } else if (isPackCatalog) {
+        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+      } else if (isAutocompleteEndpoint) {
+        res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+      } else if (isLookupEndpoint) {
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       } else {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');

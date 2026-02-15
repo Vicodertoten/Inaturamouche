@@ -30,6 +30,8 @@ const ProfileConfigurator = ({
   displayName 
 }) => {
   const { t } = useLanguage();
+  const nameInputId = 'profile-config-name';
+  const avatarUploadInputId = 'profile-config-avatar-upload';
   
   // Tab state
   const [activeTab, setActiveTab] = useState('avatar');
@@ -212,8 +214,9 @@ const ProfileConfigurator = ({
             <div className="tab-panel tab-avatar" role="tabpanel">
               {/* Name input */}
               <div className="config-section">
-                <label className="config-label">{t('profile.edit_name')}</label>
+                <label className="config-label" htmlFor={nameInputId}>{t('profile.edit_name')}</label>
                 <input
+                  id={nameInputId}
                   type="text"
                   className="config-input"
                   value={previewName}
@@ -248,6 +251,7 @@ const ProfileConfigurator = ({
                     <span className="avatar-option-label">{t('profile.avatar_upload')}</span>
                   </button>
                   <input
+                    id={avatarUploadInputId}
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"

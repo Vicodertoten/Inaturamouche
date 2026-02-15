@@ -11,11 +11,11 @@ function ErrorModal({ message, onClose, onRetry }) {
         <p>{message || t('errors.generic')}</p>
         <div className="modal-actions">
           {onRetry && (
-            <button className="btn btn--primary" onClick={onRetry}>
+            <button type="button" className="btn btn--primary" onClick={onRetry}>
               {t('errors.retry')}
             </button>
           )}
-          <button className="btn btn--secondary" onClick={onClose}>
+          <button type="button" className="btn btn--secondary" onClick={onClose}>
             {t('common.close')}
           </button>
         </div>

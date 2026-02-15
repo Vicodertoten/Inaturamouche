@@ -5,7 +5,7 @@
 //  - /api/taxa/autocomplete & /api/observations/species_counts => StaleWhileRevalidate
 //  - images iNaturalist => CacheFirst (TTL 7 jours)
 
-import { defineConfig, splitVendorChunkPlugin } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
@@ -27,7 +27,6 @@ export default defineConfig({
     },
   },
   plugins: [
-    splitVendorChunkPlugin(),
     react(),
     VitePWA({
       registerType: "autoUpdate",
@@ -137,10 +136,22 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (id.includes("react-router-dom")) return "router";
-          if (id.includes("react-dom") || id.includes("react")) return "react";
-          if (id.includes("d3")) return "d3";
-          if (id.includes("leaflet") || id.includes("react-leaflet")) return "leaflet";
+          const normalizedId = id.split(path.sep).join("/");
+          if (normalizedId.includes("/node_modules/react-router-dom/")) return "router";
+          if (
+            normalizedId.includes("/node_modules/leaflet/") ||
+            normalizedId.includes("/node_modules/react-leaflet/") ||
+            normalizedId.includes("/node_modules/@react-leaflet/")
+          ) {
+            return "zz_leaflet";
+          }
+          if (
+            normalizedId.includes("/node_modules/react-dom/") ||
+            normalizedId.includes("/node_modules/react/")
+          ) {
+            return "react";
+          }
+          if (normalizedId.includes("/node_modules/d3")) return "d3";
           return "vendor";
         },
       },

@@ -60,7 +60,7 @@ function ReportModal({ onClose }) {
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <button onClick={onClose} className="close-button" title={t('common.close')} aria-label={t('common.close')}>×</button>
+        <button type="button" onClick={onClose} className="close-button" title={t('common.close')} aria-label={t('common.close')}>×</button>
         
         <h2 id={titleId} className="modal-title">🚩 {t('report.title', {}, 'Signaler un problème')}</h2>
 
@@ -81,6 +81,7 @@ function ReportModal({ onClose }) {
             />
             <input
               type="text"
+              name="website"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               autoComplete="off"

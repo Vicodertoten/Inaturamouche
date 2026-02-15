@@ -24,7 +24,8 @@ import { sendError } from '../utils/http.js';
 import { isAuthorized, isConfiguredToken } from '../utils/auth.js';
 
 const router = Router();
-const { balanceDashboardToken, balanceDashboardRequireToken } = config;
+const { balanceDashboardToken, balanceDashboardRequireToken, nodeEnv } = config;
+const requireBalanceDashboardToken = balanceDashboardRequireToken || nodeEnv === 'production';
 
 const explainSchema = z
   .object({
@@ -372,7 +373,7 @@ router.post('/api/quiz/submit', quizLimiter, validate(submitAnswerSchema), async
 
 router.get('/api/quiz/balance-dashboard', (req, res) => {
   try {
-    if (balanceDashboardRequireToken) {
+    if (requireBalanceDashboardToken) {
       if (!isConfiguredToken(balanceDashboardToken)) {
         return sendError(req, res, {
           status: 503,

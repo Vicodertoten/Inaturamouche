@@ -73,10 +73,27 @@
   
   --success-color: #4caf6a;
   --error-color: #e05550;     /* Improved contrast for accessibility */
+  --success-rgb: 76, 175, 106;
+  --error-rgb: 224, 85, 80;
 
   --text-color: #f1f5e9;      /* Blanc cassé (coquille d'oeuf) plus doux pour les yeux */
   --text-color-muted: #c4c9bf; /* Improved contrast ratio ~5:1 for WCAG AA */
+  --text-primary: var(--text-color);
+  --text-secondary: var(--text-color-muted);
+  --text-muted: var(--text-color-muted);
+  --text-color-light: var(--text-color);
   --border-color: rgba(255,255,255,0.08);
+
+  /* RGB helpers */
+  --primary-color-rgb: 123, 140, 72;
+  --accent-rgb: 238, 187, 77;
+  --accent-color-transparent: rgba(var(--accent-rgb), 0.18);
+
+  /* Surfaces aliases */
+  --surface: var(--surface-color);
+  --surface-3: #1f2a1b;
+  --surface-accent: rgba(var(--accent-rgb), 0.1);
+  --card-bg: var(--surface-color);
 
   /* --- SPACING --- */
   --space-1: 0.25rem;
@@ -84,15 +101,27 @@
   --space-3: 1rem;
   --space-4: 1.5rem;
   --space-5: 2rem;
+  --space-6: 2.5rem;
 
   /* --- RADIUS --- */
+  --radius-1: 4px;
   --radius-small: 6px;
   --radius: 12px;
+  --radius-medium: var(--radius);
+  --radius-large: 16px;
+  --radius-full: 9999px;
   --radius-pill: 9999px;
 
   /* --- ELEVATION / SHADOWS --- */
+  --shadow: var(--shadow-1);
   --shadow-1: 0 4px 12px rgba(0,0,0,0.25);
   --shadow-2: 0 10px 30px rgba(0,0,0,0.32);
+
+  /* Button aliases used in legacy components */
+  --button-secondary-bg: rgba(255, 255, 255, 0.08);
+  --button-secondary-text: var(--text-color);
+  --button-secondary-hover-bg: rgba(255, 255, 255, 0.14);
+  --button-secondary-hover-text: var(--text-color);
 
   /* Z-INDEX LAYERS */
   --z-dropdown: 100;
@@ -129,6 +158,8 @@
   --rarity-uncommon: #63b56a;
   --rarity-common: #9aa0a6;
   --rarity-unknown: #7f8c8d;
+  --color-streak: #ff9500;
+  --color-rare: var(--rarity-epic);
 
   /* Misc */
   --full-height: 100dvh;

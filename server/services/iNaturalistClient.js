@@ -26,6 +26,31 @@ let inatInFlight = 0;
 const inatWaitQueue = [];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const TAXA_REFRESH_COOLDOWN_MS = 60 * 1000;
+const taxaRefreshBackoffByLocaleId = new Map();
+const taxaRefreshInFlight = new Map();
+
+function shouldBackoffTaxaRefresh(err) {
+  return err?.status === 429 || err?.code === 'circuit_open' || err?.code === 'timeout';
+}
+
+function setTaxaRefreshBackoff(ids, locale) {
+  const until = Date.now() + TAXA_REFRESH_COOLDOWN_MS;
+  for (const id of ids) {
+    taxaRefreshBackoffByLocaleId.set(`${String(id)}:${locale}`, until);
+  }
+}
+
+function isTaxaRefreshCoolingDown(id, locale) {
+  const key = `${String(id)}:${locale}`;
+  const until = Number(taxaRefreshBackoffByLocaleId.get(key) || 0);
+  if (until <= 0) return false;
+  if (until <= Date.now()) {
+    taxaRefreshBackoffByLocaleId.delete(key);
+    return false;
+  }
+  return true;
+}
 
 async function acquireInatSlot() {
   if (inatInFlight < inatMaxConcurrentRequests) {
@@ -260,7 +285,9 @@ export async function getFullTaxaDetails(
     }
   }
 
-  const idsToFetch = Array.from(new Set([...missingIds, ...staleIds]));
+  const idsToFetch = Array.from(new Set([...missingIds, ...staleIds])).filter(
+    (id) => !isTaxaRefreshCoolingDown(id, locale)
+  );
   const mergeLocalizedDefaults = (localizedResults, defaultResults, ids) => {
     const defaultById = new Map(defaultResults.map((t) => [String(t.id), t]));
     const localizedById = new Map(localizedResults.map((t) => [String(t.id), t]));
@@ -300,16 +327,23 @@ export async function getFullTaxaDetails(
     if (!ids.length) return [];
     const chunks = chunkIds(ids, TAXA_BATCH_LIMIT);
     const aggregated = [];
+    const shouldFetchDefaultLocale = !locale.startsWith('en') && !allowPartial;
 
     for (const chunk of chunks) {
       const path = `https://api.inaturalist.org/v1/taxa/${chunk.join(',')}`;
-      // Parallelize localized + default fetches to cut iNat latency on cold starts.
-      const [localizedResponse, defaultResponse] = await Promise.all([
-        fetchInatJSON(path, { locale }, { logger, requestId, label: 'taxa-localized' }),
-        locale.startsWith('en')
-          ? Promise.resolve(null)
-          : fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' }),
-      ]);
+      let localizedResponse = null;
+      let defaultResponse = null;
+      try {
+        localizedResponse = await fetchInatJSON(path, { locale }, { logger, requestId, label: 'taxa-localized' });
+        if (shouldFetchDefaultLocale) {
+          defaultResponse = await fetchInatJSON(path, {}, { logger, requestId, label: 'taxa-default' });
+        }
+      } catch (err) {
+        if (shouldBackoffTaxaRefresh(err)) {
+          setTaxaRefreshBackoff(chunk, locale);
+        }
+        throw err;
+      }
       const localizedResults = Array.isArray(localizedResponse?.results) ? localizedResponse.results : [];
       const defaultResults = Array.isArray(defaultResponse?.results) ? defaultResponse.results : [];
       const merged = mergeLocalizedDefaults(localizedResults, defaultResults, chunk);
@@ -325,16 +359,29 @@ export async function getFullTaxaDetails(
     return aggregated;
   };
 
+  const fetchBatchDeduped = async (ids) => {
+    if (!ids.length) return [];
+    const key = `${locale}|${ids.join(',')}`;
+    if (taxaRefreshInFlight.has(key)) {
+      return taxaRefreshInFlight.get(key);
+    }
+    const promise = fetchBatch(ids).finally(() => {
+      taxaRefreshInFlight.delete(key);
+    });
+    taxaRefreshInFlight.set(key, promise);
+    return promise;
+  };
+
   let fetchedResults = [];
   const shouldBackgroundRefresh = idsToFetch.length > 0 && (missingIds.length === 0 || allowPartial);
   if (idsToFetch.length > 0) {
     if (shouldBackgroundRefresh) {
-      fetchBatch(idsToFetch).catch((err) => {
+      fetchBatchDeduped(idsToFetch).catch((err) => {
         logger?.warn({ requestId, error: err.message }, 'Background taxa refresh failed');
       });
     } else {
       try {
-        fetchedResults = await fetchBatch(idsToFetch);
+        fetchedResults = await fetchBatchDeduped(idsToFetch);
       } catch (err) {
         if (logger) {
           logger.error({ requestId, error: err.message }, 'Erreur getFullTaxaDetails');

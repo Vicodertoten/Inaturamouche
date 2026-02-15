@@ -55,13 +55,13 @@
 }
 
 .taxonomic-progress-pill.correct {
-  background: #4caf50;
-  border-color: #4caf50;
+  background: var(--success-color);
+  border-color: var(--success-color);
 }
 
 .taxonomic-progress-pill.incorrect {
-  background: #f44336;
-  border-color: #f44336;
+  background: var(--error-color);
+  border-color: var(--error-color);
 }
 
 .taxonomic-step-card {
@@ -87,24 +87,24 @@
   position: absolute;
   bottom: -1.1rem;
   right: -0.5rem;
-  background: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
+  background: rgba(var(--success-rgb), 0.15);
+  color: var(--success-color);
   border-radius: 12px;
   padding: 0.15rem 0.4rem;
   font-size: 0.7rem;
-  border: 1px solid rgba(76, 175, 80, 0.4);
+  border: 1px solid rgba(var(--success-rgb), 0.4);
 }
 .taxonomic-step-label {
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-color-muted);
   margin: 0;
 }
 
 .taxonomic-parent {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-color-muted);
 }
 
 .taxonomic-option-grid {
@@ -118,7 +118,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1rem;
   background: rgba(255, 255, 255, 0.015);
-  color: #fff;
+  color: var(--text-color);
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -133,13 +133,13 @@
 }
 
 .taxonomic-option.correct {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.12);
+  border-color: var(--success-color);
+  background: rgba(var(--success-rgb), 0.12);
 }
 
 .taxonomic-option.incorrect {
-  border-color: #f44336;
-  background: rgba(244, 67, 54, 0.12);
+  border-color: var(--error-color);
+  background: rgba(var(--error-rgb), 0.12);
 }
 
 .taxonomic-option-title {
@@ -149,14 +149,14 @@
 
 .taxonomic-option-scientific {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-color-muted);
 }
 
 .taxonomic-option-rank {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-color-muted);
 }
 
 .taxonomic-footer {
@@ -167,12 +167,12 @@
 }
 
 .taxonomic-hint-button {
-  background: linear-gradient(135deg, #ffb347, #ffcc33);
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-strong));
   border: none;
   padding: 0.65rem 1rem;
   border-radius: 12px;
   font-weight: 600;
-  color: #1e1e1e;
+  color: var(--bg-color);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
@@ -188,7 +188,7 @@
 
 .taxonomic-mistakes {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-color-muted);
 }
 
 .taxonomic-empty {

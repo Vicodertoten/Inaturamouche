@@ -8,7 +8,7 @@ const supportsLazyLoading =
 
 const BASE_MAX_ZOOM = 2.5;
 
-function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
+function ImageViewer({ imageUrls, alt, photoMeta = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scale, setScale] = useState(1);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
@@ -37,14 +37,6 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
     setIsPortrait(false);
     setMaxZoom(BASE_MAX_ZOOM);
   }, [imageUrls]);
-
-  // Preload next image logic (medium size for fast mobile loading)
-  useEffect(() => {
-    if (!nextImageUrl) return;
-    const preloadImg = new Image();
-    preloadImg.src = getSizedImageUrl(nextImageUrl, 'medium');
-    return () => { preloadImg.src = ''; };
-  }, [nextImageUrl]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % imageUrls.length);
@@ -209,6 +201,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
         {imageUrls.length > 1 && (
           <div className="nav-overlay" onClick={(e) => e.stopPropagation()}>
             <button
+              type="button"
               className="nav-button prev"
               onClick={(e) => { e.stopPropagation(); handlePrev(); }}
               aria-label={t('imageViewer.previous')}
@@ -217,6 +210,7 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             </button>
 
             <button
+              type="button"
               className="nav-button next"
               onClick={(e) => { e.stopPropagation(); handleNext(); }}
               aria-label={t('imageViewer.next')}
@@ -227,9 +221,11 @@ function ImageViewer({ imageUrls, alt, nextImageUrl, photoMeta = [] }) {
             <div className="dots">
                {imageUrls.map((_, idx) => (
                   <button
+                    type="button"
                     key={idx}
                     className={`dot ${idx === currentIndex ? 'active' : ''}`}
                     onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); resetZoom(); }}
+                    aria-label={t('imageViewer.go_to_image', { index: idx + 1 }, `Voir l'image ${idx + 1}`)}
                   />
                ))}
             </div>

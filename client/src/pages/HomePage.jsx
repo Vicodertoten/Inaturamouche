@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
@@ -10,7 +10,6 @@ import { active_session } from '../services/db';
 import { getReviewStats } from '../services/CollectionService';
 import { notify } from '../services/notifications';
 import AdvancedSettings from '../components/AdvancedSettings';
-import CustomFilter from '../features/configurator/components/CustomFilter';
 import PackIcon from '../components/PackIcons';
 import { SettingsIcon } from '../components/NavigationIcons';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
@@ -19,6 +18,18 @@ import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
 const REGION_ORDER_DEFAULT = ['belgium', 'france', 'europe', 'world'];
+const CustomFilter = lazy(() => import('../features/configurator/components/CustomFilter'));
+
+let playPagePreloadPromise = null;
+function preloadPlayPageModule() {
+  if (!playPagePreloadPromise) {
+    playPagePreloadPromise = import('../pages/PlayPage').catch((err) => {
+      playPagePreloadPromise = null;
+      throw err;
+    });
+  }
+  return playPagePreloadPromise;
+}
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -99,14 +110,41 @@ const HomePage = () => {
     return () => { mounted = false; };
   }, []);
 
+  const preloadPlayPage = useCallback(() => {
+    preloadPlayPageModule().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    let idleId;
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(() => {
+        preloadPlayPage();
+      }, { timeout: 1200 });
+      return () => {
+        if (typeof window.cancelIdleCallback === 'function') {
+          window.cancelIdleCallback(idleId);
+        }
+      };
+    }
+
+    idleId = window.setTimeout(() => {
+      preloadPlayPage();
+    }, 250);
+    return () => window.clearTimeout(idleId);
+  }, [preloadPlayPage]);
+
   /* ── Handlers ── */
   const handleStart = useCallback(() => {
+    preloadPlayPage();
     setAdvancedOpen(false);
     startGame({ maxQuestions, mediaType });
     navigate('/play');
-  }, [navigate, startGame, maxQuestions, mediaType]);
+  }, [navigate, preloadPlayPage, startGame, maxQuestions, mediaType]);
 
   const handleResumeGame = useCallback(async () => {
+    preloadPlayPage();
     debugLog('[HomePage] Resuming game...');
     const data = await resumeGame();
     if (data) {
@@ -119,7 +157,7 @@ const HomePage = () => {
         duration: 4000,
       });
     }
-  }, [navigate, resumeGame, t]);
+  }, [navigate, preloadPlayPage, resumeGame, t]);
 
   const handleAbandonSession = useCallback(async () => {
     await clearSessionFromDB();
@@ -127,6 +165,7 @@ const HomePage = () => {
   }, [clearSessionFromDB]);
 
   const handleDailyChallenge = useCallback(() => {
+    preloadPlayPage();
     if (isDailyCompleted(todaySeed)) return;
     if (hasActiveSession && resumeSessionData?.gameConfig?.dailySeed === todaySeed) {
       handleResumeGame();
@@ -134,17 +173,21 @@ const HomePage = () => {
     }
     startGame({ seed: todaySeed, seed_session: todaySeed, gameMode: 'hard', maxQuestions: 10 });
     navigate('/play');
-  }, [navigate, startGame, todaySeed, hasActiveSession, resumeSessionData, handleResumeGame]);
+  }, [navigate, preloadPlayPage, startGame, todaySeed, hasActiveSession, resumeSessionData, handleResumeGame]);
 
   const handleStartReview = useCallback(async () => {
+    preloadPlayPage();
     const started = await startReviewMode();
     if (started) navigate('/play');
     return started;
-  }, [navigate, startReviewMode]);
+  }, [navigate, preloadPlayPage, startReviewMode]);
 
   const handlePackSelect = useCallback((packId) => {
     setActivePackId(packId);
   }, [setActivePackId]);
+  const preloadCustomFilter = useCallback(() => {
+    import('../features/configurator/components/CustomFilter');
+  }, []);
 
   const [customOpen, setCustomOpen] = useState(false);
   const advancedPanelRef = useRef(null);
@@ -216,7 +259,16 @@ const HomePage = () => {
   }, [packsLoading, prefabPacks, detectedRegion, t]);
 
   /* ── Pack preview images ── */
-  const { getPhotos, loadPreview } = usePackPreviews();
+  const { getPhotos, loadPreview, preloadPackPreviews } = usePackPreviews();
+  const orderedPackIdsForPrefetch = useMemo(
+    () => regionGroupedPacks.flatMap((group) => group.packs.map((pack) => pack.id)),
+    [regionGroupedPacks]
+  );
+
+  useEffect(() => {
+    if (!orderedPackIdsForPrefetch.length) return;
+    preloadPackPreviews(orderedPackIdsForPrefetch);
+  }, [orderedPackIdsForPrefetch, preloadPackPreviews]);
 
   /* ── Hover description with delay ── */
   const hoverTimerRef = useRef(null);
@@ -229,6 +281,7 @@ const HomePage = () => {
     clearTimeout(hoverTimerRef.current);
     setHoveredPackId(null);
   }, []);
+  useEffect(() => () => clearTimeout(hoverTimerRef.current), []);
 
   /* ── Loading ── */
   if (isCheckingSession) {
@@ -245,11 +298,21 @@ const HomePage = () => {
 
   return (
     <div className="screen home-screen">
+      <h1 className="sr-only">
+        {t('seo.home.h1', {}, 'iNaturaQuizz - Quiz nature interactif')}
+      </h1>
       {/* ═══════ HERO ZONE ═══════ */}
       <section className="home-hero">
         {isResuming ? (
           <div className="hero-cta-group">
-            <button type="button" className="hero-cta hero-cta--resume" onClick={handleResumeGame}>
+            <button
+              type="button"
+              className="hero-cta hero-cta--resume"
+              onClick={handleResumeGame}
+              onMouseEnter={preloadPlayPage}
+              onFocus={preloadPlayPage}
+              onTouchStart={preloadPlayPage}
+            >
               <span className="hero-cta-label">{t('home.resume_game_button', {}, '▶ Reprendre')}</span>
               <span className="hero-cta-meta">
                 {resumeSessionData.currentQuestionIndex > 0
@@ -264,7 +327,15 @@ const HomePage = () => {
           </div>
         ) : (
           <div className="hero-cta-shell">
-            <button type="button" className="hero-cta hero-cta--play tutorial-hero-cta" onClick={handleStart} disabled={packsLoading}>
+            <button
+              type="button"
+              className="hero-cta hero-cta--play tutorial-hero-cta"
+              onClick={handleStart}
+              onMouseEnter={preloadPlayPage}
+              onFocus={preloadPlayPage}
+              onTouchStart={preloadPlayPage}
+              disabled={packsLoading}
+            >
               <span className="hero-cta-label">
                 <span className="hero-cta-play-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -317,6 +388,9 @@ const HomePage = () => {
             type="button"
             className={`home-chip ${dailyAlreadyCompleted ? 'done' : 'highlight'}`}
             onClick={handleDailyChallenge}
+            onMouseEnter={preloadPlayPage}
+            onFocus={preloadPlayPage}
+            onTouchStart={preloadPlayPage}
             disabled={dailyAlreadyCompleted}
           >
             <span className="chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="16" y1="2" x2="16" y2="6" /><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" /></svg></span>
@@ -328,7 +402,14 @@ const HomePage = () => {
           </button>
 
           {reviewStats?.dueToday > 0 && (
-            <button type="button" className="home-chip highlight" onClick={handleStartReview}>
+            <button
+              type="button"
+              className="home-chip highlight"
+              onClick={handleStartReview}
+              onMouseEnter={preloadPlayPage}
+              onFocus={preloadPlayPage}
+              onTouchStart={preloadPlayPage}
+            >
               <span className="chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /></svg></span>
               <span className="chip-text">{t('home.review_chip', {}, 'Révisions')}</span>
               <span className="chip-badge">{reviewStats.dueToday}</span>
@@ -371,6 +452,9 @@ const HomePage = () => {
             <button
               type="button"
               className={`home-custom-trigger ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
+              onMouseEnter={preloadCustomFilter}
+              onFocus={preloadCustomFilter}
+              onTouchStart={preloadCustomFilter}
               onClick={() => {
                 const wasCustomActive = activePackId === 'custom';
                 handlePackSelect('custom');
@@ -404,7 +488,15 @@ const HomePage = () => {
                 ✕
               </button>
             </div>
-            <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
+            <Suspense
+              fallback={
+                <p className="custom-filter-description">
+                  {t('home.custom_filter_loading', {}, 'Chargement des filtres...')}
+                </p>
+              }
+            >
+              <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
+            </Suspense>
           </div>
         )}
       </section>
@@ -420,6 +512,8 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const dragState = useRef({ active: false, startX: 0, scrollStart: 0, moved: false });
+  const PRELOAD_BUFFER_CARDS = 2;
+  const FALLBACK_CARD_WIDTH = 140;
 
   const updateScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -428,7 +522,22 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
     const maxScroll = el.scrollWidth - el.clientWidth;
     setScrollProgress(maxScroll > 0 ? el.scrollLeft / maxScroll : 0);
-  }, []);
+
+    // Load only cards that are visible (plus a small buffer) to avoid flooding /preview.
+    const firstCard = el.firstElementChild;
+    const measuredWidth = firstCard ? (firstCard.getBoundingClientRect().width || 0) : 0;
+    const cardWidth = measuredWidth > 0 ? measuredWidth + 10 : FALLBACK_CARD_WIDTH;
+    const startIndex = Math.max(0, Math.floor(el.scrollLeft / cardWidth) - PRELOAD_BUFFER_CARDS);
+    const visibleCount = Math.max(1, Math.ceil(el.clientWidth / cardWidth));
+    const endIndex = Math.min(
+      regionPacks.length,
+      startIndex + visibleCount + PRELOAD_BUFFER_CARDS * 2
+    );
+    for (let i = startIndex; i < endIndex; i += 1) {
+      const packId = regionPacks[i]?.id;
+      if (packId) loadPreview(packId);
+    }
+  }, [regionPacks, loadPreview]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -439,11 +548,6 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
     ro.observe(el);
     return () => { el.removeEventListener('scroll', updateScroll); ro.disconnect(); };
   }, [updateScroll, regionPacks]);
-
-  // Preload preview images for visible packs
-  useEffect(() => {
-    regionPacks.forEach((p) => loadPreview(p.id));
-  }, [regionPacks, loadPreview]);
 
   const scrollBy = useCallback((dir) => {
     const el = scrollRef.current;

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { sendError } from './http.js';
 
 const stringOrArray = z.union([z.string(), z.array(z.string())]);
+const localeSchema = z.enum(['fr', 'en', 'nl']).default('fr');
 
 export const quizSchema = z.object({
   pack_id: z.string().optional(),
@@ -21,7 +22,7 @@ export const quizSchema = z.object({
   seed: z.string().optional(),
   seed_session: z.string().optional(),
   question_index: z.coerce.number().int().min(0).max(50).optional(),
-  locale: z.string().default('fr'),
+  locale: localeSchema,
   media_type: z.enum(['images', 'sounds', 'both']).optional(),
   game_mode: z.enum(['easy', 'hard', 'riddle', 'taxonomic']).optional(),
   client_session_id: z.string().optional(),
@@ -30,7 +31,7 @@ export const quizSchema = z.object({
 export const autocompleteSchema = z.object({
   q: z.string().min(2),
   rank: z.string().optional(),
-  locale: z.string().default('fr'),
+  locale: localeSchema,
   name_format: z.enum(['vernacular', 'scientific']).default('vernacular'),
 });
 
@@ -45,7 +46,7 @@ export const speciesCountsSchema = z.object({
   swlng: z.coerce.number().min(-180).max(180).optional(),
   d1: z.string().optional(),
   d2: z.string().optional(),
-  locale: z.string().default('fr'),
+  locale: localeSchema,
   per_page: z.coerce.number().min(1).max(200).default(100),
   page: z.coerce.number().min(1).max(500).default(1),
 }).refine((data) => {
@@ -86,12 +87,12 @@ export const placesByIdSchema = z.object({
 
 export const taxonDetailParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
-  locale: z.string().default('fr'),
+  locale: localeSchema,
 });
 
 export const taxaBatchSchema = z.object({
   ids: csvIds(100),
-  locale: z.string().default('fr'),
+  locale: localeSchema,
 });
 
 export const reportSchema = z.object({

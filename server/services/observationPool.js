@@ -14,6 +14,9 @@ const {
   degradePoolMaxObsPerTaxon,
 } = config;
 
+const CONFUSION_MAP_RETRY_DELAY_MS = 5 * 60 * 1000;
+const confusionMapBuildInFlight = new WeakMap();
+
 /**
  * Sanitize an observation from iNaturalist
  * @param {Partial<import("../../types/inaturalist").InatObservation>} obs
@@ -208,15 +211,37 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
     source: 'inat',
   };
 
-  // Build the confusion map for this pool (pre-compute all lure candidates).
-  // This calls similar_species in batched parallel for every taxon, cached 7d.
-  try {
-    pool.confusionMap = await buildConfusionMap(pool, { logger, requestId });
-  } catch (err) {
-    logger?.warn?.({ requestId, error: err?.message }, 'Confusion map build failed, lures will use LCA-only');
+  return { pool, pagesFetched, poolObs: results.length, poolTaxa: taxonList.length };
+}
+
+function ensureConfusionMapBuild({ pool, cacheKey, logger, requestId }) {
+  if (!pool || pool.source === 'degrade-local') return;
+  if (pool.confusionMap) return;
+  if (!Array.isArray(pool.taxonList) || pool.taxonList.length === 0) return;
+
+  const failedAt = Number(pool.confusionMapFailedAt || 0);
+  if (failedAt > 0 && Date.now() - failedAt < CONFUSION_MAP_RETRY_DELAY_MS) {
+    return;
   }
 
-  return { pool, pagesFetched, poolObs: results.length, poolTaxa: taxonList.length };
+  if (confusionMapBuildInFlight.has(pool)) return;
+
+  const buildPromise = (async () => {
+    try {
+      pool.confusionMap = await buildConfusionMap(pool, { logger, requestId });
+      pool.confusionMapFailedAt = null;
+    } catch (err) {
+      pool.confusionMapFailedAt = Date.now();
+      logger?.warn?.(
+        { requestId, cacheKey, error: err?.message },
+        'Confusion map build failed in background, lures will use LCA-only'
+      );
+    } finally {
+      confusionMapBuildInFlight.delete(pool);
+    }
+  })();
+
+  confusionMapBuildInFlight.set(pool, buildPromise);
 }
 
 function poolStats(pool) {
@@ -239,17 +264,24 @@ function parseRequestedTaxonIds(params) {
   return ids.length ? new Set(ids.map(String)) : null;
 }
 
-function buildDegradePoolFromCache(params) {
+function buildDegradePoolFromCache(
+  params,
+  { ignoreRequestedTaxa = false, minTaxaRequiredOverride = null } = {}
+) {
   const entries = Array.from(questionCache.store?.values?.() || []);
   if (!entries.length) return null;
 
-  const requestedTaxonIds = parseRequestedTaxonIds(params);
+  const requestedTaxonIds = ignoreRequestedTaxa ? null : parseRequestedTaxonIds(params);
   const hasExplicitTaxa = Boolean(params?.taxon_id);
   const explicitTaxaCount = hasExplicitTaxa
     ? String(params.taxon_id).split(',').filter(Boolean).length
     : 0;
   const isMultiTaxaList = explicitTaxaCount > 1;
-  const minTaxaRequired = isMultiTaxaList ? quizChoices : (hasExplicitTaxa ? 1 : quizChoices);
+  const computedMinTaxa = isMultiTaxaList ? quizChoices : (hasExplicitTaxa ? 1 : quizChoices);
+  const minTaxaRequired =
+    Number.isInteger(minTaxaRequiredOverride) && minTaxaRequiredOverride > 0
+      ? minTaxaRequiredOverride
+      : computedMinTaxa;
   const maxTaxa = Math.max(minTaxaRequired, degradePoolMaxTaxa);
   const byTaxon = new Map();
   const seenObsIds = new Set();
@@ -331,6 +363,7 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
   };
 
   if (cachedEntry && !cachedEntry.isStale) {
+    ensureConfusionMapBuild({ pool: cachedPool, cacheKey, logger, requestId });
     return { pool: cachedPool, pagesFetched: 0, ...poolStats(cachedPool), cacheStatus: 'hit' };
   }
 
@@ -340,6 +373,7 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
       background: true,
       onError: (err) => logger?.warn({ requestId, error: err?.message }, 'Background pool refresh failed'),
     });
+    ensureConfusionMapBuild({ pool: stalePool, cacheKey, logger, requestId });
     return { pool: stalePool, pagesFetched: 0, ...poolStats(stalePool), cacheStatus: 'stale' };
   }
 
@@ -348,26 +382,44 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
       allowStale: false,
       background: false,
     });
+    ensureConfusionMapBuild({ pool: freshPool, cacheKey, logger, requestId });
     if (fetchedStats) {
       return { pool: freshPool, ...fetchedStats, cacheStatus: 'miss' };
     }
     return { pool: freshPool, pagesFetched: 0, ...poolStats(freshPool), cacheStatus: 'hit' };
   } catch (err) {
     logger?.warn({ requestId, error: err?.message }, 'Fresh observation pool fetch failed, trying degrade mode');
-    const degradedPool = buildDegradePoolFromCache(params);
+    const inatUnavailable = err?.code === 'circuit_open' || err?.code === 'timeout';
+    let usedCrossPackFallback = false;
+    let degradedPool = buildDegradePoolFromCache(params);
+    if (!degradedPool && inatUnavailable) {
+      degradedPool = buildDegradePoolFromCache(params, {
+        ignoreRequestedTaxa: true,
+        minTaxaRequiredOverride: quizChoices,
+      });
+      if (degradedPool) {
+        usedCrossPackFallback = true;
+        logger?.warn(
+          { requestId, cacheKey, requestedTaxa: params?.taxon_id || null },
+          'Serving cross-pack degraded pool due iNaturalist outage'
+        );
+      }
+    }
     if (degradedPool) {
       logger?.warn(
         { requestId, cacheKey, taxa: degradedPool.taxonList.length, obs: degradedPool.observationCount },
         'Serving degraded local observation pool'
       );
-      questionCache.set(cacheKey, degradedPool);
+      if (!usedCrossPackFallback) {
+        questionCache.set(cacheKey, degradedPool);
+      }
       return { pool: degradedPool, pagesFetched: 0, ...poolStats(degradedPool), cacheStatus: 'degrade' };
     }
-    const poolErr = new Error(
-      "Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres."
-    );
+    const poolErr = inatUnavailable
+      ? new Error("Le service iNaturalist est temporairement indisponible. Réessayez dans quelques instants.")
+      : new Error("Pool d'observations indisponible pour ces critères. Réessayez ou élargissez vos filtres.");
     poolErr.status = 503;
-    poolErr.code = 'POOL_UNAVAILABLE';
+    poolErr.code = inatUnavailable ? 'INAT_UNAVAILABLE' : 'POOL_UNAVAILABLE';
     throw poolErr;
   }
 }

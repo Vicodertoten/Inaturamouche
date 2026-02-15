@@ -56,7 +56,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
   return (
     <>
       <div className="collection-header">
-        <h1>{t('collection.title')}</h1>
+        <h2>{t('collection.title')}</h2>
       </div>
       <div className="iconic-taxa-grid tutorial-collection-grid">
         {ICONIC_TAXA_LIST.map((iconicTaxon) => {
@@ -239,7 +239,11 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
         <button onClick={onBack} className="back-button">← {iconicTaxonName}</button>
 
         <div className="collection-controls">
+          <label className="sr-only" htmlFor="collection-search-input">
+            {t('collection.search_label', {}, 'Rechercher une espèce')}
+          </label>
           <input
+            id="collection-search-input"
             type="search"
             className="collection-search"
             placeholder={t('collection.search_placeholder') || 'Rechercher...'}
@@ -248,7 +252,11 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
             aria-label={t('collection.search_placeholder') || 'Search species'}
           />
 
+          <label className="sr-only" htmlFor="collection-filter-select">
+            {t('collection.filter_label') || 'Filtre'}
+          </label>
           <select
+            id="collection-filter-select"
             className="collection-select"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -260,7 +268,11 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
             <option value="to_learn">{t('collection.filter.to_learn') || "À apprendre"}</option>
           </select>
 
+          <label className="sr-only" htmlFor="collection-sort-select">
+            {t('collection.sort_label') || 'Tri'}
+          </label>
           <select
+            id="collection-sort-select"
             className="collection-select"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
@@ -324,6 +336,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
 export default function CollectionPage() {
   const [selectedIconicTaxonId, setSelectedIconicTaxonId] = useState(null);
   const [modalSpecies, setModalSpecies] = useState(null);
+  const { t } = useLanguage();
 
   const handleSelectIconicTaxon = useCallback((taxonId) => {
     setSelectedIconicTaxonId(taxonId);
@@ -339,6 +352,7 @@ export default function CollectionPage() {
 
   return (
     <div className="collection-page">
+      <h1 className="sr-only">{t('collection.title')}</h1>
       {selectedIconicTaxonId ? (
         <SpeciesGrid
           iconicTaxonId={selectedIconicTaxonId}

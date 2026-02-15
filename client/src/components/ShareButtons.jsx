@@ -5,6 +5,49 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { notify } from '../services/notifications';
 import './ShareButtons.css';
 
+const IconBase = ({ className, children }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {children}
+  </svg>
+);
+
+const ShareIcon = ({ className }) => (
+  <IconBase className={className}>
+    <path d="M12 16V4" />
+    <path d="M8 8l4-4 4 4" />
+    <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+  </IconBase>
+);
+
+const CopyIcon = ({ className }) => (
+  <IconBase className={className}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </IconBase>
+);
+
+const ChallengeIcon = ({ className }) => (
+  <IconBase className={className}>
+    <path d="M4 4l7 7" />
+    <path d="M7 4H4v3" />
+    <path d="M20 20l-7-7" />
+    <path d="M17 20h3v-3" />
+    <path d="M13 11l7-7" />
+    <path d="M20 7V4h-3" />
+    <path d="M11 13l-7 7" />
+    <path d="M4 17v3h3" />
+  </IconBase>
+);
+
 const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activePackId, gameMode, maxQuestions, mediaType }) => {
   const { t } = useLanguage();
   const [sharing, setSharing] = useState(false);
@@ -81,7 +124,8 @@ const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activ
         onClick={handleShare}
         disabled={sharing}
       >
-        <span aria-hidden="true">📤</span> {t('share.share_result', {}, 'Partager')}
+        <ShareIcon className="share-btn-icon" />
+        {t('share.share_result', {}, 'Partager')}
       </button>
 
       <button
@@ -89,7 +133,8 @@ const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activ
         className="btn btn--copy"
         onClick={handleCopy}
       >
-        <span aria-hidden="true">📋</span> {t('share.copy_text', {}, 'Copier')}
+        <CopyIcon className="share-btn-icon" />
+        {t('share.copy_text', {}, 'Copier')}
       </button>
 
       {!isDaily && activePackId && (
@@ -98,7 +143,8 @@ const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activ
           className="btn btn--challenge"
           onClick={handleChallenge}
         >
-          <span aria-hidden="true">⚔️</span> {t('share.challenge_friend', {}, 'Défier un ami')}
+          <ChallengeIcon className="share-btn-icon" />
+          {t('share.challenge_friend', {}, 'Défier un ami')}
         </button>
       )}
     </div>

@@ -172,16 +172,30 @@ async function checkFamilyReunion() {
     const taxonIds = masteredStats.map(s => s.id);
     const taxa = await taxaTable.bulkGet(taxonIds);
 
+    // Précharger tous les ancêtres en une seule opération pour éviter un N+1 Dexie.
+    const ancestorIdSet = new Set();
+    taxa.forEach((taxon) => {
+      if (!taxon || !Array.isArray(taxon.ancestor_ids)) return;
+      taxon.ancestor_ids.forEach((ancestorId) => {
+        if (ancestorId != null) ancestorIdSet.add(ancestorId);
+      });
+    });
+    const allAncestorIds = Array.from(ancestorIdSet);
+    const allAncestors = allAncestorIds.length ? await taxaTable.bulkGet(allAncestorIds) : [];
+    const ancestorById = new Map();
+    allAncestors.forEach((ancestor) => {
+      if (ancestor?.id != null) ancestorById.set(ancestor.id, ancestor);
+    });
+
     // Compter les espèces par famille (rank = family dans ancestors)
     const familyCounts = {};
 
     for (const taxon of taxa) {
       if (!taxon || !Array.isArray(taxon.ancestor_ids)) continue;
 
-      // Chercher l'ancêtre de rang "family" dans la DB
-      // On charge les ancêtres pour trouver la famille
-      const ancestors = await taxaTable.bulkGet(taxon.ancestor_ids);
-      const familyAncestor = ancestors.find(a => a?.rank === 'family');
+      const familyAncestor = taxon.ancestor_ids
+        .map((ancestorId) => ancestorById.get(ancestorId))
+        .find((ancestor) => ancestor?.rank === 'family');
       
       if (familyAncestor) {
         familyCounts[familyAncestor.id] = (familyCounts[familyAncestor.id] || 0) + 1;

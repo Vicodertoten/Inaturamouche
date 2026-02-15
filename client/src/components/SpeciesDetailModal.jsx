@@ -3,6 +3,7 @@ import CollectionService, { MASTERY_NAMES } from '../services/CollectionService'
 import './SpeciesDetailModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { getTaxonDetails } from '../services/api';
+import { toSafeHttpUrl } from '../utils/mediaUtils';
 
 const MasteryBadge = ({ level }) => {
   if (level === 0) return null;
@@ -111,7 +112,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close-button" onClick={onClose}>&times;</button>
+          <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
           <div className="modal-body">
             <p>{t('common.loading')}</p>
           </div>
@@ -124,7 +125,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close-button" onClick={onClose}>&times;</button>
+          <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
           <div className="modal-body">
             <p className="error-message">{t('errors.title')}: {error || t('errors.generic')}</p>
           </div>
@@ -141,6 +142,10 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const streak = stats?.streak || 0;
   const firstSeenAt = stats?.firstSeenAt ? formatDate(stats.firstSeenAt) : '—';
   const lastSeenAt = stats?.lastSeenAt ? formatDate(stats.lastSeenAt) : '—';
+  const safeTaxonInaturalistUrl = toSafeHttpUrl(`https://www.inaturalist.org/taxa/${taxon.id}`);
+  const safeTaxonWikipediaUrl = toSafeHttpUrl(
+    taxon.wikipedia_url || `https://${language || 'en'}.wikipedia.org/wiki/${encodeURIComponent(taxon.name)}`
+  );
 
   // Extract best image URL
   const headerImage =
@@ -159,7 +164,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close-button" onClick={onClose}>&times;</button>
+        <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
 
         <header className="modal-header">
           {headerImage && (
@@ -235,16 +240,18 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                 <p>{description}</p>
               </div>
               <div className="encyclopedia-links">
-                <a
-                  href={`https://www.inaturalist.org/taxa/${taxon.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t('summary.links.inaturalist')}
-                </a>
-                { (taxon.wikipedia_url || taxon.name) && (
+                {safeTaxonInaturalistUrl && (
                   <a
-                    href={taxon.wikipedia_url || `https://${language || 'en'}.wikipedia.org/wiki/${encodeURIComponent(taxon.name)}`}
+                    href={safeTaxonInaturalistUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('summary.links.inaturalist')}
+                  </a>
+                )}
+                {safeTaxonWikipediaUrl && (
+                  <a
+                    href={safeTaxonWikipediaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -263,6 +270,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                 ) : similarSpecies && similarSpecies.length > 0 ? (
                   <div className="similar-species-grid">
                     {similarSpecies.map((species) => {
+                      const safeSimilarInatUrl = toSafeHttpUrl(`https://www.inaturalist.org/taxa/${species.id}`);
                       const speciesImage =
                         species.default_photo?.medium_url ||
                         species.default_photo?.square_url ||
@@ -284,14 +292,16 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                             </p>
                             <p className="similar-scientific-name">{species.name}</p>
                           </div>
-                          <a
-                            href={`https://www.inaturalist.org/taxa/${species.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="similar-species-link"
-                          >
-                            {t('common.view')}
-                          </a>
+                          {safeSimilarInatUrl && (
+                            <a
+                              href={safeSimilarInatUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="similar-species-link"
+                            >
+                              {t('common.view')}
+                            </a>
+                          )}
                         </div>
                       );
                     })}

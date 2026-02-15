@@ -393,7 +393,7 @@ const en = {
       inaturalist: 'iNaturalist',
       wikipedia: 'Wikipedia',
     },
-    new_discovery: '✨ New species added to your field guide!',
+    new_discovery: 'New species added to your field guide!',
     xp_earned: 'XP earned this session',
     xp_base: 'Base',
     xp_streak: 'Streak',
@@ -402,10 +402,10 @@ const en = {
     level_from: 'Level {level}',
     level_to: 'Level {level}',
     multi_level: '{count} levels!',
-    session_complete: '✨ Session Complete',
-    new_discoveries: '✨ New Discoveries',
+    session_complete: 'Session Complete',
+    new_discoveries: 'New Discoveries',
     species_added: 'species added to your field guide',
-    achievements_unlocked: '🏆 Achievements Unlocked',
+    achievements_unlocked: 'Achievements Unlocked',
   },
   share: {
     share_result: 'Share',
@@ -415,12 +415,12 @@ const en = {
     challenge_copied: 'Challenge link copied! Send it to a friend.',
   },
   daily: {
-    leaderboard_title: '🏆 Daily Leaderboard',
+    leaderboard_title: 'Daily Leaderboard',
     submit_hint: 'Enter a nickname to join the leaderboard!',
     pseudo_placeholder: 'Your nickname…',
     submit_score: 'Submit',
     your_rank: 'You are #{rank} out of {total} players!',
-    first_player: "You're the first today! 🎉",
+    first_player: "You're the first today!",
   },
   challenge: {
     title: 'Friend Challenge!',
@@ -839,8 +839,8 @@ const en = {
     ocean_depth: 'Ocean Depth',
   },
   notifications: {
-    new_species: '🦋 New species: {name}!',
-    level_up: '🥇 Grade {level} reached for {name}!',
+    new_species: 'New species: {name}!',
+    level_up: 'Grade {level} reached for {name}!',
   },
   help: { 
     title: 'Welcome to iNaturaQuizz!',

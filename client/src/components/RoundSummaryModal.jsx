@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import './RoundSummaryModal.css';
 import { getSizedImageUrl } from '../utils/imageUtils';
+import { toSafeHttpUrl } from '../utils/mediaUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { fetchExplanation, getTaxonDetails } from '../services/api';
 
@@ -67,8 +68,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     return {
       id: actualTaxon.id || actualTaxon.taxon_id,
       image_url: imageUrl,
-      wikipedia_url: actualTaxon.wikipedia_url,
-      inaturalist_url: actualTaxon.url || (actualTaxon.id || actualTaxon.taxon_id ? `https://www.inaturalist.org/taxa/${actualTaxon.id || actualTaxon.taxon_id}` : undefined), // Robust iNaturalist URL
+      wikipedia_url: toSafeHttpUrl(actualTaxon.wikipedia_url),
+      inaturalist_url:
+        toSafeHttpUrl(actualTaxon.url) ||
+        (actualTaxon.id || actualTaxon.taxon_id
+          ? toSafeHttpUrl(`https://www.inaturalist.org/taxa/${actualTaxon.id || actualTaxon.taxon_id}`)
+          : null),
       primaryName: primary,
       secondaryName: secondary,
       scientificName: actualTaxon.name || '',
@@ -79,7 +84,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     const taxon = getTaxonDetailsForDisplay(question?.bonne_reponse);
     // Override iNaturalist URL with observation-specific one if available
     if (question?.inaturalist_url) {
-      taxon.inaturalist_url = question.inaturalist_url;
+      taxon.inaturalist_url = toSafeHttpUrl(question.inaturalist_url);
     }
     return taxon;
   }, [question, getTaxonDetailsForDisplay]);
@@ -96,7 +101,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const userWikiUrl = useMemo(() => {
     if (userDisplayTaxon.wikipedia_url) return userDisplayTaxon.wikipedia_url;
     if (!userDisplayTaxon.scientificName) return null;
-    return `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(userDisplayTaxon.scientificName)}`;
+    return toSafeHttpUrl(`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(userDisplayTaxon.scientificName)}`);
   }, [userDisplayTaxon.wikipedia_url, userDisplayTaxon.scientificName, lang]);
 
   useEffect(() => {

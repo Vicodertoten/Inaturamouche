@@ -1,32 +1,64 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import fr from '../locales/fr';
-import en from '../locales/en';
-import nl from '../locales/nl';
 import { formatDate as _formatDate, formatNumber as _formatNumber } from '../utils/formatters';
 
-const MESSAGES = { fr, en, nl };
 const DEFAULT_LANGUAGE = 'fr';
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const NAME_FORMAT_STORAGE_KEY = 'user_pref_name_format';
 const LEGACY_SCIENTIFIC_STORAGE_KEY = 'inaturamouche_scientific';
 const DEFAULT_NAME_FORMAT = 'vernacular';
+const FALLBACK_LANGUAGE_NAMES = {
+  fr: 'Français',
+  en: 'English',
+  nl: 'Nederlands',
+};
+const LANGUAGE_LOADERS = {
+  fr: async () => fr,
+  en: async () => (await import('../locales/en')).default,
+  nl: async () => (await import('../locales/nl')).default,
+};
 
 const LanguageContext = createContext(null);
 
+function safeStorageGet(key) {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore blocked storage contexts (private mode / strict browser settings).
+  }
+}
+
+function safeStorageRemove(key) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore blocked storage contexts.
+  }
+}
+
 function getStoredLanguage() {
-  if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return stored && MESSAGES[stored] ? stored : DEFAULT_LANGUAGE;
+  const stored = safeStorageGet(LANGUAGE_STORAGE_KEY);
+  return stored && LANGUAGE_LOADERS[stored] ? stored : DEFAULT_LANGUAGE;
 }
 
 function getStoredNameFormat() {
-  if (typeof window === 'undefined') return DEFAULT_NAME_FORMAT;
-  const stored = localStorage.getItem(NAME_FORMAT_STORAGE_KEY);
+  const stored = safeStorageGet(NAME_FORMAT_STORAGE_KEY);
   if (stored === 'vernacular' || stored === 'scientific') return stored;
 
   // Legacy fallback: migrate the previous boolean preference
-  const legacyScientificPreference = localStorage.getItem(LEGACY_SCIENTIFIC_STORAGE_KEY);
+  const legacyScientificPreference = safeStorageGet(LEGACY_SCIENTIFIC_STORAGE_KEY);
   if (legacyScientificPreference === '1') return 'scientific';
   return DEFAULT_NAME_FORMAT;
 }
@@ -34,30 +66,50 @@ function getStoredNameFormat() {
 export function LanguageProvider({ children }) {
   const [language, setLanguageState] = useState(getStoredLanguage);
   const [nameFormat, setNameFormat] = useState(getStoredNameFormat);
+  const [messagesByLanguage, setMessagesByLanguage] = useState(() => ({
+    [DEFAULT_LANGUAGE]: fr,
+  }));
+
+  const loadLanguageMessages = useCallback(async (nextLanguage) => {
+    if (!LANGUAGE_LOADERS[nextLanguage]) return;
+    if (messagesByLanguage[nextLanguage]) return;
+    try {
+      const loaded = await LANGUAGE_LOADERS[nextLanguage]();
+      setMessagesByLanguage((prev) => {
+        if (prev[nextLanguage]) return prev;
+        return { ...prev, [nextLanguage]: loaded };
+      });
+    } catch {
+      // Ignore transient import errors and keep fallback language active.
+    }
+  }, [messagesByLanguage]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    safeStorageSet(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language;
   }, [language]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(NAME_FORMAT_STORAGE_KEY, nameFormat);
+    void loadLanguageMessages(language);
+  }, [language, loadLanguageMessages]);
+
+  useEffect(() => {
+    safeStorageSet(NAME_FORMAT_STORAGE_KEY, nameFormat);
     // Clean legacy key to avoid stale state when switching between versions
-    localStorage.removeItem(LEGACY_SCIENTIFIC_STORAGE_KEY);
+    safeStorageRemove(LEGACY_SCIENTIFIC_STORAGE_KEY);
   }, [nameFormat]);
 
   const setLanguage = useCallback((nextLanguage) => {
     setLanguageState((prev) => {
-      if (!nextLanguage || !MESSAGES[nextLanguage]) return prev;
+      if (!nextLanguage || !LANGUAGE_LOADERS[nextLanguage]) return prev;
       return nextLanguage;
     });
-  }, []);
+    void loadLanguageMessages(nextLanguage);
+  }, [loadLanguageMessages]);
 
   const t = useCallback(
     (key, values = {}, fallback) => {
-      const dictionary = MESSAGES[language] || MESSAGES[DEFAULT_LANGUAGE];
+      const dictionary = messagesByLanguage[language] || messagesByLanguage[DEFAULT_LANGUAGE];
       const parts = key.split('.');
       let result = dictionary;
       for (const part of parts) {
@@ -74,7 +126,7 @@ export function LanguageProvider({ children }) {
         return acc.replace(new RegExp(`\\{${token}\\}`, 'g'), value ?? '');
       }, template);
     },
-    [language]
+    [language, messagesByLanguage]
   );
 
   const toggleNameFormat = useCallback((format) => {
@@ -125,8 +177,11 @@ export function LanguageProvider({ children }) {
     () => ({
       language,
       setLanguage,
-      availableLanguages: Object.keys(MESSAGES),
-      languageNames: MESSAGES[language]?.languageNames ?? {},
+      availableLanguages: Object.keys(LANGUAGE_LOADERS),
+      languageNames:
+        messagesByLanguage[language]?.languageNames ??
+        messagesByLanguage[DEFAULT_LANGUAGE]?.languageNames ??
+        FALLBACK_LANGUAGE_NAMES,
       nameFormat,
       toggleNameFormat,
       t,
@@ -139,6 +194,7 @@ export function LanguageProvider({ children }) {
       formatTaxonName,
       getTaxonDisplayNames,
       language,
+      messagesByLanguage,
       setLanguage,
       toggleNameFormat,
       t,

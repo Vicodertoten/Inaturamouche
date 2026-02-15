@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useLayoutEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useLayoutEffect, useRef, useCallback, useEffect } from 'react';
 import ImageViewer from './ImageViewer';
 import RoundSummaryModal from './RoundSummaryModal';
 import GameHeader from './GameHeader';
@@ -44,6 +44,7 @@ const EasyMode = () => {
 
   // Réf pour détecter un changement de question avant le rendu
   const questionRef = useRef(question);
+  const summaryTimeoutRef = useRef(null);
 
   const choiceDetailMap = useMemo(() => {
     const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
@@ -75,6 +76,10 @@ const EasyMode = () => {
   });
 
   useLayoutEffect(() => {
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
     questionRef.current = question;
     setAnswered(false);
     setSelectedIndex(null);
@@ -82,6 +87,13 @@ const EasyMode = () => {
     setValidationResult(null);
     setIsSubmitting(false);
   }, [question]);
+
+  useEffect(() => () => {
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
+  }, []);
 
   const isCurrentQuestion = questionRef.current === question;
   const answeredThisQuestion = answered && isCurrentQuestion;
@@ -132,7 +144,10 @@ const EasyMode = () => {
         vibrateError();
       }
 
-      setTimeout(() => {
+      if (summaryTimeoutRef.current) {
+        clearTimeout(summaryTimeoutRef.current);
+      }
+      summaryTimeoutRef.current = setTimeout(() => {
         if (questionRef.current === question) {
           setShowSummary(true);
         }
@@ -195,7 +210,7 @@ const EasyMode = () => {
           isGameOver={answeredThisQuestion}
         />
         <div className="card">
-          <main className="game-main">
+          <section className="game-main" aria-label={t('game.main_section', {}, 'Zone de jeu')}>
             <div className="image-section">
               {showAudio && (
                 <div className="audio-panel">
@@ -255,7 +270,7 @@ const EasyMode = () => {
                 );
               })}
             </div>
-          </main>
+          </section>
         </div>
       </div>
     </>

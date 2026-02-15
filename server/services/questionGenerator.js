@@ -369,8 +369,6 @@ export async function buildQuizQuestion({
   );
 
   const selectionMode = initialSelectionMode;
-  const isFirstQuestion = questionIndex === 0;
-
   let targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId, { allowSeen: false }, questionRng);
   if (!targetObservation) {
     targetObservation = pickObservationForTaxon(cacheEntry, selectionState, targetTaxonId, { allowSeen: true }, questionRng);
@@ -492,15 +490,16 @@ export async function buildQuizQuestion({
       fallbackDetails.set(String(lure.taxonId), lure.obs?.taxon || {});
     }
 
-  const choiceTaxaDetails = await getFullTaxaDetails(
+    const choiceTaxaDetails = await getFullTaxaDetails(
     choiceIdsInOrder,
     locale,
     {
       logger,
       requestId,
       fallbackDetails,
-      // Fast path for the very first question: use fallback details, refresh cache in background.
-      allowPartial: isFirstQuestion,
+      // Always allow partial for quiz choices: observation taxa already provide enough
+      // data to render labels, while full taxon enrichment can happen in background.
+      allowPartial: true,
     },
     taxonDetailsCache
   );

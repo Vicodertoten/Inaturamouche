@@ -136,12 +136,12 @@ export function UserProvider({ children }) {
       if (typeof window.requestIdleCallback === 'function') {
         const id = window.requestIdleCallback(() => {
           void task();
-        }, { timeout: 2000 });
+        }, { timeout: 5000 });
         return () => window.cancelIdleCallback?.(id);
       }
       const id = window.setTimeout(() => {
         void task();
-      }, 1500);
+      }, 4000);
       return () => window.clearTimeout(id);
     };
 
@@ -153,7 +153,8 @@ export function UserProvider({ children }) {
         debugError('Failed to migrate legacy collection', migrationError);
       }
       try {
-        let loadedProfile = await loadProfileFromStore();
+        const persistedProfile = await loadProfileFromStore();
+        let loadedProfile = persistedProfile;
         
         // Check daily streak on app load
         loadedProfile = checkDailyStreak(loadedProfile);
@@ -162,7 +163,7 @@ export function UserProvider({ children }) {
         setProfile(sanitizeProfile(loadedProfile));
         
         // Save updated profile if streak check made changes
-        if (loadedProfile !== await loadProfileFromStore()) {
+        if (loadedProfile !== persistedProfile) {
           await saveProfile(loadedProfile);
         }
       } catch (loadError) {

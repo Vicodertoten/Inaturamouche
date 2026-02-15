@@ -43,6 +43,8 @@ const RiddleMode = () => {
     clueIndex: 0,
   });
   const [lastAnswer, setLastAnswer] = useState(null);
+  const transitionTimeoutRef = useRef(null);
+  const summaryTimeoutRef = useRef(null);
 
   const choiceDetailMap = useMemo(() => {
     const details = Array.isArray(question?.choice_taxa_details) ? question.choice_taxa_details : [];
@@ -75,6 +77,14 @@ const RiddleMode = () => {
     riddleClues[clueIndex] || t('riddle.fallback_clue', {}, 'Papy Mouche cherche ses notes...');
 
   useLayoutEffect(() => {
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
     questionRef.current = question;
     setClueIndex(0);
     setRoundStatus('playing');
@@ -102,6 +112,17 @@ const RiddleMode = () => {
       hintCount: clueIndex,
     }));
   }, [clueIndex]);
+
+  useEffect(() => () => {
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
+  }, []);
 
   const isCurrentQuestion = questionRef.current === question;
   const answeredThisQuestion = roundStatus !== 'playing' && isCurrentQuestion;
@@ -156,7 +177,10 @@ const RiddleMode = () => {
       if (result?.status === 'retry') {
         setIsTransitioning(true);
         setLastWrongId(pair.id);
-        setTimeout(() => {
+        if (transitionTimeoutRef.current) {
+          clearTimeout(transitionTimeoutRef.current);
+        }
+        transitionTimeoutRef.current = setTimeout(() => {
           if (questionRef.current === question) {
             setEliminatedIds((prev) => {
               const next = new Set(prev);
@@ -168,6 +192,7 @@ const RiddleMode = () => {
             setLastWrongId(null);
             setIsTransitioning(false);
           }
+          transitionTimeoutRef.current = null;
         }, 900);
         return;
       }
@@ -177,8 +202,12 @@ const RiddleMode = () => {
       if (!result?.is_correct) {
         setLastWrongId(pair.id);
       }
-      setTimeout(() => {
+      if (summaryTimeoutRef.current) {
+        clearTimeout(summaryTimeoutRef.current);
+      }
+      summaryTimeoutRef.current = setTimeout(() => {
         if (questionRef.current === question) setShowSummary(true);
+        summaryTimeoutRef.current = null;
       }, 1200);
     } catch (error) {
       if (error?.code === 'ROUND_EXPIRED') {
@@ -227,7 +256,7 @@ const RiddleMode = () => {
           isGameOver={answeredThisQuestion}
         />
         <div className="card">
-          <main className="game-main">
+          <section className="game-main" aria-label={t('game.main_section', {}, 'Zone de jeu')}>
             <div className="image-section">
               <div className="riddle-panel">
                 <div className="riddle-header">
@@ -296,7 +325,7 @@ const RiddleMode = () => {
                 );
               })}
             </div>
-          </main>
+          </section>
         </div>
       </div>
     </>
