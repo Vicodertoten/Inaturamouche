@@ -83,9 +83,21 @@ export const placesByIdSchema = z.object({
   ids: csvIds(25, { allowEmpty: true }),
 });
 
+export const taxonDetailParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  locale: z.string().default('fr'),
+});
+
 export const taxaBatchSchema = z.object({
   ids: csvIds(100),
   locale: z.string().default('fr'),
+});
+
+export const reportSchema = z.object({
+  description: z.string().trim().min(5, 'description must be at least 5 characters').max(2000, 'description must be at most 2000 characters'),
+  url: z.string().max(500).optional(),
+  userAgent: z.string().max(500).optional(),
+  website: z.string().max(200).optional(), // honeypot field
 });
 
 // Middleware de validation pour Express
