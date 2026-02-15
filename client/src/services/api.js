@@ -46,7 +46,7 @@ function getCurrentLanguage() {
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
 const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : {};
 
-const API_BASE_URL =
+export const API_BASE_URL =
   runtimeEnv.VITE_API_URL ||
   (runtimeEnv.DEV
     ? ""

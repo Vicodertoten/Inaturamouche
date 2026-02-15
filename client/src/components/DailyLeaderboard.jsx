@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './DailyLeaderboard.css';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../services/api.js';
 
 const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
   const { t } = useLanguage();
@@ -16,7 +15,7 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
   // Fetch leaderboard
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/daily/leaderboard`);
+      const res = await fetch(`${API_BASE_URL}/api/daily/leaderboard`);
       if (res.ok) {
         const data = await res.json();
         setEntries(data.entries || []);
@@ -38,7 +37,7 @@ const DailyLeaderboard = ({ playerScore, playerTotal, playerPseudo }) => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/daily/score`, {
+      const res = await fetch(`${API_BASE_URL}/api/daily/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pseudo: name, score: playerScore, total: playerTotal }),

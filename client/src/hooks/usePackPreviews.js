@@ -2,8 +2,7 @@
 // Lazy-loads pack preview images from the server API
 
 import { useCallback, useRef, useState } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { API_BASE_URL } from '../services/api.js';
 
 /**
  * Hook that lazily fetches pack preview images.
@@ -23,7 +22,7 @@ export function usePackPreviews() {
     if (knownRef.current.has(packId)) return;
     knownRef.current.add(packId);
 
-    fetch(`${API_BASE}/api/packs/${packId}/preview`)
+    fetch(`${API_BASE_URL}/api/packs/${packId}/preview`)
       .then((res) => (res.ok ? res.json() : { photos: [] }))
       .then((data) => {
         setPreviews((prev) => ({ ...prev, [packId]: data.photos || [] }));
