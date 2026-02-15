@@ -23,5 +23,10 @@ createRoot(document.getElementById('root')).render(
 )
 
 if (import.meta.env.PROD) {
-  registerSW({ immediate: true })
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      updateSW(true)
+    },
+  })
 }
