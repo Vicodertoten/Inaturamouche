@@ -320,11 +320,22 @@ const HomePage = () => {
     () => regionGroupedPacks.flatMap((group) => group.packs.map((pack) => pack.id)),
     [regionGroupedPacks]
   );
+  const activePackHeroImage = useMemo(() => {
+    if (!activePackId || activePackId === 'custom') return null;
+    const photos = getPhotos(activePackId);
+    return photos?.[0]?.url ?? null;
+  }, [activePackId, getPhotos]);
 
   useEffect(() => {
     if (!orderedPackIdsForPrefetch.length) return;
     preloadPackPreviews(orderedPackIdsForPrefetch);
   }, [orderedPackIdsForPrefetch, preloadPackPreviews]);
+
+  useEffect(() => {
+    if (!activePackId || activePackId === 'custom') return;
+    if (activePackHeroImage) return;
+    loadPreview(activePackId);
+  }, [activePackHeroImage, activePackId, loadPreview]);
 
   /* ── Hover description with delay ── */
   const hoverTimerRef = useRef(null);
@@ -397,6 +408,13 @@ const HomePage = () => {
               onTouchStart={preloadPlayPage}
               disabled={packsLoading}
             >
+              {activePackHeroImage && (
+                <span
+                  className="hero-cta-pack-photo"
+                  aria-hidden="true"
+                  style={{ backgroundImage: `url("${activePackHeroImage}")` }}
+                />
+              )}
               <span className="hero-cta-label">
                 <span className="hero-cta-play-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="currentColor">

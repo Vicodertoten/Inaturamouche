@@ -17,17 +17,149 @@ const getIconicLabel = (iconicTaxonId, t) => {
 };
 
 const ICONIC_ICONS = {
-  47126: '🌿', // Plantae
-  47158: '🦋', // Insecta
-  3:     '🐦', // Aves
-  47119: '🍄', // Fungi
-  40151: '🦊', // Mammalia
-  26036: '🦎', // Reptilia
-  20978: '🐸', // Amphibia
-  47178: '🐚', // Mollusca
-  47686: '🕷️', // Arachnida
-  1:     '🐾', // Animalia
+  47126: function PlantaeIcon() {
+    return (
+      <>
+        <path d="M12 21V10" />
+        <path d="M12 10C8 10 5 7 5 3c4 0 7 3 7 7Z" />
+        <path d="M12 10c4 0 7-3 7-7-4 0-7 3-7 7Z" />
+      </>
+    );
+  },
+  47158: function InsectaIcon() {
+    return (
+      <>
+        <path d="M12 6v12" />
+        <path d="M12 8c-2.4-3.5-7-4.2-8-1.3-.6 1.7.4 3.6 2.3 4.2L12 12" />
+        <path d="M12 8c2.4-3.5 7-4.2 8-1.3.6 1.7-.4 3.6-2.3 4.2L12 12" />
+        <path d="M12 12l-4 6" />
+        <path d="M12 12l4 6" />
+      </>
+    );
+  },
+  3: function AvesIcon() {
+    return (
+      <>
+        <path d="M6 14c0-4.4 3.6-8 8-8 2.4 0 4.5 1 6 2.7-1.2 4.8-4.8 8.3-9.2 8.3-2.6 0-4.8-1.2-4.8-3Z" />
+        <path d="M20 9l-4 1" />
+        <circle cx="14" cy="10" r="1" fill="currentColor" stroke="none" />
+      </>
+    );
+  },
+  47119: function FungiIcon() {
+    return (
+      <>
+        <path d="M4 12c0-4 3.6-7 8-7s8 3 8 7" />
+        <path d="M6 12h12" />
+        <path d="M10 12v6" />
+        <path d="M14 12v6" />
+        <path d="M8 21h8" />
+      </>
+    );
+  },
+  40151: function MammaliaIcon() {
+    return (
+      <>
+        <path d="M7 8 4 4v6" />
+        <path d="M17 8 20 4v6" />
+        <path d="M12 20c-4.5 0-8-3.2-8-7.2C4 8.5 7.6 6 12 6s8 2.5 8 6.8C20 16.8 16.5 20 12 20Z" />
+        <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+        <path d="M12 14.5 10.5 16h3L12 14.5Z" fill="currentColor" stroke="none" />
+      </>
+    );
+  },
+  26036: function ReptiliaIcon() {
+    return (
+      <>
+        <path d="M5 13c1.6-2 3.6-3 6-3 3.5 0 6 2 8 5" />
+        <path d="M9 10 8 7" />
+        <path d="M13 10l1-3" />
+        <path d="M8 13l-3 2" />
+        <path d="M16 14l3 2" />
+        <path d="M19 15c.8.7 1.6 1.7 2 3" />
+        <path d="M4 16c-1 0-2-.8-2-2s1-2 2-2" />
+      </>
+    );
+  },
+  20978: function AmphibiaIcon() {
+    return (
+      <>
+        <circle cx="8" cy="8" r="2" />
+        <circle cx="16" cy="8" r="2" />
+        <circle cx="8" cy="8" r="0.7" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8" r="0.7" fill="currentColor" stroke="none" />
+        <path d="M6 12c0-1.7 1.3-3 3-3h6c1.7 0 3 1.3 3 3v3c0 2.2-1.8 4-4 4h-4c-2.2 0-4-1.8-4-4Z" />
+      </>
+    );
+  },
+  47178: function MolluscaIcon() {
+    return (
+      <>
+        <path d="M4 16c1.3 0 2.2-1 3.8-1 1.6 0 2.8 1 4.3 1h2.8a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0-4.2 4.2 2.2 2.2 0 1 0 4.4 0" />
+        <path d="M7 15 6 12" />
+        <path d="M8.5 15 9.8 12.5" />
+      </>
+    );
+  },
+  47686: function ArachnidaIcon() {
+    return (
+      <>
+        <circle cx="12" cy="9" r="2.2" />
+        <circle cx="12" cy="14" r="3.2" />
+        <path d="M9.5 9.5 5 6" />
+        <path d="M8.6 11.6 4 11" />
+        <path d="M8.8 14.8 4.5 17.5" />
+        <path d="M14.5 9.5 19 6" />
+        <path d="M15.4 11.6 20 11" />
+        <path d="M15.2 14.8 19.5 17.5" />
+      </>
+    );
+  },
+  1: function AnimaliaIcon() {
+    return (
+      <>
+        <circle cx="7" cy="8" r="1.7" />
+        <circle cx="11" cy="6.6" r="1.7" />
+        <circle cx="15" cy="6.6" r="1.7" />
+        <circle cx="17.8" cy="9.2" r="1.5" />
+        <path d="M12 20c-2.5 0-5-1.5-5-4 0-1.8 1.4-3.3 3.1-3.3 1 0 1.8.5 2.4 1.3.6-.8 1.4-1.3 2.4-1.3 1.7 0 3.1 1.5 3.1 3.3 0 2.5-2.5 4-5 4Z" />
+      </>
+    );
+  },
+  default: function DefaultIcon() {
+    return (
+      <>
+        <circle cx="10" cy="10" r="3.5" />
+        <path d="M12.5 12.5 16 16" />
+        <path d="M16 6.5V3.5" />
+        <path d="M14.5 5h3" />
+        <path d="M5 20h14" />
+        <path d="M12 16v4" />
+      </>
+    );
+  },
 };
+
+function IconicTaxonIcon({ iconicTaxonId }) {
+  const Glyph = ICONIC_ICONS[iconicTaxonId] || ICONIC_ICONS.default;
+
+  return (
+    <svg
+      className="iconic-icon-svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <Glyph />
+    </svg>
+  );
+}
 
 // ============== IconicTaxaGrid Component ==============
 
@@ -66,8 +198,6 @@ function IconicTaxaGrid({ onSelectIconic }) {
             progressPercent: 0,
             masteryBreakdown: {},
           };
-          const icon = ICONIC_ICONS[iconicTaxon.id] || '🔬';
-
           return (
             <div
               key={iconicTaxon.id}
@@ -77,7 +207,9 @@ function IconicTaxaGrid({ onSelectIconic }) {
               onClick={() => onSelectIconic(iconicTaxon.id)}
               onKeyDown={(event) => handleCardKeyDown(event, iconicTaxon.id)}
             >
-              <span className="iconic-icon" aria-hidden="true">{icon}</span>
+              <span className="iconic-icon" aria-hidden="true">
+                <IconicTaxonIcon iconicTaxonId={iconicTaxon.id} />
+              </span>
               <h2>{getIconicLabel(iconicTaxon.id, t)}</h2>
               <p className="iconic-stat">
                 {stats.seenCount} {t('collection.species_discovered', {}, 'découvertes')}
