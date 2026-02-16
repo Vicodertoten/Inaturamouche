@@ -17,13 +17,12 @@ const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
 const ReportModal = lazy(() => import('./ReportModal'));
 const HelpCenterModal = lazy(() => import('./HelpCenterModal'));
 const AchievementModal = lazy(() => import('./AchievementModal'));
-const TutorialOverlay = lazy(() => import('./TutorialOverlay'));
 
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isGameActive, isGameOver, resetToLobby } = useGameData();
-  const { achievementQueue, popAchievement, showTutorial } = useUser();
+  const { achievementQueue, popAchievement } = useUser();
   const { t, language } = useLanguage();
   const [isReportVisible, setIsReportVisible] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
@@ -188,12 +187,6 @@ const AppLayout = () => {
         </Suspense>
       )}
       <ToastContainer />
-      {showTutorial && (
-        <Suspense fallback={null}>
-          <TutorialOverlay />
-        </Suspense>
-      )}
-
       {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
       <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">

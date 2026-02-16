@@ -31,6 +31,56 @@ function preloadPlayPageModule() {
   return playPagePreloadPromise;
 }
 
+const ResumeIcon = () => (
+  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M8 5v14l11-7z" fill="currentColor" />
+  </svg>
+);
+
+const TargetIcon = () => (
+  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none" />
+    <path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const QuestionIcon = () => (
+  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M9.2 9.1a2.8 2.8 0 1 1 4.5 2.2c-.9.7-1.6 1.3-1.6 2.3"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="17.2" r="1.1" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const MediaIcon = () => (
+  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M4 8h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M8 8l1.3-2h5.4L16 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="13.5" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+);
+
+const PackSettingsIcon = () => (
+  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M10 12h4M10 15h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg className="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
+
 const HomePage = () => {
   const navigate = useNavigate();
   const {
@@ -202,7 +252,13 @@ const HomePage = () => {
     : gameMode === 'hard' ? t('home.hard_mode')
     : gameMode === 'riddle' ? t('home.riddle_mode')
     : t('home.taxonomic_mode');
-  const qLabel = maxQuestions ? `${maxQuestions} Q` : '∞';
+  const qLabel = Number.isInteger(maxQuestions) && maxQuestions > 0 ? `${maxQuestions} Q` : '∞';
+  const mediaName = mediaType === 'sounds'
+    ? t('configurator.option_sounds', {}, 'Sons')
+    : mediaType === 'both'
+      ? t('configurator.option_both', {}, 'Images + Sons')
+      : t('configurator.option_images', {}, 'Images');
+  const settingsLabel = t('home.settings_label', {}, 'Paramètres');
   const isResuming = hasActiveSession && !isCheckingSession && resumeSessionData;
 
   useEffect(() => {
@@ -313,7 +369,12 @@ const HomePage = () => {
               onFocus={preloadPlayPage}
               onTouchStart={preloadPlayPage}
             >
-              <span className="hero-cta-label">{t('home.resume_game_button', {}, '▶ Reprendre')}</span>
+              <span className="hero-cta-label">
+                <span className="hero-cta-action-icon" aria-hidden="true">
+                  <ResumeIcon />
+                </span>
+                {t('home.resume_game_button_text', {}, 'Reprendre')}
+              </span>
               <span className="hero-cta-meta">
                 {resumeSessionData.currentQuestionIndex > 0
                   ? t('home.resume_progress', { current: resumeSessionData.currentQuestionIndex, total: resumeSessionData.gameConfig?.maxQuestions || '∞' }, `Question ${resumeSessionData.currentQuestionIndex} sur ${resumeSessionData.gameConfig?.maxQuestions || '∞'}`)
@@ -322,7 +383,7 @@ const HomePage = () => {
             </button>
             <button type="button" className="hero-abandon" onClick={handleAbandonSession}
               title={t('home.abandon_session_tooltip', {}, 'Abandonner')}>
-              ✕
+              <CloseIcon />
             </button>
           </div>
         ) : (
@@ -345,39 +406,67 @@ const HomePage = () => {
                 {t('common.start_game', {}, 'Jouer')}
               </span>
               <span className="hero-cta-meta">
-                <PackIcon packId={activePackId} className="hero-cta-pack-icon" /> {activePackLabel} · {modeName} · {qLabel}
+                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.pack_label', {}, 'Pack')} : ${activePackLabel}`}>
+                  <PackIcon packId={activePackId} className="hero-cta-pack-icon" />
+                  <span>{activePackLabel}</span>
+                </span>
+                <span className="hero-cta-meta-chip" aria-label={`${t('home.play_pillar_title', {}, 'Mode')} : ${modeName}`}>
+                  <span className="hero-chip-icon" aria-hidden="true">
+                    <TargetIcon />
+                  </span>
+                  <span>{modeName}</span>
+                </span>
+                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.question_count_label', {}, 'Questions')} : ${qLabel}`}>
+                  <span className="hero-chip-icon" aria-hidden="true">
+                    <QuestionIcon />
+                  </span>
+                  <span>{qLabel}</span>
+                </span>
+                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.media_type_label', {}, 'Média')} : ${mediaName}`}>
+                  <span className="hero-chip-icon" aria-hidden="true">
+                    <MediaIcon />
+                  </span>
+                  <span>{mediaName}</span>
+                </span>
               </span>
             </button>
             <button
               type="button"
               ref={advancedButtonRef}
-              className={`hero-advanced-gear nav-pill nav-icon nav-elevated tutorial-nav-settings ${advancedOpen ? 'open' : ''}`}
+              className={`hero-advanced-trigger tutorial-nav-settings ${advancedOpen ? 'open' : ''}`}
               onClick={() => setAdvancedOpen((v) => !v)}
-              aria-label={t('home.advanced_settings', {}, 'Paramètres avancés')}
+              aria-label={settingsLabel}
               aria-expanded={advancedOpen}
               aria-controls="home-advanced-settings-panel"
             >
-              <SettingsIcon className="hero-advanced-gear-icon" />
+              <SettingsIcon className="hero-advanced-trigger-icon" />
             </button>
             {advancedOpen && (
-              <div
-                id="home-advanced-settings-panel"
-                ref={advancedPanelRef}
-                className="home-advanced-popover"
-                role="dialog"
-                aria-modal="false"
-                aria-label={t('home.advanced_settings', {}, 'Paramètres avancés')}
-              >
-                <p className="home-advanced-popover-title">
-                  {t('home.advanced_settings', {}, 'Paramètres avancés')}
-                </p>
-                <AdvancedSettings
-                  open={advancedOpen}
-                  onOpenChange={setAdvancedOpen}
-                  showToggle={false}
-                  className="home-advanced-settings-popover"
+              <>
+                <div
+                  className="home-advanced-backdrop"
+                  aria-hidden="true"
+                  onClick={() => setAdvancedOpen(false)}
                 />
-              </div>
+                <div
+                  id="home-advanced-settings-panel"
+                  ref={advancedPanelRef}
+                  className="home-advanced-popover"
+                  role="dialog"
+                  aria-modal="false"
+                  aria-label={settingsLabel}
+                >
+                  <p className="home-advanced-popover-title">
+                    {settingsLabel}
+                  </p>
+                  <AdvancedSettings
+                    open={advancedOpen}
+                    onOpenChange={setAdvancedOpen}
+                    showToggle={false}
+                    className="home-advanced-settings-popover"
+                  />
+                </div>
+              </>
             )}
           </div>
         )}
@@ -386,7 +475,7 @@ const HomePage = () => {
         <div className="home-chips">
           <button
             type="button"
-            className={`home-chip ${dailyAlreadyCompleted ? 'done' : 'highlight'}`}
+            className={`home-chip home-chip--daily ${dailyAlreadyCompleted ? 'done' : 'highlight'}`}
             onClick={handleDailyChallenge}
             onMouseEnter={preloadPlayPage}
             onFocus={preloadPlayPage}
@@ -396,7 +485,7 @@ const HomePage = () => {
             <span className="chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="16" y1="2" x2="16" y2="6" /><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" /></svg></span>
             <span className="chip-text">
               {dailyAlreadyCompleted
-                ? t('home.daily_done_short', {}, 'Défi ✅')
+                ? t('home.daily_done_short_text', {}, 'Défi terminé')
                 : t('home.daily_chip', {}, 'Défi du jour')}
             </span>
           </button>
@@ -404,7 +493,7 @@ const HomePage = () => {
           {reviewStats?.dueToday > 0 && (
             <button
               type="button"
-              className="home-chip highlight"
+              className="home-chip home-chip--review highlight"
               onClick={handleStartReview}
               onMouseEnter={preloadPlayPage}
               onFocus={preloadPlayPage}
@@ -474,7 +563,6 @@ const HomePage = () => {
                 </span>
               </span>
               <span className={`home-custom-trigger-chevron ${customOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
-              <span className="home-custom-trigger-badge">{t('home.custom_badge', {}, 'Filtres')}</span>
             </button>
           </div>
         )}
@@ -483,9 +571,12 @@ const HomePage = () => {
         {customOpen && (
           <div className="home-custom-panel" id="home-custom-panel">
             <div className="home-custom-header">
-              <p className="home-section-label">🎒 {t('home.custom_filter_btn', {}, 'Mode personnalisé')}</p>
+              <p className="home-section-label home-section-label-icon">
+                <PackSettingsIcon />
+                <span>{t('home.custom_filter_btn', {}, 'Mode personnalisé')}</span>
+              </p>
               <button type="button" className="home-custom-close" onClick={() => setCustomOpen(false)} aria-label="Fermer">
-                ✕
+                <CloseIcon />
               </button>
             </div>
             <Suspense

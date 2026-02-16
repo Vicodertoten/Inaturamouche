@@ -8,10 +8,14 @@ export const HomeIcon = () => (
 
 export const CollectionIcon = () => (
   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <path d="M9 3v18" />
+    <path d="M12 8h5" />
+    <path d="M12 12h5" />
+    <path d="M12 16h3" />
+    <circle cx="7" cy="8" r="0.75" fill="currentColor" stroke="none" />
+    <circle cx="7" cy="12" r="0.75" fill="currentColor" stroke="none" />
+    <circle cx="7" cy="16" r="0.75" fill="currentColor" stroke="none" />
   </svg>
 );
 

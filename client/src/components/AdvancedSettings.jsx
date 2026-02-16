@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { SettingsIcon } from './NavigationIcons';
 import './AdvancedSettings.css';
-
-const QUESTION_STOPS = [5, 10, 20, 50, null];
 
 const EyeIcon = () => (
   <svg className="media-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -19,25 +18,6 @@ const SoundIcon = () => (
     <path d="M18.5 6.5a7 7 0 010 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
   </svg>
 );
-
-const resolveQuestionIndex = (maxQuestions) => {
-  if (!Number.isInteger(maxQuestions) || maxQuestions <= 0) {
-    return QUESTION_STOPS.length - 1;
-  }
-  const exactMatch = QUESTION_STOPS.findIndex((value) => value === maxQuestions);
-  if (exactMatch >= 0) return exactMatch;
-  let closestIndex = 0;
-  let closestDiff = Number.POSITIVE_INFINITY;
-  QUESTION_STOPS.forEach((value, index) => {
-    if (!Number.isInteger(value)) return;
-    const diff = Math.abs(maxQuestions - value);
-    if (diff < closestDiff) {
-      closestDiff = diff;
-      closestIndex = index;
-    }
-  });
-  return closestIndex;
-};
 
 export default function AdvancedSettings({
   open: openProp,
@@ -67,8 +47,11 @@ export default function AdvancedSettings({
 
   const currentMode = gameMode === 'easy' ? 'easy' : 'hard';
   const effectiveMediaType = mediaType === 'sounds' ? 'sounds' : 'images';
-  const questionIndex = resolveQuestionIndex(maxQuestions);
+  const selectedQuestionValue = Number.isInteger(maxQuestions) && maxQuestions > 0 ? String(maxQuestions) : 'infinite';
   const scientificModeEnabled = nameFormat === 'scientific';
+  const modeGroupName = useId();
+  const mediaGroupName = useId();
+  const questionGroupName = useId();
 
   useEffect(() => {
     if (mediaType === 'both') {
@@ -84,18 +67,16 @@ export default function AdvancedSettings({
     { value: null, label: t('configurator.option_infinite') },
   ]), [t]);
 
-  const setQuestionIndex = useCallback((index) => {
-    const parsedIndex = Number(index);
-    const bounded = Math.max(0, Math.min(QUESTION_STOPS.length - 1, parsedIndex));
-    const target = QUESTION_STOPS[bounded];
-    setMaxQuestions(Number.isInteger(target) ? target : null);
+  const setQuestionChoice = useCallback((value) => {
+    setMaxQuestions(Number.isInteger(value) ? value : null);
   }, [setMaxQuestions]);
 
   const qLabel = Number.isInteger(maxQuestions) && maxQuestions > 0 ? `${maxQuestions}Q` : '∞';
-  const mediaLabel = effectiveMediaType === 'sounds' ? '🔊' : '📷';
+  const MediaSummaryIcon = effectiveMediaType === 'sounds' ? SoundIcon : EyeIcon;
   const modeLabel = currentMode === 'easy'
     ? t('home.easy_mode', {}, 'Facile')
     : t('home.hard_mode', {}, 'Difficile');
+  const settingsLabel = t('home.settings_label', {}, 'Paramètres');
 
   return (
     <section className={`advanced-settings tutorial-advanced-settings ${showToggle ? 'show-toggle' : 'no-toggle'} ${className}`.trim()}>
@@ -106,99 +87,111 @@ export default function AdvancedSettings({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
         >
-          <span className="advanced-toggle-icon" aria-hidden="true">⚙️</span>
+          <SettingsIcon className="advanced-toggle-icon" />
           <span className="advanced-toggle-label">
-            {t('home.advanced_settings', {}, 'Paramètres avancés')}
+            {settingsLabel}
           </span>
           <span className="advanced-toggle-summary">
-            {modeLabel} · {qLabel} · {mediaLabel}
+            <span>{modeLabel} · {qLabel}</span>
+            <span className="advanced-toggle-summary-media" aria-hidden="true">
+              {React.createElement(MediaSummaryIcon)}
+            </span>
           </span>
           <span className={`advanced-chevron ${open ? 'rotated' : ''}`} aria-hidden="true">▾</span>
         </button>
       )}
 
       {open && (
-        <div className="advanced-body">
-          <div className="adv-group">
-            <p className="adv-label">{t('home.play_pillar_title', {}, 'Mode')}</p>
-            <div className={`adv-slide-switch ${currentMode === 'hard' ? 'hard' : 'easy'}`} role="radiogroup" aria-label={t('home.play_pillar_title', {}, 'Mode')}>
-              <span className="adv-slide-thumb" aria-hidden="true" />
-              <button
-                type="button"
-                className={`adv-slide-option ${currentMode === 'easy' ? 'active' : ''}`}
-                onClick={() => setGameMode('easy')}
-                aria-pressed={currentMode === 'easy'}
-              >
-                {t('home.easy_mode', {}, 'Facile')}
-              </button>
-              <button
-                type="button"
-                className={`adv-slide-option ${currentMode === 'hard' ? 'active' : ''}`}
-                onClick={() => setGameMode('hard')}
-                aria-pressed={currentMode === 'hard'}
-              >
-                {t('home.hard_mode', {}, 'Difficile')}
-              </button>
-            </div>
-          </div>
+        <div className="advanced-body adv-layout">
+          <p className="adv-context">
+            {t('home.settings_helper', {}, 'Ajuste la partie avant de lancer.')}
+          </p>
 
-          <div className="adv-group">
-            <p className="adv-label">{t('configurator.media_type_label')}</p>
-            <div className={`adv-slide-switch ${effectiveMediaType === 'sounds' ? 'hard' : 'easy'}`} role="radiogroup" aria-label={t('configurator.media_type_label')}>
-              <span className="adv-slide-thumb" aria-hidden="true" />
-              <button
-                type="button"
-                className={`adv-slide-option ${effectiveMediaType === 'images' ? 'active' : ''}`}
-                onClick={() => setMediaType('images')}
-                aria-pressed={effectiveMediaType === 'images'}
-              >
-                <EyeIcon />
-                {t('configurator.option_images')}
-              </button>
-              <button
-                type="button"
-                className={`adv-slide-option ${effectiveMediaType === 'sounds' ? 'active' : ''}`}
-                onClick={() => setMediaType('sounds')}
-                aria-pressed={effectiveMediaType === 'sounds'}
-              >
-                <SoundIcon />
-                {t('configurator.option_sounds')}
-              </button>
+          <div className="adv-top-grid">
+            <div className="adv-group">
+              <p className="adv-label">{t('home.play_pillar_title', {}, 'Mode')}</p>
+              <div className={`adv-slide-switch ${currentMode === 'hard' ? 'hard' : 'easy'}`} role="radiogroup" aria-label={t('home.play_pillar_title', {}, 'Mode')}>
+                <span className="adv-slide-thumb" aria-hidden="true" />
+                <label className={`adv-slide-option ${currentMode === 'easy' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name={`${modeGroupName}-mode`}
+                    value="easy"
+                    checked={currentMode === 'easy'}
+                    onChange={() => setGameMode('easy')}
+                  />
+                  <span className="adv-slide-option-label">{t('home.easy_mode', {}, 'Facile')}</span>
+                </label>
+                <label className={`adv-slide-option ${currentMode === 'hard' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name={`${modeGroupName}-mode`}
+                    value="hard"
+                    checked={currentMode === 'hard'}
+                    onChange={() => setGameMode('hard')}
+                  />
+                  <span className="adv-slide-option-label">{t('home.hard_mode', {}, 'Difficile')}</span>
+                </label>
+              </div>
             </div>
-          </div>
 
-          <div className="adv-group">
-            <p className="adv-label">{t('configurator.question_count_label')}</p>
-            <div className="adv-range-wrap">
-              <input
-                type="range"
-                className="adv-range"
-                min="0"
-                max={String(questionOptions.length - 1)}
-                step="1"
-                value={String(questionIndex)}
-                onChange={(event) => setQuestionIndex(event.target.value)}
-                aria-label={t('configurator.question_count_label')}
-              />
-              <div className="adv-range-marks">
-                {questionOptions.map((option, index) => {
-                  const isActive = index === questionIndex;
-                  return (
-                    <button
-                      key={`${option.label}-${index}`}
-                      type="button"
-                      className={`adv-range-mark ${isActive ? 'active' : ''}`}
-                      onClick={() => setQuestionIndex(index)}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+            <div className="adv-group">
+              <p className="adv-label">{t('configurator.media_type_label')}</p>
+              <div className={`adv-slide-switch ${effectiveMediaType === 'sounds' ? 'hard' : 'easy'}`} role="radiogroup" aria-label={t('configurator.media_type_label')}>
+                <span className="adv-slide-thumb" aria-hidden="true" />
+                <label className={`adv-slide-option ${effectiveMediaType === 'images' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name={`${mediaGroupName}-media`}
+                    value="images"
+                    checked={effectiveMediaType === 'images'}
+                    onChange={() => setMediaType('images')}
+                  />
+                  <span className="adv-slide-option-label">
+                    <EyeIcon />
+                    {t('configurator.option_images')}
+                  </span>
+                </label>
+                <label className={`adv-slide-option ${effectiveMediaType === 'sounds' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name={`${mediaGroupName}-media`}
+                    value="sounds"
+                    checked={effectiveMediaType === 'sounds'}
+                    onChange={() => setMediaType('sounds')}
+                  />
+                  <span className="adv-slide-option-label">
+                    <SoundIcon />
+                    {t('configurator.option_sounds')}
+                  </span>
+                </label>
               </div>
             </div>
           </div>
 
-          <div className="adv-group">
+          <div className="adv-group adv-group-questions">
+            <p className="adv-label">{t('configurator.question_count_label')}</p>
+            <div className="adv-pill-group" role="radiogroup" aria-label={t('configurator.question_count_label')}>
+              {questionOptions.map((option) => {
+                const valueString = Number.isInteger(option.value) ? String(option.value) : 'infinite';
+                const isActive = selectedQuestionValue === valueString;
+                return (
+                  <label key={valueString} className={`adv-pill-option ${isActive ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name={`${questionGroupName}-questions`}
+                      value={valueString}
+                      checked={isActive}
+                      onChange={() => setQuestionChoice(option.value)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="adv-group adv-group-inline">
             <label className={`adv-scientific-toggle ${scientificModeEnabled ? 'active' : ''}`}>
               <input
                 type="checkbox"

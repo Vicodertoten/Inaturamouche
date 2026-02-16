@@ -16,8 +16,6 @@ const sanitizeProfile = (profileCandidate) => {
   return rest;
 };
 
-const TUTORIAL_STORAGE_KEY = 'inaturamouche_tutorial_seen';
-
 const getLocalStorage = () => {
   if (typeof window === 'undefined') return null;
   try {
@@ -25,27 +23,6 @@ const getLocalStorage = () => {
   } catch (error) {
     debugWarn('Access to localStorage is blocked', error);
     return null;
-  }
-};
-
-const readTutorialSeenFlag = () => {
-  const storage = getLocalStorage();
-  if (!storage) return null;
-  try {
-    return storage.getItem(TUTORIAL_STORAGE_KEY);
-  } catch (error) {
-    debugWarn('Unable to read tutorial flag from localStorage', error);
-    return null;
-  }
-};
-
-const writeTutorialSeenFlag = () => {
-  const storage = getLocalStorage();
-  if (!storage) return;
-  try {
-    storage.setItem(TUTORIAL_STORAGE_KEY, 'true');
-  } catch (error) {
-    debugWarn('Unable to persist tutorial completion flag', error);
   }
 };
 
@@ -121,7 +98,6 @@ export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
-  const [showTutorial, setShowTutorial] = useState(false);
 
   // Initialize: load profile, migrate legacy data, and seed encyclopedia
   useEffect(() => {
@@ -225,18 +201,6 @@ export function UserProvider({ children }) {
     };
   }, []);
 
-  // Check if tutorial should be shown for first-time users
-  useEffect(() => {
-    const tutorialSeen = readTutorialSeenFlag();
-    if (!tutorialSeen) {
-      setShowTutorial(true);
-    }
-  }, []);
-
-  const completeTutorial = useCallback(() => {
-    writeTutorialSeenFlag();
-    setShowTutorial(false);
-  }, []);
   useEffect(() => {
     const unsubscribe = CollectionService.onCollectionUpdated(() => {
       setCollectionVersion((prev) => prev + 1);
@@ -364,8 +328,6 @@ export function UserProvider({ children }) {
     getSpeciesById, // Legacy
     getSpeciesStats, // Legacy
     collectionVersion,
-    showTutorial,
-    completeTutorial,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
