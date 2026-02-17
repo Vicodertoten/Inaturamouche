@@ -5,9 +5,10 @@ import { config } from '../config/index.js';
 import { selectionStateCache } from '../cache/selectionCache.js';
 import { HistoryBuffer, createShuffledDeck, effectiveCooldownN } from '../../lib/quiz-utils.js';
 
-const { cooldownTargetMs, cooldownTargetN, obsHistoryLimit, quizChoices } = config;
+const { cooldownTargetMs, cooldownTargetN, cooldownLureN, obsHistoryLimit, quizChoices } = config;
 const COOLDOWN_TARGET_MS = cooldownTargetMs;
 const COOLDOWN_TARGET_N = cooldownTargetN;
+const COOLDOWN_LURE_N = cooldownLureN;
 const OBS_HISTORY_LIMIT = obsHistoryLimit;
 const QUIZ_CHOICES = quizChoices;
 
@@ -19,6 +20,8 @@ export function createSelectionState(pool, rng) {
   return {
     recentTargetTaxa: [],
     recentTargetSet: new Set(),
+    recentLureTaxa: [],
+    recentLureSet: new Set(),
     cooldownTarget: COOLDOWN_TARGET_MS ? new Map() : null,
     observationHistory: new HistoryBuffer(historyLimit),
     // Lure usage counter: Map<taxonId, number> — how many times each lure
@@ -57,6 +60,10 @@ export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
       nextState.recentTargetTaxa = state.recentTargetTaxa.filter((id) => pool.taxonSet.has(String(id)));
       nextState.recentTargetSet = new Set(nextState.recentTargetTaxa.map(String));
     }
+    if (state?.recentLureTaxa?.length && pool?.taxonSet) {
+      nextState.recentLureTaxa = state.recentLureTaxa.filter((id) => pool.taxonSet.has(String(id)));
+      nextState.recentLureSet = new Set(nextState.recentLureTaxa.map(String));
+    }
     state = nextState;
   }
   if (!(state.observationHistory instanceof HistoryBuffer)) {
@@ -70,6 +77,12 @@ export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
   }
   if (!Number.isInteger(state.questionIndex) || state.questionIndex < 0) {
     state.questionIndex = 0;
+  }
+  if (!Array.isArray(state.recentLureTaxa)) {
+    state.recentLureTaxa = [];
+  }
+  if (!(state.recentLureSet instanceof Set)) {
+    state.recentLureSet = new Set(state.recentLureTaxa.map(String));
   }
   state.version = pool.version;
 
@@ -145,5 +158,52 @@ export function pushTargetCooldown(pool, selectionState, taxonIds, now) {
       const removed = selectionState.recentTargetTaxa.pop();
       selectionState.recentTargetSet.delete(removed);
     }
+  }
+}
+
+export function buildLureCooldownExclusionSet(pool, selectionState) {
+  if (!selectionState) return new Set();
+  const limit = effectiveCooldownN(COOLDOWN_LURE_N, pool?.taxonList?.length || 0, QUIZ_CHOICES);
+  if (limit <= 0) return new Set();
+  if (!Array.isArray(selectionState.recentLureTaxa)) selectionState.recentLureTaxa = [];
+  if (!(selectionState.recentLureSet instanceof Set)) {
+    selectionState.recentLureSet = new Set(selectionState.recentLureTaxa.map(String));
+  }
+
+  const poolSet = pool?.taxonSet instanceof Set ? pool.taxonSet : null;
+  if (poolSet) {
+    selectionState.recentLureTaxa = selectionState.recentLureTaxa.filter((id) => poolSet.has(String(id)));
+    selectionState.recentLureSet = new Set(selectionState.recentLureTaxa.map(String));
+  }
+  while (selectionState.recentLureTaxa.length > limit) {
+    const removed = selectionState.recentLureTaxa.pop();
+    selectionState.recentLureSet.delete(String(removed));
+  }
+  return new Set(selectionState.recentLureTaxa.map(String));
+}
+
+export function pushLureCooldown(pool, selectionState, taxonIds) {
+  if (!selectionState) return;
+  const limit = effectiveCooldownN(COOLDOWN_LURE_N, pool?.taxonList?.length || 0, QUIZ_CHOICES);
+  if (limit <= 0) {
+    selectionState.recentLureTaxa = [];
+    selectionState.recentLureSet = new Set();
+    return;
+  }
+  if (!Array.isArray(selectionState.recentLureTaxa)) selectionState.recentLureTaxa = [];
+  if (!(selectionState.recentLureSet instanceof Set)) {
+    selectionState.recentLureSet = new Set(selectionState.recentLureTaxa.map(String));
+  }
+
+  for (const rawId of taxonIds || []) {
+    const id = String(rawId);
+    if (!id) continue;
+    if (selectionState.recentLureSet.has(id)) continue;
+    selectionState.recentLureTaxa.unshift(id);
+    selectionState.recentLureSet.add(id);
+  }
+  while (selectionState.recentLureTaxa.length > limit) {
+    const removed = selectionState.recentLureTaxa.pop();
+    selectionState.recentLureSet.delete(String(removed));
   }
 }

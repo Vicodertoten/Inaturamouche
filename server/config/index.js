@@ -118,6 +118,13 @@ export const config = {
     min: 0.01,
     max: 0.2,
   }),
+  // Global difficulty boost:
+  // 0   => no boost
+  // 0.2 => "20% harder" baseline (lures are closer to the target)
+  globalDifficultyBoost: parseFloatWithFallback(process.env.GLOBAL_DIFFICULTY_BOOST, 0.2, {
+    min: -0.5,
+    max: 0.8,
+  }),
   iconicRotationWindow: parseIntWithFallback(process.env.ICONIC_ROTATION_WINDOW, 6, {
     min: 3,
     max: 20,
@@ -195,6 +202,7 @@ export const config = {
   // Cooldown
   cooldownTargetN: 60,
   cooldownTargetMs: null, // null = désactivé
+  cooldownLureN: parseIntWithFallback(process.env.COOLDOWN_LURE_N, 6, { min: 0, max: 60 }),
   
   // Pool extension
   maxObsPages: parseIntWithFallback(process.env.OBS_POOL_MAX_PAGES, 3, { min: 1, max: 12 }),

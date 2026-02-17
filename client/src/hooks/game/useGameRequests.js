@@ -30,6 +30,7 @@ export function useGameRequests({
   const activeRequestController = useRef(null);
   const prefetchRequestController = useRef(null);
   const questionStartTimeRef = useRef(null);
+  const seedQuestionCursorRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -37,6 +38,10 @@ export function useGameRequests({
       prefetchRequestController.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    seedQuestionCursorRef.current = null;
+  }, [dailySeed, dailySeedSession]);
 
   const abortActiveFetch = useCallback(() => {
     if (activeRequestController.current) {
@@ -52,7 +57,7 @@ export function useGameRequests({
     }
   }, []);
 
-  const buildQuizParams = useCallback(() => {
+  const buildQuizParams = useCallback((seedQuestionIndexOverride = null) => {
     const params = new URLSearchParams();
     const hasSeed = typeof dailySeed === 'string' && dailySeed.length > 0;
     const effectiveGameMode = normalizeGameMode(gameMode, 'easy');
@@ -63,10 +68,10 @@ export function useGameRequests({
     if (hasSeed) {
       params.set('seed', dailySeed);
       if (dailySeedSession) params.set('seed_session', dailySeedSession);
-      // Send the client-side question index (0-based) so the server
-      // can pick the correct deterministic question for this user,
-      // regardless of other users' progress on the same daily seed.
-      params.set('question_index', String(questionCount - 1));
+      const normalizedIndex = Number.isInteger(seedQuestionIndexOverride)
+        ? Math.max(0, seedQuestionIndexOverride)
+        : Math.max(0, questionCount - 1);
+      params.set('question_index', String(normalizedIndex));
       return params;
     }
 
@@ -152,8 +157,22 @@ export function useGameRequests({
       }
 
       try {
-        const params = buildQuizParams();
+        const hasSeed = typeof dailySeed === 'string' && dailySeed.length > 0;
+        let seedQuestionIndex = null;
+        if (hasSeed) {
+          if (prefetchOnly) {
+            seedQuestionIndex = Number.isInteger(seedQuestionCursorRef.current)
+              ? seedQuestionCursorRef.current + 1
+              : Math.max(0, questionCount);
+          } else {
+            seedQuestionIndex = Math.max(0, questionCount - 1);
+          }
+        }
+        const params = buildQuizParams(seedQuestionIndex);
         const questionData = await fetchQuizQuestion(params, { signal: controller.signal });
+        if (hasSeed && Number.isInteger(seedQuestionIndex)) {
+          seedQuestionCursorRef.current = seedQuestionIndex;
+        }
 
         if (prefetchOnly) {
           if (gameMode !== 'riddle') {
@@ -192,7 +211,9 @@ export function useGameRequests({
       abortActiveFetch,
       abortPrefetchFetch,
       buildQuizParams,
+      dailySeed,
       gameMode,
+      questionCount,
       setLoading,
       setError,
       setIsGameActive,

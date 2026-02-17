@@ -267,6 +267,12 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       const queueEntry = getQueueEntry(queueKey);
       item = queueEntry.queue.shift();
       if (!item) {
+        if (queueEntry.inFlight) {
+          await queueEntry.inFlight;
+          item = queueEntry.queue.shift();
+        }
+      }
+      if (!item) {
         item = await buildQuizQuestion(context);
       }
     }

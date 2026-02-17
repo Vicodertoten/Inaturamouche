@@ -10,6 +10,8 @@ import {
   rememberObservation,
   pickObservationForTaxon,
   pushTargetCooldown,
+  buildLureCooldownExclusionSet,
+  pushLureCooldown,
 } from './selectionState.js';
 import { buildLures } from './lureBuilder.js';
 import { getFullTaxaDetails, getTaxonName } from './iNaturalistClient.js';
@@ -29,6 +31,17 @@ const MAX_LURE_CLOSENESS = 0.98;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function applyDifficultyBoost(baseCloseness, boost) {
+  const normalizedBase = clamp(Number(baseCloseness) || 0, 0, 1);
+  const normalizedBoost = clamp(Number(boost) || 0, -1, 1);
+  if (normalizedBoost >= 0) {
+    // Move closer to 1.0 by the requested proportion.
+    return normalizedBase + (1 - normalizedBase) * normalizedBoost;
+  }
+  // Negative boost makes the game easier by moving towards 0.
+  return normalizedBase * (1 + normalizedBoost);
 }
 
 function buildIconicRotationExclusionSet(cacheEntry, avoidIconicTaxonId) {
@@ -361,6 +374,9 @@ export async function buildQuizQuestion({
           throw err;
         }
 
+        // Reserve target immediately to avoid duplicate target picks when
+        // queue generation and foreground requests overlap.
+        pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], now);
         // Sauvegarder le state DANS le mutex avant de le retourner
         selectionStateCache.set(key, selectionState);
 
@@ -409,16 +425,30 @@ export async function buildQuizQuestion({
     const windowSize = Math.min(deck.length, maxExclude, config.questionQueueSize);
     return new Set(deck.slice(-windowSize).map((id) => String(id)));
   })();
+  const lureCooldownExclusions = buildLureCooldownExclusionSet(cacheEntry, selectionState);
+  const strictLureExclusions = new Set();
+  if (excludeFutureTargets?.size) {
+    for (const id of excludeFutureTargets) strictLureExclusions.add(String(id));
+  }
+  if (lureCooldownExclusions?.size) {
+    for (const id of lureCooldownExclusions) strictLureExclusions.add(String(id));
+  }
+  const hasStrictLureExclusions = strictLureExclusions.size > 0;
+  const hasLureCooldownExclusions = Boolean(lureCooldownExclusions?.size);
 
   if (!isTaxonomicMode) {
     const adaptiveLureDelta = Number(adaptiveTuning?.lureClosenessDelta) || 0;
-    const modeMinCloseness =
-      clamp(
-        (gameMode === 'easy'
+    const globalDifficultyBoost = Number(config.globalDifficultyBoost) || 0;
+    const baseModeMinCloseness =
+      gameMode === 'easy'
         ? config.easyLureMinCloseness
         : gameMode === 'riddle'
           ? config.riddleLureMinCloseness
-          : config.hardLureMinCloseness) + adaptiveLureDelta,
+          : config.hardLureMinCloseness;
+    const boostedBaseCloseness = applyDifficultyBoost(baseModeMinCloseness, globalDifficultyBoost);
+    const modeMinCloseness =
+      clamp(
+        boostedBaseCloseness + adaptiveLureDelta,
         0,
         MAX_LURE_CLOSENESS
       );
@@ -433,7 +463,7 @@ export async function buildQuizQuestion({
       config.lureCount,
       questionRng,
       {
-        excludeTaxonIds: excludeFutureTargets,
+        excludeTaxonIds: hasStrictLureExclusions ? strictLureExclusions : null,
         minCloseness: modeMinCloseness,
         lureUsageCount: selectionState.lureUsageCount || null,
       }
@@ -459,9 +489,35 @@ export async function buildQuizQuestion({
         config.lureCount,
         questionRng,
         {
-          excludeTaxonIds: null,
+          excludeTaxonIds: hasStrictLureExclusions ? strictLureExclusions : null,
           minCloseness: 0,
-          lureUsageCount: null,
+          lureUsageCount: selectionState.lureUsageCount || null,
+        }
+      ));
+    }
+    if ((!lures || lures.length < config.lureCount) && hasLureCooldownExclusions) {
+      logger?.info(
+        {
+          requestId,
+          targetTaxonId: String(targetTaxonId),
+          luresFound: lures?.length || 0,
+          lureCount: config.lureCount,
+          lureCooldownSize: lureCooldownExclusions.size,
+        },
+        'Lure cooldown too strict, retrying without lure cooldown exclusions'
+      );
+      const baseExclusions = excludeFutureTargets?.size ? excludeFutureTargets : null;
+      ({ lures } = buildLures(
+        cacheEntry,
+        selectionState,
+        targetTaxonId,
+        targetObservation,
+        config.lureCount,
+        questionRng,
+        {
+          excludeTaxonIds: baseExclusions,
+          minCloseness: 0,
+          lureUsageCount: selectionState.lureUsageCount || null,
         }
       ));
     }
@@ -482,6 +538,7 @@ export async function buildQuizQuestion({
         selectionState.lureUsageCount.set(tid, (selectionState.lureUsageCount.get(tid) || 0) + 1);
       }
     }
+    pushLureCooldown(cacheEntry, selectionState, lures.map((lure) => String(lure.taxonId)));
 
     choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
     const fallbackDetails = new Map();
@@ -576,8 +633,6 @@ export async function buildQuizQuestion({
     url: p.url,
     original_dimensions: p.original_dimensions,
   }));
-
-  pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], Date.now());
 
   marks.end = performance.now();
 
