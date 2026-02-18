@@ -347,6 +347,8 @@ const nl = {
     lose_title: 'Jammer!',
     explanation_title: 'Opa Mouche zegt...',
     explanation_sources: 'Bronnen:',
+    correct_answer: 'Juist antwoord',
+    your_answer: 'Jouw antwoord',
     answer_intro: 'Het antwoord was:',
     points: 'Behaalde punten:',
     bonus: 'Extra punten:',

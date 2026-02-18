@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
+import { getTaxaByIds } from '../services/api';
 import { ICONIC_TAXA, ICONIC_TAXA_LIST } from '../utils/collectionUtils';
 import CollectionCard from '../components/CollectionCard';
 import SpeciesDetailModal from '../components/SpeciesDetailModal';
@@ -242,7 +243,7 @@ function IconicTaxaGrid({ onSelectIconic }) {
 
 function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   const { collectionVersion } = useUser();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [sortOrder, setSortOrder] = useState('mastery');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -274,7 +275,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
   // Reset page when search, filter or sort changes
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch, filterStatus, sortOrder, iconicTaxonId]);
+  }, [debouncedSearch, filterStatus, sortOrder, iconicTaxonId, language]);
 
   // Fetch species data
   useEffect(() => {
@@ -290,9 +291,37 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
           sort: sortOrder,
           searchQuery: debouncedSearch,
           filterStatus,
+          language,
         });
+
+        if (!isMounted) return;
+
+        // Enrich species with localized taxon data
+        const enrichedSpecies = [...result.species];
+        if (enrichedSpecies.length > 0 && language && language !== 'fr') {
+          try {
+            const taxonIds = enrichedSpecies.map((spec) => spec.taxon.id);
+            const localizedTaxa = await getTaxaByIds(taxonIds, language);
+            
+            if (isMounted && localizedTaxa && localizedTaxa.length > 0) {
+              // Map localized data back to species
+              const localizedMap = new Map(localizedTaxa.map((t) => [t.id, t]));
+              for (let i = 0; i < enrichedSpecies.length; i++) {
+                const localized = localizedMap.get(enrichedSpecies[i].taxon.id);
+                if (localized) {
+                  enrichedSpecies[i].taxon.local_preferred_common_name = 
+                    localized.preferred_common_name || localized.name;
+                }
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to fetch localized taxon data:', err);
+            // Continue with non-localized data
+          }
+        }
+
         if (isMounted) {
-          setSpecies(result.species);
+          setSpecies(enrichedSpecies);
           setTotal(result.total || 0);
           setError(null);
         }

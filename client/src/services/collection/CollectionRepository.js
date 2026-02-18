@@ -367,6 +367,7 @@ export async function getSpeciesPage(params = {}) {
     searchQuery = '',
     filterStatus = 'all',
     filterRarity = 'all',
+    language = 'fr',
   } = params;
 
   if (!iconicId) throw new Error('iconicId required for getSpeciesPage');
@@ -390,7 +391,7 @@ export async function getSpeciesPage(params = {}) {
   const matchesSearch = (taxon) => {
     if (!normalizedSearch) return true;
     const scientific = String(taxon?.name || '').toLowerCase();
-    const common = String(taxon?.preferred_common_name || '').toLowerCase();
+    const common = String(taxon?.local_preferred_common_name || taxon?.preferred_common_name || '').toLowerCase();
     return scientific.includes(normalizedSearch) || common.includes(normalizedSearch);
   };
   const matchesStatus = (rawStat) => {

@@ -54,7 +54,8 @@ const getObservationImageUrl = (taxon) => {
 };
 
 const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
-  const { t, lang, getTaxonDisplayNames } = useLanguage();
+  const { t, language, getTaxonDisplayNames } = useLanguage();
+  const lang = language; // Alias pour compatibilité
   const [explanation, setExplanation] = useState('');
   const [discriminant, setDiscriminant] = useState('');
   const [aiSources, setAiSources] = useState([]);

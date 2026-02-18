@@ -34,6 +34,9 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
     taxon?.default_photo?.url ||
     '';
 
+  // Use localized common name if available, otherwise fall back to English or scientific name
+  const displayCommonName = taxon.local_preferred_common_name || taxon.preferred_common_name || taxon.name;
+
   return (
     <div className={cardClasses} style={style}>
       <div className="card-image-wrapper">
@@ -48,7 +51,7 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
         )}
       </div>
       <div className="card-info">
-        <p className="card-common-name">{taxon.preferred_common_name || taxon.name}</p>
+        <p className="card-common-name">{displayCommonName}</p>
         {masteryLevel > MASTERY_LEVELS.BRONZE && (
           <p className="card-scientific-name">{taxon.name}</p>
         )}
