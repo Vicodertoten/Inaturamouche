@@ -4,32 +4,19 @@ API Express de iNaturaQuizz.
 
 ## Entree
 
-- `server/index.js`: start serveur
-- `server/app.js`: composition middleware/routes
+- `server/index.js`: demarrage du serveur
+- `server/app.js`: middleware globaux + routes
 
-## Routes exposees
+## Endpoints
 
-- `GET /healthz`
-- `GET /api/packs`
-- `GET /api/quiz-question`
-- `POST /api/quiz/submit`
-- `POST /api/quiz/explain`
-- `GET /api/quiz/balance-dashboard`
-- `POST /api/reports`
-- `GET /api/reports`
-- `GET /api/taxa/autocomplete`
-- `GET /api/taxon/:id`
-- `GET /api/taxa`
-- `GET /api/places`
-- `GET /api/places/by-id`
-- `GET /api/observations/species_counts`
+La liste complete est dans `wiki/API_REFERENCE.md`.
 
 ## Points techniques
 
 - Validation: Zod
 - Logs: Pino (`X-Request-Id`)
-- Erreurs: contrat unifie (`error.code/message/requestId`)
-- Rate limiting: global + endpoint-specifique
+- Erreurs: contrat unifie (`error.code`, `error.message`, `error.requestId`)
+- Rate limiting: global + endpoints sensibles
 - Signature HMAC des manches: `ROUND_HMAC_SECRET`
 
 ## Commandes
@@ -42,8 +29,8 @@ npm run test:unit
 npm run test:integration
 ```
 
-## Reference
+## Documentation
 
+- `wiki/ARCHITECTURE.md`
 - `wiki/API_REFERENCE.md`
-- `wiki/guides/backend/QUIZ_PIPELINE.md`
-- `wiki/guides/backend/OBSERVABILITY.md`
+- `wiki/guides/backend/README.md`

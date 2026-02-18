@@ -1,13 +1,13 @@
-# Contributing
+# Contribuer a iNaturaQuizz
 
-Merci de contribuer.
+Merci de contribuer. Cette page decrit le flux minimum attendu pour garder le code et la doc coherents.
 
-## Workflow rapide
+## Workflow
 
-1. Créer une branche (`feat/...`, `fix/...`, `docs/...`)
-2. Faire un changement cible
-3. Exécuter les checks
-4. Ouvrir une PR avec description claire
+1. Creer une branche (`feat/...`, `fix/...`, `docs/...`)
+2. Faire un changement cible et teste
+3. Mettre a jour la doc si besoin
+4. Ouvrir une PR claire (contexte, impact, tests)
 
 ## Checks avant PR
 
@@ -33,9 +33,7 @@ Locales supportees:
 - `client/src/locales/en.js`
 - `client/src/locales/nl.js`
 
-Toujours garder les cles alignees.
-
-Verifier:
+Garder les cles alignees. Verifier avec:
 
 ```bash
 npm run check:i18n
@@ -43,13 +41,13 @@ npm run check:i18n
 
 ## API et contrats
 
-Si tu modifies une route backend:
-- mettre a jour `wiki/API_REFERENCE.md`
-- maintenir le contrat d'erreur standard (`error.code/message/requestId`)
-- ajouter ou adapter des tests integration
+Si une route backend change:
+- Mettre a jour `wiki/API_REFERENCE.md`
+- Garder le contrat d erreur (`error.code`, `error.message`, `error.requestId`)
+- Ajouter ou adapter des tests integration
 
 ## Documentation
 
 Source canonique: `wiki/`.
 
-Si tu modifies architecture/API/ops, mets a jour les pages wiki correspondantes dans la meme PR.
+Toute modification d architecture, d API ou d ops doit etre accompagnee d une mise a jour de la doc correspondante.

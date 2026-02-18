@@ -426,15 +426,11 @@
   }
 }
 
-/* ── Resume group (CTA + abandon) ── */
+/* ── Resume group (CTA with inline abandon) ── */
 .hero-cta-group {
   display: flex;
   gap: 0.5rem;
   align-items: stretch;
-}
-.hero-cta-group .hero-cta {
-  flex: 1;
-  border-radius: var(--radius, 14px) 0 0 var(--radius, 14px);
 }
 .hero-abandon {
   display: flex;
@@ -444,14 +440,38 @@
   border: none;
   border-radius: 0 var(--radius, 14px) var(--radius, 14px) 0;
   background: rgba(255, 72, 72, 0.15);
-  color: var(--error-color, #ff4848);
+  color: var(--text-color);
   font-size: 1.2rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease;
+  position: relative;
 }
 .hero-abandon:hover {
   background: rgba(255, 72, 72, 0.3);
+}
+.hero-abandon::before,
+.hero-abandon::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+}
+.hero-abandon::before {
+  transform: rotate(45deg);
+}
+.hero-abandon::after {
+  transform: rotate(-45deg);
+}
+.hero-cta-group .hero-cta {
+  flex: 1;
+  border-radius: var(--radius, 14px) 0 0 var(--radius, 14px);
+}
+.hero-abandon .close-icon {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .close-icon {

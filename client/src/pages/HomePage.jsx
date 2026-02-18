@@ -410,8 +410,13 @@ const HomePage = () => {
                   : t('home.resume_game_subtitle', {}, 'Partie en cours')}
               </span>
             </button>
-            <button type="button" className="hero-abandon" onClick={handleAbandonSession}
-              title={t('home.abandon_session_tooltip', {}, 'Abandonner')}>
+            <button
+              type="button"
+              className="hero-abandon"
+              onClick={handleAbandonSession}
+              title={t('home.abandon_session_tooltip', {}, 'Abandonner')}
+              aria-label={t('home.abandon_session_tooltip', {}, 'Abandonner')}
+            >
               <CloseIcon />
             </button>
           </div>

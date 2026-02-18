@@ -600,7 +600,7 @@ npm --prefix client run dev
 ✓ Zéro extraction massive
 ✓ Attribution visible
 
-[Docs complètes](./docs/CONFORMANCE.md)
+[Docs complètes](./wiki/INDEX.md)
 
 ## 📝 Licences
 
@@ -626,9 +626,9 @@ Open source! Pour contribuer:
 Made with 🦋 for nature lovers
 ```
 
-#### 4.2 Créer `docs/ARCHITECTURE.md` minimale
+#### 4.2 Créer `wiki/ARCHITECTURE.md` minimale
 
-**Path:** `docs/ARCHITECTURE.md`
+**Path:** `wiki/ARCHITECTURE.md`
 
 ```markdown
 # Architecture iNaturaQuizz
@@ -867,7 +867,7 @@ AVRIL — SEMAINES 6-8 (Mar 25 - Apr 8)
   MISSION 4: Documentation
   ├─ Mar 25-27: README + architecture docs (3h)
   │  □ Improve README.md
-  │  □ Add docs/ARCHITECTURE.md
+  │  □ Update wiki/ARCHITECTURE.md
   │  └─ Clarify .env.example
   │
   MISSION 5: Scaling Plan (parallel)
@@ -986,7 +986,7 @@ Deliverable:
 
 ### Mission 4: Documentation
 - [ ] README updated (mission + compliance)
-- [ ] docs/ARCHITECTURE.md created
+- [ ] wiki/ARCHITECTURE.md updated
 - [ ] .env.example clarified
 - [ ] LEGAL page comprehensive
 

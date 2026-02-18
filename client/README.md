@@ -6,8 +6,7 @@ SPA React de iNaturaQuizz (Vite + PWA).
 
 - React 19
 - React Router
-- Vite
-- vite-plugin-pwa
+- Vite + vite-plugin-pwa
 - Vitest + Playwright
 
 ## Routes UI
@@ -38,11 +37,14 @@ Endpoints utilises:
 - `/api/quiz/explain`
 - `/api/reports`
 - `/api/packs`
+- `/api/packs/:id/preview`
 - `/api/taxa/autocomplete`
 - `/api/taxon/:id`
 - `/api/taxa`
 - `/api/places`
 - `/api/places/by-id`
+- `/api/daily/score`
+- `/api/daily/leaderboard`
 
 ## PWA
 
@@ -52,8 +54,7 @@ Config: `client/vite.config.js`.
 - metadata: `StaleWhileRevalidate`
 - images/assets: `CacheFirst`
 
-## Reference
+## Documentation
 
-- `wiki/guides/frontend/GAME_STATE.md`
-- `wiki/guides/frontend/PWA_OFFLINE.md`
+- `wiki/guides/frontend/README.md`
 - `wiki/API_REFERENCE.md`
