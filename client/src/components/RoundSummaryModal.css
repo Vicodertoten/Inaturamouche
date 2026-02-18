@@ -1,3 +1,11 @@
+.summary-modal .external-links-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
 /* --- Base Modal Styles --- */
 .modal-backdrop {
   position: fixed;
@@ -14,7 +22,7 @@
 .summary-modal {
   width: 100%;
   max-width: 900px; /* Increased max-width to accommodate two cards */
-  max-height: 90vh;
+  max-height: 92vh;
   background-color: var(--surface-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-2);
@@ -25,9 +33,44 @@
   animation: modal-slide-in 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
+@media (min-width: 1024px) {
+  .summary-modal {
+    max-width: 1600px;
+  }
+
+  /* Wide variant for wrong-answer view: use only the necessary width (cap at 1280px)
+     — shows both species side-by-side while keeping the explanation below */
+  .summary-modal.summary-modal--wide {
+    /* cap width so modal doesn't become full-bleed on very large screens */
+    max-width: min(92vw, 1280px);
+  }
+
+  /* Slightly reduced gaps so two cards + explanation fit comfortably */
+  .summary-modal.summary-modal--wide .answers-container {
+    gap: var(--space-6);
+  }
+
+  /* Use a balanced card width so both cards sit side-by-side without stretching */
+  .summary-modal.summary-modal--wide .answer-card {
+    max-width: 46%;
+  }
+
+  .summary-modal.summary-modal--wide .explanation-section {
+    margin-top: var(--space-3);
+    width: 100%;
+  }
+}
+
+@media (min-width: 1440px) {
+  .summary-modal {
+    max-width: min(95vw, 1800px);
+    max-height: 92vh;
+  }
+}
+
 /* --- Header --- */
 .summary-header {
-  padding: var(--space-3) var(--space-4);
+  padding: clamp(8px, 1.4vh, var(--space-3)) clamp(10px, 1.8vw, var(--space-4));
   border-bottom: 1px solid var(--border-color);
   text-align: center;
   flex-shrink: 0;
@@ -39,7 +82,7 @@
   justify-content: center;
   gap: var(--space-2);
   margin: 0;
-  font-size: var(--type-xl);
+  font-size: clamp(1rem, 2vw, var(--type-lg));
   font-weight: 700;
 }
 
@@ -59,27 +102,61 @@
 .summary-body {
   display: flex;
   flex-direction: column;
-  padding: var(--space-4);
-  overflow-y: auto;
-  gap: var(--space-4);
+  padding: clamp(8px, 1.8vh, var(--space-4));
+  gap: clamp(8px, 2vh, var(--space-4));
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 1400px) {
+  .summary-body {
+    padding: var(--space-5);
+    gap: var(--space-5);
+  }
 }
 
 .answers-container {
   display: flex;
-  flex-direction: column; /* Stacked by default on small screens */
-  gap: var(--space-4);
+  flex-direction: row; /* force one row (wrap allowed) so 1 or 2 cards appear on the first line */
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.8vh, var(--space-4));
+  justify-content: center;
+  align-items: flex-start;
+  max-width: 1200px; /* cap row width so cards don't stretch too far */
+  margin: 0 auto;
+  grid-area: answers;
+} 
+
+@media (min-width: 1400px) {
+  .answers-container {
+    gap: var(--space-6);
+  }
 }
 
 .answer-card {
   background-color: var(--surface-2);
   border-radius: var(--radius);
-  padding: var(--space-3);
+  padding: clamp(6px, 1.4vh, var(--space-3));
   border: 1px solid var(--border-color);
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: clamp(4px, 1.2vh, var(--space-2));
+  box-sizing: border-box;
+  /* allow cards to shrink so two can sit side-by-side on small devices */
+  flex: 1 1 240px;
+  min-width: 180px;
+  max-width: 48%;
 }
+
+/* Single-card (win) should be constrained and centered */
+.answer-card.full-width {
+  flex-basis: 100%;
+  max-width: min(700px, 92vw);
+  margin-left: auto;
+  margin-right: auto;
+} 
 
 .correct-answer-card {
   border-color: var(--success-color);
@@ -108,7 +185,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: clamp(4px, 1vh, var(--space-2));
 }
 
 .answer-image-wrapper {
@@ -116,13 +193,13 @@
 }
 
 .answer-image {
-  width: 120px;
-  height: 120px;
+  width: clamp(56px, 10vw, 110px);
+  height: clamp(56px, 10vw, 110px);
   border-radius: var(--radius-small);
   object-fit: cover;
   border: 2px solid var(--border-color);
   background-color: var(--surface-3); /* Darker background for image placeholder */
-}
+} 
 
 .correct-answer-card .answer-image {
   border-color: var(--success-color);
@@ -135,38 +212,73 @@
 .answer-details {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: clamp(3px, 0.9vh, var(--space-1));
 }
 
 .answer-name {
   margin: 0;
-  font-size: var(--type-lg);
+  font-size: clamp(0.82rem, 1.2vw, var(--type-md));
   font-weight: 600;
   line-height: var(--leading-snug);
 }
 
 .answer-scientific-name {
   margin: 0;
-  font-size: var(--type-md);
+  font-size: clamp(0.7rem, 1.1vw, var(--type-sm));
   color: var(--text-color-muted);
 }
 
 .modal-links {
-  margin-top: var(--space-2);
+  margin-top: clamp(4px, 1.2vh, var(--space-2));
   justify-content: center;
   display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap; /* Allow links to wrap if needed */
+  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .external-link {
-  font-size: var(--type-sm);
-  padding: var(--space-1) var(--space-2);
+  font-size: 0.7rem;
+  padding: 2px 4px;
   border-radius: var(--radius-small);
   background-color: var(--button-secondary-bg);
   color: var(--button-secondary-text);
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.summary-modal .modal-links .external-link {
+  min-height: 0;
+  padding: 2px 4px;
+}
+
+.external-link__icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background-color: var(--surface-3);
+  border: 1px solid var(--border-color);
+  align-items: center;
+  justify-content: center;
+}
+
+.external-link__icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.external-link__text {
+  display: none;
 }
 
 .external-link:hover {
@@ -185,7 +297,12 @@
   text-align: left;
   animation: fadeIn 0.5s 0.2s ease-in-out backwards;
   position: relative;
-  margin-top: var(--space-4);
+  margin-top: clamp(4px, 1.2vh, var(--space-3));
+  width: 100%; /* ensure explanation always sits below the cards and spans full width */
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  grid-area: explanation;
 }
 
 /* Dark mode support si nécessaire */
@@ -195,66 +312,32 @@
   }
 }
 
-.explanation-header {
-  position: absolute;
-  top: -25px;
-  right: 20px; /* Coin supérieur droit */
-  display: flex;
-  justify-content: flex-end;
-}
-
-.prof-mouche-avatar {
-  width: 50px;
-  height: 50px;
-  background-color: var(--surface-color);
-  border: 2px solid var(--accent-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30px;
-  box-shadow: var(--shadow-2);
-  z-index: 2;
-  animation: hover-avatar 3s ease-in-out infinite;
-}
-
-@keyframes hover-avatar {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
 .explanation-content {
-  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
-  min-height: 80px; /* Évite le saut de taille pendant le chargement */
+  padding: clamp(6px, 1.2vh, var(--space-3)) clamp(8px, 1.4vh, var(--space-3))
+    clamp(6px, 1.2vh, var(--space-3)) clamp(6px, 1.2vh, var(--space-3));
+  min-height: 72px; /* Évite le saut de taille pendant le chargement */
+  transition: min-height 0.18s ease;
 }
 
 .explanation-section__text {
   color: var(--text-color);
-  line-height: 1.6;
+  line-height: 1.2;
   white-space: pre-wrap;
   font-family: var(--font-family-main);
-  font-size: 1rem;
+  font-size: clamp(0.72rem, 0.95vw, 0.86rem);
   margin: 0;
-}
-
-.explanation-persona-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text-color-muted, #666);
-  margin-left: var(--space-1, 4px);
-  align-self: center;
 }
 
 .explanation-discriminant {
   display: flex;
   align-items: flex-start;
   gap: var(--space-1, 4px);
-  margin-top: var(--space-2, 8px);
-  padding: var(--space-2, 8px) var(--space-3, 12px);
+  margin-top: var(--space-1, 6px);
+  padding: 6px 8px;
   background: var(--surface-accent, rgba(255, 193, 7, 0.08));
   border-left: 3px solid var(--accent-color, #ffc107);
   border-radius: var(--radius-1, 4px);
-  font-size: 0.92rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-color);
   line-height: 1.5;
@@ -276,53 +359,281 @@
 
 /* --- Footer --- */
 .summary-footer {
-  padding: var(--space-3) var(--space-4);
+  padding: clamp(6px, 1.4vh, var(--space-3)) clamp(8px, 1.6vh, var(--space-3));
   border-top: 1px solid var(--border-color);
-  background-color: var(--surface-color); /* Match modal bg */
+  background-color: var(--surface-color);
   flex-shrink: 0;
+  display: flex;
+  gap: clamp(8px, 1.8vh, var(--space-3));
+  flex-wrap: nowrap;
+}
+
+.summary-footer .btn {
+  flex: 1 1 0;
+}
+
+@media (min-width: 1024px) {
+  .summary-footer {
+    padding: var(--space-4) var(--space-5);
+    border-top: 2px solid var(--border-color);
+  }
+}
+
+@media (min-width: 1440px) {
+  .summary-footer {
+    padding: var(--space-6) var(--space-7);
+  }
 }
 
 .next-button {
-  width: 100%;
-  font-size: 1.1rem;
+  width: auto;
+  font-size: clamp(0.92rem, 1.4vw, 1.05rem);
 }
 
-/* --- Responsive Layout --- */
-@media (min-width: 768px) {
-  .answers-container {
-    flex-direction: row; /* Side-by-side on larger screens */
-    justify-content: center;
+
+
+
+@media (min-width: 1024px) {
+  .next-button {
+    font-size: 1.05rem;
+    padding: var(--space-2) var(--space-5);
+    min-height: 44px;
+    font-weight: 600;
+  }
+}
+
+/* --- Tablet (640px - 1024px) --- */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .summary-modal {
+    max-width: 95%;
+  }
+
+  .summary-body {
+    padding: var(--space-4);
     gap: var(--space-4);
   }
 
-  .answer-card.full-width {
-    flex: 1; /* Correct answer takes full width if user was right */
-    max-width: 50%;
+  .answers-container {
+    flex-direction: row;
+    gap: var(--space-4);
+    justify-content: center;
   }
 
   .answer-card {
-    flex: 1; /* Distribute space equally when two cards are present */
-    max-width: 45%; /* Slightly less than 50% to account for gap */
+    flex: 1;
+    max-width: 45%;
+    padding: var(--space-3);
   }
 
   .answer-card-body {
-    flex-direction: row; /* Image and details side-by-side */
+    flex-direction: column;
     gap: var(--space-3);
+    align-items: center;
+  }
+
+  .answer-image {
+    width: 110px;
+    height: 110px;
+  }
+
+  .answer-details {
+    text-align: center;
+    width: 100%;
+  }
+
+  .modal-links {
+    justify-content: center;
+    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .answer-name {
+    font-size: var(--type-md);
+    font-weight: 700;
+  }
+
+  .answer-scientific-name {
+    font-size: var(--type-xs);
+    margin-bottom: 4px;
+  }
+
+  .explanation-section {
+    margin-top: var(--space-3);
+  }
+}
+
+/* --- Desktop (1024px and up) --- */
+@media (min-width: 1024px) {
+  .summary-modal {
+    max-width: 1600px;
+    max-height: 88vh;
+  }
+
+  .summary-header {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .summary-title {
+    font-size: var(--type-lg);
+    gap: var(--space-2);
+  }
+
+  .summary-title-icon {
+    font-size: 1.6em;
+  }
+
+  .summary-body {
+    padding: clamp(10px, 1.8vh, var(--space-4));
+    gap: clamp(8px, 1.6vh, var(--space-4));
+  }
+
+  .answers-container {
+    flex-direction: row;
+    gap: clamp(8px, 1.8vh, var(--space-4));
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .answer-card {
+    flex: 1;
+    min-width: 0;
+    max-width: 48%;
+    padding: clamp(8px, 1.6vh, var(--space-3)); /* reduced padding so cards remain compact */
+    border-width: 2px;
+  }
+
+  .answer-card-body {
+    flex-direction: row;
+    gap: clamp(6px, 1.4vh, var(--space-3));
     align-items: flex-start;
   }
 
   .answer-image {
-    width: 100px;
-    height: 100px;
+    width: clamp(76px, 7vw, 110px);
+    height: clamp(76px, 7vw, 110px);
+    flex-shrink: 0;
   }
-  
+
+  .answer-card-title {
+    margin-bottom: clamp(3px, 1vh, var(--space-1));
+    font-size: var(--type-lg);
+  }
+
+  .answer-name {
+    font-size: clamp(0.86rem, 1.1vw, var(--type-md));
+    font-weight: 700;
+    line-height: var(--leading-tight);
+    margin-bottom: clamp(3px, 1vh, var(--space-1));
+  }
+
+  .answer-scientific-name {
+    font-size: clamp(0.74rem, 1vw, var(--type-sm));
+    margin-bottom: clamp(4px, 1.2vh, var(--space-1));
+    font-style: italic;
+  }
+
   .answer-details {
     text-align: left;
-    align-items: flex-start;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 
   .modal-links {
     justify-content: flex-start;
+    gap: 4px;
+    margin-top: auto;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .external-link {
+    font-size: var(--type-sm);
+    padding: 2px 4px;
+    font-weight: 500;
+  }
+
+  .explanation-section {
+    margin-top: clamp(4px, 1.2vh, var(--space-3));
+    border: 2px solid rgba(238, 187, 77, 0.6);
+    padding: clamp(8px, 1.4vh, var(--space-3));
+    width: 100%;
+  }
+
+  .explanation-content {
+    padding: 6px 8px;
+    min-height: 84px;
+  }
+
+  .explanation-section__text {
+    font-size: clamp(0.76rem, 0.9vw, 0.9rem);
+    line-height: 1.3;
+  }
+}
+
+/* --- Large Desktop (1440px and up) --- */
+@media (min-width: 1440px) {
+  .summary-modal {
+    max-width: min(95vw, 1800px);
+    max-height: 92vh;
+  }
+
+  .summary-body {
+    padding: var(--space-5);
+    gap: var(--space-5);
+  }
+
+  .answers-container {
+    gap: var(--space-5);
+  }
+
+  .answer-card {
+    padding: var(--space-4);
+  }
+
+  .answer-card-body {
+    gap: var(--space-4);
+  }
+
+  .answer-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .answer-name {
+    font-size: var(--type-lg);
+    margin-bottom: var(--space-1);
+  }
+
+  .answer-scientific-name {
+    font-size: var(--type-sm);
+  }
+
+  .answer-details {
+    gap: var(--space-1);
+  }
+
+  .explanation-section {
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .explanation-content {
+    padding: var(--space-4) var(--space-5);
+    min-height: 96px;
+  }
+
+  .explanation-section__text {
+    font-size: var(--type-sm);
+  }
+
+  .summary-footer {
+    padding: var(--space-5) var(--space-6);
   }
 }
 
@@ -336,63 +647,94 @@
   }
 
   .summary-header {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-3);
   }
 
   .summary-title {
-    font-size: 1.25rem;
-  }
-
-  .summary-body {
-    padding: var(--space-3);
-    gap: var(--space-3);
-  }
-
-  .answers-container {
-    gap: var(--space-3);
-  }
-
-  .answer-card {
-    padding: var(--space-2);
+    font-size: var(--type-lg);
     gap: var(--space-2);
   }
 
+  .summary-title-icon {
+    font-size: 1.2em;
+  }
+
+  .summary-body {
+    padding: clamp(8px, 2vh, var(--space-3));
+    gap: clamp(8px, 2vh, var(--space-3));
+  }
+
+  .answers-container {
+    gap: clamp(8px, 2vh, var(--space-3));
+  }
+
+  .answer-card {
+    padding: clamp(8px, 2vh, var(--space-3));
+    gap: clamp(6px, 1.4vh, var(--space-2));
+  }
+
+  .answer-card-body {
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(5px, 1.2vh, var(--space-2));
+  }
+
   .answer-image {
-    width: 96px;
-    height: 96px;
+    width: clamp(72px, 24vw, 110px);
+    height: clamp(72px, 24vw, 110px);
   }
 
   .answer-card-title {
-    font-size: 1rem;
+    font-size: var(--type-md);
   }
 
   .answer-name {
-    font-size: 1rem;
+    font-size: var(--type-sm);
+    font-weight: 700;
   }
 
   .answer-scientific-name {
-    font-size: 0.9rem;
+    font-size: var(--type-xs);
+  }
+
+  .modal-links {
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  .external-link {
+    font-size: 0.7rem;
+    min-width: 28px;
+    padding: 2px 4px;
+    gap: 0;
+  }
+
+  .external-link__icon {
+    width: 26px;
+    height: 26px;
   }
 
   .explanation-content {
-    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+    padding: clamp(8px, 2vh, var(--space-3));
   }
 
   .explanation-section {
-    margin-top: var(--space-3);
+    margin-top: clamp(8px, 2vh, var(--space-3));
+    padding: clamp(8px, 2vh, var(--space-3));
   }
 
   .explanation-section__text {
-    font-size: 0.95rem;
-    line-height: 1.45;
+    font-size: 0.8rem;
+    line-height: 1.28;
   }
 
   .summary-footer {
-    padding: var(--space-2) var(--space-3);
+    padding: clamp(8px, 2vh, var(--space-3));
   }
 
   .next-button {
-    font-size: 1rem;
+    font-size: 0.92rem;
+    min-height: 44px;
   }
 }
 

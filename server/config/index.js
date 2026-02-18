@@ -202,7 +202,6 @@ export const config = {
   // Cooldown
   cooldownTargetN: 60,
   cooldownTargetMs: null, // null = désactivé
-  cooldownLureN: parseIntWithFallback(process.env.COOLDOWN_LURE_N, 6, { min: 0, max: 60 }),
   
   // Pool extension
   maxObsPages: parseIntWithFallback(process.env.OBS_POOL_MAX_PAGES, 3, { min: 1, max: 12 }),

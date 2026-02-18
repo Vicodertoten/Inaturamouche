@@ -783,18 +783,22 @@ export function useGameActions({
           const oldLevel = getLevelFromXp(oldXP);
           const newLevel = getLevelFromXp(newXP);
 
+          // Check if level up occurred and schedule notification outside state update
           if (newLevel > oldLevel) {
-            setLevelUpNotification({
-              oldLevel,
-              newLevel,
-              timestamp: Date.now(),
-            });
+            // Schedule the notification via microtask to avoid setState during render
+            Promise.resolve().then(() => {
+              setLevelUpNotification({
+                oldLevel,
+                newLevel,
+                timestamp: Date.now(),
+              });
 
-            if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-            levelUpTimerRef.current = setTimeout(() => {
-              setLevelUpNotification(null);
-              levelUpTimerRef.current = null;
-            }, 4000);
+              if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+              levelUpTimerRef.current = setTimeout(() => {
+                setLevelUpNotification(null);
+                levelUpTimerRef.current = null;
+              }, 4000);
+            });
           }
 
           return {

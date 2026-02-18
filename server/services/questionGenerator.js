@@ -11,7 +11,6 @@ import {
   pickObservationForTaxon,
   pushTargetCooldown,
   buildLureCooldownExclusionSet,
-  pushLureCooldown,
 } from './selectionState.js';
 import { buildLures } from './lureBuilder.js';
 import { getFullTaxaDetails, getTaxonName } from './iNaturalistClient.js';
@@ -463,7 +462,7 @@ export async function buildQuizQuestion({
       config.lureCount,
       questionRng,
       {
-        excludeTaxonIds: hasStrictLureExclusions ? strictLureExclusions : null,
+        excludeTaxonIds: strictLureExclusions,
         minCloseness: modeMinCloseness,
         lureUsageCount: selectionState.lureUsageCount || null,
       }
@@ -489,35 +488,9 @@ export async function buildQuizQuestion({
         config.lureCount,
         questionRng,
         {
-          excludeTaxonIds: hasStrictLureExclusions ? strictLureExclusions : null,
+          excludeTaxonIds: null,
           minCloseness: 0,
-          lureUsageCount: selectionState.lureUsageCount || null,
-        }
-      ));
-    }
-    if ((!lures || lures.length < config.lureCount) && hasLureCooldownExclusions) {
-      logger?.info(
-        {
-          requestId,
-          targetTaxonId: String(targetTaxonId),
-          luresFound: lures?.length || 0,
-          lureCount: config.lureCount,
-          lureCooldownSize: lureCooldownExclusions.size,
-        },
-        'Lure cooldown too strict, retrying without lure cooldown exclusions'
-      );
-      const baseExclusions = excludeFutureTargets?.size ? excludeFutureTargets : null;
-      ({ lures } = buildLures(
-        cacheEntry,
-        selectionState,
-        targetTaxonId,
-        targetObservation,
-        config.lureCount,
-        questionRng,
-        {
-          excludeTaxonIds: baseExclusions,
-          minCloseness: 0,
-          lureUsageCount: selectionState.lureUsageCount || null,
+          lureUsageCount: null,
         }
       ));
     }
@@ -538,7 +511,6 @@ export async function buildQuizQuestion({
         selectionState.lureUsageCount.set(tid, (selectionState.lureUsageCount.get(tid) || 0) + 1);
       }
     }
-    pushLureCooldown(cacheEntry, selectionState, lures.map((lure) => String(lure.taxonId)));
 
     choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
     const fallbackDetails = new Map();
@@ -633,6 +605,8 @@ export async function buildQuizQuestion({
     url: p.url,
     original_dimensions: p.original_dimensions,
   }));
+
+  pushTargetCooldown(cacheEntry, selectionState, [String(targetTaxonId)], Date.now());
 
   marks.end = performance.now();
 

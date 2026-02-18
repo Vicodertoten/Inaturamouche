@@ -246,9 +246,14 @@ select.nav-pill {
 .app-title-image.clickable {
   cursor: pointer;
   transition: transform 0.2s ease-in-out;
+  outline: none;
+  border: none;
 }
 .app-title-image.clickable:hover {
   transform: scale(1.03);
+}
+.app-title-image.clickable:focus {
+  outline: none;
 }
 
 @media (max-width: 768px) {
@@ -271,7 +276,18 @@ select.nav-pill {
   }
 
   .app-title-image {
-    width: auto;
+    max-width: 60px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-title-image {
+    max-width: 45px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title-image {
     max-width: 40px;
   }
 }

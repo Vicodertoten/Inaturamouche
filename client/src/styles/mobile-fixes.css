@@ -1,0 +1,603 @@
+/* =============================================
+   MOBILE FIXES - Critical UX Issues
+   Specific improvements for small screens
+   ============================================= */
+
+/* ─────────────────────────────────────────────
+   HERO CTA BUTTON (HomePage)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Ensure CTA button is comfortably tappable */
+  .hero-cta {
+    padding: 1.25rem 1rem;
+    min-height: 48px;
+    font-size: 1rem;
+    gap: 0.75rem;
+  }
+
+  .hero-cta--play {
+    width: 100%;
+    border-radius: var(--radius-large, 16px);
+  }
+
+  /* Adjust hero CTA text sizes */
+  .hero-cta .cta-label {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .hero-cta .cta-sublabel {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    line-height: 1.2;
+  }
+
+  /* Resume game group alignment */
+  .hero-cta-group {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .hero-cta-group .hero-cta {
+    flex: 1;
+    border-radius: var(--radius, 14px) 0 0 var(--radius, 14px);
+  }
+
+  .hero-abandon {
+    flex: 0 0 48px;
+    min-width: 48px;
+    border-radius: 0 var(--radius, 14px) var(--radius, 14px) 0;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   PLAYGROUND IMAGE VIEWER (PlayPage)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .image-wrapper {
+    aspect-ratio: 4 / 3;
+    max-height: 50vh;
+    border-radius: 12px;
+  }
+
+  .image-wrapper.portrait {
+    aspect-ratio: 3 / 4;
+    max-height: 70vh;
+  }
+
+  /* Ensure images don't overflow on small phones */
+  .image-box {
+    min-height: 180px;
+    width: 100%;
+  }
+
+  .image-main,
+  .image-lqip {
+    object-fit: contain;
+  }
+
+  /* Touch-friendly image navigation */
+  .nav-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem;
+    padding: 0.75rem;
+  }
+
+  .dots {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   STATS LAYOUT (EndPage, ProfilePage)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Ensure stats stack vertically */
+  .stats-section,
+  .stats-container,
+  .profile-stats,
+  .end-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .stat-item,
+  .stat-card,
+  .profile-stat-card,
+  .end-stat-card {
+    padding: 1rem;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    min-height: 60px;
+  }
+
+  /* Stat labels and values */
+  .stat-label,
+  .stat-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  /* XP Section */
+  .xp-progress-unified-section {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .level-up-header {
+    gap: 0.75rem;
+  }
+
+  .level-up-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  /* Result display */
+  .result-display {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .xp-gained-display {
+    font-size: 1.25rem;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   BADGES & ACHIEVEMENT GRID (ProfilePage)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .achievement-grid,
+  .badge-grid,
+  .badge-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .achievement-badge,
+  .badge-item,
+  .profile-badge {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 100px;
+  }
+
+  .badge-icon,
+  .achievement-icon {
+    font-size: 2rem;
+  }
+
+  .badge-label,
+  .badge-name,
+  .achievement-name {
+    font-size: 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    line-height: 1.2;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .badge-sublabel,
+  .achievement-date {
+    font-size: 0.65rem;
+    opacity: 0.7;
+  }
+
+  /* 3 columns on small tablets */
+  @media (min-width: 480px) and (max-width: 768px) {
+    .achievement-grid,
+    .badge-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+/* ─────────────────────────────────────────────
+   ANSWER OPTIONS / CHOICE BUTTONS (PlayPage)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Ensure choice buttons are touch-friendly */
+  .choice-button,
+  .answer-option,
+  .selection-button {
+    min-height: 48px;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    word-break: break-word;
+    white-space: normal;
+    width: 100%;
+  }
+
+  /* Button group layout */
+  .choices-container,
+  .answer-options,
+  .selection-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  /* Prevent text overflow */
+  .choice-button span,
+  .answer-option span {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   MODALS & OVERLAYS (Mobile fullscreen)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .modal-content,
+  .modal-body {
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-close {
+    padding: 0.75rem;
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1.5rem;
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    padding: 1rem;
+    background: inherit;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Bottom sheet style modals */
+  .bottom-sheet {
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   CAROUSEL / CAROUSEL ITEMS (HomePage pack list)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .carousel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+  }
+
+  .carousel-item,
+  .pack-card {
+    min-width: 140px;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .carousel-item-label,
+  .pack-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  /* Ensure smooth scrolling */
+  .carousel-scroll-container {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   TABS / TAB NAVIGATION
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .tab-container,
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab,
+  .tab-button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+
+  .tab:first-child {
+    margin-left: 0;
+  }
+
+  .tab:last-child {
+    margin-right: 0;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   PROFILE HERO / PROFILE HEADER
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .profile-hero,
+  .profile-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    padding: 1.5rem 1rem;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+  }
+
+  .profile-info {
+    text-align: center;
+  }
+
+  .profile-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .profile-subtitle {
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  .profile-stats-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .profile-stats-mini-item {
+    text-align: center;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   PAGINATION / NAVIGATION
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .pagination,
+  .page-nav {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 1rem 0;
+  }
+
+  .page-nav-button,
+  .pagination-button {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   TEXT OVERFLOW HANDLING
+   ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Prevent text overflow on small screens */
+  h1, h2, h3, h4, h5, h6 {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  p, span, label {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Truncate long species names with ellipsis */
+  .species-name,
+  .taxon-name {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   FOOTER (Mobile visibility improvements)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  footer,
+  .footer {
+    padding: 1.5rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .footer-section {
+    width: 100%;
+  }
+
+  .footer-link {
+    display: inline-block;
+    padding: 0.5rem 0;
+  }
+
+  .footer-attribution {
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   BOTTOM NAVIGATION BAR (Mobile safe area)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .bottom-nav,
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: var(--nav-height-mobile, 75px);
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  /* Add space for navigation */
+  main,
+  .screen-content,
+  .page-content {
+    padding-bottom: var(--nav-height-mobile, 75px);
+  }
+
+  .nav-item {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 0.5rem;
+  }
+
+  .nav-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .nav-icon {
+    font-size: 1.5rem;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   DENSE LAYOUTS (More content on screen)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 540px) {
+  /* Extra small phones: reduce padding */
+  .container,
+  .screen,
+  main {
+    padding: 0.75rem;
+  }
+
+  h1 {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
+  h2 {
+    font-size: clamp(1.1rem, 4vw, 1.5rem);
+  }
+
+  .gap-lg {
+    gap: 0.75rem;
+  }
+
+  .card,
+  .section {
+    padding: 0.75rem;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   LANDSCAPE MODE (Horizontal small screens)
+   ───────────────────────────────────────────── */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .page-title,
+  h1 {
+    display: none;
+  }
+
+  main {
+    max-height: calc(100vh - var(--nav-height-mobile, 75px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card {
+    padding: 0.5rem;
+  }
+
+  /* Ensure buttons are still clickable */
+  button,
+  .clickable {
+    min-height: 40px;
+  }
+}

@@ -14,6 +14,7 @@ const CollectionPage = lazy(() => import('./pages/CollectionPage'));
 const ChallengePage = lazy(() => import('./pages/ChallengePage'));
 const SharedCollectionPage = lazy(() => import('./pages/SharedCollectionPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
               <Route path="challenge/:token" element={<ErrorBoundary><ChallengePage /></ErrorBoundary>} />
               <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
               <Route path="legal" element={<LegalPage />} />
+              <Route path="about" element={<AboutPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

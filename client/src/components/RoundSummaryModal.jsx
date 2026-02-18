@@ -9,8 +9,9 @@ const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 
 // Composant interne pour l'effet machine à écrire
-const Typewriter = ({ text, speed = 20, onComplete }) => {
+const Typewriter = ({ text, speed = 20, onComplete, onHeightChange }) => {
   const [displayed, setDisplayed] = useState('');
+  const textRef = useRef(null);
   
   useEffect(() => {
     setDisplayed(''); // Reset si le texte change
@@ -27,7 +28,19 @@ const Typewriter = ({ text, speed = 20, onComplete }) => {
     return () => clearInterval(timer);
   }, [text, speed, onComplete]);
 
-  return <p className="explanation-section__text">{displayed}</p>;
+  useEffect(() => {
+    if (!textRef.current || !onHeightChange) return;
+    const nextHeight = textRef.current.scrollHeight;
+    if (nextHeight > 0) {
+      onHeightChange(nextHeight);
+    }
+  }, [displayed, onHeightChange]);
+
+  return (
+    <p ref={textRef} className="explanation-section__text">
+      {displayed}
+    </p>
+  );
 };
 
 const getObservationImageUrl = (taxon) => {
@@ -47,6 +60,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const [aiSources, setAiSources] = useState([]);
   const [aiConfidence, setAiConfidence] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [explanationMinHeight, setExplanationMinHeight] = useState(null);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
@@ -137,6 +151,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         setIsLoading(true);
         setExplanation(''); // Clear previous explanation
         try {
+          console.debug('[RoundSummaryModal] Fetching explanation for:', {
+            correctId: explanationCorrectId,
+            wrongId: explanationWrongId,
+            correctDisplayName: correctDisplayTaxon?.name,
+            wrongDisplayName: userDisplayTaxon?.name
+          });
           const data = await fetchExplanation(
             explanationCorrectId,
             explanationWrongId,
@@ -150,7 +170,15 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             setAiConfidence(data.confidence ?? null);
           }
         } catch (error) {
-          console.error('Failed to fetch explanation:', error);
+          console.error('Failed to fetch explanation:', {
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            correctId: explanationCorrectId,
+            wrongId: explanationWrongId,
+            correctName: correctDisplayTaxon?.name,
+            wrongName: userDisplayTaxon?.name
+          });
           if (isActive) {
             setExplanation('');
             setDiscriminant('');
@@ -170,6 +198,10 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       isActive = false; // Cleanup: ignore les résultats si le composant est démonté/rechargé
     };
   }, [isWin, explanationCorrectId, explanationWrongId, explanationFocusRank, lang]);
+
+  useEffect(() => {
+    setExplanationMinHeight(null);
+  }, [explanation]);
 
   useEffect(() => {
     previousActiveRef.current = document.activeElement;
@@ -199,7 +231,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content summary-modal" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+      <div className={`modal-content summary-modal ${isWin ? 'summary-modal--win' : 'summary-modal--lose summary-modal--wide'}`} role="dialog" aria-modal="true" aria-labelledby="summary-title">
         <header className="summary-header">
           <h2 id="summary-title" className={`summary-title ${isWin ? 'win' : 'lose'}`}>
         
@@ -230,13 +262,35 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                   {correctDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{correctDisplayTaxon.secondaryName}</em></p>}
                   <div className="external-links-container modal-links">
                     {correctDisplayTaxon.inaturalist_url && (
-                      <a href={correctDisplayTaxon.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
-                        {t('summary.links.inaturalist')}
+                      <a
+                        href={correctDisplayTaxon.inaturalist_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="external-link"
+                        aria-label={t('summary.links.inaturalist')}
+                      >
+                        <span className="external-link__icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                            <path d="M4 12c3.4-4.3 8.3-6.2 12.7-6.2 2.5 0 3.9 1.1 3.9 2.9 0 2.7-3.1 5.6-8.2 5.6H8.5L5.5 18v-4.2H4z" />
+                          </svg>
+                        </span>
+                        <span className="external-link__text">{t('summary.links.inaturalist')}</span>
                       </a>
                     )}
                     {correctDisplayTaxon.wikipedia_url && (
-                      <a href={correctDisplayTaxon.wikipedia_url} target="_blank" rel="noopener noreferrer" className="external-link">
-                        {t('summary.links.wikipedia')}
+                      <a
+                        href={correctDisplayTaxon.wikipedia_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="external-link"
+                        aria-label={t('summary.links.wikipedia')}
+                      >
+                        <span className="external-link__icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                            <path d="M4 6h3l2.2 7.2L11.8 6h2.4l2.6 7.2L19 6h3l-4.1 12h-2.4L13 10.2 10.5 18H8.1L4 6z" />
+                          </svg>
+                        </span>
+                        <span className="external-link__text">{t('summary.links.wikipedia')}</span>
                       </a>
                     )}
                   </div>
@@ -266,13 +320,35 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                     {userDisplayTaxon.secondaryName && <p className="answer-scientific-name"><em>{userDisplayTaxon.secondaryName}</em></p>}
                     <div className="external-links-container modal-links">
                       {userDisplayTaxon.inaturalist_url && (
-                        <a href={userDisplayTaxon.inaturalist_url} target="_blank" rel="noopener noreferrer" className="external-link">
-                          {t('summary.links.inaturalist')}
+                        <a
+                          href={userDisplayTaxon.inaturalist_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="external-link"
+                          aria-label={t('summary.links.inaturalist')}
+                        >
+                          <span className="external-link__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                              <path d="M4 12c3.4-4.3 8.3-6.2 12.7-6.2 2.5 0 3.9 1.1 3.9 2.9 0 2.7-3.1 5.6-8.2 5.6H8.5L5.5 18v-4.2H4z" />
+                            </svg>
+                          </span>
+                          <span className="external-link__text">{t('summary.links.inaturalist')}</span>
                         </a>
                       )}
                       {userWikiUrl && (
-                        <a href={userWikiUrl} target="_blank" rel="noopener noreferrer" className="external-link">
-                          {t('summary.links.wikipedia')}
+                        <a
+                          href={userWikiUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="external-link"
+                          aria-label={t('summary.links.wikipedia')}
+                        >
+                          <span className="external-link__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                              <path d="M4 6h3l2.2 7.2L11.8 6h2.4l2.6 7.2L19 6h3l-4.1 12h-2.4L13 10.2 10.5 18H8.1L4 6z" />
+                            </svg>
+                          </span>
+                          <span className="external-link__text">{t('summary.links.wikipedia')}</span>
                         </a>
                       )}
                     </div>
@@ -285,23 +361,25 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           {/* Explanation Section (only if wrong) */}
           {!isWin && (
             <div className="summary-card explanation-section">
-              {/* Header avec Avatar Papy Mouche */}
-              <div className="explanation-header">
-                <div className="prof-mouche-avatar" aria-hidden="true">
-                  🪰
-                </div>
-                <span className="explanation-persona-name">{t('summary.explanation_title')}</span>
-                <div className="explanation-bubble-tip"></div>
-              </div>
-              
-              <div className="explanation-content">
+              <div
+                className="explanation-content"
+                style={explanationMinHeight ? { minHeight: `${explanationMinHeight}px` } : undefined}
+              >
                 {isLoading ? (
                   <div className="explanation-section__loader">
                     <div className="spinner"></div>
                   </div>
                 ) : (
                   <>
-                    {explanation && <Typewriter text={explanation} speed={20} />}
+                    {explanation && (
+                      <Typewriter
+                        text={explanation}
+                        speed={20}
+                        onHeightChange={(height) => {
+                          setExplanationMinHeight((prev) => (prev && prev > height ? prev : height));
+                        }}
+                      />
+                    )}
                     {discriminant && (
                       <p className="explanation-discriminant">
                         <span className="discriminant-icon" aria-hidden="true">🔍</span>

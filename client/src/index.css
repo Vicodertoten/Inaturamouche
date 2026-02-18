@@ -1,6 +1,9 @@
 /* --- VARIABLES DE COULEURS GLOBALES --- */
 
 /* === Import Mobile-First Styles === */
+@import './styles/responsive.css';
+@import './styles/mobile-fixes.css';
+@import './styles/animations.css';
 @import './styles/BottomNavigationBar.css';
 @import './styles/MobileGameLayout.css';
 @import './styles/MobileGameModes.css';

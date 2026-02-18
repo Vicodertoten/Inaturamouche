@@ -326,10 +326,28 @@ const HomePage = () => {
     return photos?.[0]?.url ?? null;
   }, [activePackId, getPhotos]);
 
+  /* ── Only prefetch visible packs (Intersection Observer) ── */
   useEffect(() => {
     if (!orderedPackIdsForPrefetch.length) return;
-    preloadPackPreviews(orderedPackIdsForPrefetch);
-  }, [orderedPackIdsForPrefetch, preloadPackPreviews]);
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const packId = entry.target.getAttribute('data-pack-id');
+            if (packId) loadPreview(packId);
+          }
+        });
+      },
+      { rootMargin: '200px' } // Prefetch 200px before visible
+    );
+
+    document.querySelectorAll('[data-pack-id]').forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [orderedPackIdsForPrefetch, loadPreview]);
 
   useEffect(() => {
     if (!activePackId || activePackId === 'custom') return;
@@ -753,6 +771,7 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
             return (
               <button
                 key={pack.id}
+                data-pack-id={pack.id}
                 type="button"
                 className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
                 onClick={() => onSelect(pack.id)}
@@ -770,13 +789,19 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
                       const photo = photos[i % photos.length];
                       return (
                         <div key={i} className="pack-card-photo-cell">
-                          <img src={photo.url} alt="" loading="lazy" />
+                          <img 
+                            src={photo.url} 
+                            alt="" 
+                            loading="lazy" 
+                            decoding="async"
+                            className="pack-card-img"
+                          />
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="pack-card-photo-placeholder">
+                  <div className="pack-card-photo-placeholder pack-card-skeleton">
                     <PackIcon packId={pack.id} className="pack-card-icon-large" />
                   </div>
                 )}

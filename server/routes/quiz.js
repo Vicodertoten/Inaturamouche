@@ -78,13 +78,36 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
   const taxaIds = [correctId, wrongId];
   
   try {
-    const taxaDetails = await getFullTaxaDetails(taxaIds, locale, { logger, requestId }, taxonDetailsCache);
+    let taxaDetails = await getFullTaxaDetails(taxaIds, locale, { logger, requestId }, taxonDetailsCache);
 
     const correctTaxon = taxaDetails.find(t => t.id === correctId);
     const wrongTaxon = taxaDetails.find(t => t.id === wrongId);
 
-    if (!correctTaxon || !wrongTaxon) {
-      logger.warn({ correctId, wrongId, found: taxaDetails.map(t=>t.id) }, 'Could not find one or both taxa for explanation.');
+    // Si une espèce manque et qu'on n'est pas déjà en anglais, retenter avec locale anglaise
+    if ((!correctTaxon || !wrongTaxon) && locale !== 'en') {
+      logger.warn({ 
+        correctId, 
+        wrongId, 
+        locale,
+        foundIds: taxaDetails.map(t=>t.id),
+      }, 'Taxa not found in requested locale, retrying with English...');
+      
+      taxaDetails = await getFullTaxaDetails(taxaIds, 'en', { logger, requestId }, taxonDetailsCache);
+    }
+
+    const correctTaxonFinal = taxaDetails.find(t => t.id === correctId);
+    const wrongTaxonFinal = taxaDetails.find(t => t.id === wrongId);
+
+    if (!correctTaxonFinal || !wrongTaxonFinal) {
+      logger.warn({ 
+        correctId, 
+        wrongId, 
+        locale,
+        fallbackLocale: 'en',
+        foundIds: taxaDetails.map(t=>t.id),
+        foundCount: taxaDetails.length,
+        requestId
+      }, 'Could not find one or both taxa for explanation. Check if IDs exist in iNaturalist.');
       return sendError(req, res, {
         status: 404,
         code: 'TAXON_NOT_FOUND',
@@ -93,8 +116,8 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
     }
 
     const result = await generateCustomExplanation(
-      correctTaxon,
-      wrongTaxon,
+      correctTaxonFinal,
+      wrongTaxonFinal,
       locale,
       logger,
       { focusRank }
