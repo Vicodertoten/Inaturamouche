@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MASTERY_LEVELS } from '../services/CollectionService';
 import { getRarityInfoForTaxon } from '../utils/rarityUtils';
+import { buildResponsiveSrcSet, getTaxonResponsiveImageUrls } from '../utils/imageUtils';
 import './CollectionCard.css';
 
 // Memoize the component to prevent re-renders in react-window
@@ -20,19 +21,24 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
 
   const rarityInfo = getRarityInfoForTaxon(taxon);
 
-  // Extract best image URL
-  const imageUrl =
-    taxon?.medium_url ||
-    taxon?.picture_url_medium ||
-    taxon?.small_url ||
-    taxon?.picture_url_small ||
-    taxon?.square_url ||
-    taxon?.thumbnail ||
-    taxon?.default_photo?.medium_url ||
-    taxon?.default_photo?.small_url ||
-    taxon?.default_photo?.square_url ||
-    taxon?.default_photo?.url ||
-    '';
+  const imageUrls = useMemo(() => getTaxonResponsiveImageUrls(taxon), [taxon]);
+  const [imgSrc, setImgSrc] = useState(imageUrls.medium || imageUrls.small || imageUrls.square || '');
+  const srcSet = useMemo(() => buildResponsiveSrcSet(imageUrls, true), [imageUrls]);
+  const sizes = '(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1200px) 20vw, 220px';
+
+  useEffect(() => {
+    setImgSrc(imageUrls.medium || imageUrls.small || imageUrls.square || '');
+  }, [imageUrls.medium, imageUrls.small, imageUrls.square]);
+
+  const handleImageError = () => {
+    if (imgSrc !== imageUrls.large && imageUrls.large) {
+      setImgSrc(imageUrls.large);
+      return;
+    }
+    if (imgSrc !== imageUrls.original && imageUrls.original) {
+      setImgSrc(imageUrls.original);
+    }
+  };
 
   // Use localized common name if available, otherwise fall back to English or scientific name
   const displayCommonName = taxon.local_preferred_common_name || taxon.preferred_common_name || taxon.name;
@@ -40,7 +46,16 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
   return (
     <div className={cardClasses} style={style}>
       <div className="card-image-wrapper">
-        <img src={imageUrl} alt={taxon.name} className="card-image" loading="lazy" />
+        <img
+          src={imgSrc}
+          srcSet={srcSet || undefined}
+          sizes={srcSet ? sizes : undefined}
+          alt={taxon.name}
+          className="card-image"
+          loading="lazy"
+          decoding="async"
+          onError={handleImageError}
+        />
         {rarityInfo?.tier && rarityInfo.tier !== 'unknown' && (
           <span
             className={`rarity-badge rarity-${rarityInfo.tier}`}

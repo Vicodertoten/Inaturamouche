@@ -4,6 +4,7 @@
 import db, { taxa as taxaTable, stats as statsTable } from '../db.js';
 import { queueTaxonForEnrichment } from '../TaxonomyService.js';
 import { getRarityTier, normalizeObservationsCount } from '../../utils/rarityUtils';
+import { getTaxonResponsiveImageUrls } from '../../utils/imageUtils';
 import {
   MASTERY_LEVELS,
   XP_GAINS,
@@ -58,6 +59,17 @@ function _getBestImageUrl(taxonData) {
   );
 }
 
+function _getResponsiveImageUrls(taxonData) {
+  const urls = getTaxonResponsiveImageUrls(taxonData);
+  const fallback = urls.medium || urls.small || urls.square || PLACEHOLDER_IMAGE_URL;
+  return {
+    square: urls.square || fallback,
+    small: urls.small || fallback,
+    medium: urls.medium || fallback,
+    thumbnail: taxonData?.thumbnail || urls.small || urls.square || fallback,
+  };
+}
+
 // ============== CRUD ==============
 
 /**
@@ -85,6 +97,7 @@ export async function seedTaxa(taxonList, opts = {}) {
           }
 
           const observationsCount = normalizeObservationsCount(taxon?.observations_count);
+          const imageUrls = _getResponsiveImageUrls(taxon);
           await taxaTable.put({
             id: taxon.id,
             name: taxon.name,
@@ -92,10 +105,10 @@ export async function seedTaxa(taxonList, opts = {}) {
             rank: taxon.rank || 'unknown',
             iconic_taxon_id: taxon.iconic_taxon_id,
             ancestor_ids: ancestorIds,
-            square_url: _getBestImageUrl(taxon),
-            small_url: taxon.small_url || _getBestImageUrl(taxon),
-            medium_url: taxon.medium_url || _getBestImageUrl(taxon),
-            thumbnail: taxon.thumbnail || _getBestImageUrl(taxon),
+            square_url: imageUrls.square,
+            small_url: imageUrls.small,
+            medium_url: imageUrls.medium,
+            thumbnail: imageUrls.thumbnail,
             wikipedia_url: taxon.wikipedia_url || '',
             observations_count: observationsCount,
             rarity_tier: getRarityTier(observationsCount),
@@ -111,6 +124,7 @@ export async function seedTaxa(taxonList, opts = {}) {
               if (!ancestor?.id || seededAncestors.has(ancestor.id)) continue;
               const existing = await taxaTable.get(ancestor.id);
               if (!existing) {
+                const ancestorImageUrls = _getResponsiveImageUrls(ancestor);
                 await taxaTable.put({
                   id: ancestor.id,
                   name: ancestor.name,
@@ -118,10 +132,10 @@ export async function seedTaxa(taxonList, opts = {}) {
                   rank: ancestor.rank || 'unknown',
                   iconic_taxon_id: ancestor.iconic_taxon_id || null,
                   ancestor_ids: [],
-                  square_url: _getBestImageUrl(ancestor),
-                  small_url: ancestor.small_url || '',
-                  medium_url: ancestor.medium_url || '',
-                  thumbnail: ancestor.thumbnail || '',
+                  square_url: ancestorImageUrls.square || '',
+                  small_url: ancestorImageUrls.small || '',
+                  medium_url: ancestorImageUrls.medium || '',
+                  thumbnail: ancestorImageUrls.thumbnail || '',
                   wikipedia_url: ancestor.wikipedia_url || '',
                   description: ancestor.description || '',
                   descriptionUpdatedAt: null,
@@ -162,6 +176,11 @@ export async function upsertTaxon(taxonData, opts = {}) {
         : existing?.ancestor_ids || [];
 
       const imageUrl = _getBestImageUrl(taxonData) || existing?.square_url || PLACEHOLDER_IMAGE_URL;
+      const imageUrls = _getResponsiveImageUrls({
+        ...existing,
+        ...taxonData,
+        thumbnail: taxonData?.thumbnail || existing?.thumbnail,
+      });
 
       const description = taxonData.description || existing?.description || '';
       const descriptionUpdatedAt = taxonData.description
@@ -189,10 +208,10 @@ export async function upsertTaxon(taxonData, opts = {}) {
         rank,
         iconic_taxon_id: taxonData.iconic_taxon_id ?? existing?.iconic_taxon_id,
         ancestor_ids: ancestorIds,
-        square_url: imageUrl,
-        small_url: taxonData.small_url || existing?.small_url || imageUrl,
-        medium_url: taxonData.medium_url || existing?.medium_url || imageUrl,
-        thumbnail: taxonData.thumbnail || existing?.thumbnail || imageUrl,
+        square_url: imageUrls.square || imageUrl,
+        small_url: imageUrls.small || imageUrl,
+        medium_url: imageUrls.medium || imageUrl,
+        thumbnail: imageUrls.thumbnail || imageUrl,
         wikipedia_url: taxonData.wikipedia_url || existing?.wikipedia_url || '',
         observations_count: observationsCount,
         rarity_tier: getRarityTier(observationsCount),

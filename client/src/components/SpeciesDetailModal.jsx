@@ -4,6 +4,7 @@ import './SpeciesDetailModal.css';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { getTaxonDetails } from '../services/api';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
+import { buildResponsiveSrcSet, getTaxonResponsiveImageUrls } from '../utils/imageUtils';
 
 const MasteryBadge = ({ level }) => {
   if (level === 0) return null;
@@ -147,19 +148,9 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
     taxon.wikipedia_url || `https://${language || 'en'}.wikipedia.org/wiki/${encodeURIComponent(taxon.name)}`
   );
 
-  // Extract best image URL
-  const headerImage =
-    taxon.medium_url ||
-    taxon.picture_url_medium ||
-    taxon.small_url ||
-    taxon.picture_url_small ||
-    taxon.square_url ||
-    taxon.thumbnail ||
-    taxon.default_photo?.medium_url ||
-    taxon.default_photo?.small_url ||
-    taxon.default_photo?.square_url ||
-    taxon.default_photo?.url ||
-    '';
+  const headerImageUrls = getTaxonResponsiveImageUrls(taxon);
+  const headerImage = headerImageUrls.large || headerImageUrls.medium || headerImageUrls.small || '';
+  const headerSrcSet = buildResponsiveSrcSet(headerImageUrls, true);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -168,7 +159,15 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
 
         <header className="modal-header">
           {headerImage && (
-            <img src={headerImage} alt={taxon.name} className="modal-header-image" />
+            <img
+              src={headerImage}
+              srcSet={headerSrcSet || undefined}
+              sizes="(max-width: 768px) 100vw, 720px"
+              alt={taxon.name}
+              className="modal-header-image"
+              loading="lazy"
+              decoding="async"
+            />
           )}
           <div className="modal-header-overlay">
             <div className="modal-title">
@@ -271,19 +270,20 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
                   <div className="similar-species-grid">
                     {similarSpecies.map((species) => {
                       const safeSimilarInatUrl = toSafeHttpUrl(`https://www.inaturalist.org/taxa/${species.id}`);
-                      const speciesImage =
-                        species.default_photo?.medium_url ||
-                        species.default_photo?.square_url ||
-                        species.medium_url ||
-                        species.square_url ||
-                        '';
+                      const speciesImageUrls = getTaxonResponsiveImageUrls(species);
+                      const speciesImage = speciesImageUrls.medium || speciesImageUrls.small || '';
+                      const speciesSrcSet = buildResponsiveSrcSet(speciesImageUrls, false);
                       return (
                         <div key={species.id} className="similar-species-card">
                           {speciesImage && (
                             <img
                               src={speciesImage}
+                              srcSet={speciesSrcSet || undefined}
+                              sizes="(max-width: 768px) 45vw, 180px"
                               alt={species.name}
                               className="similar-species-image"
+                              loading="lazy"
+                              decoding="async"
                             />
                           )}
                           <div className="similar-species-info">
