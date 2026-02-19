@@ -348,31 +348,7 @@ const EndScreen = ({
           </div>
         </div>
 
-        {/* 2. Nouvelles découvertes */}
-        {newDiscoveries.length > 0 && (
-          <div className="new-discoveries-section">
-            <h3 className="section-title section-title-with-icon">
-              <SparklesIcon className="section-title-icon" />
-              {t('end.new_discoveries', {}, 'Nouvelles Découvertes')}
-            </h3>
-            <div className="discoveries-count">
-              {newDiscoveries.length} {t('end.species_added', {}, 'espèce(s) ajoutée(s) au guide')}
-            </div>
-            <ul className="discoveries-list">
-              {newDiscoveries.map((sp) => {
-                const { primary, secondary } = getTaxonDisplayNames(sp);
-                return (
-                  <li key={sp.id} className="discovery-item">
-                    {primary && <span className="species-common">{primary}</span>}
-                    {secondary && <em className="species-scientific">{secondary}</em>}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {/* 3. Achievements débloqués */}
+        {/* 2. Achievements débloqués */}
         {newlyUnlocked.length > 0 && (
           <div className="achievements-section">
             <h3 className="section-title section-title-with-icon">
@@ -399,9 +375,15 @@ const EndScreen = ({
           </div>
         )}
 
-        {/* 4. Liste détaillée des espèces (repliable) */}
+        {/* 3. Liste des espèces rencontrées (repliable) */}
         {sortedSpecies.length > 0 && (
           <div className="species-details-section">
+            <div className="species-section-summary">
+              <span className="species-summary-count">{newDiscoveries.length}</span>
+              <span className="species-summary-label">
+                {t('end.species_added_to_collection', {}, 'espèce(s) ajoutée(s) à la collection')}
+              </span>
+            </div>
             <button 
               className="species-toggle-button"
               onClick={() => setShowSpeciesList(!showSpeciesList)}
@@ -409,8 +391,9 @@ const EndScreen = ({
             >
               <span className="species-toggle-label">
                 <ListIcon className="section-title-icon" />
-                {t('end.species_seen', {}, 'Liste détaillée des espèces')}
+                {t('end.species_seen', {}, 'Espèces rencontrées')}
               </span>
+              <span className="species-toggle-meta">{sessionCorrectSpecies.length}/{sessionSpeciesData.length}</span>
               <span className="toggle-icon" aria-hidden="true">
                 {showSpeciesList ? (
                   <ChevronDownIcon className="toggle-icon-svg" />

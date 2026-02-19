@@ -16,7 +16,7 @@ const TIMEZONE_TO_PACK = {
   // France
   'Europe/Paris': 'france_mammals',
   // Belgium
-  'Europe/Brussels': 'belgium_birds',
+  'Europe/Brussels': 'belgium_starter_mix',
   // Netherlands, Germany, Austria, Switzerland → European trees/mushrooms
   'Europe/Amsterdam': 'european_trees',
   'Europe/Berlin': 'european_trees',
@@ -80,13 +80,23 @@ const LANG_TO_REGION = {
   en: 'world',
 };
 
+function getResolvedTimezone() {
+  try {
+    const dateTimeFormat = globalThis.Intl?.DateTimeFormat;
+    if (typeof dateTimeFormat !== 'function') return '';
+    return dateTimeFormat().resolvedOptions().timeZone || '';
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Detects the user's region from timezone / browser language.
  * @returns {string} region key (belgium, france, europe, world, oceania)
  */
 export function detectRegion() {
   try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const tz = getResolvedTimezone();
     if (tz && TIMEZONE_TO_REGION[tz]) return TIMEZONE_TO_REGION[tz];
     if (tz?.startsWith('Europe/')) return 'europe';
     const lang = (navigator.language || '').split('-')[0].toLowerCase();
@@ -100,7 +110,7 @@ export function detectRegion() {
 function detectBestPack() {
   try {
     // 1. Try timezone
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const tz = getResolvedTimezone();
     if (tz && TIMEZONE_TO_PACK[tz]) {
       return TIMEZONE_TO_PACK[tz];
     }

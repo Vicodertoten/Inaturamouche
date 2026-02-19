@@ -191,12 +191,15 @@ select.nav-pill {
 .App {
   position: relative;
   width: 100%;
+  min-height: var(--full-height);
   height: 100%;
   max-width: 1400px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
   padding: var(--space-3);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
-  overflow: hidden;
+  overflow: visible;
 }
 
 .App .main-nav .help-icon,
@@ -608,6 +611,7 @@ button:active:not(:disabled),
 
 .game-screen.easy-mode .card,
 .game-screen.riddle-mode .card {
+  flex: 0 1 auto;
   min-height: 0;
   width: min(100%, 940px);
   margin: 0 auto;
@@ -621,7 +625,7 @@ button:active:not(:disabled),
 
 .game-screen.easy-mode .game-main,
 .game-screen.riddle-mode .game-main {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
 }
 

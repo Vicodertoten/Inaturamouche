@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../services/api.js';
 const PRIORITY_LOW = 1;
 const PRIORITY_HIGH = 2;
 const MAX_CONCURRENT_REQUESTS = 2;
+const MAX_LOW_PRIORITY_PENDING = 24;
 const RETRY_BASE_DELAY_MS = 1200;
 const RETRY_MAX_DELAY_MS = 60000;
 const EMPTY_RETRY_BASE_DELAY_MS = 4000;
@@ -83,6 +84,13 @@ export function usePackPreviews() {
     }
 
     const currentPriority = pendingRef.current.get(packId) ?? PRIORITY_LOW;
+    if (
+      priority === PRIORITY_LOW &&
+      !pendingRef.current.has(packId) &&
+      pendingRef.current.size >= MAX_LOW_PRIORITY_PENDING
+    ) {
+      return;
+    }
     if (priority > currentPriority || !pendingRef.current.has(packId)) {
       pendingRef.current.set(packId, Math.max(priority, currentPriority));
     }

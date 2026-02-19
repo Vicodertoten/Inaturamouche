@@ -89,6 +89,15 @@ const en = {
     advanced_settings: 'Advanced settings',
     lab_modes: 'Lab modes',
     custom_filter_btn: 'Custom mode',
+    custom_create_title: 'Create my pack',
+    custom_create_desc: 'Choose your taxa, place, and season.',
+    section_starter: 'Start here',
+    section_near_you: 'Near you',
+    section_explore: 'Explore',
+    section_catalog: 'Full catalog',
+    see_more_packs: 'See more',
+    see_less_packs: 'See less',
+    settings_label: 'Settings',
   },
   configurator: {
     pack_label: 'Choose a game pack:',
@@ -127,9 +136,25 @@ const en = {
       title: 'Birds of the world',
       description: 'The 100 most observed bird species on iNaturalist.',
     },
+    world_mammals: {
+      title: 'Mammals of the world',
+      description: 'Explore the most frequently observed mammals worldwide.',
+    },
+    world_plants: {
+      title: 'Plants of the world',
+      description: 'A global mix of trees, flowers, and other common plants.',
+    },
+    world_fungi: {
+      title: 'Fungi of the world',
+      description: 'A cross-continental selection of commonly observed fungi.',
+    },
     france_mammals: {
       title: 'Mammals of France',
       description: 'All mammal observations from mainland France.',
+    },
+    belgium_starter_mix: {
+      title: 'Belgium starter mix',
+      description: 'A beginner mix of birds, mammals, plants, and fungi from Belgium.',
     },
     belgium_herps: {
       title: 'Belgian reptiles & amphibians',
@@ -406,6 +431,7 @@ const en = {
     session_complete: 'Session Complete',
     new_discoveries: 'New Discoveries',
     species_added: 'species added to your field guide',
+    species_added_to_collection: 'species added to your collection',
     achievements_unlocked: 'Achievements Unlocked',
   },
   share: {

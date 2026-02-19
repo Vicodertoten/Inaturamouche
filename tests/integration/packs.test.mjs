@@ -149,3 +149,50 @@ integrationTest('GET /api/packs returns valid JSON content type', async () => {
   const contentType = res.headers.get('content-type');
   assert.ok(contentType.includes('application/json'));
 });
+
+integrationTest('GET /api/packs exposes V2 metadata for non-custom packs', async () => {
+  const res = await fetch(`${baseUrl}/api/packs`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  const nonCustom = body.find((pack) => pack.id !== 'custom');
+  assert.ok(nonCustom);
+  assert.ok(nonCustom.category);
+  assert.ok(nonCustom.level);
+  assert.ok(nonCustom.visibility);
+  assert.equal(typeof nonCustom.sortWeight, 'number');
+});
+
+integrationTest('GET /api/packs/home returns expected sections contract', async () => {
+  const res = await fetch(`${baseUrl}/api/packs/home?region=belgium`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+
+  assert.ok(Array.isArray(body.sections));
+  assert.equal(body.sections.length, 3);
+  assert.ok(body.sections.every((section) => section.id && section.titleKey && Array.isArray(section.packs)));
+  assert.equal(body.customEntry?.id, 'custom');
+  assert.ok(body.customEntry?.titleKey);
+  assert.ok(body.customEntry?.descriptionKey);
+});
+
+integrationTest('GET /api/packs/home is deterministic across identical requests', async () => {
+  const res1 = await fetch(`${baseUrl}/api/packs/home?region=france&recent_pack_ids=world_birds`);
+  assert.equal(res1.status, 200);
+  const body1 = await res1.json();
+
+  const res2 = await fetch(`${baseUrl}/api/packs/home?region=france&recent_pack_ids=world_birds`);
+  assert.equal(res2.status, 200);
+  const body2 = await res2.json();
+
+  assert.deepEqual(body1, body2);
+});
+
+integrationTest('GET /api/packs/home prioritizes local packs in near_you section', async () => {
+  const res = await fetch(`${baseUrl}/api/packs/home?region=belgium`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  const nearYou = body.sections.find((section) => section.id === 'near_you');
+  assert.ok(nearYou);
+  assert.ok(nearYou.packs.length > 0);
+  assert.equal(nearYou.packs[0].region, 'belgium');
+});

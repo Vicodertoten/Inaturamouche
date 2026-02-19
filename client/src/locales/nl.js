@@ -89,6 +89,15 @@ const nl = {
     advanced_settings: 'Geavanceerde instellingen',
     lab_modes: 'Labomodi',
     custom_filter_btn: 'Aangepaste modus',
+    custom_create_title: 'Maak mijn pack',
+    custom_create_desc: 'Kies je taxa, locatie en periode.',
+    section_starter: 'Start hier',
+    section_near_you: 'Dichtbij jou',
+    section_explore: 'Verkennen',
+    section_catalog: 'Volledige catalogus',
+    see_more_packs: 'Meer tonen',
+    see_less_packs: 'Minder tonen',
+    settings_label: 'Instellingen',
   },
   configurator: {
     pack_label: 'Kies een spelpack:',
@@ -127,9 +136,25 @@ const nl = {
       title: 'Vogels van de wereld',
       description: 'De 100 meest waargenomen vogelsoorten op iNaturalist.',
     },
+    world_mammals: {
+      title: 'Zoogdieren van de wereld',
+      description: 'Ontdek wereldwijd de meest waargenomen zoogdieren.',
+    },
+    world_plants: {
+      title: 'Planten van de wereld',
+      description: 'Een wereldwijd pack met bomen, bloemen en andere planten.',
+    },
+    world_fungi: {
+      title: 'Schimmels van de wereld',
+      description: 'Een selectie schimmelsoorten die wereldwijd vaak worden gezien.',
+    },
     france_mammals: {
       title: 'Zoogdieren van Frankrijk',
       description: 'Alle zoogdierwaarnemingen uit vasteland-Frankrijk.',
+    },
+    belgium_starter_mix: {
+      title: 'Belgie startmix',
+      description: 'Een beginnersmix met vogels, zoogdieren, planten en schimmels uit Belgie.',
     },
     belgium_herps: {
       title: 'Reptielen & amfibieën van België',
@@ -406,6 +431,7 @@ const nl = {
     session_complete: 'Sessie voltooid',
     new_discoveries: 'Nieuwe ontdekkingen',
     species_added: 'soort(en) toegevoegd aan de gids',
+    species_added_to_collection: 'soort(en) toegevoegd aan je collectie',
     achievements_unlocked: 'Prestaties vrijgespeeld',
   },
   share: {

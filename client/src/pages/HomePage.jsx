@@ -17,8 +17,41 @@ import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/
 import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
-const REGION_ORDER_DEFAULT = ['belgium', 'france', 'europe', 'world'];
+const HOME_SECTION_LIMIT = 3;
+const DESKTOP_PACK_LIMIT = 6;
+const DESKTOP_MEDIA_QUERY = '(min-width: 900px)';
+const RECENT_PACKS_STORAGE_KEY = 'inaturamouche_recent_packs_v1';
+const RECENT_PACKS_MAX_ITEMS = 8;
 const CustomFilter = lazy(() => import('../features/configurator/components/CustomFilter'));
+
+function readRecentPackIds() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_PACKS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => String(item || '').trim())
+      .filter((item) => item && item !== 'custom')
+      .slice(0, RECENT_PACKS_MAX_ITEMS);
+  } catch {
+    return [];
+  }
+}
+
+function pushRecentPackId(packId) {
+  if (typeof window === 'undefined') return;
+  const normalizedId = String(packId || '').trim();
+  if (!normalizedId || normalizedId === 'custom') return;
+  const next = [normalizedId, ...readRecentPackIds().filter((id) => id !== normalizedId)]
+    .slice(0, RECENT_PACKS_MAX_ITEMS);
+  try {
+    window.localStorage.setItem(RECENT_PACKS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // no-op: storage can be unavailable in private mode
+  }
+}
 
 let playPagePreloadPromise = null;
 function preloadPlayPageModule() {
@@ -90,7 +123,14 @@ const HomePage = () => {
   } = useGameData();
   const { profile } = useUser();
   const { t } = useLanguage();
-  const { packs, loading: packsLoading } = usePacks();
+  const {
+    packs,
+    loading: packsLoading,
+    homeSections,
+    homeCustomEntry,
+    homeLoading,
+    refreshHomeCatalog,
+  } = usePacks();
   const geoDefaultPack = useGeoDefaultPack();
 
   const [hasActiveSession, setHasActiveSession] = useState(false);
@@ -99,10 +139,17 @@ const HomePage = () => {
   const [reviewStats, setReviewStats] = useState(null);
   const [geoApplied, setGeoApplied] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window !== 'undefined'
+      ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches
+      : false
+  ));
 
   const todaySeed = getTodayDailySeed();
   const dailyAlreadyCompleted = isDailyCompleted(todaySeed);
   const hasPlayedGame = (profile?.stats?.gamesPlayed || 0) > 0;
+  const recentPackIds = useMemo(() => readRecentPackIds(), []);
+  const detectedRegion = useDetectedRegion();
 
   /* ── Auto-select geo-based pack for new players ── */
   useEffect(() => {
@@ -185,13 +232,30 @@ const HomePage = () => {
     return () => window.clearTimeout(idleId);
   }, [preloadPlayPage]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    void refreshHomeCatalog({
+      region: detectedRegion,
+      recentPackIds,
+    });
+  }, [detectedRegion, recentPackIds, refreshHomeCatalog]);
+
   /* ── Handlers ── */
   const handleStart = useCallback(() => {
     preloadPlayPage();
     setAdvancedOpen(false);
+    pushRecentPackId(activePackId);
     startGame({ maxQuestions, mediaType });
     navigate('/play');
-  }, [navigate, preloadPlayPage, startGame, maxQuestions, mediaType]);
+  }, [navigate, preloadPlayPage, startGame, maxQuestions, mediaType, activePackId]);
 
   const handleResumeGame = useCallback(async () => {
     preloadPlayPage();
@@ -244,10 +308,18 @@ const HomePage = () => {
   const advancedButtonRef = useRef(null);
 
   /* ── Derived ── */
-  const detectedRegion = useDetectedRegion();
-  const prefabPacks = packs.filter((p) => p.id !== 'custom');
   const activePack = packs.find((p) => p.id === activePackId);
   const activePackLabel = activePack?.titleKey ? t(activePack.titleKey) : activePackId;
+  const customEntryTitle = t(
+    homeCustomEntry?.titleKey || 'home.custom_create_title',
+    {},
+    'Creer mon pack'
+  );
+  const customEntryDescription = t(
+    homeCustomEntry?.descriptionKey || 'home.custom_create_desc',
+    {},
+    'Choisis tes taxons, ton lieu et ta periode'
+  );
   const modeName = gameMode === 'easy' ? t('home.easy_mode')
     : gameMode === 'hard' ? t('home.hard_mode')
     : gameMode === 'riddle' ? t('home.riddle_mode')
@@ -295,59 +367,40 @@ const HomePage = () => {
     };
   }, [advancedOpen]);
 
-  /* ── Region-grouped packs (sorted by geo proximity) ── */
-  const regionGroupedPacks = useMemo(() => {
-    if (packsLoading) return [];
-    const order = [...REGION_ORDER_DEFAULT];
-    const idx = order.indexOf(detectedRegion);
-    if (idx > 0) { order.splice(idx, 1); order.unshift(detectedRegion); }
-    const groups = {};
-    for (const pack of prefabPacks) {
-      const region = pack.region || 'world';
-      if (!groups[region]) groups[region] = [];
-      groups[region].push(pack);
-    }
-    return order.filter((r) => groups[r]?.length > 0).map((r) => ({
-      region: r,
-      label: t(`packs._regions.${r}`, {}, r),
-      packs: groups[r],
-    }));
-  }, [packsLoading, prefabPacks, detectedRegion, t]);
+  const isCatalogLoading = packsLoading || homeLoading;
+  const packsById = useMemo(
+    () => Object.fromEntries(packs.map((pack) => [pack.id, pack])),
+    [packs]
+  );
+  const visibleHomeSections = useMemo(() => {
+    if (!Array.isArray(homeSections)) return [];
+    return homeSections
+      .slice(0, HOME_SECTION_LIMIT)
+      .map((section) => {
+        const sectionPacks = Array.isArray(section?.packs) ? section.packs : [];
+        const packsForSection = sectionPacks
+          .map((pack) => {
+            const id = typeof pack === 'string' ? pack : pack?.id;
+            if (!id || id === 'custom') return null;
+            return packsById[id] || pack || null;
+          })
+          .filter(Boolean);
+        return {
+          id: String(section?.id || 'explore'),
+          titleKey: section?.titleKey || `home.section_${section?.id || 'explore'}`,
+          packs: packsForSection,
+        };
+      })
+      .filter((section) => section.packs.length > 0);
+  }, [homeSections, packsById]);
 
   /* ── Pack preview images ── */
-  const { getPhotos, loadPreview, preloadPackPreviews } = usePackPreviews();
-  const orderedPackIdsForPrefetch = useMemo(
-    () => regionGroupedPacks.flatMap((group) => group.packs.map((pack) => pack.id)),
-    [regionGroupedPacks]
-  );
+  const { getPhotos, loadPreview } = usePackPreviews();
   const activePackHeroImage = useMemo(() => {
     if (!activePackId || activePackId === 'custom') return null;
     const photos = getPhotos(activePackId);
     return photos?.[0]?.url ?? null;
   }, [activePackId, getPhotos]);
-
-  /* ── Only prefetch visible packs (Intersection Observer) ── */
-  useEffect(() => {
-    if (!orderedPackIdsForPrefetch.length) return;
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const packId = entry.target.getAttribute('data-pack-id');
-            if (packId) loadPreview(packId);
-          }
-        });
-      },
-      { rootMargin: '200px' } // Prefetch 200px before visible
-    );
-
-    document.querySelectorAll('[data-pack-id]').forEach((el) => {
-      observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [orderedPackIdsForPrefetch, loadPreview]);
 
   useEffect(() => {
     if (!activePackId || activePackId === 'custom') return;
@@ -552,58 +605,30 @@ const HomePage = () => {
       <section className="home-packs">
         <p className="home-section-label">{t('home.pick_pack', {}, 'Choisis un pack')}</p>
 
-        {packsLoading && (
-          <div className="home-catalog-row">
-            {Array.from({ length: 4 }, (_, i) => (
-              <div className="pack-card skeleton" key={`sk-${i}`} aria-hidden="true" />
-            ))}
-          </div>
-        )}
-
-        {!packsLoading && regionGroupedPacks.map(({ region, label, packs: regionPacks }) => (
-          <PackRow
-            key={region}
-            label={label}
-            packs={regionPacks}
-            activePackId={activePackId}
-            hoveredPackId={hoveredPackId}
-            onSelect={(id) => { handlePackSelect(id); setCustomOpen(false); }}
-            onMouseEnter={handlePackMouseEnter}
-            onMouseLeave={handlePackMouseLeave}
-            getPhotos={getPhotos}
-            loadPreview={loadPreview}
-            t={t}
-          />
-        ))}
-
-        {/* Custom filter button */}
-        {!packsLoading && (
-          <div className="home-custom-center">
+        {!isCatalogLoading && (
+          <div className="home-custom-entry">
             <button
               type="button"
-              className={`home-custom-trigger ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
+              className={`home-custom-card ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
               onMouseEnter={preloadCustomFilter}
               onFocus={preloadCustomFilter}
               onTouchStart={preloadCustomFilter}
               onClick={() => {
-                const wasCustomActive = activePackId === 'custom';
+                const alreadyCustom = activePackId === 'custom';
                 handlePackSelect('custom');
-                setCustomOpen(wasCustomActive ? !customOpen : true);
+                setCustomOpen(alreadyCustom ? !customOpen : true);
               }}
               aria-pressed={activePackId === 'custom'}
               aria-expanded={customOpen}
               aria-controls="home-custom-panel"
             >
-              <span className="home-custom-trigger-icon" aria-hidden="true">
+              <span className="home-custom-card-icon" aria-hidden="true">
                 <PackIcon packId="custom" className="pack-card-icon" />
               </span>
-              <span className="home-custom-trigger-copy">
-                <span className="home-custom-trigger-title">{t('home.custom_filter_btn', {}, 'Personnalisé')}</span>
-                <span className="home-custom-trigger-subtitle">
-                  {t('home.custom_card_subtitle', {}, 'Taxons, lieu, période')}
-                </span>
+              <span className="home-custom-card-copy">
+                <span className="home-custom-card-title">{customEntryTitle}</span>
+                <span className="home-custom-card-subtitle">{customEntryDescription}</span>
               </span>
-              <span className={`home-custom-trigger-chevron ${customOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
             </button>
           </div>
         )}
@@ -614,7 +639,7 @@ const HomePage = () => {
             <div className="home-custom-header">
               <p className="home-section-label home-section-label-icon">
                 <PackSettingsIcon />
-                <span>{t('home.custom_filter_btn', {}, 'Mode personnalisé')}</span>
+                <span>{customEntryTitle}</span>
               </p>
               <button type="button" className="home-custom-close" onClick={() => setCustomOpen(false)} aria-label="Fermer">
                 <CloseIcon />
@@ -631,14 +656,53 @@ const HomePage = () => {
             </Suspense>
           </div>
         )}
+
+        {isCatalogLoading && (
+          <div className="home-catalog-row">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div className="pack-card skeleton" key={`sk-${i}`} aria-hidden="true" />
+            ))}
+          </div>
+        )}
+
+        {!isCatalogLoading && visibleHomeSections.map((section) => (
+          <PackRow
+            key={section.id}
+            label={t(section.titleKey, {}, section.id)}
+            packs={section.packs}
+            activePackId={activePackId}
+            hoveredPackId={hoveredPackId}
+            onSelect={(id) => { handlePackSelect(id); setCustomOpen(false); }}
+            onMouseEnter={handlePackMouseEnter}
+            onMouseLeave={handlePackMouseLeave}
+            getPhotos={getPhotos}
+            loadPreview={loadPreview}
+            isDesktop={isDesktop}
+            maxDesktopCards={DESKTOP_PACK_LIMIT}
+            t={t}
+          />
+        ))}
       </section>
 
     </div>
   );
 };
 
-/* ═══════ PACK ROW — Netflix-style horizontal scroll ═══════ */
-function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSelect, onMouseEnter, onMouseLeave, getPhotos, loadPreview, t }) {
+/* ═══════ PACK ROW — horizontal scroll with desktop cap ═══════ */
+function PackRow({
+  label,
+  packs: sourcePacks,
+  activePackId,
+  hoveredPackId,
+  onSelect,
+  onMouseEnter,
+  onMouseLeave,
+  getPhotos,
+  loadPreview,
+  isDesktop,
+  maxDesktopCards = DESKTOP_PACK_LIMIT,
+  t,
+}) {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -646,8 +710,44 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
   const dragState = useRef({ active: false, startX: 0, scrollStart: 0, moved: false });
   const PRELOAD_BUFFER_CARDS = 2;
   const FALLBACK_CARD_WIDTH = 140;
+  const [desktopVisibleCount, setDesktopVisibleCount] = useState(maxDesktopCards);
+
+  const hasDesktopOverflow = isDesktop && sourcePacks.length > maxDesktopCards;
+  const hasDesktopMore = isDesktop && sourcePacks.length > desktopVisibleCount;
+  const desktopRemainingCount = Math.max(0, sourcePacks.length - desktopVisibleCount);
+  const visiblePacks = useMemo(
+    () => (isDesktop ? sourcePacks.slice(0, desktopVisibleCount) : sourcePacks),
+    [isDesktop, sourcePacks, desktopVisibleCount]
+  );
+
+  useEffect(() => {
+    setDesktopVisibleCount(maxDesktopCards);
+  }, [isDesktop, sourcePacks, maxDesktopCards]);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    for (const pack of visiblePacks) {
+      if (pack?.id) loadPreview(pack.id);
+    }
+  }, [isDesktop, visiblePacks, loadPreview]);
+
+  const handleSeeMore = useCallback(() => {
+    if (!hasDesktopOverflow) return;
+    if (hasDesktopMore) {
+      setDesktopVisibleCount((current) => Math.min(sourcePacks.length, current + maxDesktopCards));
+      return;
+    }
+    setDesktopVisibleCount(maxDesktopCards);
+  }, [hasDesktopOverflow, hasDesktopMore, sourcePacks.length, maxDesktopCards]);
 
   const updateScroll = useCallback(() => {
+    if (isDesktop) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      setScrollProgress(0);
+      return;
+    }
+
     const el = scrollRef.current;
     if (!el) return;
     setCanScrollLeft(el.scrollLeft > 4);
@@ -662,16 +762,17 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
     const startIndex = Math.max(0, Math.floor(el.scrollLeft / cardWidth) - PRELOAD_BUFFER_CARDS);
     const visibleCount = Math.max(1, Math.ceil(el.clientWidth / cardWidth));
     const endIndex = Math.min(
-      regionPacks.length,
+      sourcePacks.length,
       startIndex + visibleCount + PRELOAD_BUFFER_CARDS * 2
     );
     for (let i = startIndex; i < endIndex; i += 1) {
-      const packId = regionPacks[i]?.id;
+      const packId = sourcePacks[i]?.id;
       if (packId) loadPreview(packId);
     }
-  }, [regionPacks, loadPreview]);
+  }, [isDesktop, sourcePacks, loadPreview]);
 
   useEffect(() => {
+    if (isDesktop) return undefined;
     const el = scrollRef.current;
     if (!el) return;
     updateScroll();
@@ -679,7 +780,7 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
     const ro = new ResizeObserver(updateScroll);
     ro.observe(el);
     return () => { el.removeEventListener('scroll', updateScroll); ro.disconnect(); };
-  }, [updateScroll, regionPacks]);
+  }, [isDesktop, updateScroll, sourcePacks]);
 
   const scrollBy = useCallback((dir) => {
     const el = scrollRef.current;
@@ -731,114 +832,135 @@ function PackRow({ label, packs: regionPacks, activePackId, hoveredPackId, onSel
 
   // Dot count based on total scroll pages
   const dotCount = useMemo(() => {
+    if (isDesktop) return 0;
     const el = scrollRef.current;
     if (!el || el.scrollWidth <= el.clientWidth) return 0;
     return Math.ceil(el.scrollWidth / el.clientWidth);
-  }, [regionPacks]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDesktop, sourcePacks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeDot = Math.min(Math.round(scrollProgress * (dotCount - 1)), dotCount - 1);
+  const activeDot = dotCount > 0
+    ? Math.min(Math.round(scrollProgress * (dotCount - 1)), dotCount - 1)
+    : 0;
+
+  const renderPackCard = (pack) => {
+    const selected = activePackId === pack.id;
+    const photos = getPhotos(pack.id);
+    const isHovered = hoveredPackId === pack.id;
+
+    return (
+      <button
+        key={pack.id}
+        data-pack-id={pack.id}
+        type="button"
+        className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+        onClick={() => onSelect(pack.id)}
+        onMouseEnter={() => onMouseEnter(pack.id)}
+        onMouseLeave={onMouseLeave}
+        onFocus={() => onMouseEnter(pack.id)}
+        onBlur={onMouseLeave}
+        aria-pressed={selected}
+        aria-label={pack.titleKey ? t(pack.titleKey) : pack.id}
+        role="listitem"
+      >
+        {/* 2×2 photo grid — fills entire card */}
+        {photos && photos.length > 0 ? (
+          <div className="pack-card-photos">
+            {Array.from({ length: 4 }, (_, i) => {
+              const photo = photos[i % photos.length];
+              return (
+                <div key={i} className="pack-card-photo-cell">
+                  <img
+                    src={photo.url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="pack-card-img"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="pack-card-photo-placeholder pack-card-skeleton">
+            <PackIcon packId={pack.id} className="pack-card-icon-large" />
+          </div>
+        )}
+
+        {/* Always visible title strip */}
+        <div className="pack-card-info">
+          <span className="pack-card-title">{pack.titleKey ? t(pack.titleKey) : pack.id}</span>
+        </div>
+
+        {/* Hover-expand description */}
+        {isHovered && pack.descriptionKey && (
+          <div className="pack-card-desc">
+            <p>{t(pack.descriptionKey)}</p>
+          </div>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="home-pack-region">
       <div className="home-region-header">
-        <p className="home-region-label">{label}</p>
-        {dotCount > 1 && (
-          <div className="home-region-dots">
-            {Array.from({ length: dotCount }, (_, i) => (
-              <span key={i} className={`region-dot ${i === activeDot ? 'active' : ''}`} />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="home-catalog-row-wrapper">
-        {canScrollLeft && (
-          <div className="catalog-fade catalog-fade-left" />
-        )}
-        {canScrollLeft && (
-          <button type="button" className="catalog-scroll-arrow catalog-scroll-left" onClick={() => scrollBy(-1)} aria-label="Défiler à gauche">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-          </button>
-        )}
-        <div
-          className="home-catalog-row"
-          ref={scrollRef}
-          role="list"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        >
-          {regionPacks.map((pack) => {
-            const selected = activePackId === pack.id;
-            const photos = getPhotos(pack.id);
-            const isHovered = hoveredPackId === pack.id;
-
-            return (
-              <button
-                key={pack.id}
-                data-pack-id={pack.id}
-                type="button"
-                className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
-                onClick={() => onSelect(pack.id)}
-                onMouseEnter={() => onMouseEnter(pack.id)}
-                onMouseLeave={onMouseLeave}
-                onFocus={() => onMouseEnter(pack.id)}
-                onBlur={onMouseLeave}
-                aria-pressed={selected}
-                role="listitem"
-              >
-                {/* 2×2 photo grid — fills entire card */}
-                {photos && photos.length > 0 ? (
-                  <div className="pack-card-photos">
-                    {Array.from({ length: 4 }, (_, i) => {
-                      const photo = photos[i % photos.length];
-                      return (
-                        <div key={i} className="pack-card-photo-cell">
-                          <img 
-                            src={photo.url} 
-                            alt="" 
-                            loading="lazy" 
-                            decoding="async"
-                            className="pack-card-img"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="pack-card-photo-placeholder pack-card-skeleton">
-                    <PackIcon packId={pack.id} className="pack-card-icon-large" />
-                  </div>
-                )}
-
-                {/* Always visible title strip */}
-                <div className="pack-card-info">
-                  <PackIcon packId={pack.id} className="pack-card-icon" />
-                  <span className="pack-card-title">{t(pack.titleKey)}</span>
-                </div>
-
-                {/* Hover-expand description */}
-                {isHovered && pack.descriptionKey && (
-                  <div className="pack-card-desc">
-                    <p>{t(pack.descriptionKey)}</p>
-                  </div>
-                )}
-
-                {/* Selection indicator */}
-                {selected && <div className="pack-card-check">✓</div>}
-              </button>
-            );
-          })}
+        <div className="home-region-header-main">
+          <p className="home-region-label">{label}</p>
+          {!isDesktop && dotCount > 1 && (
+            <div className="home-region-dots">
+              {Array.from({ length: dotCount }, (_, i) => (
+                <span key={i} className={`region-dot ${i === activeDot ? 'active' : ''}`} />
+              ))}
+            </div>
+          )}
         </div>
-        {canScrollRight && (
-          <div className="catalog-fade catalog-fade-right" />
-        )}
-        {canScrollRight && (
-          <button type="button" className="catalog-scroll-arrow catalog-scroll-right" onClick={() => scrollBy(1)} aria-label="Défiler à droite">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+        {hasDesktopOverflow && (
+          <button
+            type="button"
+            className="home-region-see-more"
+            onClick={handleSeeMore}
+          >
+            {hasDesktopMore
+              ? `${t('home.see_more_packs', {}, 'Voir plus')} (${desktopRemainingCount})`
+              : t('home.see_less_packs', {}, 'Voir moins')}
           </button>
         )}
       </div>
+      {isDesktop ? (
+        <div className="home-catalog-grid" role="list">
+          {visiblePacks.map(renderPackCard)}
+        </div>
+      ) : (
+        <div className="home-catalog-row-wrapper">
+          {canScrollLeft && (
+            <div className="catalog-fade catalog-fade-left" />
+          )}
+          {canScrollLeft && (
+            <button type="button" className="catalog-scroll-arrow catalog-scroll-left" onClick={() => scrollBy(-1)} aria-label="Défiler à gauche">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+          )}
+          <div
+            className="home-catalog-row"
+            ref={scrollRef}
+            role="list"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+          >
+            {visiblePacks.map(renderPackCard)}
+          </div>
+          {canScrollRight && (
+            <div className="catalog-fade catalog-fade-right" />
+          )}
+          {canScrollRight && (
+            <button type="button" className="catalog-scroll-arrow catalog-scroll-right" onClick={() => scrollBy(1)} aria-label="Défiler à droite">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

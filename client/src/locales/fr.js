@@ -89,6 +89,15 @@ const fr = {
     advanced_settings: 'Paramètres avancés',
     lab_modes: 'Modes labo',
     custom_filter_btn: 'Mode personnalisé',
+    custom_create_title: 'Créer mon pack',
+    custom_create_desc: 'Choisis tes taxons, ton lieu et ta période.',
+    section_starter: 'Pour commencer',
+    section_near_you: 'Près de chez toi',
+    section_explore: 'Explorer',
+    section_catalog: 'Catalogue complet',
+    see_more_packs: 'Voir plus',
+    see_less_packs: 'Voir moins',
+    settings_label: 'Paramètres',
   },
   configurator: {
     pack_label: 'Choisissez un pack de jeu :',
@@ -127,9 +136,25 @@ const fr = {
       title: 'Oiseaux du monde',
       description: "Les 100 espèces d'oiseaux les plus observées sur iNaturalist.",
     },
+    world_mammals: {
+      title: 'Mammifères du monde',
+      description: 'Explorez les mammifères les plus observés à travers le monde.',
+    },
+    world_plants: {
+      title: 'Plantes du monde',
+      description: 'Un pack global pour découvrir arbres, fleurs et herbacées.',
+    },
+    world_fungi: {
+      title: 'Champignons du monde',
+      description: 'Des espèces de champignons observées sur différents continents.',
+    },
     france_mammals: {
       title: 'Mammifères de France',
       description: 'Toutes les observations de mammifères en France métropolitaine.',
+    },
+    belgium_starter_mix: {
+      title: 'Belgique: mix découverte',
+      description: 'Un pack débutant avec oiseaux, mammifères, plantes et champignons de Belgique.',
     },
     belgium_herps: {
       title: 'Reptiles & amphibiens de Belgique',
@@ -406,6 +431,7 @@ const fr = {
     session_complete: 'Session terminée',
     new_discoveries: 'Nouvelles découvertes',
     species_added: 'espèce(s) ajoutée(s) au guide',
+    species_added_to_collection: 'espèce(s) ajoutée(s) à la collection',
     achievements_unlocked: 'Succès débloqués',
   },
   share: {

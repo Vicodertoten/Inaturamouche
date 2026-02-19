@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CustomFilter from './components/CustomFilter';
 import ErrorModal from '../../components/ErrorModal';
 import PackIcon from '../../components/PackIcons';
@@ -155,12 +155,24 @@ function Configurator({ onStartGame }) {
     setMediaType,
   } = useGameData();
   const { error, clearError } = useGameUI();
-  const { packs, loading: packsLoading, error: packsError } = usePacks();
+  const {
+    packs,
+    loading: packsLoading,
+    error: packsError,
+    homeSections,
+    homeLoading,
+    refreshHomeCatalog,
+  } = usePacks();
   const { t } = useLanguage();
 
   const packOptions = usePackOptions({ packs, t });
   const [packView, setPackView] = useState('packs');
   const detectedRegion = useDetectedRegion();
+  const isCatalogLoading = packsLoading || homeLoading;
+
+  useEffect(() => {
+    void refreshHomeCatalog({ region: detectedRegion });
+  }, [detectedRegion, refreshHomeCatalog]);
 
   const activePack = useMemo(
     () => packs.find((pack) => pack.id === activePackId),
@@ -195,27 +207,66 @@ function Configurator({ onStartGame }) {
     () => packOptions.filter((pack) => pack.id !== 'custom'),
     [packOptions]
   );
+  const packById = useMemo(
+    () => new Map(packs.map((pack) => [pack.id, pack])),
+    [packs]
+  );
+  const packOptionById = useMemo(
+    () => new Map(packOptions.map((option) => [option.id, option])),
+    [packOptions]
+  );
+  const orderedPackSections = useMemo(() => {
+    if (isCatalogLoading) return [];
 
-  /* ── Region-grouped packs ── */
-  const REGION_ORDER = ['belgium', 'france', 'europe', 'world'];
-  const regionGroupedPacks = useMemo(() => {
-    if (packsLoading) return [];
-    const order = [...REGION_ORDER];
-    const idx = order.indexOf(detectedRegion);
-    if (idx > 0) { order.splice(idx, 1); order.unshift(detectedRegion); }
-    const groups = {};
-    for (const pack of packs.filter((p) => p.id !== 'custom')) {
-      const region = pack.region || 'world';
-      if (!groups[region]) groups[region] = [];
-      const option = prefabPacks.find((o) => o.id === pack.id);
-      if (option) groups[region].push({ ...pack, label: option.label });
+    const sectionsFromHome = (Array.isArray(homeSections) ? homeSections : [])
+      .map((section) => {
+        const rawPacks = Array.isArray(section?.packs) ? section.packs : [];
+        const sectionPacks = rawPacks
+          .map((item) => {
+            const packId = typeof item === 'string' ? item : item?.id;
+            if (!packId || packId === 'custom') return null;
+            const basePack = packById.get(packId);
+            if (!basePack) return null;
+            return {
+              ...basePack,
+              label: packOptionById.get(packId)?.label || (basePack.titleKey ? t(basePack.titleKey) : packId),
+            };
+          })
+          .filter(Boolean);
+
+        return {
+          id: String(section?.id || 'catalog'),
+          label: section?.titleKey ? t(section.titleKey, {}, section.id) : t('home.section_catalog', {}, 'Catalogue'),
+          packs: sectionPacks,
+        };
+      })
+      .filter((section) => section.packs.length > 0);
+
+    const homeSectionPackIds = new Set(
+      sectionsFromHome.flatMap((section) => section.packs.map((pack) => pack.id))
+    );
+    const remainingPacks = packs
+      .filter((pack) => pack.id !== 'custom' && !homeSectionPackIds.has(pack.id))
+      .sort((a, b) => {
+        const weightDelta = (a.sortWeight ?? 9999) - (b.sortWeight ?? 9999);
+        if (weightDelta !== 0) return weightDelta;
+        return String(a.id).localeCompare(String(b.id));
+      })
+      .map((pack) => ({
+        ...pack,
+        label: packOptionById.get(pack.id)?.label || (pack.titleKey ? t(pack.titleKey) : pack.id),
+      }));
+
+    if (remainingPacks.length > 0) {
+      sectionsFromHome.push({
+        id: 'catalog',
+        label: t('home.section_catalog', {}, 'Catalogue'),
+        packs: remainingPacks,
+      });
     }
-    return order.filter((r) => groups[r]?.length > 0).map((r) => ({
-      region: r,
-      label: t(`packs._regions.${r}`, {}, r),
-      packs: groups[r],
-    }));
-  }, [packsLoading, packs, prefabPacks, detectedRegion, t]);
+
+    return sectionsFromHome;
+  }, [isCatalogLoading, homeSections, packById, packOptionById, packs, t]);
 
   /* ── Hover description with delay ── */
   const hoverTimerRef = useRef(null);
@@ -290,7 +341,7 @@ function Configurator({ onStartGame }) {
   }, [maxQuestions, mediaType, onStartGame]);
 
   const packDescription =
-    activePack?.descriptionKey && !packsLoading ? t(activePack.descriptionKey) : null;
+    activePack?.descriptionKey && !isCatalogLoading ? t(activePack.descriptionKey) : null;
   const isPackView = packView === 'packs';
   const isCustomView = packView === 'custom';
 
@@ -331,7 +382,7 @@ function Configurator({ onStartGame }) {
             {isPackView && (
               <>
                 <div className="pack-catalog" data-test="pack-selector">
-                  {packsLoading &&
+                  {isCatalogLoading &&
                     <div className="pack-scroll-row">
                       {Array.from({ length: 4 }, (_, index) => (
                         <div className="pack-chip pack-chip--skeleton" key={`skeleton-${index}`}>
@@ -340,12 +391,12 @@ function Configurator({ onStartGame }) {
                       ))}
                     </div>
                   }
-                  {!packsLoading &&
-                    regionGroupedPacks.map(({ region, label, packs: regionPacks }) => (
-                      <div className="pack-region-group" key={region}>
+                  {!isCatalogLoading &&
+                    orderedPackSections.map(({ id, label, packs: sectionPacks }) => (
+                      <div className="pack-region-group" key={id}>
                         <p className="pack-region-label">{label}</p>
                         <div className="pack-scroll-row" role="list">
-                          {regionPacks.map((option) => {
+                          {sectionPacks.map((option) => {
                             const isSelected = activePackId === option.id;
                             return (
                               <button

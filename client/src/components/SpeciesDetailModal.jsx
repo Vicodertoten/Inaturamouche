@@ -39,6 +39,15 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const [similarSpecies, setSimilarSpecies] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   // Load species detail on mount
   useEffect(() => {
     let isMounted = true;
@@ -111,10 +120,10 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
 
   if (loading) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
-          <div className="modal-body">
+      <div className="species-modal-overlay" onClick={onClose}>
+        <div className="species-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+          <button type="button" className="species-modal-close-button" onClick={onClose}>&times;</button>
+          <div className="species-modal-body species-modal-body--state">
             <p>{t('common.loading')}</p>
           </div>
         </div>
@@ -124,10 +133,10 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
 
   if (error || !detail) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
-          <div className="modal-body">
+      <div className="species-modal-overlay" onClick={onClose}>
+        <div className="species-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+          <button type="button" className="species-modal-close-button" onClick={onClose}>&times;</button>
+          <div className="species-modal-body species-modal-body--state">
             <p className="error-message">{t('errors.title')}: {error || t('errors.generic')}</p>
           </div>
         </div>
@@ -153,24 +162,24 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
   const headerSrcSet = buildResponsiveSrcSet(headerImageUrls, true);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close-button" onClick={onClose}>&times;</button>
+    <div className="species-modal-overlay" onClick={onClose}>
+      <div className="species-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={taxon.name}>
+        <button type="button" className="species-modal-close-button" onClick={onClose}>&times;</button>
 
-        <header className="modal-header">
+        <header className="species-modal-header">
           {headerImage && (
             <img
               src={headerImage}
               srcSet={headerSrcSet || undefined}
               sizes="(max-width: 768px) 100vw, 720px"
               alt={taxon.name}
-              className="modal-header-image"
+              className="species-modal-header-image"
               loading="lazy"
               decoding="async"
             />
           )}
-          <div className="modal-header-overlay">
-            <div className="modal-title">
+          <div className="species-modal-header-overlay">
+            <div className="species-modal-title">
               <h1 className="common-name">
                 {taxon.preferred_common_name || taxon.name}
               </h1>
@@ -180,22 +189,22 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
           </div>
         </header>
 
-        <div className="modal-body">
-          <div className="tabs">
+        <div className="species-modal-body">
+          <div className="species-tabs">
             <button
-              className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
+              className={`species-tab-button ${activeTab === 'stats' ? 'active' : ''}`}
               onClick={() => setActiveTab('stats')}
             >
               {t('species.tabs.stats')}
             </button>
             <button
-              className={`tab-button ${activeTab === 'encyclopedia' ? 'active' : ''}`}
+              className={`species-tab-button ${activeTab === 'encyclopedia' ? 'active' : ''}`}
               onClick={() => setActiveTab('encyclopedia')}
             >
               {t('species.tabs.encyclopedia')}
             </button>
             <button
-              className={`tab-button ${activeTab === 'taxonomy' ? 'active' : ''}`}
+              className={`species-tab-button ${activeTab === 'taxonomy' ? 'active' : ''}`}
               onClick={() => setActiveTab('taxonomy')}
             >
               {t('species.tabs.taxonomy')}
@@ -203,7 +212,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
           </div>
 
           {activeTab === 'stats' && stats && (
-            <div className="tab-content">
+            <div className="species-tab-content">
               <div className="stat-grid">
                 <div className="stat-item">
                   <div className="label">{t('species.stats.first_encounter')}</div>
@@ -234,7 +243,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
           )}
 
           {activeTab === 'encyclopedia' && (
-            <div className="tab-content">
+            <div className="species-tab-content">
               <div className="encyclopedia-content">
                 <p>{description}</p>
               </div>
@@ -262,7 +271,7 @@ export default function SpeciesDetailModal({ taxonId, onClose }) {
           )}
 
           {activeTab === 'taxonomy' && (
-            <div className="tab-content">
+            <div className="species-tab-content">
               <div className="similar-species-content">
                 {loadingSimilar ? (
                   <p className="loading-text">{t('species.similar.finding')}</p>

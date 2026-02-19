@@ -1,6 +1,11 @@
-import europeanMushrooms from "../../shared/data/common_european_mushrooms.json" with { type: "json" };
-import europeanTrees from "../../shared/data/common_european_trees.json" with { type: "json" };
-import belgianEdiblePlants from "../../shared/data/belgian_edible_plants.json" with { type: "json" };
+import europeanMushrooms from '../../shared/data/common_european_mushrooms.json' with { type: 'json' };
+import europeanTrees from '../../shared/data/common_european_trees.json' with { type: 'json' };
+import belgianEdiblePlants from '../../shared/data/belgian_edible_plants.json' with { type: 'json' };
+
+const KNOWN_REGIONS = new Set(['belgium', 'france', 'europe', 'world']);
+const KNOWN_CATEGORIES = new Set(['starter', 'regional', 'world', 'expert', 'custom']);
+const KNOWN_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
+const KNOWN_VISIBILITIES = new Set(['home', 'catalog', 'legacy']);
 
 /**
  * @typedef {Object} PackDefinition
@@ -8,281 +13,383 @@ import belgianEdiblePlants from "../../shared/data/belgian_edible_plants.json" w
  * @property {"custom" | "list" | "dynamic"} type
  * @property {string} titleKey
  * @property {string} descriptionKey
- * @property {string} [region] - Region tag for geo-based sorting (e.g. "belgium", "europe", "world")
- * @property {string[]} [taxa_ids]
+ * @property {"belgium" | "france" | "europe" | "world"} [region]
+ * @property {"starter" | "regional" | "world" | "expert" | "custom"} category
+ * @property {"beginner" | "intermediate" | "advanced"} level
+ * @property {"home" | "catalog" | "legacy"} visibility
+ * @property {number} sortWeight
+ * @property {number[]} [taxa_ids]
  * @property {Record<string, string>} [api_params]
  */
 
-/**
- * @type {PackDefinition[]}
- */
 const normalizeTaxaIds = (items = []) =>
   items
     .map((item) => Number(item?.inaturalist_id))
     .filter((id) => Number.isFinite(id));
 
+const toInteger = (value, fallback = 9999) => {
+  const normalized = Number.parseInt(String(value), 10);
+  return Number.isFinite(normalized) ? normalized : fallback;
+};
+
+const normalizePackDefinition = (pack) => {
+  const normalized = {
+    id: String(pack.id),
+    type: pack.type,
+    titleKey: String(pack.titleKey),
+    descriptionKey: String(pack.descriptionKey),
+    category: KNOWN_CATEGORIES.has(pack.category) ? pack.category : 'world',
+    level: KNOWN_LEVELS.has(pack.level) ? pack.level : 'intermediate',
+    visibility: KNOWN_VISIBILITIES.has(pack.visibility) ? pack.visibility : 'catalog',
+    sortWeight: toInteger(pack.sortWeight, 9999),
+  };
+
+  if (pack.region && KNOWN_REGIONS.has(pack.region)) {
+    normalized.region = pack.region;
+  }
+  if (Array.isArray(pack.taxa_ids)) {
+    normalized.taxa_ids = [...pack.taxa_ids];
+  }
+  if (pack.api_params && typeof pack.api_params === 'object') {
+    normalized.api_params = { ...pack.api_params };
+  }
+
+  return normalized;
+};
+
+/**
+ * IDs are immutable and remain backward-compatible with existing clients.
+ *
+ * @type {PackDefinition[]}
+ */
 const PACK_DEFINITIONS = [
   {
-    id: "custom",
-    type: "custom",
-    titleKey: "packs.custom.title",
-    descriptionKey: "packs.custom.description",
+    id: 'custom',
+    type: 'custom',
+    titleKey: 'packs.custom.title',
+    descriptionKey: 'packs.custom.description',
+    category: 'custom',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 0,
   },
-  // ── European packs ──
+
+  // Home-focused starter set
   {
-    id: "european_mushrooms",
-    type: "list",
-    titleKey: "packs.european_mushrooms.title",
-    descriptionKey: "packs.european_mushrooms.description",
-    region: "europe",
+    id: 'belgium_starter_mix',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_starter_mix.title',
+    descriptionKey: 'packs.belgium_starter_mix.description',
+    region: 'belgium',
+    category: 'starter',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 10,
+    api_params: { taxon_id: '3,40151,47126,47170', place_id: '7008', popular: 'true' },
+  },
+  {
+    id: 'european_trees',
+    type: 'list',
+    titleKey: 'packs.european_trees.title',
+    descriptionKey: 'packs.european_trees.description',
+    region: 'europe',
+    category: 'starter',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 20,
+    taxa_ids: normalizeTaxaIds(europeanTrees),
+  },
+  {
+    id: 'european_mushrooms',
+    type: 'list',
+    titleKey: 'packs.european_mushrooms.title',
+    descriptionKey: 'packs.european_mushrooms.description',
+    region: 'europe',
+    category: 'starter',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 25,
     taxa_ids: normalizeTaxaIds(europeanMushrooms),
   },
   {
-    id: "european_trees",
-    type: "list",
-    titleKey: "packs.european_trees.title",
-    descriptionKey: "packs.european_trees.description",
-    region: "europe",
-    taxa_ids: normalizeTaxaIds(europeanTrees),
-  },
-  // ── World packs ──
-  {
-    id: "world_birds",
-    type: "dynamic",
-    titleKey: "packs.world_birds.title",
-    descriptionKey: "packs.world_birds.description",
-    region: "world",
-    api_params: { taxon_id: "3", popular: "true" },
-  },
-  // ── France ──
-  {
-    id: "france_mammals",
-    type: "dynamic",
-    titleKey: "packs.france_mammals.title",
-    descriptionKey: "packs.france_mammals.description",
-    region: "france",
-    api_params: { taxon_id: "40151", place_id: "6753" },
-  },
-  // ── Belgium (existing) ──
-  {
-    id: "belgium_herps",
-    type: "dynamic",
-    titleKey: "packs.belgium_herps.title",
-    descriptionKey: "packs.belgium_herps.description",
-    region: "belgium",
-    api_params: { taxon_id: "26036,20978", place_id: "7008" },
-  },
-  // ── World packs ──
-  {
-    id: "amazing_insects",
-    type: "dynamic",
-    titleKey: "packs.amazing_insects.title",
-    descriptionKey: "packs.amazing_insects.description",
-    region: "world",
-    api_params: { taxon_id: "47158", popular: "true" },
+    id: 'world_birds',
+    type: 'dynamic',
+    titleKey: 'packs.world_birds.title',
+    descriptionKey: 'packs.world_birds.description',
+    region: 'world',
+    category: 'world',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 30,
+    api_params: { taxon_id: '3', popular: 'true' },
   },
   {
-    id: "mediterranean_flora",
-    type: "dynamic",
-    titleKey: "packs.mediterranean_flora.title",
-    descriptionKey: "packs.mediterranean_flora.description",
-    region: "europe",
-    api_params: { taxon_id: "47126", place_id: "53832", popular: "true" },
+    id: 'france_mammals',
+    type: 'dynamic',
+    titleKey: 'packs.france_mammals.title',
+    descriptionKey: 'packs.france_mammals.description',
+    region: 'france',
+    category: 'regional',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 35,
+    api_params: { taxon_id: '40151', place_id: '6753' },
   },
-  // ═══════════════════════════════════════════════
-  //  BELGIUM PACKS (12 thematic packs)
-  //  place_id 7008 = Belgium on iNaturalist
-  // ═══════════════════════════════════════════════
+  {
+    id: 'belgium_birds',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_birds.title',
+    descriptionKey: 'packs.belgium_birds.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 40,
+    api_params: { taxon_id: '3', place_id: '7008', popular: 'true' },
+  },
+  {
+    id: 'belgium_wildflowers',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_wildflowers.title',
+    descriptionKey: 'packs.belgium_wildflowers.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 45,
+    api_params: { taxon_id: '47125', place_id: '7008', popular: 'true' },
+  },
+  {
+    id: 'belgium_mammals',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_mammals.title',
+    descriptionKey: 'packs.belgium_mammals.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'intermediate',
+    visibility: 'home',
+    sortWeight: 50,
+    api_params: { taxon_id: '40151', place_id: '7008' },
+  },
+  {
+    id: 'belgium_trees',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_trees.title',
+    descriptionKey: 'packs.belgium_trees.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 55,
+    api_params: { taxon_id: '47126', place_id: '7008', popular: 'true' },
+  },
+  {
+    id: 'world_mammals',
+    type: 'dynamic',
+    titleKey: 'packs.world_mammals.title',
+    descriptionKey: 'packs.world_mammals.description',
+    region: 'world',
+    category: 'world',
+    level: 'beginner',
+    visibility: 'home',
+    sortWeight: 60,
+    api_params: { taxon_id: '40151', popular: 'true' },
+  },
 
-  // 1. Butterflies of Belgium
+  // Catalog extensions
   {
-    id: "belgium_butterflies",
-    type: "dynamic",
-    titleKey: "packs.belgium_butterflies.title",
-    descriptionKey: "packs.belgium_butterflies.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47224",       // Lepidoptera – butterflies & moths
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'world_plants',
+    type: 'dynamic',
+    titleKey: 'packs.world_plants.title',
+    descriptionKey: 'packs.world_plants.description',
+    region: 'world',
+    category: 'world',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 65,
+    api_params: { taxon_id: '47126', popular: 'true' },
   },
-  // 2. Birds of Belgium
   {
-    id: "belgium_birds",
-    type: "dynamic",
-    titleKey: "packs.belgium_birds.title",
-    descriptionKey: "packs.belgium_birds.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "3",           // Aves
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'world_fungi',
+    type: 'dynamic',
+    titleKey: 'packs.world_fungi.title',
+    descriptionKey: 'packs.world_fungi.description',
+    region: 'world',
+    category: 'world',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 70,
+    api_params: { taxon_id: '47170', popular: 'true' },
   },
-  // 3. Wildflowers of Belgium
   {
-    id: "belgium_wildflowers",
-    type: "dynamic",
-    titleKey: "packs.belgium_wildflowers.title",
-    descriptionKey: "packs.belgium_wildflowers.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47125",       // Magnoliopsida (flowering plants)
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'belgium_herps',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_herps.title',
+    descriptionKey: 'packs.belgium_herps.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 120,
+    api_params: { taxon_id: '26036,20978', place_id: '7008' },
   },
-  // 4. Mammals of Belgium
   {
-    id: "belgium_mammals",
-    type: "dynamic",
-    titleKey: "packs.belgium_mammals.title",
-    descriptionKey: "packs.belgium_mammals.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "40151",       // Mammalia
-      place_id: "7008",
-    },
+    id: 'amazing_insects',
+    type: 'dynamic',
+    titleKey: 'packs.amazing_insects.title',
+    descriptionKey: 'packs.amazing_insects.description',
+    region: 'world',
+    category: 'world',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 125,
+    api_params: { taxon_id: '47158', popular: 'true' },
   },
-  // 5. Mushrooms of Belgium
   {
-    id: "belgium_mushrooms",
-    type: "dynamic",
-    titleKey: "packs.belgium_mushrooms.title",
-    descriptionKey: "packs.belgium_mushrooms.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47170",       // Fungi
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'mediterranean_flora',
+    type: 'dynamic',
+    titleKey: 'packs.mediterranean_flora.title',
+    descriptionKey: 'packs.mediterranean_flora.description',
+    region: 'europe',
+    category: 'regional',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 130,
+    api_params: { taxon_id: '47126', place_id: '53832', popular: 'true' },
   },
-  // 6. Trees & Shrubs of Belgium
   {
-    id: "belgium_trees",
-    type: "dynamic",
-    titleKey: "packs.belgium_trees.title",
-    descriptionKey: "packs.belgium_trees.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47126",       // Plantae
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'belgium_butterflies',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_butterflies.title',
+    descriptionKey: 'packs.belgium_butterflies.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 135,
+    api_params: { taxon_id: '47224', place_id: '7008', popular: 'true' },
   },
-  // 7. Dragonflies & Damselflies of Belgium
   {
-    id: "belgium_dragonflies",
-    type: "dynamic",
-    titleKey: "packs.belgium_dragonflies.title",
-    descriptionKey: "packs.belgium_dragonflies.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47792",       // Odonata
-      place_id: "7008",
-    },
+    id: 'belgium_mushrooms',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_mushrooms.title',
+    descriptionKey: 'packs.belgium_mushrooms.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 140,
+    api_params: { taxon_id: '47170', place_id: '7008', popular: 'true' },
   },
-  // 8. Spiders of Belgium
   {
-    id: "belgium_spiders",
-    type: "dynamic",
-    titleKey: "packs.belgium_spiders.title",
-    descriptionKey: "packs.belgium_spiders.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47118",       // Arachnida
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'belgium_dragonflies',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_dragonflies.title',
+    descriptionKey: 'packs.belgium_dragonflies.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 145,
+    api_params: { taxon_id: '47792', place_id: '7008' },
   },
-  // 9. Freshwater Fish of Belgium
   {
-    id: "belgium_fish",
-    type: "dynamic",
-    titleKey: "packs.belgium_fish.title",
-    descriptionKey: "packs.belgium_fish.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47178",       // Actinopterygii (ray-finned fish)
-      place_id: "7008",
-    },
+    id: 'belgium_spiders',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_spiders.title',
+    descriptionKey: 'packs.belgium_spiders.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 150,
+    api_params: { taxon_id: '47118', place_id: '7008', popular: 'true' },
   },
-  // 10. Beetles of Belgium
   {
-    id: "belgium_beetles",
-    type: "dynamic",
-    titleKey: "packs.belgium_beetles.title",
-    descriptionKey: "packs.belgium_beetles.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47208",       // Coleoptera
-      place_id: "7008",
-      popular: "true",
-    },
+    id: 'belgium_fish',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_fish.title',
+    descriptionKey: 'packs.belgium_fish.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 155,
+    api_params: { taxon_id: '47178', place_id: '7008' },
   },
-  // 11. Mosses & Lichens of Belgium
   {
-    id: "belgium_mosses_lichens",
-    type: "dynamic",
-    titleKey: "packs.belgium_mosses_lichens.title",
-    descriptionKey: "packs.belgium_mosses_lichens.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "311249,54743", // Bryophyta (mosses) + Lecanoromycetes (lichens)
-      place_id: "7008",
-    },
+    id: 'belgium_beetles',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_beetles.title',
+    descriptionKey: 'packs.belgium_beetles.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 160,
+    api_params: { taxon_id: '47208', place_id: '7008', popular: 'true' },
   },
-  // 12. Mollusks of Belgium (snails & slugs)
   {
-    id: "belgium_mollusks",
-    type: "dynamic",
-    titleKey: "packs.belgium_mollusks.title",
-    descriptionKey: "packs.belgium_mollusks.description",
-    region: "belgium",
-    api_params: {
-      taxon_id: "47115",       // Mollusca
-      place_id: "7008",
-    },
+    id: 'belgium_mosses_lichens',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_mosses_lichens.title',
+    descriptionKey: 'packs.belgium_mosses_lichens.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 165,
+    api_params: { taxon_id: '311249,54743', place_id: '7008' },
   },
-  // 13. Edible Wild Plants of Belgium (50 species)
   {
-    id: "belgium_edible_plants",
-    type: "list",
-    titleKey: "packs.belgium_edible_plants.title",
-    descriptionKey: "packs.belgium_edible_plants.description",
-    region: "belgium",
+    id: 'belgium_mollusks',
+    type: 'dynamic',
+    titleKey: 'packs.belgium_mollusks.title',
+    descriptionKey: 'packs.belgium_mollusks.description',
+    region: 'belgium',
+    category: 'expert',
+    level: 'advanced',
+    visibility: 'catalog',
+    sortWeight: 170,
+    api_params: { taxon_id: '47115', place_id: '7008' },
+  },
+  {
+    id: 'belgium_edible_plants',
+    type: 'list',
+    titleKey: 'packs.belgium_edible_plants.title',
+    descriptionKey: 'packs.belgium_edible_plants.description',
+    region: 'belgium',
+    category: 'regional',
+    level: 'intermediate',
+    visibility: 'catalog',
+    sortWeight: 175,
     taxa_ids: normalizeTaxaIds(belgianEdiblePlants),
   },
-];
+].map(normalizePackDefinition);
+
+const clonePackDefinition = (pack) => ({
+  ...pack,
+  taxa_ids: Array.isArray(pack.taxa_ids) ? [...pack.taxa_ids] : undefined,
+  api_params: pack.api_params ? { ...pack.api_params } : undefined,
+});
 
 /**
- * Returns the public pack catalog.
+ * Returns all pack definitions, including metadata used by ranking services.
  *
- * @returns {Array<Pick<PackDefinition, "id" | "type" | "titleKey" | "descriptionKey">>}
+ * @returns {PackDefinition[]}
+ */
+export function getPackDefinitions() {
+  return PACK_DEFINITIONS.map(clonePackDefinition);
+}
+
+/**
+ * Public catalog endpoint payload. Intentionally enriched (V2 metadata)
+ * while keeping backward compatibility on `id` and query behavior.
+ *
+ * @returns {PackDefinition[]}
  */
 export function listPublicPacks() {
-  return PACK_DEFINITIONS.map((pack) => {
-    const base = {
-      id: pack.id,
-      type: pack.type,
-      titleKey: pack.titleKey,
-      descriptionKey: pack.descriptionKey,
-    };
-
-    if (pack.region) {
-      base.region = pack.region;
-    }
-
-    if (pack.type === 'list' && Array.isArray(pack.taxa_ids)) {
-      base.taxa_ids = pack.taxa_ids;
-    }
-    if (pack.type === 'dynamic' && pack.api_params) {
-      base.api_params = pack.api_params;
-    }
-
-    return base;
-  });
+  return getPackDefinitions();
 }
 
 /**

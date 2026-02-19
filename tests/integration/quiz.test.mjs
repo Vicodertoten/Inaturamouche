@@ -186,6 +186,16 @@ integrationTest('GET /api/quiz-question returns 400 BAD_REQUEST with invalid pac
   assert.equal(body.error.message, 'Unknown pack');
 });
 
+integrationTest('GET /api/quiz-question keeps pack_id compatibility for existing packs', async () => {
+  globalThis.fetch = createInatFetchMock();
+
+  const res = await fetch(`${baseUrl}/api/quiz-question?pack_id=world_birds&locale=fr`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.ok(Array.isArray(body.choices));
+  assert.ok(typeof body.round_id === 'string');
+});
+
 integrationTest('GET /api/quiz-question accepts valid taxon_ids parameter', async () => {
   globalThis.fetch = createInatFetchMock();
 

@@ -82,7 +82,7 @@ export function createApp() {
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
       const isPackPreview = /^\/api\/packs\/[^/]+\/preview$/.test(req.path);
-      const isPackCatalog = req.path === '/api/packs';
+      const isPackCatalog = req.path === '/api/packs' || req.path === '/api/packs/home';
       const isAutocompleteEndpoint =
         req.path === '/api/taxa/autocomplete' || req.path === '/api/places';
       const isLookupEndpoint =

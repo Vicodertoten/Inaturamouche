@@ -418,6 +418,7 @@ export const getTaxaByIds = (ids, locale = "fr") => {
 };
 
 export const getPackCatalog = () => apiGet("/api/packs");
+export const getHomePackCatalog = (params = {}) => apiGet('/api/packs/home', params);
 
 export const fetchSimilarSpecies = async (taxonId) => {
   if (!taxonId || !inatFetcher) return [];

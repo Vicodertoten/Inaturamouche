@@ -4,9 +4,9 @@
 import { buildCacheKey } from '../../lib/quiz-utils.js';
 import { getObservationPool } from './observationPool.js';
 import { findPackById } from '../packs/index.js';
+import { getWarmupPackIds } from './catalogService.js';
 
 const DEFAULT_LOCALE = 'fr';
-const PACKS_TO_WARMUP = ['european_mushrooms', 'european_trees', 'world_birds'];
 
 /**
  * Pre-warm the default observation pool to reduce first-question latency.
@@ -41,7 +41,9 @@ export async function warmDefaultObservationPool({ logger } = {}) {
  * Pre-warm pack-specific observation pools.
  */
 export async function warmPackPools({ logger } = {}) {
-  for (const packId of PACKS_TO_WARMUP) {
+  const packIds = getWarmupPackIds({ region: 'europe', limit: 4 });
+
+  for (const packId of packIds) {
     const pack = findPackById(packId);
     if (!pack) continue;
 

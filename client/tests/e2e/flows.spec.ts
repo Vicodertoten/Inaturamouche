@@ -45,6 +45,65 @@ const mockQuestion = {
   inaturalist_url: 'https://www.inaturalist.org/observations/1',
 };
 
+const mockPacks = [
+  { id: 'custom', type: 'custom', titleKey: 'packs.custom.title', descriptionKey: 'packs.custom.description', category: 'custom', level: 'beginner', visibility: 'home', sortWeight: 0 },
+  { id: 'belgium_starter_mix', type: 'dynamic', titleKey: 'packs.belgium_starter_mix.title', descriptionKey: 'packs.belgium_starter_mix.description', region: 'belgium', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 10, api_params: { taxon_id: '3,40151,47126,47170', place_id: '7008', popular: 'true' } },
+  { id: 'european_trees', type: 'list', titleKey: 'packs.european_trees.title', descriptionKey: 'packs.european_trees.description', region: 'europe', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 20, taxa_ids: [1, 2] },
+  { id: 'european_mushrooms', type: 'list', titleKey: 'packs.european_mushrooms.title', descriptionKey: 'packs.european_mushrooms.description', region: 'europe', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 25, taxa_ids: [3, 4] },
+  { id: 'world_birds', type: 'dynamic', titleKey: 'packs.world_birds.title', descriptionKey: 'packs.world_birds.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 30, api_params: { taxon_id: '3' } },
+  { id: 'france_mammals', type: 'dynamic', titleKey: 'packs.france_mammals.title', descriptionKey: 'packs.france_mammals.description', region: 'france', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 35, api_params: { taxon_id: '40151', place_id: '6753' } },
+  { id: 'belgium_birds', type: 'dynamic', titleKey: 'packs.belgium_birds.title', descriptionKey: 'packs.belgium_birds.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 40, api_params: { taxon_id: '3', place_id: '7008' } },
+  { id: 'belgium_wildflowers', type: 'dynamic', titleKey: 'packs.belgium_wildflowers.title', descriptionKey: 'packs.belgium_wildflowers.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 45, api_params: { taxon_id: '47125', place_id: '7008' } },
+  { id: 'belgium_mammals', type: 'dynamic', titleKey: 'packs.belgium_mammals.title', descriptionKey: 'packs.belgium_mammals.description', region: 'belgium', category: 'regional', level: 'intermediate', visibility: 'home', sortWeight: 50, api_params: { taxon_id: '40151', place_id: '7008' } },
+  { id: 'belgium_trees', type: 'dynamic', titleKey: 'packs.belgium_trees.title', descriptionKey: 'packs.belgium_trees.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 55, api_params: { taxon_id: '47126', place_id: '7008' } },
+  { id: 'world_mammals', type: 'dynamic', titleKey: 'packs.world_mammals.title', descriptionKey: 'packs.world_mammals.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 60, api_params: { taxon_id: '40151' } },
+  { id: 'world_plants', type: 'dynamic', titleKey: 'packs.world_plants.title', descriptionKey: 'packs.world_plants.description', region: 'world', category: 'world', level: 'intermediate', visibility: 'catalog', sortWeight: 65, api_params: { taxon_id: '47126' } },
+];
+
+const findPack = (id: string) => mockPacks.find((pack) => pack.id === id);
+const mockHomeCatalog = {
+  sections: [
+    {
+      id: 'starter',
+      titleKey: 'home.section_starter',
+      packs: [
+        findPack('belgium_starter_mix'),
+        findPack('european_trees'),
+        findPack('european_mushrooms'),
+        findPack('world_birds'),
+        findPack('france_mammals'),
+        findPack('belgium_birds'),
+        findPack('belgium_wildflowers'),
+        findPack('belgium_mammals'),
+      ].filter(Boolean),
+    },
+    {
+      id: 'near_you',
+      titleKey: 'home.section_near_you',
+      packs: [
+        findPack('belgium_birds'),
+        findPack('belgium_wildflowers'),
+        findPack('belgium_mammals'),
+        findPack('belgium_trees'),
+      ].filter(Boolean),
+    },
+    {
+      id: 'explore',
+      titleKey: 'home.section_explore',
+      packs: [
+        findPack('world_mammals'),
+        findPack('world_plants'),
+        findPack('world_birds'),
+      ].filter(Boolean),
+    },
+  ],
+  customEntry: {
+    id: 'custom',
+    titleKey: 'home.custom_create_title',
+    descriptionKey: 'home.custom_create_desc',
+  },
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('inaturamouche_tutorial_seen', 'true');
@@ -61,7 +120,30 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([]),
+        body: JSON.stringify(mockPacks),
+      });
+      return;
+    }
+
+    if (pathname === '/api/packs/home') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockHomeCatalog),
+      });
+      return;
+    }
+
+    if (/^\/api\/packs\/[^/]+\/preview$/.test(pathname)) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          photos: [
+            { url: 'https://example.com/bee.jpg', attribution: 'mock', name: 'Mock species' },
+            { url: 'https://example.com/wasp.jpg', attribution: 'mock', name: 'Mock species 2' },
+          ],
+        }),
       });
       return;
     }
@@ -128,7 +210,12 @@ test('smoke flow: Home -> Play -> End -> Home', async ({ page, baseURL }) => {
   await page.goto(baseURL || '/');
   await expect(page).toHaveURL(/\/?$/);
 
-  await page.locator('.tutorial-start-game').click();
+  const resumeButton = page.locator('.hero-cta--resume');
+  if (await resumeButton.isVisible().catch(() => false)) {
+    await resumeButton.click();
+  } else {
+    await page.locator('.tutorial-hero-cta').click();
+  }
   await expect(page).toHaveURL(/\/play$/);
 
   await expect(page.locator('.action-button.quit')).toBeVisible();
@@ -149,11 +236,39 @@ test('smoke flow: report modal submission', async ({ page, baseURL }) => {
   await page.goto(baseURL || '/');
   await expect(page).toHaveURL(/\/?$/);
 
-  await page.locator('.tutorial-nav-report:visible').first().click();
+  await page.locator('.footer-report-btn:visible').first().click();
   await expect(page.locator('.report-modal')).toBeVisible();
 
   await page.locator('#report-description').fill('Signalement e2e: comportement inattendu sur la page de jeu.');
   await page.locator('.report-modal button[type="submit"]').click();
 
   await expect(page.locator('.report-modal')).toHaveCount(0);
+});
+
+test('homepage shows 3 rails max and an explicit custom pack entry', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(baseURL || '/');
+  await expect(page.locator('.home-hero .home-chips')).toBeVisible();
+  await expect(page.locator('.home-custom-card')).toBeVisible();
+  await expect(page.locator('.home-pack-region')).toHaveCount(3);
+});
+
+test('desktop rails show 6 cards max before see more expansion', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(baseURL || '/');
+
+  const firstRail = page.locator('.home-pack-region').first();
+  const seeMoreButton = firstRail.locator('.home-region-see-more');
+  await expect(seeMoreButton).toBeVisible();
+  await expect(firstRail.locator('.pack-card')).toHaveCount(6);
+
+  await seeMoreButton.click();
+  await expect(firstRail.locator('.pack-card')).toHaveCount(8);
+});
+
+test('home pack cards render without badges', async ({ page, baseURL }) => {
+  await page.goto(baseURL || '/');
+  await expect(page.locator('.pack-card .pack-card-check')).toHaveCount(0);
+  await expect(page.locator('.pack-card [class*="badge"]')).toHaveCount(0);
+  await expect(page.locator('.pack-card', { hasText: /Nouveau|Populaire|Facile/i })).toHaveCount(0);
 });
