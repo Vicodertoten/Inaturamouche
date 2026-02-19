@@ -250,16 +250,6 @@
     "inaturalist_id": "56088"
   },
   {
-    "scientific_name": "Quercus robur",
-    "common_name": "Chêne pédonculé",
-    "inaturalist_id": "56133"
-  },
-  {
-    "scientific_name": "Quercus petraea",
-    "common_name": "Chêne sessile",
-    "inaturalist_id": "200942"
-  },
-  {
     "scientific_name": "Tilia platyphyllos",
     "common_name": "Tilleul à grandes feuilles",
     "inaturalist_id": "169761"
@@ -275,28 +265,43 @@
     "inaturalist_id": "63951"
   },
   {
-    "scientific_name": "Crataegus laevigata",
-    "common_name": "Aubépine à deux styles",
-    "inaturalist_id": "54428"
+    "scientific_name": "Olea europaea",
+    "common_name": "Olivier",
+    "inaturalist_id": "57140"
   },
   {
-    "scientific_name": "Betula pendula",
-    "common_name": "Bouleau verruqueux",
-    "inaturalist_id": "83992"
+    "scientific_name": "Ceratonia siliqua",
+    "common_name": "Caroubier",
+    "inaturalist_id": "82742"
   },
   {
-    "scientific_name": "Prunus padus",
-    "common_name": "Merisier à grappes",
-    "inaturalist_id": "143793"
+    "scientific_name": "Arbutus unedo",
+    "common_name": "Arbousier",
+    "inaturalist_id": "82689"
   },
   {
-    "scientific_name": "Aria edulis",
-    "common_name": "Alisier blanc",
-    "inaturalist_id": "900799"
+    "scientific_name": "Laurus nobilis",
+    "common_name": "Laurier-sauce",
+    "inaturalist_id": "54759"
   },
   {
-    "scientific_name": "Acer platanoides",
-    "common_name": "Érable plane",
-    "inaturalist_id": "54763"
+    "scientific_name": "Quercus robur",
+    "common_name": "Chêne pédonculé",
+    "inaturalist_id": "56133"
+  },
+  {
+    "scientific_name": "Quercus petraea",
+    "common_name": "Chêne sessile",
+    "inaturalist_id": "200942"
+  },
+  {
+    "scientific_name": "Quercus ilex",
+    "common_name": "Chêne vert",
+    "inaturalist_id": "78805"
+  },
+  {
+    "scientific_name": "Quercus suber",
+    "common_name": "Chêne-liège",
+    "inaturalist_id": "50868"
   }
 ]

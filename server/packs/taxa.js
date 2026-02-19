@@ -1,0 +1,32 @@
+export const TAXA = Object.freeze({
+  BIRDS: 3,
+  MAMMALS: 40151,
+  PLANTS: 47126,
+  FLOWERING_PLANTS: 47125,
+  FUNGI: 47170,
+  INSECTS: 47158,
+  HERPS_REPTILES: 26036,
+  HERPS_AMPHIBIANS: 20978,
+  FISH: 47178,
+  DRAGONFLIES: 47792,
+  BUTTERFLIES: 47224,
+  BEETLES: 47208,
+  SPIDERS: 47118,
+  MOLLUSKS: 47115,
+  MOSSES: 311249,
+  LICHENS: 54743,
+});
+
+export const TAXON_SETS = Object.freeze({
+  HERPS: [TAXA.HERPS_REPTILES, TAXA.HERPS_AMPHIBIANS],
+  MOSSES_LICHENS: [TAXA.MOSSES, TAXA.LICHENS],
+  STARTER_BELGIUM: [TAXA.BIRDS, TAXA.MAMMALS, TAXA.PLANTS, TAXA.FUNGI],
+  WEIRD_INVERTEBRATES: [TAXA.INSECTS, TAXA.SPIDERS, TAXA.MOLLUSKS],
+});
+
+export function csvTaxonIds(ids = []) {
+  return ids
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0)
+    .join(',');
+}

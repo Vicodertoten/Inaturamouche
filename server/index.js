@@ -18,10 +18,16 @@ if (!config.roundHmacSecret || config.roundHmacSecret.trim().length === 0) {
 
 // Démarrer le serveur seulement si pas en mode test
 if (config.nodeEnv !== 'test') {
-  setTimeout(() => {
-    warmDefaultObservationPool({ logger }).catch(() => {});
-    warmPackPools({ logger }).catch(() => {});
-  }, 1000).unref();
+  if (config.enableStartupWarmup) {
+    setTimeout(() => {
+      (async () => {
+        await warmDefaultObservationPool({ logger });
+        await warmPackPools({ logger });
+      })().catch(() => {});
+    }, 1000).unref();
+  } else {
+    logger.info('Startup warmup disabled (ENABLE_STARTUP_WARMUP=false)');
+  }
   const server = app.listen(config.port, () => {
     logger.info(`Serveur iNaturaQuizz démarré sur le port ${config.port}`);
   });

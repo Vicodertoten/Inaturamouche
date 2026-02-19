@@ -48,16 +48,20 @@ const mockQuestion = {
 const mockPacks = [
   { id: 'custom', type: 'custom', titleKey: 'packs.custom.title', descriptionKey: 'packs.custom.description', category: 'custom', level: 'beginner', visibility: 'home', sortWeight: 0 },
   { id: 'belgium_starter_mix', type: 'dynamic', titleKey: 'packs.belgium_starter_mix.title', descriptionKey: 'packs.belgium_starter_mix.description', region: 'belgium', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 10, api_params: { taxon_id: '3,40151,47126,47170', place_id: '7008', popular: 'true' } },
-  { id: 'european_trees', type: 'list', titleKey: 'packs.european_trees.title', descriptionKey: 'packs.european_trees.description', region: 'europe', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 20, taxa_ids: [1, 2] },
-  { id: 'european_mushrooms', type: 'list', titleKey: 'packs.european_mushrooms.title', descriptionKey: 'packs.european_mushrooms.description', region: 'europe', category: 'starter', level: 'beginner', visibility: 'home', sortWeight: 25, taxa_ids: [3, 4] },
-  { id: 'world_birds', type: 'dynamic', titleKey: 'packs.world_birds.title', descriptionKey: 'packs.world_birds.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 30, api_params: { taxon_id: '3' } },
-  { id: 'france_mammals', type: 'dynamic', titleKey: 'packs.france_mammals.title', descriptionKey: 'packs.france_mammals.description', region: 'france', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 35, api_params: { taxon_id: '40151', place_id: '6753' } },
-  { id: 'belgium_birds', type: 'dynamic', titleKey: 'packs.belgium_birds.title', descriptionKey: 'packs.belgium_birds.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 40, api_params: { taxon_id: '3', place_id: '7008' } },
-  { id: 'belgium_wildflowers', type: 'dynamic', titleKey: 'packs.belgium_wildflowers.title', descriptionKey: 'packs.belgium_wildflowers.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 45, api_params: { taxon_id: '47125', place_id: '7008' } },
-  { id: 'belgium_mammals', type: 'dynamic', titleKey: 'packs.belgium_mammals.title', descriptionKey: 'packs.belgium_mammals.description', region: 'belgium', category: 'regional', level: 'intermediate', visibility: 'home', sortWeight: 50, api_params: { taxon_id: '40151', place_id: '7008' } },
-  { id: 'belgium_trees', type: 'dynamic', titleKey: 'packs.belgium_trees.title', descriptionKey: 'packs.belgium_trees.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 55, api_params: { taxon_id: '47126', place_id: '7008' } },
-  { id: 'world_mammals', type: 'dynamic', titleKey: 'packs.world_mammals.title', descriptionKey: 'packs.world_mammals.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 60, api_params: { taxon_id: '40151' } },
-  { id: 'world_plants', type: 'dynamic', titleKey: 'packs.world_plants.title', descriptionKey: 'packs.world_plants.description', region: 'world', category: 'world', level: 'intermediate', visibility: 'catalog', sortWeight: 65, api_params: { taxon_id: '47126' } },
+  { id: 'world_birds', type: 'dynamic', titleKey: 'packs.world_birds.title', descriptionKey: 'packs.world_birds.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 20, api_params: { taxon_id: '3', popular: 'true' } },
+  { id: 'world_mammals', type: 'dynamic', titleKey: 'packs.world_mammals.title', descriptionKey: 'packs.world_mammals.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 30, api_params: { taxon_id: '40151', popular: 'true' } },
+  { id: 'world_plants', type: 'dynamic', titleKey: 'packs.world_plants.title', descriptionKey: 'packs.world_plants.description', region: 'world', category: 'world', level: 'beginner', visibility: 'home', sortWeight: 40, api_params: { taxon_id: '47126', popular: 'true' } },
+  { id: 'world_fungi', type: 'dynamic', titleKey: 'packs.world_fungi.title', descriptionKey: 'packs.world_fungi.description', region: 'world', category: 'world', level: 'intermediate', visibility: 'home', sortWeight: 50, api_params: { taxon_id: '47170', popular: 'true' } },
+  { id: 'amazing_insects', type: 'dynamic', titleKey: 'packs.amazing_insects.title', descriptionKey: 'packs.amazing_insects.description', region: 'world', category: 'world', level: 'intermediate', visibility: 'home', sortWeight: 60, api_params: { taxon_id: '47158', popular: 'true' } },
+  { id: 'europe_birds', type: 'dynamic', titleKey: 'packs.europe_birds.title', descriptionKey: 'packs.europe_birds.description', region: 'europe', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 70, api_params: { taxon_id: '3', place_id: '67952', popular: 'true' } },
+  { id: 'europe_mammals', type: 'dynamic', titleKey: 'packs.europe_mammals.title', descriptionKey: 'packs.europe_mammals.description', region: 'europe', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 80, api_params: { taxon_id: '40151', place_id: '67952', popular: 'true' } },
+  { id: 'europe_plants', type: 'dynamic', titleKey: 'packs.europe_plants.title', descriptionKey: 'packs.europe_plants.description', region: 'europe', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 90, api_params: { taxon_id: '47126', place_id: '67952', popular: 'true' } },
+  { id: 'belgium_birds', type: 'dynamic', titleKey: 'packs.belgium_birds.title', descriptionKey: 'packs.belgium_birds.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 96, api_params: { taxon_id: '3', place_id: '7008', popular: 'true' } },
+  { id: 'belgium_plants', type: 'dynamic', titleKey: 'packs.belgium_plants.title', descriptionKey: 'packs.belgium_plants.description', region: 'belgium', category: 'regional', level: 'beginner', visibility: 'home', sortWeight: 98, api_params: { taxon_id: '47126', place_id: '7008', popular: 'true' } },
+  { id: 'world_threatened_birds', type: 'dynamic', titleKey: 'packs.world_threatened_birds.title', descriptionKey: 'packs.world_threatened_birds.description', region: 'world', category: 'threatened', level: 'intermediate', visibility: 'catalog', sortWeight: 100, api_params: { taxon_id: '3', threatened: 'true' } },
+  { id: 'belgium_threatened_birds', type: 'dynamic', titleKey: 'packs.belgium_threatened_birds.title', descriptionKey: 'packs.belgium_threatened_birds.description', region: 'belgium', category: 'threatened', level: 'intermediate', visibility: 'catalog', sortWeight: 140, api_params: { taxon_id: '3', place_id: '7008', threatened: 'true' } },
+  { id: 'belgium_edible_plants', type: 'list', titleKey: 'packs.belgium_edible_plants.title', descriptionKey: 'packs.belgium_edible_plants.description', region: 'belgium', category: 'curated', level: 'beginner', visibility: 'catalog', sortWeight: 190, taxa_ids: [47126, 51727, 131013] },
+  { id: 'europe_lookalikes_edible_vs_toxic_mushrooms', type: 'list', titleKey: 'packs.europe_lookalikes_edible_vs_toxic_mushrooms.title', descriptionKey: 'packs.europe_lookalikes_edible_vs_toxic_mushrooms.description', region: 'europe', category: 'curated', level: 'advanced', visibility: 'catalog', sortWeight: 279, taxa_ids: [54824, 54733, 53599] },
 ];
 
 const findPack = (id: string) => mockPacks.find((pack) => pack.id === id);
@@ -68,13 +72,13 @@ const mockHomeCatalog = {
       titleKey: 'home.section_starter',
       packs: [
         findPack('belgium_starter_mix'),
-        findPack('european_trees'),
-        findPack('european_mushrooms'),
         findPack('world_birds'),
-        findPack('france_mammals'),
-        findPack('belgium_birds'),
-        findPack('belgium_wildflowers'),
-        findPack('belgium_mammals'),
+        findPack('world_mammals'),
+        findPack('world_plants'),
+        findPack('world_fungi'),
+        findPack('amazing_insects'),
+        findPack('europe_birds'),
+        findPack('europe_mammals'),
       ].filter(Boolean),
     },
     {
@@ -82,18 +86,18 @@ const mockHomeCatalog = {
       titleKey: 'home.section_near_you',
       packs: [
         findPack('belgium_birds'),
-        findPack('belgium_wildflowers'),
-        findPack('belgium_mammals'),
-        findPack('belgium_trees'),
+        findPack('belgium_plants'),
+        findPack('europe_plants'),
+        findPack('belgium_threatened_birds'),
       ].filter(Boolean),
     },
     {
       id: 'explore',
       titleKey: 'home.section_explore',
       packs: [
-        findPack('world_mammals'),
-        findPack('world_plants'),
-        findPack('world_birds'),
+        findPack('world_threatened_birds'),
+        findPack('belgium_edible_plants'),
+        findPack('europe_lookalikes_edible_vs_toxic_mushrooms'),
       ].filter(Boolean),
     },
   ],
@@ -253,7 +257,7 @@ test('homepage shows 3 rails max and an explicit custom pack entry', async ({ pa
   await expect(page.locator('.home-pack-region')).toHaveCount(3);
 });
 
-test('desktop rails show 6 cards max before see more expansion', async ({ page, baseURL }) => {
+test('desktop rails keep see-more expansion after selecting a revealed pack', async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(baseURL || '/');
 
@@ -264,6 +268,11 @@ test('desktop rails show 6 cards max before see more expansion', async ({ page, 
 
   await seeMoreButton.click();
   await expect(firstRail.locator('.pack-card')).toHaveCount(8);
+
+  const revealedPack = firstRail.locator('.pack-card').nth(7);
+  await revealedPack.click();
+  await expect(revealedPack).toHaveClass(/selected/);
+  await expect(firstRail.locator('.pack-card')).toHaveCount(8);
 });
 
 test('home pack cards render without badges', async ({ page, baseURL }) => {
@@ -271,4 +280,18 @@ test('home pack cards render without badges', async ({ page, baseURL }) => {
   await expect(page.locator('.pack-card .pack-card-check')).toHaveCount(0);
   await expect(page.locator('.pack-card [class*="badge"]')).toHaveCount(0);
   await expect(page.locator('.pack-card', { hasText: /Nouveau|Populaire|Facile/i })).toHaveCount(0);
+});
+
+test('mobile pack cards keep compact mode without description panel', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(baseURL || '/');
+
+  const firstRail = page.locator('.home-pack-region').first();
+  const firstPackCard = firstRail.locator('.pack-card').first();
+  await expect(firstPackCard).toBeVisible();
+  await expect(firstRail.locator('.pack-card-info-trigger')).toHaveCount(0);
+  await expect(firstRail.locator('.home-mobile-pack-detail')).toHaveCount(0);
+
+  await firstPackCard.click();
+  await expect(firstRail.locator('.home-mobile-pack-detail')).toHaveCount(0);
 });

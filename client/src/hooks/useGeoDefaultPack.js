@@ -1,58 +1,38 @@
 import { useMemo } from 'react';
 
-/**
- * Maps the user's timezone / language to a sensible default pack.
- *
- * Strategy (zero network, instant):
- *  1. Read Intl.DateTimeFormat().resolvedOptions().timeZone  → "Europe/Paris"
- *  2. Read navigator.language                                → "fr-BE"
- *  3. Combine both signals to pick the best regional pack.
- *
- * The mapping intentionally favours broad, beginner-friendly packs
- * (birds, mushrooms, trees) over niche ones (herps, reef).
- */
-
 const TIMEZONE_TO_PACK = {
-  // France
-  'Europe/Paris': 'france_mammals',
-  // Belgium
   'Europe/Brussels': 'belgium_starter_mix',
-  // Netherlands, Germany, Austria, Switzerland → European trees/mushrooms
-  'Europe/Amsterdam': 'european_trees',
-  'Europe/Berlin': 'european_trees',
-  'Europe/Vienna': 'european_mushrooms',
-  'Europe/Zurich': 'european_mushrooms',
-  // UK & Ireland
-  'Europe/London': 'world_birds',
-  'Europe/Dublin': 'world_birds',
-  // Scandinavia
-  'Europe/Stockholm': 'european_trees',
-  'Europe/Oslo': 'european_trees',
-  'Europe/Helsinki': 'european_trees',
-  'Europe/Copenhagen': 'european_trees',
-  // Southern Europe → Mediterranean flora
-  'Europe/Madrid': 'mediterranean_flora',
-  'Europe/Rome': 'mediterranean_flora',
-  'Europe/Lisbon': 'mediterranean_flora',
-  'Europe/Athens': 'mediterranean_flora',
-  'Europe/Istanbul': 'mediterranean_flora',
+  'Europe/Paris': 'europe_birds',
+  'Europe/Amsterdam': 'europe_birds',
+  'Europe/Berlin': 'europe_birds',
+  'Europe/Vienna': 'europe_birds',
+  'Europe/Zurich': 'europe_birds',
+  'Europe/London': 'europe_birds',
+  'Europe/Dublin': 'europe_birds',
+  'Europe/Stockholm': 'europe_birds',
+  'Europe/Oslo': 'europe_birds',
+  'Europe/Helsinki': 'europe_birds',
+  'Europe/Copenhagen': 'europe_birds',
+  'Europe/Madrid': 'europe_plants',
+  'Europe/Rome': 'europe_plants',
+  'Europe/Lisbon': 'europe_plants',
+  'Europe/Athens': 'europe_plants',
+  'Europe/Istanbul': 'europe_plants',
 };
 
-// Broader fallback based on language subtag
 const LANG_TO_PACK = {
-  fr: 'france_mammals',
-  nl: 'european_mushrooms',
-  de: 'european_trees',
-  it: 'mediterranean_flora',
-  es: 'mediterranean_flora',
-  pt: 'mediterranean_flora',
+  fr: 'europe_birds',
+  nl: 'belgium_starter_mix',
+  de: 'europe_birds',
+  it: 'europe_plants',
+  es: 'europe_plants',
+  pt: 'europe_plants',
   en: 'world_birds',
 };
 
-// Map timezone / language to a region for pack sorting priority
 const TIMEZONE_TO_REGION = {
   'Europe/Brussels': 'belgium',
-  'Europe/Paris': 'france',
+  'Europe/Paris': 'europe',
   'Europe/Amsterdam': 'europe',
   'Europe/Berlin': 'europe',
   'Europe/Vienna': 'europe',
@@ -71,7 +51,7 @@ const TIMEZONE_TO_REGION = {
 };
 
 const LANG_TO_REGION = {
-  fr: 'france',
+  fr: 'europe',
   nl: 'belgium',
   de: 'europe',
   it: 'europe',
@@ -91,14 +71,15 @@ function getResolvedTimezone() {
 }
 
 /**
- * Detects the user's region from timezone / browser language.
- * @returns {string} region key (belgium, france, europe, world, oceania)
+ * Detects region priority from timezone then browser language, with world fallback.
+ * @returns {'belgium'|'france'|'europe'|'world'}
  */
 export function detectRegion() {
   try {
     const tz = getResolvedTimezone();
     if (tz && TIMEZONE_TO_REGION[tz]) return TIMEZONE_TO_REGION[tz];
     if (tz?.startsWith('Europe/')) return 'europe';
+
     const lang = (navigator.language || '').split('-')[0].toLowerCase();
     if (lang && LANG_TO_REGION[lang]) return LANG_TO_REGION[lang];
   } catch {
@@ -109,44 +90,28 @@ export function detectRegion() {
 
 function detectBestPack() {
   try {
-    // 1. Try timezone
     const tz = getResolvedTimezone();
     if (tz && TIMEZONE_TO_PACK[tz]) {
       return TIMEZONE_TO_PACK[tz];
     }
 
-    // 2. Try broader timezone region (e.g. "Europe/…" → european trees)
-    if (tz?.startsWith('Europe/')) return 'european_trees';
-    if (tz?.startsWith('America/')) return 'world_birds';
-    if (tz?.startsWith('Asia/')) return 'world_birds';
-    if (tz?.startsWith('Africa/')) return 'world_birds';
+    if (tz?.startsWith('Europe/')) return 'europe_birds';
 
-    // 3. Fallback: navigator language
     const lang = (navigator.language || '').split('-')[0].toLowerCase();
     if (lang && LANG_TO_PACK[lang]) {
       return LANG_TO_PACK[lang];
     }
   } catch {
-    // Intl not available — safe fallback
+    // safe fallback
   }
 
-  return 'world_birds'; // universal fallback
+  return 'world_birds';
 }
 
-/**
- * Returns the recommended default pack ID for a new user,
- * based on their timezone and browser language.
- *
- * @returns {string} pack ID
- */
 export function useGeoDefaultPack() {
   return useMemo(() => detectBestPack(), []);
 }
 
-/**
- * Returns the detected region string for pack sorting.
- * @returns {string}
- */
 export function useDetectedRegion() {
   return useMemo(() => detectRegion(), []);
 }

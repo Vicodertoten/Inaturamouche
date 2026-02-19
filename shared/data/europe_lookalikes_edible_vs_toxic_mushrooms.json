@@ -1,0 +1,107 @@
+[
+  {
+    "scientific_name": "Cantharellus cibarius",
+    "common_name": "Chanterelle commune",
+    "inaturalist_id": "47347",
+    "lookalike_pair": "Cantharellus spp. vs toxic false chanterelle complex"
+  },
+  {
+    "scientific_name": "Cantharellus lutescens",
+    "common_name": "Chanterelle en tube",
+    "inaturalist_id": "514218"
+  },
+  {
+    "scientific_name": "Cantharellus tubaeformis",
+    "common_name": "Chanterelle en entonnoir",
+    "inaturalist_id": "350511"
+  },
+  {
+    "scientific_name": "Agaricus campestris",
+    "common_name": "Agaric champêtre",
+    "inaturalist_id": "143563",
+    "lookalike_pair": "Agaricus spp. vs toxic white Amanita species"
+  },
+  {
+    "scientific_name": "Agaricus arvensis",
+    "common_name": "Agaric des jachères",
+    "inaturalist_id": "58699"
+  },
+  {
+    "scientific_name": "Lactarius deliciosus",
+    "common_name": "Lactaire délicieux",
+    "inaturalist_id": "155197"
+  },
+  {
+    "scientific_name": "Lactarius sanguifluus",
+    "common_name": "Lactaire sanguin",
+    "inaturalist_id": "332501"
+  },
+  {
+    "scientific_name": "Boletus edulis",
+    "common_name": "Cèpe de Bordeaux",
+    "inaturalist_id": "48701"
+  },
+  {
+    "scientific_name": "Suillus luteus",
+    "common_name": "Bolet jaune",
+    "inaturalist_id": "53488"
+  },
+  {
+    "scientific_name": "Leccinum scabrum",
+    "common_name": "Bolet rude",
+    "inaturalist_id": "63232"
+  },
+  {
+    "scientific_name": "Amanita rubescens",
+    "common_name": "Amanite rougissante",
+    "inaturalist_id": "67661",
+    "lookalike_pair": "Amanita rubescens vs deadly Amanita complex"
+  },
+  {
+    "scientific_name": "Russula cyanoxantha",
+    "common_name": "Russule charbonnière",
+    "inaturalist_id": "194437"
+  },
+  {
+    "scientific_name": "Calocybe gambosa",
+    "common_name": "Mousseron de printemps",
+    "inaturalist_id": "450829"
+  },
+  {
+    "scientific_name": "Marasmius oreades",
+    "common_name": "Marasme des Oréades",
+    "inaturalist_id": "118240"
+  },
+  {
+    "scientific_name": "Pleurotus ostreatus",
+    "common_name": "Pleurote en huître",
+    "inaturalist_id": "48494"
+  },
+  {
+    "scientific_name": "Clitopilus prunulus",
+    "common_name": "Meunier",
+    "inaturalist_id": "64708"
+  },
+  {
+    "scientific_name": "Cortinarius caperatus",
+    "common_name": "Cortinaire annelé",
+    "inaturalist_id": "125364",
+    "lookalike_pair": "Cortinarius spp. edible/toxic confusion risk"
+  },
+  {
+    "scientific_name": "Tricholoma terreum",
+    "common_name": "Petit gris",
+    "inaturalist_id": "341797",
+    "lookalike_pair": "Tricholoma species with toxicity variability"
+  },
+  {
+    "scientific_name": "Tricholoma portentosum",
+    "common_name": "Tricholome prétentieux",
+    "inaturalist_id": "194460"
+  },
+  {
+    "scientific_name": "Russula vesca",
+    "common_name": "Russule comestible",
+    "inaturalist_id": "352311"
+  }
+]

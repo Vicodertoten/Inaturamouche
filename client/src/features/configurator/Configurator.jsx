@@ -6,7 +6,7 @@ import './Configurator.css';
 import { useGameData, useGameUI } from '../../context/GameContext';
 import { useLanguage } from '../../context/LanguageContext.jsx';
 import { usePacks } from '../../context/PacksContext.jsx';
-import { useDetectedRegion } from '../../hooks/useGeoDefaultPack';
+import { getPackEducationalWarningKey } from '../../utils/packWarnings';
 
 const ModeVisual = ({ variant }) => {
   const gradientId = useMemo(
@@ -162,17 +162,20 @@ function Configurator({ onStartGame }) {
     homeSections,
     homeLoading,
     refreshHomeCatalog,
+    regionOverride,
+    setRegionOverride,
+    effectiveRegion,
+    detectedRegion,
   } = usePacks();
   const { t } = useLanguage();
 
   const packOptions = usePackOptions({ packs, t });
   const [packView, setPackView] = useState('packs');
-  const detectedRegion = useDetectedRegion();
   const isCatalogLoading = packsLoading || homeLoading;
 
   useEffect(() => {
-    void refreshHomeCatalog({ region: detectedRegion });
-  }, [detectedRegion, refreshHomeCatalog]);
+    void refreshHomeCatalog({ region: effectiveRegion, regionOverride });
+  }, [effectiveRegion, regionOverride, refreshHomeCatalog]);
 
   const activePack = useMemo(
     () => packs.find((pack) => pack.id === activePackId),
@@ -340,8 +343,21 @@ function Configurator({ onStartGame }) {
     }
   }, [maxQuestions, mediaType, onStartGame]);
 
+  const handleRegionOverrideChange = useCallback((event) => {
+    const value = String(event.target.value || '').trim().toLowerCase();
+    const nextOverride = value === 'auto' ? null : value;
+    const nextRegion = nextOverride || detectedRegion || 'world';
+    setRegionOverride(nextOverride);
+    void refreshHomeCatalog({ region: nextRegion, regionOverride: nextOverride });
+  }, [detectedRegion, refreshHomeCatalog, setRegionOverride]);
+
   const packDescription =
     activePack?.descriptionKey && !isCatalogLoading ? t(activePack.descriptionKey) : null;
+  const activePackWarningKey =
+    !isCatalogLoading ? getPackEducationalWarningKey(activePack) : null;
+  const hoveredPackWarningKey = hoveredPack
+    ? getPackEducationalWarningKey(hoveredPack)
+    : null;
   const isPackView = packView === 'packs';
   const isCustomView = packView === 'custom';
 
@@ -377,6 +393,22 @@ function Configurator({ onStartGame }) {
               >
                 Personnalisé
               </button>
+            </div>
+            <div className="pack-region-override">
+              <label htmlFor="config-region-override">
+                {t('home.region_override_label', {}, 'Région des packs')}
+              </label>
+              <select
+                id="config-region-override"
+                className="pack-select-dropdown"
+                value={regionOverride || 'auto'}
+                onChange={handleRegionOverrideChange}
+              >
+                <option value="auto">{t('home.region_override_auto', {}, 'Auto')}</option>
+                <option value="belgium">{t('packs._regions.belgium', {}, 'Belgique')}</option>
+                <option value="europe">{t('packs._regions.europe', {}, 'Europe')}</option>
+                <option value="world">{t('packs._regions.world', {}, 'Monde')}</option>
+              </select>
             </div>
 
             {isPackView && (
@@ -423,9 +455,15 @@ function Configurator({ onStartGame }) {
                     <div className="pack-desc-bar">
                       <PackIcon packId={hoveredPack.id} className="pack-desc-bar__icon" />
                       <span className="pack-desc-bar__text">
-                        {hoveredPack.descriptionKey ? t(hoveredPack.descriptionKey) : hoveredPack.label}
+                        <span>{hoveredPack.descriptionKey ? t(hoveredPack.descriptionKey) : hoveredPack.label}</span>
+                        {hoveredPackWarningKey && (
+                          <span className="pack-desc-bar__warning">{t(hoveredPackWarningKey)}</span>
+                        )}
                       </span>
                     </div>
+                  )}
+                  {activePackWarningKey && (
+                    <p className="pack-safety-warning">{t(activePackWarningKey)}</p>
                   )}
                 </div>
               </>

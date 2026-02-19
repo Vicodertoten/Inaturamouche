@@ -116,6 +116,45 @@ const icons = {
   ),
 };
 
+const PACK_ICON_ALIASES = {
+  world_herps: 'belgium_herps',
+  world_fish: 'belgium_fish',
+  europe_birds: 'world_birds',
+  europe_mammals: 'world_mammals',
+  europe_plants: 'world_plants',
+  europe_fungi: 'world_fungi',
+  belgium_plants: 'world_plants',
+  world_threatened_birds: 'world_birds',
+  world_threatened_mammals: 'world_mammals',
+  world_threatened_insects: 'amazing_insects',
+  world_threatened_plants: 'world_plants',
+  world_threatened_fish: 'belgium_fish',
+  world_threatened_herps: 'belgium_herps',
+  europe_threatened_birds: 'world_birds',
+  europe_threatened_mammals: 'world_mammals',
+  europe_threatened_insects: 'amazing_insects',
+  europe_threatened_plants: 'world_plants',
+  belgium_threatened_birds: 'belgium_birds',
+  belgium_threatened_mammals: 'belgium_mammals',
+  belgium_edible_flowers: 'belgium_wildflowers',
+  europe_edible_plants: 'world_plants',
+  world_edible_plants_basics: 'world_plants',
+  mediterranean_edible_plants: 'mediterranean_flora',
+  belgium_edible_mushrooms: 'belgium_mushrooms',
+  europe_edible_mushrooms: 'european_mushrooms',
+  world_edible_mushrooms_basics: 'world_fungi',
+  belgium_toxic_mushrooms: 'belgium_mushrooms',
+  europe_toxic_mushrooms: 'world_fungi',
+  world_medicinal_plants: 'world_plants',
+  europe_medicinal_plants: 'world_plants',
+  europe_invasive_plants: 'world_plants',
+  europe_lookalikes_edible_vs_toxic_mushrooms: 'world_fungi',
+  europe_dragons_and_monsters: 'belgium_dragonflies',
+  world_weird_invertebrates: 'amazing_insects',
+  europe_autumn_colors: 'world_plants',
+  world_night_choir: 'world_birds',
+};
+
 /**
  * Render a pack icon as inline SVG.
  * @param {string} packId
@@ -123,7 +162,8 @@ const icons = {
  * @returns {JSX.Element}
  */
 export function PackIcon({ packId, className, style }) {
-  const render = icons[packId] || icons.custom;
+  const resolvedPackId = PACK_ICON_ALIASES[packId] || packId;
+  const render = icons[resolvedPackId] || icons.custom;
   return <span className={className} style={style}>{render()}</span>;
 }
 

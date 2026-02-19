@@ -97,7 +97,14 @@ const fr = {
     section_catalog: 'Catalogue complet',
     see_more_packs: 'Voir plus',
     see_less_packs: 'Voir moins',
+    show_pack_details: 'Voir la description',
+    close_pack_details: 'Fermer',
+    region_override_label: 'Région des packs',
+    region_override_auto: 'Auto (détection)',
     settings_label: 'Paramètres',
+    educational_indicator_label: 'Avertissement',
+    educational_indicator_help:
+      "Icône: contenu éducatif uniquement, pas un guide de cueillette, de consommation ou d'usage médical.",
   },
   configurator: {
     pack_label: 'Choisissez un pack de jeu :',
@@ -120,6 +127,8 @@ const fr = {
       'Les parties avec sons peuvent charger plus lentement et offrir moins de résultats selon vos filtres.',
   },
   packs: {
+    educational_warning:
+      'Contenu educatif uniquement: ce pack ne constitue pas un guide de consommation ou de cueillette.',
     custom: {
       title: 'Filtre personnalisé',
       description: 'Créez votre propre quiz en sélectionnant ou excluant des taxons, un lieu et des dates.',
@@ -219,7 +228,151 @@ const fr = {
     },
     belgium_edible_plants: {
       title: 'Plantes sauvages comestibles',
-      description: '50 plantes sauvages comestibles de Belgique : ortie, ail des ours, pissenlit et bien d\'autres.',
+      description: 'Une base de plantes sauvages comestibles de Belgique pour apprendre en sécurité.',
+    },
+    belgium_edible_flowers: {
+      title: 'Fleurs comestibles de Belgique',
+      description: 'Cap sur les fleurs sauvages comestibles les plus connues en Belgique.',
+    },
+    europe_edible_plants: {
+      title: 'Plantes comestibles d\'Europe',
+      description: 'Un corpus européen de plantes comestibles utiles pour les bases.',
+    },
+    world_edible_plants_basics: {
+      title: 'Plantes comestibles du monde (bases)',
+      description: 'Une sélection introductive de plantes comestibles du monde.',
+    },
+    mediterranean_edible_plants: {
+      title: 'Plantes comestibles méditerranéennes',
+      description: 'Espèces méditerranéennes emblématiques utilisées en alimentation.',
+    },
+    belgium_edible_mushrooms: {
+      title: 'Champignons comestibles de Belgique',
+      description: 'Un référentiel de champignons comestibles observables en Belgique.',
+    },
+    europe_edible_mushrooms: {
+      title: 'Champignons comestibles d\'Europe',
+      description: 'Une sélection européenne de champignons comestibles fréquents.',
+    },
+    world_edible_mushrooms_basics: {
+      title: 'Champignons comestibles du monde (bases)',
+      description: 'Les espèces de base pour découvrir les champignons comestibles.',
+    },
+    belgium_toxic_mushrooms: {
+      title: 'Champignons toxiques (Belgique)',
+      description: 'Pack pédagogique de vigilance sur les champignons à risque en Belgique.',
+    },
+    europe_toxic_mushrooms: {
+      title: 'Champignons toxiques (Europe)',
+      description: 'Pack pédagogique européen sur les champignons toxiques ou à risque.',
+    },
+    world_medicinal_plants: {
+      title: 'Plantes médicinales du monde',
+      description: 'Découverte éducative de plantes traditionnellement citées en phytothérapie.',
+    },
+    europe_medicinal_plants: {
+      title: 'Plantes médicinales d\'Europe',
+      description: 'Une base européenne de plantes à usage médicinal traditionnel.',
+    },
+    europe_invasive_plants: {
+      title: 'Plantes invasives d\'Europe',
+      description: 'Repérez les espèces végétales invasives ou fortement naturalisées en Europe.',
+    },
+    europe_lookalikes_edible_vs_toxic_mushrooms: {
+      title: 'Confusions champignons: comestibles vs toxiques',
+      description: 'Apprenez les principaux couples à risque de confusion en Europe.',
+    },
+    world_herps: {
+      title: 'Herpétofaune du monde',
+      description: 'Reptiles et amphibiens populaires à travers le monde.',
+    },
+    world_fish: {
+      title: 'Poissons du monde',
+      description: 'Un pack global sur les poissons les plus observés.',
+    },
+    europe_birds: {
+      title: 'Oiseaux d\'Europe',
+      description: 'Les oiseaux les plus observés sur le continent européen.',
+    },
+    europe_mammals: {
+      title: 'Mammifères d\'Europe',
+      description: 'Une sélection des mammifères les plus fréquents en Europe.',
+    },
+    europe_plants: {
+      title: 'Plantes d\'Europe',
+      description: 'Flore européenne généraliste pour entraînement quotidien.',
+    },
+    europe_fungi: {
+      title: 'Champignons d\'Europe',
+      description: 'Champignons européens populaires en observations nature.',
+    },
+    belgium_plants: {
+      title: 'Plantes de Belgique',
+      description: 'Les plantes les plus observées en Belgique.',
+    },
+    world_threatened_birds: {
+      title: 'Oiseaux menacés (Monde)',
+      description: 'Espèces d\'oiseaux menacées selon les données iNaturalist.',
+    },
+    world_threatened_mammals: {
+      title: 'Mammifères menacés (Monde)',
+      description: 'Espèces de mammifères menacées à l\'échelle mondiale.',
+    },
+    world_threatened_insects: {
+      title: 'Insectes menacés (Monde)',
+      description: 'Explorez les insectes menacés les plus observés.',
+    },
+    world_threatened_plants: {
+      title: 'Plantes menacées (Monde)',
+      description: 'Flore menacée en contexte mondial.',
+    },
+    world_threatened_fish: {
+      title: 'Poissons menacés (Monde)',
+      description: 'Poissons menacés observables dans les données mondiales.',
+    },
+    world_threatened_herps: {
+      title: 'Herpétofaune menacée (Monde)',
+      description: 'Reptiles et amphibiens menacés à connaître.',
+    },
+    europe_threatened_birds: {
+      title: 'Oiseaux menacés (Europe)',
+      description: 'Focus Europe sur les oiseaux menacés.',
+    },
+    europe_threatened_mammals: {
+      title: 'Mammifères menacés (Europe)',
+      description: 'Focus Europe sur les mammifères menacés.',
+    },
+    europe_threatened_insects: {
+      title: 'Insectes menacés (Europe)',
+      description: 'Focus Europe sur les insectes menacés.',
+    },
+    europe_threatened_plants: {
+      title: 'Plantes menacées (Europe)',
+      description: 'Focus Europe sur les plantes menacées.',
+    },
+    belgium_threatened_birds: {
+      title: 'Oiseaux menacés (Belgique)',
+      description: 'Espèces d\'oiseaux menacées observées en Belgique.',
+    },
+    belgium_threatened_mammals: {
+      title: 'Mammifères menacés (Belgique)',
+      description: 'Espèces de mammifères menacées observées en Belgique.',
+    },
+    europe_dragons_and_monsters: {
+      title: 'Dragons et monstres d\'Europe',
+      description: 'Un rail créatif autour des libellules, reptiles et amphibiens.',
+    },
+    world_weird_invertebrates: {
+      title: 'Invertébrés étranges du monde',
+      description: 'Insectes, araignées et mollusques les plus surprenants.',
+    },
+    europe_autumn_colors: {
+      title: 'Couleurs d\'automne en Europe',
+      description: 'Plantes européennes observées en septembre, octobre et novembre.',
+    },
+    world_night_choir: {
+      title: 'Chœur de nuit (Monde)',
+      description: 'Un pack sons avec oiseaux et amphibiens du monde.',
     },
     // ── Region labels ──
     _regions: {

@@ -97,7 +97,14 @@ const en = {
     section_catalog: 'Full catalog',
     see_more_packs: 'See more',
     see_less_packs: 'See less',
+    show_pack_details: 'Show description',
+    close_pack_details: 'Close',
+    region_override_label: 'Pack region',
+    region_override_auto: 'Auto (detected)',
     settings_label: 'Settings',
+    educational_indicator_label: 'Warning',
+    educational_indicator_help:
+      'Icon: educational content only, not a guide for foraging, consumption, or medical use.',
   },
   configurator: {
     pack_label: 'Choose a game pack:',
@@ -120,6 +127,8 @@ const en = {
       'Sound-based games can take longer to load and return fewer results depending on your filters.',
   },
   packs: {
+    educational_warning:
+      'Educational content only: this pack is not a guide for foraging, consumption, or medical use.',
     custom: {
       title: 'Custom filter',
       description: 'Build your own quiz by including or excluding taxa, a place, and dates.',
@@ -219,7 +228,151 @@ const en = {
     },
     belgium_edible_plants: {
       title: 'Wild edible plants',
-      description: '50 wild edible plants of Belgium: nettle, wild garlic, dandelion and many more.',
+      description: 'A practical Belgian baseline of wild edible plants for safe learning.',
+    },
+    belgium_edible_flowers: {
+      title: 'Belgian edible flowers',
+      description: 'A focused set of well-known edible wild flowers from Belgium.',
+    },
+    europe_edible_plants: {
+      title: 'European edible plants',
+      description: 'A Europe-wide curated list of edible plants for core practice.',
+    },
+    world_edible_plants_basics: {
+      title: 'World edible plants (basics)',
+      description: 'An introductory global list of edible plants.',
+    },
+    mediterranean_edible_plants: {
+      title: 'Mediterranean edible plants',
+      description: 'Signature Mediterranean plant species used in food traditions.',
+    },
+    belgium_edible_mushrooms: {
+      title: 'Belgian edible mushrooms',
+      description: 'A curated set of edible mushrooms observed in Belgium.',
+    },
+    europe_edible_mushrooms: {
+      title: 'European edible mushrooms',
+      description: 'Common European edible mushrooms for reliable study.',
+    },
+    world_edible_mushrooms_basics: {
+      title: 'World edible mushrooms (basics)',
+      description: 'A starter selection of globally familiar edible mushrooms.',
+    },
+    belgium_toxic_mushrooms: {
+      title: 'Toxic mushrooms (Belgium)',
+      description: 'Educational caution pack about risky mushroom groups in Belgium.',
+    },
+    europe_toxic_mushrooms: {
+      title: 'Toxic mushrooms (Europe)',
+      description: 'Educational caution pack for toxic or risky mushrooms in Europe.',
+    },
+    world_medicinal_plants: {
+      title: 'Medicinal plants of the world',
+      description: 'Educational overview of plants traditionally cited in herbal medicine.',
+    },
+    europe_medicinal_plants: {
+      title: 'Medicinal plants of Europe',
+      description: 'European foundational list of traditional medicinal plants.',
+    },
+    europe_invasive_plants: {
+      title: 'Invasive plants of Europe',
+      description: 'Recognize invasive or strongly naturalized plant species in Europe.',
+    },
+    europe_lookalikes_edible_vs_toxic_mushrooms: {
+      title: 'Mushroom lookalikes: edible vs toxic',
+      description: 'Learn high-risk confusion pairs across Europe.',
+    },
+    world_herps: {
+      title: 'World herps',
+      description: 'Popular reptiles and amphibians from around the world.',
+    },
+    world_fish: {
+      title: 'World fish',
+      description: 'A global fish pack based on frequently observed taxa.',
+    },
+    europe_birds: {
+      title: 'Birds of Europe',
+      description: 'Most observed bird taxa across Europe.',
+    },
+    europe_mammals: {
+      title: 'Mammals of Europe',
+      description: 'A broad European mammal discovery pack.',
+    },
+    europe_plants: {
+      title: 'Plants of Europe',
+      description: 'Generalist European flora for everyday training.',
+    },
+    europe_fungi: {
+      title: 'Fungi of Europe',
+      description: 'A European fungi pack based on popular observations.',
+    },
+    belgium_plants: {
+      title: 'Plants of Belgium',
+      description: 'Most observed plants in Belgium.',
+    },
+    world_threatened_birds: {
+      title: 'Threatened birds (World)',
+      description: 'Threatened bird taxa in global iNaturalist observations.',
+    },
+    world_threatened_mammals: {
+      title: 'Threatened mammals (World)',
+      description: 'Threatened mammal taxa at global scale.',
+    },
+    world_threatened_insects: {
+      title: 'Threatened insects (World)',
+      description: 'Explore threatened insects from worldwide records.',
+    },
+    world_threatened_plants: {
+      title: 'Threatened plants (World)',
+      description: 'Threatened plant taxa in global context.',
+    },
+    world_threatened_fish: {
+      title: 'Threatened fish (World)',
+      description: 'Threatened fish taxa from global observations.',
+    },
+    world_threatened_herps: {
+      title: 'Threatened herps (World)',
+      description: 'Threatened reptiles and amphibians to recognize.',
+    },
+    europe_threatened_birds: {
+      title: 'Threatened birds (Europe)',
+      description: 'European focus on threatened bird taxa.',
+    },
+    europe_threatened_mammals: {
+      title: 'Threatened mammals (Europe)',
+      description: 'European focus on threatened mammal taxa.',
+    },
+    europe_threatened_insects: {
+      title: 'Threatened insects (Europe)',
+      description: 'European focus on threatened insect taxa.',
+    },
+    europe_threatened_plants: {
+      title: 'Threatened plants (Europe)',
+      description: 'European focus on threatened plant taxa.',
+    },
+    belgium_threatened_birds: {
+      title: 'Threatened birds (Belgium)',
+      description: 'Threatened bird taxa observed in Belgium.',
+    },
+    belgium_threatened_mammals: {
+      title: 'Threatened mammals (Belgium)',
+      description: 'Threatened mammal taxa observed in Belgium.',
+    },
+    europe_dragons_and_monsters: {
+      title: 'Europe dragons and monsters',
+      description: 'A creative rail mixing dragonflies, reptiles, and amphibians.',
+    },
+    world_weird_invertebrates: {
+      title: 'World weird invertebrates',
+      description: 'A weird and wonderful mix of insects, spiders, and mollusks.',
+    },
+    europe_autumn_colors: {
+      title: 'Europe autumn colors',
+      description: 'European plants observed in September, October, and November.',
+    },
+    world_night_choir: {
+      title: 'World night choir',
+      description: 'A sound-focused pack with birds and amphibians.',
     },
     // ── Region labels ──
     _regions: {

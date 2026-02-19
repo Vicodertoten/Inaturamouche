@@ -7,6 +7,12 @@ import { findPackById } from '../packs/index.js';
 import { getWarmupPackIds } from './catalogService.js';
 
 const DEFAULT_LOCALE = 'fr';
+const WARMUP_PER_PAGE = 40;
+const WARMUP_MAX_PAGES = 1;
+const WARMUP_PACK_LIMIT = 2;
+const WARMUP_PACK_STAGGER_MS = 450;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Pre-warm the default observation pool to reduce first-question latency.
@@ -17,7 +23,7 @@ export async function warmDefaultObservationPool({ logger } = {}) {
     quality_grade: 'research',
     photos: true,
     rank: 'species',
-    per_page: 80,
+    per_page: WARMUP_PER_PAGE,
     locale: DEFAULT_LOCALE,
   };
 
@@ -30,6 +36,8 @@ export async function warmDefaultObservationPool({ logger } = {}) {
       monthDayFilter: null,
       logger,
       requestId: 'warmup',
+      skipTotalProbe: true,
+      maxPagesOverride: WARMUP_MAX_PAGES,
     });
     logger?.info?.({ cacheKey }, 'Warmup observation pool completed');
   } catch (err) {
@@ -41,9 +49,9 @@ export async function warmDefaultObservationPool({ logger } = {}) {
  * Pre-warm pack-specific observation pools.
  */
 export async function warmPackPools({ logger } = {}) {
-  const packIds = getWarmupPackIds({ region: 'europe', limit: 4 });
+  const packIds = getWarmupPackIds({ region: 'europe', limit: WARMUP_PACK_LIMIT });
 
-  for (const packId of packIds) {
+  for (const [index, packId] of packIds.entries()) {
     const pack = findPackById(packId);
     if (!pack) continue;
 
@@ -51,7 +59,7 @@ export async function warmPackPools({ logger } = {}) {
       quality_grade: 'research',
       photos: true,
       rank: 'species',
-      per_page: 80,
+      per_page: WARMUP_PER_PAGE,
       locale: DEFAULT_LOCALE,
     };
 
@@ -70,10 +78,15 @@ export async function warmPackPools({ logger } = {}) {
         monthDayFilter: null,
         logger,
         requestId: `warmup-${packId}`,
+        skipTotalProbe: true,
+        maxPagesOverride: WARMUP_MAX_PAGES,
       });
       logger?.info?.({ packId, cacheKey }, `Warmup pack pool (${packId}) completed`);
     } catch (err) {
       logger?.warn?.({ packId, error: err?.message, cacheKey }, `Warmup pack pool (${packId}) failed`);
+    }
+    if (index < packIds.length - 1) {
+      await sleep(WARMUP_PACK_STAGGER_MS);
     }
   }
 }

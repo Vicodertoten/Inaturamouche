@@ -1,0 +1,80 @@
+[
+  {
+    "scientific_name": "Amanita rubescens",
+    "common_name": "Amanite rougissante",
+    "inaturalist_id": "67661",
+    "notes": "toxic when raw, confusion risk with lethal Amanita species"
+  },
+  {
+    "scientific_name": "Tricholoma terreum",
+    "common_name": "Petit gris",
+    "inaturalist_id": "341797",
+    "notes": "consumption caution due debated toxicity reports"
+  },
+  {
+    "scientific_name": "Tricholoma portentosum",
+    "common_name": "Tricholome prétentieux",
+    "inaturalist_id": "194460"
+  },
+  {
+    "scientific_name": "Cortinarius caperatus",
+    "common_name": "Cortinaire annelé",
+    "inaturalist_id": "125364",
+    "notes": "genus with dangerous lookalikes; strict identification required"
+  },
+  {
+    "scientific_name": "Agaricus campestris",
+    "common_name": "Agaric champêtre",
+    "inaturalist_id": "143563"
+  },
+  {
+    "scientific_name": "Agaricus arvensis",
+    "common_name": "Agaric des jachères",
+    "inaturalist_id": "58699"
+  },
+  {
+    "scientific_name": "Lactarius deliciosus",
+    "common_name": "Lactaire délicieux",
+    "inaturalist_id": "155197"
+  },
+  {
+    "scientific_name": "Russula cyanoxantha",
+    "common_name": "Russule charbonnière",
+    "inaturalist_id": "194437"
+  },
+  {
+    "scientific_name": "Calocybe gambosa",
+    "common_name": "Mousseron de printemps",
+    "inaturalist_id": "450829"
+  },
+  {
+    "scientific_name": "Stropharia rugosoannulata",
+    "common_name": "Stropharia à anneau rugueux",
+    "inaturalist_id": "119151"
+  },
+  {
+    "scientific_name": "Melanoleuca brevipes",
+    "common_name": "Mélanoleuque à pied court",
+    "inaturalist_id": "383075"
+  },
+  {
+    "scientific_name": "Sparassis crispa",
+    "common_name": "Clavaire crépue",
+    "inaturalist_id": "63014"
+  },
+  {
+    "scientific_name": "Russula vesca",
+    "common_name": "Russule comestible",
+    "inaturalist_id": "352311"
+  },
+  {
+    "scientific_name": "Hygrophorus russula",
+    "common_name": "Hygrophore russule",
+    "inaturalist_id": "206118"
+  },
+  {
+    "scientific_name": "Lactarius sanguifluus",
+    "common_name": "Lactaire sanguin",
+    "inaturalist_id": "332501"
+  }
+]

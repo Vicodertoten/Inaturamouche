@@ -12,6 +12,8 @@ Le backend expose l API quiz et fait l orchestration des requetes iNaturalist (a
 - `server/services/*`: logique metier
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod, helpers, contrat HTTP
+- `packs-v3-spec.md`: spec freeze du catalogue V3 (44 packs)
+- `packs-v3-conventions.md`: conventions communes backend/frontend/QA
 
 ## Flux quiz
 
@@ -32,6 +34,11 @@ La signature HMAC est basee sur `ROUND_HMAC_SECRET`.
 - Logs Pino via `pino-http`
 - Header `X-Request-Id` pour correlation
 - Headers additionnels sur les endpoints quiz (cache key, pool stats)
+
+## Feature flags packs
+
+- `PACKS_V3_ENABLED=true` (defaut): expose le catalogue V3 (44 packs actifs + legacy).
+- `PACKS_V3_ENABLED=false`: rollback en un toggle vers un set legacy-safe pour Home/Catalog sans casser `pack_id` sur quiz.
 
 ## Erreurs
 

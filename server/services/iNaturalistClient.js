@@ -27,6 +27,8 @@ const inatWaitQueue = [];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const TAXA_REFRESH_COOLDOWN_MS = 60 * 1000;
+const MAX_429_RETRIES = 1;
+const RATE_LIMIT_MIN_BACKOFF_MS = 2500;
 const taxaRefreshBackoffByLocaleId = new Map();
 const taxaRefreshInFlight = new Map();
 
@@ -80,9 +82,21 @@ function computeBackoffMs(attempt, response) {
   const exp = Math.min(inatBackoffMaxMs, inatBackoffBaseMs * Math.pow(2, Math.max(0, attempt)));
   const retryAfterMs =
     response?.status === 429 ? parseRetryAfterMs(response.headers?.get?.('retry-after')) : 0;
-  const floor = Math.max(exp, retryAfterMs);
+  const floor = response?.status === 429
+    ? Math.max(exp, retryAfterMs, RATE_LIMIT_MIN_BACKOFF_MS)
+    : Math.max(exp, retryAfterMs);
   const jitter = Math.floor(Math.random() * Math.max(20, Math.floor(floor * 0.2)));
   return Math.min(inatBackoffMaxMs, floor + jitter);
+}
+
+function shouldRetryRequestError(err) {
+  if (!err) return true;
+  if (err?.code === 'timeout' || err?.name === 'AbortError') return true;
+  const status = Number.parseInt(String(err?.status ?? ''), 10);
+  if (Number.isFinite(status)) {
+    return status === 429 || status >= 500;
+  }
+  return true;
 }
 
 /**
@@ -134,7 +148,9 @@ export async function fetchJSON(
       }
       clearTimeout(timer);
       if (!response.ok) {
-        if ((response.status >= 500 || response.status === 429) && attempt < retries) {
+        const isRateLimited = response.status === 429;
+        const retryBudget = isRateLimited ? Math.min(retries, MAX_429_RETRIES) : retries;
+        if ((response.status >= 500 || isRateLimited) && attempt < retryBudget) {
           attempt++;
           await sleep(computeBackoffMs(attempt, response));
           continue;
@@ -156,7 +172,7 @@ export async function fetchJSON(
       if (err?.name === 'AbortError') {
         err.code = 'timeout';
       }
-      if (attempt < retries) {
+      if (attempt < retries && shouldRetryRequestError(err)) {
         attempt++;
         logger?.warn({ ...requestMeta, error: err.message }, 'Retrying iNat fetch');
         await sleep(computeBackoffMs(attempt));

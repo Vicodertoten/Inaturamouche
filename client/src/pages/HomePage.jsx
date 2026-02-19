@@ -4,7 +4,7 @@ import { useGameData } from '../context/GameContext';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
-import { useGeoDefaultPack, useDetectedRegion } from '../hooks/useGeoDefaultPack';
+import { useGeoDefaultPack } from '../hooks/useGeoDefaultPack';
 import { usePackPreviews } from '../hooks/usePackPreviews';
 import { active_session } from '../services/db';
 import { getReviewStats } from '../services/CollectionService';
@@ -14,12 +14,12 @@ import PackIcon from '../components/PackIcons';
 import { SettingsIcon } from '../components/NavigationIcons';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
 import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
+import { getPackEducationalWarningKey } from '../utils/packWarnings';
 import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
-const HOME_SECTION_LIMIT = 3;
-const DESKTOP_PACK_LIMIT = 6;
 const DESKTOP_MEDIA_QUERY = '(min-width: 900px)';
+const DESKTOP_PACK_LIMIT = 6;
 const RECENT_PACKS_STORAGE_KEY = 'inaturamouche_recent_packs_v1';
 const RECENT_PACKS_MAX_ITEMS = 8;
 const CustomFilter = lazy(() => import('../features/configurator/components/CustomFilter'));
@@ -114,6 +114,20 @@ const CloseIcon = () => (
   </svg>
 );
 
+const WarningIndicatorIcon = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M12 3.7 21 19.2a1.2 1.2 0 0 1-1 1.8H4a1.2 1.2 0 0 1-1-1.8L12 3.7Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path d="M12 9.1v5.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="17.6" r="1.05" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 const HomePage = () => {
   const navigate = useNavigate();
   const {
@@ -130,6 +144,8 @@ const HomePage = () => {
     homeCustomEntry,
     homeLoading,
     refreshHomeCatalog,
+    regionOverride,
+    effectiveRegion,
   } = usePacks();
   const geoDefaultPack = useGeoDefaultPack();
 
@@ -149,7 +165,6 @@ const HomePage = () => {
   const dailyAlreadyCompleted = isDailyCompleted(todaySeed);
   const hasPlayedGame = (profile?.stats?.gamesPlayed || 0) > 0;
   const recentPackIds = useMemo(() => readRecentPackIds(), []);
-  const detectedRegion = useDetectedRegion();
 
   /* ── Auto-select geo-based pack for new players ── */
   useEffect(() => {
@@ -243,10 +258,11 @@ const HomePage = () => {
 
   useEffect(() => {
     void refreshHomeCatalog({
-      region: detectedRegion,
+      region: effectiveRegion,
+      regionOverride,
       recentPackIds,
     });
-  }, [detectedRegion, recentPackIds, refreshHomeCatalog]);
+  }, [effectiveRegion, regionOverride, recentPackIds, refreshHomeCatalog]);
 
   /* ── Handlers ── */
   const handleStart = useCallback(() => {
@@ -375,7 +391,6 @@ const HomePage = () => {
   const visibleHomeSections = useMemo(() => {
     if (!Array.isArray(homeSections)) return [];
     return homeSections
-      .slice(0, HOME_SECTION_LIMIT)
       .map((section) => {
         const sectionPacks = Array.isArray(section?.packs) ? section.packs : [];
         const packsForSection = sectionPacks
@@ -395,7 +410,7 @@ const HomePage = () => {
   }, [homeSections, packsById]);
 
   /* ── Pack preview images ── */
-  const { getPhotos, loadPreview } = usePackPreviews();
+  const { getPhotos, loadPreview, preloadPackPreviews } = usePackPreviews();
   const activePackHeroImage = useMemo(() => {
     if (!activePackId || activePackId === 'custom') return null;
     const photos = getPhotos(activePackId);
@@ -413,7 +428,7 @@ const HomePage = () => {
   const [hoveredPackId, setHoveredPackId] = useState(null);
   const handlePackMouseEnter = useCallback((packId) => {
     loadPreview(packId);
-    hoverTimerRef.current = setTimeout(() => setHoveredPackId(packId), 400);
+    hoverTimerRef.current = setTimeout(() => setHoveredPackId(packId), 180);
   }, [loadPreview]);
   const handlePackMouseLeave = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
@@ -677,11 +692,27 @@ const HomePage = () => {
             onMouseLeave={handlePackMouseLeave}
             getPhotos={getPhotos}
             loadPreview={loadPreview}
+            preloadPackPreviews={preloadPackPreviews}
             isDesktop={isDesktop}
             maxDesktopCards={DESKTOP_PACK_LIMIT}
             t={t}
           />
         ))}
+
+        {!isDesktop && (
+          <p className="home-pack-warning-legend">
+            <span className="home-pack-warning-pill" aria-hidden="true">
+              <WarningIndicatorIcon className="home-pack-warning-icon" />
+            </span>
+            <span className="home-pack-warning-text">
+              {t(
+                'home.educational_indicator_help',
+                {},
+                'Icone: contenu educatif uniquement, pas un guide de cueillette, de consommation ou d usage medical.'
+              )}
+            </span>
+          </p>
+        )}
       </section>
 
     </div>
@@ -699,6 +730,7 @@ function PackRow({
   onMouseLeave,
   getPhotos,
   loadPreview,
+  preloadPackPreviews,
   isDesktop,
   maxDesktopCards = DESKTOP_PACK_LIMIT,
   t,
@@ -711,25 +743,43 @@ function PackRow({
   const PRELOAD_BUFFER_CARDS = 2;
   const FALLBACK_CARD_WIDTH = 140;
   const [desktopVisibleCount, setDesktopVisibleCount] = useState(maxDesktopCards);
-
   const hasDesktopOverflow = isDesktop && sourcePacks.length > maxDesktopCards;
   const hasDesktopMore = isDesktop && sourcePacks.length > desktopVisibleCount;
   const desktopRemainingCount = Math.max(0, sourcePacks.length - desktopVisibleCount);
   const visiblePacks = useMemo(
     () => (isDesktop ? sourcePacks.slice(0, desktopVisibleCount) : sourcePacks),
-    [isDesktop, sourcePacks, desktopVisibleCount]
+    [desktopVisibleCount, isDesktop, sourcePacks]
   );
 
   useEffect(() => {
     setDesktopVisibleCount(maxDesktopCards);
-  }, [isDesktop, sourcePacks, maxDesktopCards]);
+  }, [isDesktop, maxDesktopCards, sourcePacks]);
 
   useEffect(() => {
     if (!isDesktop) return;
-    for (const pack of visiblePacks) {
-      if (pack?.id) loadPreview(pack.id);
+    const visibleIds = visiblePacks
+      .map((pack) => pack?.id)
+      .filter(Boolean);
+    for (const packId of visibleIds) {
+      loadPreview(packId);
     }
-  }, [isDesktop, visiblePacks, loadPreview]);
+
+    const nextIds = sourcePacks
+      .slice(desktopVisibleCount, desktopVisibleCount + maxDesktopCards)
+      .map((pack) => pack?.id)
+      .filter(Boolean);
+    if (nextIds.length > 0) {
+      preloadPackPreviews(nextIds);
+    }
+  }, [
+    desktopVisibleCount,
+    isDesktop,
+    loadPreview,
+    maxDesktopCards,
+    preloadPackPreviews,
+    sourcePacks,
+    visiblePacks,
+  ]);
 
   const handleSeeMore = useCallback(() => {
     if (!hasDesktopOverflow) return;
@@ -738,7 +788,7 @@ function PackRow({
       return;
     }
     setDesktopVisibleCount(maxDesktopCards);
-  }, [hasDesktopOverflow, hasDesktopMore, sourcePacks.length, maxDesktopCards]);
+  }, [hasDesktopMore, hasDesktopOverflow, maxDesktopCards, sourcePacks.length]);
 
   const updateScroll = useCallback(() => {
     if (isDesktop) {
@@ -846,58 +896,74 @@ function PackRow({
     const selected = activePackId === pack.id;
     const photos = getPhotos(pack.id);
     const isHovered = hoveredPackId === pack.id;
+    const warningKey = getPackEducationalWarningKey(pack);
+    const packTitle = pack.titleKey ? t(pack.titleKey) : pack.id;
+    const mobileAttentionLabel = t('home.educational_indicator_label', {}, 'Avertissement');
 
     return (
-      <button
-        key={pack.id}
-        data-pack-id={pack.id}
-        type="button"
-        className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
-        onClick={() => onSelect(pack.id)}
-        onMouseEnter={() => onMouseEnter(pack.id)}
-        onMouseLeave={onMouseLeave}
-        onFocus={() => onMouseEnter(pack.id)}
-        onBlur={onMouseLeave}
-        aria-pressed={selected}
-        aria-label={pack.titleKey ? t(pack.titleKey) : pack.id}
-        role="listitem"
-      >
-        {/* 2×2 photo grid — fills entire card */}
-        {photos && photos.length > 0 ? (
-          <div className="pack-card-photos">
-            {Array.from({ length: 4 }, (_, i) => {
-              const photo = photos[i % photos.length];
-              return (
-                <div key={i} className="pack-card-photo-cell">
-                  <img
-                    src={photo.url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="pack-card-img"
-                  />
-                </div>
-              );
-            })}
+      <div key={pack.id} className={`pack-card-shell ${isHovered ? 'hovered' : ''}`}>
+        <button
+          data-pack-id={pack.id}
+          type="button"
+          className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+          onClick={() => onSelect(pack.id)}
+          onMouseEnter={() => onMouseEnter(pack.id)}
+          onMouseLeave={onMouseLeave}
+          onFocus={() => onMouseEnter(pack.id)}
+          onBlur={onMouseLeave}
+          aria-pressed={selected}
+          aria-label={!isDesktop && warningKey ? `${packTitle} - ${mobileAttentionLabel}` : packTitle}
+          role="listitem"
+        >
+          {/* 2×2 photo grid — fills entire card */}
+          {photos && photos.length > 0 ? (
+            <div className="pack-card-photos">
+              {Array.from({ length: 4 }, (_, i) => {
+                const photo = photos[i % photos.length];
+                return (
+                  <div key={i} className="pack-card-photo-cell">
+                    <img
+                      src={photo.url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="pack-card-img"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pack-card-photo-placeholder pack-card-skeleton">
+              <PackIcon packId={pack.id} className="pack-card-icon-large" />
+            </div>
+          )}
+
+          {!isDesktop && warningKey && (
+            <span className="pack-card-attention-indicator" aria-hidden="true">
+              <WarningIndicatorIcon className="pack-card-attention-icon" />
+            </span>
+          )}
+
+          {/* Always visible title strip */}
+          <div className="pack-card-info">
+            <span className="pack-card-title">{packTitle}</span>
           </div>
-        ) : (
-          <div className="pack-card-photo-placeholder pack-card-skeleton">
-            <PackIcon packId={pack.id} className="pack-card-icon-large" />
+
+          {/* Hover-expand description */}
+          {isDesktop && isHovered && pack.descriptionKey && (
+            <div className="pack-card-desc">
+              <p className="pack-card-desc-title">{packTitle}</p>
+              <p className="pack-card-desc-body">{t(pack.descriptionKey)}</p>
+            </div>
+          )}
+        </button>
+        {isDesktop && isHovered && warningKey && (
+          <div className="pack-card-warning-bubble" role="note" aria-label={t(warningKey)}>
+            <p>{t(warningKey)}</p>
           </div>
         )}
-
-        {/* Always visible title strip */}
-        <div className="pack-card-info">
-          <span className="pack-card-title">{pack.titleKey ? t(pack.titleKey) : pack.id}</span>
-        </div>
-
-        {/* Hover-expand description */}
-        {isHovered && pack.descriptionKey && (
-          <div className="pack-card-desc">
-            <p>{t(pack.descriptionKey)}</p>
-          </div>
-        )}
-      </button>
+      </div>
     );
   };
 
@@ -914,17 +980,6 @@ function PackRow({
             </div>
           )}
         </div>
-        {hasDesktopOverflow && (
-          <button
-            type="button"
-            className="home-region-see-more"
-            onClick={handleSeeMore}
-          >
-            {hasDesktopMore
-              ? `${t('home.see_more_packs', {}, 'Voir plus')} (${desktopRemainingCount})`
-              : t('home.see_less_packs', {}, 'Voir moins')}
-          </button>
-        )}
       </div>
       {isDesktop ? (
         <div className="home-catalog-grid" role="list">
@@ -937,7 +992,7 @@ function PackRow({
           )}
           {canScrollLeft && (
             <button type="button" className="catalog-scroll-arrow catalog-scroll-left" onClick={() => scrollBy(-1)} aria-label="Défiler à gauche">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              <span className="catalog-scroll-glyph" aria-hidden="true">‹</span>
             </button>
           )}
           <div
@@ -956,9 +1011,22 @@ function PackRow({
           )}
           {canScrollRight && (
             <button type="button" className="catalog-scroll-arrow catalog-scroll-right" onClick={() => scrollBy(1)} aria-label="Défiler à droite">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+              <span className="catalog-scroll-glyph" aria-hidden="true">›</span>
             </button>
           )}
+        </div>
+      )}
+      {hasDesktopOverflow && (
+        <div className="home-region-footer">
+          <button
+            type="button"
+            className="home-region-see-more"
+            onClick={handleSeeMore}
+          >
+            {hasDesktopMore
+              ? `${t('home.see_more_packs', {}, 'Voir plus')} (${desktopRemainingCount})`
+              : t('home.see_less_packs', {}, 'Voir moins')}
+          </button>
         </div>
       )}
     </div>

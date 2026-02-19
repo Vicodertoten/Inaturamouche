@@ -369,7 +369,8 @@ input[type="submit"],
     padding-bottom: calc(1rem + var(--nav-height-mobile, 75px));
   }
 
-  nav {
+  .bottom-nav,
+  .mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;

@@ -97,7 +97,14 @@ const nl = {
     section_catalog: 'Volledige catalogus',
     see_more_packs: 'Meer tonen',
     see_less_packs: 'Minder tonen',
+    show_pack_details: 'Beschrijving tonen',
+    close_pack_details: 'Sluiten',
+    region_override_label: 'Pack-regio',
+    region_override_auto: 'Auto (gedetecteerd)',
     settings_label: 'Instellingen',
+    educational_indicator_label: 'Waarschuwing',
+    educational_indicator_help:
+      'Icoon: alleen educatieve inhoud, geen gids voor plukken, consumptie of medisch gebruik.',
   },
   configurator: {
     pack_label: 'Kies een spelpack:',
@@ -120,6 +127,8 @@ const nl = {
       'Spellen met geluid kunnen langer laden en minder resultaten geven, afhankelijk van je filters.',
   },
   packs: {
+    educational_warning:
+      'Alleen educatieve inhoud: dit pack is geen gids voor plukken, consumptie of medisch gebruik.',
     custom: {
       title: 'Aangepast filter',
       description: 'Stel je eigen quiz samen door taxa, locatie en datums te kiezen of uit te sluiten.',
@@ -219,7 +228,151 @@ const nl = {
     },
     belgium_edible_plants: {
       title: 'Eetbare wilde planten',
-      description: '50 eetbare wilde planten van België: brandnetel, daslook, paardenbloem en nog veel meer.',
+      description: 'Een stevige Belgische basis van eetbare wilde planten om veilig te leren.',
+    },
+    belgium_edible_flowers: {
+      title: 'Eetbare bloemen van België',
+      description: 'Een gerichte selectie van bekende eetbare wilde bloemen in België.',
+    },
+    europe_edible_plants: {
+      title: 'Eetbare planten van Europa',
+      description: 'Een Europese kernlijst met eetbare planten voor basiskennis.',
+    },
+    world_edible_plants_basics: {
+      title: 'Eetbare planten van de wereld (basis)',
+      description: 'Een wereldwijde introductieselectie van eetbare planten.',
+    },
+    mediterranean_edible_plants: {
+      title: 'Mediterrane eetbare planten',
+      description: 'Typische mediterrane soorten uit de culinaire traditie.',
+    },
+    belgium_edible_mushrooms: {
+      title: 'Eetbare paddenstoelen van België',
+      description: 'Een samengestelde lijst van eetbare paddenstoelen in België.',
+    },
+    europe_edible_mushrooms: {
+      title: 'Eetbare paddenstoelen van Europa',
+      description: 'Veelvoorkomende eetbare paddenstoelen voor studie in Europa.',
+    },
+    world_edible_mushrooms_basics: {
+      title: 'Eetbare paddenstoelen van de wereld (basis)',
+      description: 'Een basisselectie van wereldwijd bekende eetbare paddenstoelen.',
+    },
+    belgium_toxic_mushrooms: {
+      title: 'Giftige paddenstoelen (België)',
+      description: 'Educatieve waarschuwingsset rond risicovolle paddenstoelen in België.',
+    },
+    europe_toxic_mushrooms: {
+      title: 'Giftige paddenstoelen (Europa)',
+      description: 'Educatieve waarschuwingsset rond giftige of risicovolle soorten in Europa.',
+    },
+    world_medicinal_plants: {
+      title: 'Medicinale planten van de wereld',
+      description: 'Educatief overzicht van planten met traditionele medicinale toepassingen.',
+    },
+    europe_medicinal_plants: {
+      title: 'Medicinale planten van Europa',
+      description: 'Europese basislijst van traditioneel gebruikte medicinale planten.',
+    },
+    europe_invasive_plants: {
+      title: 'Invasieve planten van Europa',
+      description: 'Herken invasieve of sterk genaturaliseerde plantensoorten in Europa.',
+    },
+    europe_lookalikes_edible_vs_toxic_mushrooms: {
+      title: 'Paddenstoel-verwarringen: eetbaar vs giftig',
+      description: 'Leer de belangrijkste risicoparen van dubbelgangers in Europa.',
+    },
+    world_herps: {
+      title: 'Herpetofauna van de wereld',
+      description: 'Populaire reptielen en amfibieën van over de hele wereld.',
+    },
+    world_fish: {
+      title: 'Vissen van de wereld',
+      description: 'Een wereldwijd vispack op basis van vaak waargenomen taxa.',
+    },
+    europe_birds: {
+      title: 'Vogels van Europa',
+      description: 'Meest waargenomen vogelsoorten in Europa.',
+    },
+    europe_mammals: {
+      title: 'Zoogdieren van Europa',
+      description: 'Een brede Europese ontdekking van zoogdieren.',
+    },
+    europe_plants: {
+      title: 'Planten van Europa',
+      description: 'Algemene Europese flora voor dagelijkse training.',
+    },
+    europe_fungi: {
+      title: 'Schimmels van Europa',
+      description: 'Een Europese schimmelset op basis van populaire observaties.',
+    },
+    belgium_plants: {
+      title: 'Planten van België',
+      description: 'Meest waargenomen planten in België.',
+    },
+    world_threatened_birds: {
+      title: 'Bedreigde vogels (Wereld)',
+      description: 'Bedreigde vogelsoorten in wereldwijde iNaturalist-data.',
+    },
+    world_threatened_mammals: {
+      title: 'Bedreigde zoogdieren (Wereld)',
+      description: 'Bedreigde zoogdiersoorten op wereldniveau.',
+    },
+    world_threatened_insects: {
+      title: 'Bedreigde insecten (Wereld)',
+      description: 'Ontdek bedreigde insecten uit wereldwijde waarnemingen.',
+    },
+    world_threatened_plants: {
+      title: 'Bedreigde planten (Wereld)',
+      description: 'Bedreigde plantensoorten in mondiale context.',
+    },
+    world_threatened_fish: {
+      title: 'Bedreigde vissen (Wereld)',
+      description: 'Bedreigde vissoorten uit wereldwijde observaties.',
+    },
+    world_threatened_herps: {
+      title: 'Bedreigde herpetofauna (Wereld)',
+      description: 'Bedreigde reptielen en amfibieën om te leren herkennen.',
+    },
+    europe_threatened_birds: {
+      title: 'Bedreigde vogels (Europa)',
+      description: 'Europese focus op bedreigde vogelsoorten.',
+    },
+    europe_threatened_mammals: {
+      title: 'Bedreigde zoogdieren (Europa)',
+      description: 'Europese focus op bedreigde zoogdiersoorten.',
+    },
+    europe_threatened_insects: {
+      title: 'Bedreigde insecten (Europa)',
+      description: 'Europese focus op bedreigde insectensoorten.',
+    },
+    europe_threatened_plants: {
+      title: 'Bedreigde planten (Europa)',
+      description: 'Europese focus op bedreigde plantensoorten.',
+    },
+    belgium_threatened_birds: {
+      title: 'Bedreigde vogels (België)',
+      description: 'Bedreigde vogelsoorten die in België zijn waargenomen.',
+    },
+    belgium_threatened_mammals: {
+      title: 'Bedreigde zoogdieren (België)',
+      description: 'Bedreigde zoogdiersoorten die in België zijn waargenomen.',
+    },
+    europe_dragons_and_monsters: {
+      title: 'Europese draken en monsters',
+      description: 'Een creatieve rail met libellen, reptielen en amfibieën.',
+    },
+    world_weird_invertebrates: {
+      title: 'Vreemde ongewervelden van de wereld',
+      description: 'Een verrassende mix van insecten, spinnen en weekdieren.',
+    },
+    europe_autumn_colors: {
+      title: 'Herfstkleuren in Europa',
+      description: 'Europese planten waargenomen in september, oktober en november.',
+    },
+    world_night_choir: {
+      title: 'Nachtkoor (Wereld)',
+      description: 'Een geluidspack met vogels en amfibieën.',
     },
     // ── Region labels ──
     _regions: {

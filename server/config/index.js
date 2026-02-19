@@ -60,6 +60,10 @@ export const config = {
   // Serveur
   port: process.env.PORT || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
+  enableStartupWarmup: parseBoolean(
+    process.env.ENABLE_STARTUP_WARMUP,
+    process.env.NODE_ENV === 'production'
+  ),
   
   // Proxy
   trustProxyList: process.env.TRUST_PROXY_LIST || 'loopback,uniquelocal',

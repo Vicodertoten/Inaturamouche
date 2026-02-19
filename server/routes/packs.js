@@ -30,10 +30,14 @@ function parseCsvQueryValue(value) {
 router.get('/api/packs/home', (req, res) => {
   try {
     const region = typeof req.query.region === 'string' ? req.query.region : 'world';
+    const regionOverride = typeof req.query.region_override === 'string'
+      ? req.query.region_override
+      : undefined;
     const recentPackIds = parseCsvQueryValue(req.query.recent_pack_ids);
     const sectionLimit = Number.parseInt(String(req.query.section_limit ?? ''), 10);
     const payload = buildHomePackCatalog({
       region,
+      regionOverride,
       recentPackIds,
       sectionLimit: Number.isFinite(sectionLimit) ? sectionLimit : undefined,
     });

@@ -196,3 +196,13 @@ integrationTest('GET /api/packs/home prioritizes local packs in near_you section
   assert.ok(nearYou.packs.length > 0);
   assert.equal(nearYou.packs[0].region, 'belgium');
 });
+
+integrationTest('GET /api/packs/home applies region_override over region', async () => {
+  const res = await fetch(`${baseUrl}/api/packs/home?region=world&region_override=belgium`);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  const nearYou = body.sections.find((section) => section.id === 'near_you');
+  assert.ok(nearYou);
+  assert.ok(nearYou.packs.length > 0);
+  assert.equal(nearYou.packs[0].region, 'belgium');
+});

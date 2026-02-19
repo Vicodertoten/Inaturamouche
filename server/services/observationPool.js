@@ -99,13 +99,28 @@ function extractMonthDayFromObservation(obs) {
 /**
  * Fetch observation pool from iNaturalist
  */
-export async function fetchObservationPoolFromInat(params, monthDayFilter, { logger, requestId, rng, seed } = {}) {
+export async function fetchObservationPoolFromInat(
+  params,
+  monthDayFilter,
+  {
+    logger,
+    requestId,
+    rng,
+    seed,
+    skipTotalProbe = false,
+    maxPagesOverride = null,
+  } = {}
+) {
   let pagesFetched = 0;
   let startPage = 1;
   const random = typeof rng === 'function' ? rng : Math.random;
+  const safeMaxPages =
+    Number.isInteger(maxPagesOverride) && maxPagesOverride > 0
+      ? maxPagesOverride
+      : maxObsPages;
   // For seeded games (daily challenge), always start at page 1 to guarantee
   // every user fetches the exact same observations.
-  if (!seed) {
+  if (!seed && !skipTotalProbe) {
     try {
       const probeParams = { ...params, per_page: 1, page: 1 };
       const probe = await fetchInatJSON(
@@ -130,7 +145,7 @@ export async function fetchObservationPoolFromInat(params, monthDayFilter, { log
   let results = [];
   let distinctTaxaSet = new Set();
 
-  while (pagesFetched < maxObsPages) {
+  while (pagesFetched < safeMaxPages) {
     const resp = await fetchInatJSON(
       'https://api.inaturalist.org/v1/observations',
       { ...params, page },
@@ -329,7 +344,17 @@ function buildDegradePoolFromCache(
 /**
  * Get or refresh observation pool with cache management
  */
-export async function getObservationPool({ cacheKey, params, monthDayFilter, logger, requestId, rng, seed }) {
+export async function getObservationPool({
+  cacheKey,
+  params,
+  monthDayFilter,
+  logger,
+  requestId,
+  rng,
+  seed,
+  skipTotalProbe = false,
+  maxPagesOverride = null,
+}) {
   questionCache.prune();
   const cachedEntry = questionCache.getEntry(cacheKey);
   const cachedPool = cachedEntry?.value;
@@ -353,6 +378,8 @@ export async function getObservationPool({ cacheKey, params, monthDayFilter, log
       requestId,
       rng,
       seed,
+      skipTotalProbe,
+      maxPagesOverride,
     });
     fetchedStats = {
       pagesFetched: fresh.pagesFetched,
