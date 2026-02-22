@@ -5,6 +5,7 @@ import LevelUpNotification from './LevelUpNotification';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { submitQuizAnswer } from '../services/api';
+import { trackMetric } from '../services/metrics';
 import { notify } from '../services/notifications';
 import { computeInGameStreakBonus } from '../utils/scoring';
 import './RiddleMode.css';
@@ -21,6 +22,8 @@ const RiddleMode = () => {
     completeRound,
     endGame,
     dailySeedSession,
+    activePackId,
+    isReviewMode,
   } = useGameData();
   const { t, getTaxonDisplayNames, nameFormat } = useLanguage();
 
@@ -161,6 +164,17 @@ const RiddleMode = () => {
     setSelectedId(pair.id);
     setLastAnswer(pair);
     if (!question?.round_id || !question?.round_signature) return;
+
+    void trackMetric('answer_submit', {
+      mode: 'riddle',
+      pack_id: activePackId || null,
+      round_id: question.round_id,
+      question_index: Number.isInteger(questionCount) ? questionCount : null,
+      selected_taxon_id: String(pair.id),
+      attempt: clueIndex + 1,
+      review: Boolean(isReviewMode),
+      is_daily_challenge: Boolean(dailySeedSession),
+    });
 
     setIsSubmitting(true);
     try {

@@ -253,11 +253,11 @@ export function useGameActions({
       setIsStartingNewGame(true);
       const normalizedSeed = typeof seed === 'string' ? seed.trim() : '';
       const hasSeed = normalizedSeed.length > 0;
-      // Daily challenge: has seed but is NOT a friend challenge → force hard/10Q
+      // Daily challenge: has seed but is NOT a friend challenge → force easy/10Q
       // Friend challenge: has seed AND isChallenge → use the caller's config
       const isDailyChallenge = hasSeed && !isChallenge;
       const forcedMaxQuestions = isDailyChallenge ? 10 : nextMaxQuestions;
-      const forcedGameMode = isDailyChallenge ? 'hard' : nextGameMode;
+      const forcedGameMode = isDailyChallenge ? 'easy' : nextGameMode;
 
       setDailySeed(hasSeed ? normalizedSeed : null);
       setDailySeedSession(hasSeed ? (seed_session || createSeedSessionId()) : null);
@@ -283,6 +283,7 @@ export function useGameActions({
         max_questions: Number.isInteger(forcedMaxQuestions) ? forcedMaxQuestions : null,
         media_type: nextMediaType || null,
         pack_id: activePackId || null,
+        player_level: getLevelFromXp(profile?.xp || 0),
         review: Boolean(review),
         is_challenge: Boolean(isChallenge),
         is_daily_challenge: Boolean(isDailyChallenge),
@@ -645,6 +646,7 @@ export function useGameActions({
             {
               mode: gameMode || 'easy',
               pack_id: activePackId || null,
+              player_level: getLevelFromXp(profile?.xp || 0),
               total_questions: validatedTotalQuestions,
               correct_answers: validatedCorrectAnswers,
               success:
@@ -669,6 +671,7 @@ export function useGameActions({
             {
               mode: gameMode || 'easy',
               pack_id: activePackId || null,
+              player_level: getLevelFromXp(profile?.xp || 0),
               total_questions: validatedTotalQuestions,
               correct_answers: validatedCorrectAnswers,
               success:
@@ -1080,6 +1083,18 @@ export function useGameActions({
 
   const endGame = useCallback(() => {
     if (!isGameActive) return;
+    void trackMetric('quit_mid_round', {
+      mode: gameMode || 'easy',
+      pack_id: activePackId || null,
+      question_index: Number.isInteger(questionCount) ? questionCount : null,
+      answered_rounds: Array.isArray(sessionSpeciesData) ? sessionSpeciesData.length : 0,
+      correct_answers: Number.isFinite(sessionStats?.correctAnswers) ? sessionStats.correctAnswers : 0,
+      max_questions: Number.isInteger(maxQuestions) ? maxQuestions : null,
+      review: Boolean(isReviewMode),
+      is_challenge: Boolean(isChallenge),
+      is_daily_challenge: Boolean(dailySeed && !isChallenge),
+      quit_reason: 'manual',
+    });
     abortActiveFetch();
     abortPrefetchFetch();
     setLoading(false);
@@ -1091,10 +1106,17 @@ export function useGameActions({
       speciesEntries: sessionSpeciesData,
     });
   }, [
+    activePackId,
     abortActiveFetch,
     abortPrefetchFetch,
+    dailySeed,
     finalizeGame,
+    gameMode,
     isGameActive,
+    isChallenge,
+    isReviewMode,
+    maxQuestions,
+    questionCount,
     score,
     sessionCorrectSpecies,
     sessionMissedSpecies,

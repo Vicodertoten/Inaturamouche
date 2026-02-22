@@ -24,10 +24,17 @@ function getReportSessionId(req) {
     : null;
 }
 
+function getReportAnonUserId(req) {
+  return req.headers['x-anon-user-id']
+    ? String(req.headers['x-anon-user-id']).slice(0, 120)
+    : null;
+}
+
 function trackReportSubmit(req, properties = {}) {
   void recordClientEvent({
     name: 'report_submit',
     session_id: getReportSessionId(req),
+    anon_user_id: getReportAnonUserId(req),
     properties,
   }).catch(() => {});
 }

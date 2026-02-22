@@ -9,6 +9,7 @@ import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../utils/haptics';
 import { notify } from '../services/notifications';
+import { trackMetric } from '../services/metrics';
 import { submitQuizAnswer } from '../services/api';
 
 /**
@@ -30,6 +31,8 @@ const EasyMode = () => {
     completeRound,
     endGame,
     dailySeedSession,
+    activePackId,
+    isReviewMode,
   } = useGameData();
   // Paires (id, label) alignées.
   const { t, getTaxonDisplayNames, nameFormat } = useLanguage();
@@ -121,6 +124,17 @@ const EasyMode = () => {
     const selected = remainingPairs[idx];
     if (!selected?.id || !question?.round_id || !question?.round_signature) return;
 
+    void trackMetric('answer_submit', {
+      mode: 'easy',
+      pack_id: activePackId || null,
+      round_id: question.round_id,
+      question_index: Number.isInteger(questionCount) ? questionCount : null,
+      selected_taxon_id: String(selected.id),
+      attempt: 1,
+      review: Boolean(isReviewMode),
+      is_daily_challenge: Boolean(dailySeedSession),
+    });
+
     setIsSubmitting(true);
     setSelectedIndex(idx);
 
@@ -169,6 +183,9 @@ const EasyMode = () => {
     completeRound,
     roundMeta,
     dailySeedSession,
+    activePackId,
+    isReviewMode,
+    questionCount,
   ]);
 
   const handleNext = () => {

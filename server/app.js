@@ -91,11 +91,21 @@ export function createApp() {
     res.on('finish', () => {
       const finishedAt = process.hrtime.bigint();
       const durationMs = Number(finishedAt - startedAt) / 1_000_000;
+      const tags = {};
+      if (req.path === '/api/quiz-question') {
+        if (req.query?.pack_id) tags.pack_id = req.query.pack_id;
+        if (req.query?.game_mode) tags.game_mode = req.query.game_mode;
+        if (req.query?.media_type) tags.media_type = req.query.media_type;
+        if (req.query?.locale) tags.locale = req.query.locale;
+      } else if (req.path === '/api/quiz/submit' && req.body?.round_action) {
+        tags.round_action = req.body.round_action;
+      }
       void recordApiMetric({
         method: req.method,
         path: req.path,
         status: res.statusCode,
         duration_ms: durationMs,
+        tags,
       }).catch((err) => {
         req.log?.debug?.({ err, requestId: req.id }, 'metrics record failed');
       });

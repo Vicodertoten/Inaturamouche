@@ -35,6 +35,7 @@ export const corsOptions = {
     'Accept',
     'Authorization',
     'X-Client-Session-Id',
+    'X-Anon-User-Id',
     'X-Current-Route',
   ],
   exposedHeaders: [

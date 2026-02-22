@@ -9,6 +9,7 @@ import { usePackPreviews } from '../hooks/usePackPreviews';
 import { active_session } from '../services/db';
 import { getReviewStats } from '../services/CollectionService';
 import { notify } from '../services/notifications';
+import { trackMetric } from '../services/metrics';
 import AdvancedSettings from '../components/AdvancedSettings';
 import PackIcon from '../components/PackIcons';
 import { SettingsIcon } from '../components/NavigationIcons';
@@ -282,9 +283,26 @@ const HomePage = () => {
     preloadPlayPage();
     setAdvancedOpen(false);
     pushRecentPackId(activePackId);
+    void trackMetric('play_click', {
+      source: 'home_play_cta',
+      pack_id: activePackId || null,
+      mode: gameMode || 'easy',
+      max_questions: Number.isInteger(maxQuestions) ? maxQuestions : null,
+      media_type: mediaType || 'images',
+      has_active_session: Boolean(hasActiveSession),
+    });
     startGame({ maxQuestions, mediaType });
     navigate('/play');
-  }, [navigate, preloadPlayPage, startGame, maxQuestions, mediaType, activePackId]);
+  }, [
+    activePackId,
+    gameMode,
+    hasActiveSession,
+    maxQuestions,
+    mediaType,
+    navigate,
+    preloadPlayPage,
+    startGame,
+  ]);
 
   const handleResumeGame = useCallback(async () => {
     preloadPlayPage();
@@ -314,16 +332,42 @@ const HomePage = () => {
       handleResumeGame();
       return;
     }
-    startGame({ seed: todaySeed, seed_session: todaySeed, gameMode: 'hard', maxQuestions: 10 });
+    void trackMetric('play_click', {
+      source: 'daily_challenge_cta',
+      pack_id: null,
+      mode: 'easy',
+      max_questions: 10,
+      media_type: mediaType || 'images',
+      is_daily_challenge: true,
+    });
+    startGame({ seed: todaySeed, seed_session: todaySeed, gameMode: 'easy', maxQuestions: 10 });
     navigate('/play');
-  }, [navigate, preloadPlayPage, startGame, todaySeed, hasActiveSession, resumeSessionData, handleResumeGame]);
+  }, [
+    handleResumeGame,
+    hasActiveSession,
+    mediaType,
+    navigate,
+    preloadPlayPage,
+    resumeSessionData,
+    startGame,
+    todaySeed,
+  ]);
 
   const handleStartReview = useCallback(async () => {
     preloadPlayPage();
     const started = await startReviewMode();
-    if (started) navigate('/play');
+    if (started) {
+      void trackMetric('play_click', {
+        source: 'review_mode_cta',
+        pack_id: activePackId || null,
+        mode: 'easy',
+        media_type: mediaType || 'images',
+        review: true,
+      });
+      navigate('/play');
+    }
     return started;
-  }, [navigate, preloadPlayPage, startReviewMode]);
+  }, [activePackId, mediaType, navigate, preloadPlayPage, startReviewMode]);
 
   const handlePackSelect = useCallback((packId) => {
     setActivePackId(packId);

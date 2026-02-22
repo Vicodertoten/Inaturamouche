@@ -4,6 +4,7 @@
 import { config } from '../../config/index.js';
 import { SmartCache } from '../../../lib/smart-cache.js';
 import { MODEL_CONFIG, CACHE_VERSIONS, OUTPUT_CONSTRAINTS } from './aiConfig.js';
+import { recordClientEvent } from '../metricsStore.js';
 import { collectSpeciesData } from './ragSources.js';
 import {
   calculateSeverity,
@@ -52,7 +53,15 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── Appel Gemini avec retry ─────────────────────────────────────
 
-async function callGeminiWithRetry({ systemPrompt, userParts, genConfig, logger, label = 'gemini' }) {
+async function callGeminiWithRetry({
+  systemPrompt,
+  userParts,
+  genConfig,
+  logger,
+  label = 'gemini',
+  metricsSessionId = null,
+  metricsAnonUserId = null,
+}) {
   const apiUrl = MODEL_CONFIG.apiUrlTemplate(MODEL_CONFIG.model);
   const maxRetries = MODEL_CONFIG.maxRetries || 2;
 
@@ -100,17 +109,38 @@ async function callGeminiWithRetry({ systemPrompt, userParts, genConfig, logger,
       // Log usage
       const usage = data?.usageMetadata;
       if (usage) {
+        const promptTokens = Number(usage.promptTokenCount ?? 0) || 0;
+        const candidateTokens = Number(usage.candidatesTokenCount ?? 0) || 0;
+        const totalTokens = Number(usage.totalTokenCount ?? promptTokens + candidateTokens) || 0;
+        // Approximation basée sur Gemini 2.5 Flash (input/output, USD).
+        const estimatedCostUsd = Number(
+          ((promptTokens * 0.3 + candidateTokens * 2.5) / 1_000_000).toFixed(6)
+        );
         logger?.info?.(
           {
             label,
             attempt,
             model: MODEL_CONFIG.model,
-            promptTokens: usage.promptTokenCount ?? null,
-            candidateTokens: usage.candidatesTokenCount ?? null,
-            totalTokens: usage.totalTokenCount ?? null,
+            promptTokens,
+            candidateTokens,
+            totalTokens,
+            estimatedCostUsd,
           },
           `${label} token usage`
         );
+        void recordClientEvent({
+          name: 'ai_usage',
+          session_id: metricsSessionId || null,
+          anon_user_id: metricsAnonUserId || null,
+          properties: {
+            label,
+            model: MODEL_CONFIG.model,
+            prompt_tokens: promptTokens,
+            candidate_tokens: candidateTokens,
+            total_tokens: totalTokens,
+            estimated_cost_usd: estimatedCostUsd,
+          },
+        }).catch(() => {});
       }
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -143,7 +173,7 @@ export async function generateCustomExplanation(
   wrongTaxon,
   locale = 'fr',
   logger,
-  { focusRank: _focusRank = null } = {}
+  { focusRank: _focusRank = null, metricsSessionId = null, metricsAnonUserId = null } = {}
 ) {
   if (!aiEnabled || !aiApiKey) {
     logger?.warn?.('AI explanations disabled or no API key');
@@ -199,6 +229,8 @@ export async function generateCustomExplanation(
             genConfig: MODEL_CONFIG.generate,
             logger,
             label: 'explain',
+            metricsSessionId,
+            metricsAnonUserId,
           });
 
           logger?.info?.({ rawLength: text.length }, 'AI raw response received');

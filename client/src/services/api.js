@@ -3,7 +3,7 @@
 import { notify } from "./notifications.js";
 import { getApiErrorMessage, isApiLanguageSupported, CODE_TO_KEY } from './apiErrors.js';
 import { debugWarn } from '../utils/logger.js';
-import { trackMetric } from './metrics.js';
+import { getAnonUserId, trackMetric } from './metrics.js';
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
 
@@ -408,6 +408,7 @@ export const submitBugReport = ({
     : {};
 
   headers['X-Client-Session-Id'] = getClientSessionId();
+  headers['X-Anon-User-Id'] = getAnonUserId();
   headers['X-Current-Route'] = typeof window !== 'undefined' ? window.location.pathname : '';
 
   return apiPost(

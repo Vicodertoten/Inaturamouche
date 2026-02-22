@@ -9,6 +9,7 @@ import { useLanguage } from '../../../context/LanguageContext.jsx';
 import { computeInGameStreakBonus } from '../../../utils/scoring';
 import { notify } from '../../../services/notifications';
 import { submitQuizAnswer } from '../../../services/api';
+import { trackMetric } from '../../../services/metrics';
 import { SCORE_PER_RANK } from '../../../utils/scoring';
 import './TaxonomicAscension.css';
 
@@ -40,6 +41,8 @@ function TaxonomicAscension() {
     completeRound,
     endGame,
     dailySeedSession,
+    activePackId,
+    isReviewMode,
   } = useGameData();
   const ascension = question?.taxonomic_ascension;
   const steps = useMemo(() => ascension?.steps ?? [], [ascension?.steps]);
@@ -160,6 +163,20 @@ function TaxonomicAscension() {
 
     setIsSubmitting(true);
     try {
+      void trackMetric('answer_submit', {
+        mode: 'taxonomic',
+        submit_type: 'select',
+        pack_id: activePackId || null,
+        round_id: question.round_id,
+        question_index: Number.isInteger(questionCount) ? questionCount : null,
+        step_index: currentStepIndex,
+        step_rank: currentStep?.rank || null,
+        selected_taxon_id: String(option.taxon_id),
+        attempt: currentStepIndex + 1,
+        review: Boolean(isReviewMode),
+        is_daily_challenge: Boolean(dailySeedSession),
+      });
+
       const result = await submitQuizAnswer({
         roundId: question.round_id,
         roundSignature: question.round_signature,
@@ -188,11 +205,14 @@ function TaxonomicAscension() {
     }
   }, [
     applyTaxonomicState,
+    activePackId,
     completeRound,
     currentStep,
     currentStepIndex,
+    isReviewMode,
     finalizeFromServer,
     isSubmitting,
+    questionCount,
     question,
     roundStatus,
     t,
@@ -205,6 +225,20 @@ function TaxonomicAscension() {
 
     setIsSubmitting(true);
     try {
+      void trackMetric('answer_submit', {
+        mode: 'taxonomic',
+        submit_type: 'hint',
+        pack_id: activePackId || null,
+        round_id: question.round_id,
+        question_index: Number.isInteger(questionCount) ? questionCount : null,
+        step_index: currentStepIndex,
+        step_rank: currentStep?.rank || null,
+        selected_taxon_id: null,
+        attempt: currentStepIndex + 1,
+        review: Boolean(isReviewMode),
+        is_daily_challenge: Boolean(dailySeedSession),
+      });
+
       const rankLabel = t(`ranks.${currentStep.rank}`, currentStep.rank);
       notify(
         t('taxonomic.hint_used', { rank: rankLabel, cost: hintPenaltyPercent }, `-${hintPenaltyPercent}% XP`),
@@ -241,13 +275,16 @@ function TaxonomicAscension() {
     }
   }, [
     applyTaxonomicState,
+    activePackId,
     completeRound,
     currentStep,
     currentStepIndex,
     finalizeFromServer,
+    isReviewMode,
     hintPenaltyPercent,
     hintUsed,
     isSubmitting,
+    questionCount,
     question,
     roundStatus,
     t,

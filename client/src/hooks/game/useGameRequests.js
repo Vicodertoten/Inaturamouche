@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { fetchQuizQuestion } from '../../services/api';
+import { trackMetric } from '../../services/metrics';
 import { preloadQuestionImages } from '../../utils/imagePreload';
 import { normalizeGameMode } from './gameUtils';
 
@@ -31,6 +32,7 @@ export function useGameRequests({
   const prefetchRequestController = useRef(null);
   const questionStartTimeRef = useRef(null);
   const seedQuestionCursorRef = useRef(null);
+  const lastViewedRoundIdRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -60,7 +62,7 @@ export function useGameRequests({
   const buildQuizParams = useCallback((seedQuestionIndexOverride = null) => {
     const params = new URLSearchParams();
     const hasSeed = typeof dailySeed === 'string' && dailySeed.length > 0;
-    const effectiveGameMode = normalizeGameMode(gameMode, 'easy');
+    const effectiveGameMode = hasSeed ? 'easy' : normalizeGameMode(gameMode, 'easy');
     params.set('locale', language);
     params.set('media_type', mediaType);
     params.set('game_mode', effectiveGameMode);
@@ -234,6 +236,32 @@ export function useGameRequests({
       questionStartTimeRef.current = now;
     }
   }, [question?.round_id, question?.bonne_reponse?.id]);
+
+  useEffect(() => {
+    const roundId = question?.round_id ? String(question.round_id) : null;
+    if (!roundId || lastViewedRoundIdRef.current === roundId) return;
+    lastViewedRoundIdRef.current = roundId;
+
+    void trackMetric('question_view', {
+      round_id: roundId,
+      question_index: Number.isInteger(questionCount) ? questionCount : null,
+      mode: dailySeed ? 'easy' : normalizeGameMode(gameMode, 'easy'),
+      pack_id: activePack?.id || null,
+      media_type: mediaType || null,
+      locale: language || 'fr',
+      review: Boolean(isReviewMode),
+      is_daily_challenge: Boolean(dailySeed),
+    });
+  }, [
+    activePack?.id,
+    dailySeed,
+    gameMode,
+    isReviewMode,
+    language,
+    mediaType,
+    question?.round_id,
+    questionCount,
+  ]);
 
   return {
     abortActiveFetch,

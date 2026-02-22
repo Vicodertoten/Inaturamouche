@@ -3,6 +3,7 @@
 
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
 const METRICS_SESSION_ID_KEY = 'inaturamouche_metrics_session_id';
+const ANON_USER_ID_KEY = 'inaturamouche_anon_user_id';
 
 const runtimeEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
 const API_BASE_URL =
@@ -34,6 +35,17 @@ function getClientSessionId() {
   if (!id) {
     id = generateId();
     storage.setItem(CLIENT_SESSION_ID_KEY, id);
+  }
+  return id;
+}
+
+export function getAnonUserId() {
+  const storage = getStorage('local');
+  if (!storage) return `anon-${Math.random().toString(36).slice(2, 10)}`;
+  let id = storage.getItem(ANON_USER_ID_KEY);
+  if (!id) {
+    id = `u-${generateId()}`;
+    storage.setItem(ANON_USER_ID_KEY, id);
   }
   return id;
 }
@@ -72,6 +84,7 @@ export async function trackMetric(name, properties = {}, { useBeacon = false } =
       {
         name: String(name),
         session_id: getMetricsSessionId(),
+        anon_user_id: getAnonUserId(),
         ts: Date.now(),
         properties: sanitizeProperties(properties),
       },
@@ -82,6 +95,7 @@ export async function trackMetric(name, properties = {}, { useBeacon = false } =
   const headers = {
     'Content-Type': 'application/json',
     'X-Client-Session-Id': getClientSessionId(),
+    'X-Anon-User-Id': getAnonUserId(),
     'X-Current-Route': window.location?.pathname || '',
   };
 
@@ -113,10 +127,51 @@ export function initClientObservability() {
     return storage?.getItem('inaturamouche_lang') || 'fr';
   })();
 
+  const extractGrowthContext = () => {
+    let utmSource = null;
+    let utmMedium = null;
+    let utmCampaign = null;
+    let utmContent = null;
+    let utmTerm = null;
+    let referrerHost = null;
+    let landingPath = window.location?.pathname || '/';
+
+    try {
+      const currentUrl = new URL(window.location.href);
+      landingPath = `${currentUrl.pathname || '/'}${currentUrl.search || ''}`;
+      utmSource = currentUrl.searchParams.get('utm_source');
+      utmMedium = currentUrl.searchParams.get('utm_medium');
+      utmCampaign = currentUrl.searchParams.get('utm_campaign');
+      utmContent = currentUrl.searchParams.get('utm_content');
+      utmTerm = currentUrl.searchParams.get('utm_term');
+    } catch {
+      // ignore parse errors
+    }
+
+    try {
+      if (document.referrer) {
+        referrerHost = new URL(document.referrer).hostname || null;
+      }
+    } catch {
+      referrerHost = null;
+    }
+
+    return {
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_content: utmContent,
+      utm_term: utmTerm,
+      referrer_host: referrerHost,
+      landing_path: landingPath,
+    };
+  };
+
   void trackMetric('app_open', {
     locale,
     route: window.location?.pathname || '/',
     user_agent: navigator?.userAgent || '',
+    ...extractGrowthContext(),
   });
 
   window.addEventListener('error', (event) => {

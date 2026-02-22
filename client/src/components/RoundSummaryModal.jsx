@@ -4,6 +4,7 @@ import { getSizedImageUrl } from '../utils/imageUtils';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { fetchExplanation, getTaxonDetails } from '../services/api';
+import { trackMetric } from '../services/metrics';
 
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
@@ -62,8 +63,10 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const [isLoading, setIsLoading] = useState(false);
   const [explanationMinHeight, setExplanationMinHeight] = useState(null);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
+  const [explanationFeedback, setExplanationFeedback] = useState(null);
   const buttonRef = useRef(null);
   const previousActiveRef = useRef(null);
+  const trackedExplanationOpenRef = useRef(null);
   const isWin = status === 'win';
 
   // Helper to extract relevant details from a taxon object, handling EasyMode's 'detail' structure
@@ -196,6 +199,64 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   useEffect(() => {
     setExplanationMinHeight(null);
   }, [explanation]);
+
+  useEffect(() => {
+    trackedExplanationOpenRef.current = null;
+    setExplanationFeedback(null);
+  }, [explanationCorrectId, explanationWrongId, isWin]);
+
+  useEffect(() => {
+    if (
+      isWin ||
+      isLoading ||
+      !explanation ||
+      !explanationCorrectId ||
+      !explanationWrongId
+    ) {
+      return;
+    }
+    const key = `${explanationCorrectId}:${explanationWrongId}`;
+    if (trackedExplanationOpenRef.current === key) return;
+    trackedExplanationOpenRef.current = key;
+
+    void trackMetric('explanation_open', {
+      round_id: question?.round_id || null,
+      correct_taxon_id: String(explanationCorrectId),
+      wrong_taxon_id: String(explanationWrongId),
+      focus_rank: explanationFocusRank || null,
+    });
+  }, [
+    explanation,
+    explanationCorrectId,
+    explanationFocusRank,
+    explanationWrongId,
+    isLoading,
+    isWin,
+    question?.round_id,
+  ]);
+
+  const handleExplanationFeedback = useCallback(
+    (isUseful) => {
+      if (!explanation || isLoading || explanationFeedback !== null) return;
+      setExplanationFeedback(isUseful);
+      void trackMetric('explanation_feedback', {
+        useful: Boolean(isUseful),
+        round_id: question?.round_id || null,
+        correct_taxon_id: explanationCorrectId ? String(explanationCorrectId) : null,
+        wrong_taxon_id: explanationWrongId ? String(explanationWrongId) : null,
+        focus_rank: explanationFocusRank || null,
+      });
+    },
+    [
+      explanation,
+      explanationCorrectId,
+      explanationFeedback,
+      explanationFocusRank,
+      explanationWrongId,
+      isLoading,
+      question?.round_id,
+    ]
+  );
 
   useEffect(() => {
     previousActiveRef.current = document.activeElement;
@@ -385,6 +446,26 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                         {t('summary.explanation_sources')}{' '}
                         {aiSources.join(', ')}
                       </p>
+                    )}
+                    {explanation && (
+                      <div className="explanation-feedback-actions" role="group" aria-label={t('summary.explanation_feedback_label', {}, "L'explication t'a aide ?")}>
+                        <button
+                          type="button"
+                          className={`explanation-feedback-btn ${explanationFeedback === true ? 'is-active' : ''}`}
+                          onClick={() => handleExplanationFeedback(true)}
+                          disabled={explanationFeedback !== null}
+                        >
+                          {t('summary.explanation_feedback_yes', {}, 'Utile')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`explanation-feedback-btn ${explanationFeedback === false ? 'is-active' : ''}`}
+                          onClick={() => handleExplanationFeedback(false)}
+                          disabled={explanationFeedback !== null}
+                        >
+                          {t('summary.explanation_feedback_no', {}, 'Pas utile')}
+                        </button>
+                      </div>
                     )}
                   </>
                 )}

@@ -71,6 +71,7 @@ CONSIGNES :
 7. Même si les données sont en anglais, traduis TOUT en ${lang}.
 8. Orthographe irréprochable : pas de faute, pas de lettres doublées anormales, pas de mot tronqué.
 9. Relis silencieusement avant de répondre.
+10. N'ajoute aucun emoji, aucun préfixe de type "Sources:", aucun texte annexe.
 
 Réponds en deux parties séparées par "---" :
 - D'abord l'explication (2-4 phrases directes)

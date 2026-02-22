@@ -75,6 +75,12 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
   const { correctId, wrongId, locale, focusRank } = req.valid;
   const logger = req.log;
   const requestId = req.id;
+  const metricsSessionId = req.headers['x-client-session-id']
+    ? String(req.headers['x-client-session-id']).slice(0, 120)
+    : null;
+  const metricsAnonUserId = req.headers['x-anon-user-id']
+    ? String(req.headers['x-anon-user-id']).slice(0, 120)
+    : null;
   const taxaIds = [correctId, wrongId];
   
   try {
@@ -120,7 +126,7 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
       wrongTaxonFinal,
       locale,
       logger,
-      { focusRank }
+      { focusRank, metricsSessionId, metricsAnonUserId }
     );
 
     // Pipeline v4 — retourne explication + discriminant + sources

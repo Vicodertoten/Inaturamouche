@@ -160,7 +160,7 @@ export function useGamePersistence({
 
       setActivePackId(config.activePackId || 'custom');
       if (config.customFilters) dispatchCustomFilters({ type: 'RESTORE', payload: config.customFilters });
-      setGameMode(normalizeGameMode(config.gameMode, 'easy'));
+      setGameMode(config.dailySeed ? 'easy' : normalizeGameMode(config.gameMode, 'easy'));
       setMaxQuestions(config.maxQuestions ?? DEFAULT_MAX_QUESTIONS);
       setMediaType(config.mediaType || DEFAULT_MEDIA_TYPE);
       setDailySeed(config.dailySeed || null);

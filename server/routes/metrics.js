@@ -10,7 +10,21 @@ import { recordClientEvents, getMetricsDashboard } from '../services/metricsStor
 
 const router = Router();
 
-const EVENT_NAMES = ['app_open', 'round_start', 'round_complete', 'report_submit', 'client_error', 'api_error'];
+const EVENT_NAMES = [
+  'app_open',
+  'play_click',
+  'question_view',
+  'answer_submit',
+  'quit_mid_round',
+  'round_start',
+  'round_complete',
+  'report_submit',
+  'client_error',
+  'api_error',
+  'explanation_open',
+  'explanation_feedback',
+  'share_click',
+];
 
 const eventPropertiesSchema = z.record(
   z.union([z.string().max(300), z.number(), z.boolean(), z.null()])
@@ -19,6 +33,7 @@ const eventPropertiesSchema = z.record(
 const metricEventSchema = z.object({
   name: z.enum(EVENT_NAMES),
   session_id: z.string().trim().min(3).max(120).optional(),
+  anon_user_id: z.string().trim().min(3).max(120).optional(),
   ts: z.coerce.number().int().positive().optional(),
   properties: eventPropertiesSchema,
 });
@@ -43,8 +58,19 @@ router.post('/api/metrics/events', async (req, res) => {
   }
 
   try {
+    const headerSessionId = req.headers['x-client-session-id']
+      ? String(req.headers['x-client-session-id']).slice(0, 120)
+      : null;
+    const headerAnonUserId = req.headers['x-anon-user-id']
+      ? String(req.headers['x-anon-user-id']).slice(0, 120)
+      : null;
     const events = Array.isArray(parsed.data?.events) ? parsed.data.events : [parsed.data];
-    const accepted = await recordClientEvents(events);
+    const enrichedEvents = events.map((event) => ({
+      ...event,
+      session_id: event?.session_id || headerSessionId || null,
+      anon_user_id: event?.anon_user_id || headerAnonUserId || null,
+    }));
+    const accepted = await recordClientEvents(enrichedEvents);
     return res.status(202).json({
       accepted,
       success: true,

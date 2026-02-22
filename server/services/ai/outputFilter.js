@@ -13,6 +13,7 @@ const countWords = (text) => {
 const collectQualityIssues = (text, { label = 'texte' } = {}) => {
   if (!text) return [];
   const issues = [];
+  const trimmed = text.trim();
 
   // Exemple visé: "boooon", "mammifèree", artefacts de génération.
   if (/\b[\p{L}]*([\p{L}])\1{2,}[\p{L}]*\b/iu.test(text)) {
@@ -27,6 +28,34 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
   // Garde-fou simple contre mots "cassés" très longs.
   if (/\b[\p{L}-]{31,}\b/u.test(text)) {
     issues.push(`QUALITY: ${label} contient un mot anormalement long`);
+  }
+
+  // Exemple visé: ",,", "!!", "...?".
+  if (/[,;:.!?]{2,}/u.test(text)) {
+    issues.push(`QUALITY: ${label} contient une ponctuation anormale`);
+  }
+
+  // Exemple visé: "Sources : Wikipedia..." (bruit inutile dans la réponse finale).
+  if (/\bsource(?:s)?\s*:/iu.test(text)) {
+    issues.push(`QUALITY: ${label} contient des métadonnées parasites`);
+  }
+
+  // Exemple visé: "🔍" et autres symboles non textuels.
+  if (/[^\p{L}\p{N}\s,;:.!?()'"’-]/u.test(text)) {
+    issues.push(`QUALITY: ${label} contient des symboles non textuels`);
+  }
+
+  // Exemple visé: "uu", "noiie", "plussvariées".
+  if (/\b[\p{L}-]*(?:aa|ee|ii|oo|uu|yy|ss[bcdfghjklmnpqrstvwxz]|mm[bcdfghjklmnpqrstvwxz])[\p{L}-]*\b/iu.test(text)) {
+    issues.push(`QUALITY: ${label} contient des séquences de lettres suspectes`);
+  }
+
+  // Garde-fou pour texte coupé brutalement.
+  if (trimmed.length > 8 && !/[.!?]$/.test(trimmed)) {
+    const lastToken = trimmed.split(/\s+/).filter(Boolean).pop() || '';
+    if (lastToken.length <= 2) {
+      issues.push(`QUALITY: ${label} semble tronqué`);
+    }
   }
 
   return issues;
@@ -54,7 +83,11 @@ export function normalizeExplanation(text) {
  */
 export function parseAIResponse(text) {
   if (!text) return null;
-  const trimmed = text.trim();
+  const cleanedInput = text
+    .replace(/[🔍]/gu, '')
+    .replace(/^\s*source(?:s)?\s*:.*$/gimu, '')
+    .trim();
+  const trimmed = cleanedInput;
 
   // ── Stratégie 1 : texte brut avec séparateur "---" ──────────
   if (trimmed.includes('---')) {
@@ -119,6 +152,14 @@ export function validateAndClean(responseObj) {
   if (wordCount > c.maxWords * 1.5) issues.push(`Trop long (${wordCount} mots)`);
   issues.push(...collectQualityIssues(explanation, { label: 'explication' }));
   if (discriminant) {
+    const discriminantWords = countWords(discriminant);
+    if (discriminantWords > 18) {
+      issues.push(`QUALITY: critère trop long (${discriminantWords} mots)`);
+    }
+    // Le critère attendu est une formule courte, pas une phrase narrative.
+    if (/\b(?:est|sont|a|ont|étais|était|étaient|sera|seront)\b/iu.test(discriminant)) {
+      issues.push('QUALITY: critère ressemble à une phrase incomplète');
+    }
     issues.push(...collectQualityIssues(discriminant, { label: 'critère' }));
   }
 

@@ -13,6 +13,7 @@ import { useLanguage } from '../../../context/LanguageContext.jsx';
 import { vibrateSuccess, vibrateError } from '../../../utils/haptics';
 import { submitQuizAnswer } from '../../../services/api';
 import { notify } from '../../../services/notifications';
+import { trackMetric } from '../../../services/metrics';
 
 const INITIAL_GUESSES = 3;
 
@@ -30,6 +31,8 @@ function HardMode() {
     questionCount,
     maxQuestions,
     dailySeedSession,
+    activePackId,
+    isReviewMode,
   } = useGameData();
 
   const { t, getTaxonDisplayNames } = useLanguage();
@@ -110,6 +113,17 @@ function HardMode() {
       if (!selection?.id || roundStatus !== 'playing' || isGuessing) return;
       if (!question?.round_id || !question?.round_signature) return;
 
+      void trackMetric('answer_submit', {
+        mode: 'hard',
+        pack_id: activePackId || null,
+        round_id: question.round_id,
+        question_index: Number.isInteger(questionCount) ? questionCount : null,
+        selected_taxon_id: String(selection.id),
+        attempt: Math.max(1, maxGuesses - guesses + 1),
+        review: Boolean(isReviewMode),
+        is_daily_challenge: Boolean(dailySeedSession),
+      });
+
       setIsGuessing(true);
       try {
         const result = await submitQuizAnswer({
@@ -183,6 +197,11 @@ function HardMode() {
       t,
       triggerPanelShake,
       dailySeedSession,
+      activePackId,
+      guesses,
+      isReviewMode,
+      maxGuesses,
+      questionCount,
     ]
   );
 
