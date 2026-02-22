@@ -11,6 +11,7 @@ const WARMUP_PER_PAGE = 40;
 const WARMUP_MAX_PAGES = 1;
 const WARMUP_PACK_LIMIT = 2;
 const WARMUP_PACK_STAGGER_MS = 450;
+const WARMUP_PRIORITY_PACK_IDS = ['world_mammals'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -49,7 +50,16 @@ export async function warmDefaultObservationPool({ logger } = {}) {
  * Pre-warm pack-specific observation pools.
  */
 export async function warmPackPools({ logger } = {}) {
-  const packIds = getWarmupPackIds({ region: 'europe', limit: WARMUP_PACK_LIMIT });
+  const catalogWarmupPackIds = getWarmupPackIds({ region: 'europe', limit: WARMUP_PACK_LIMIT });
+  const packIds = [];
+  const seen = new Set();
+
+  for (const packId of [...WARMUP_PRIORITY_PACK_IDS, ...catalogWarmupPackIds]) {
+    if (!packId || seen.has(packId)) continue;
+    if (!findPackById(packId)) continue;
+    seen.add(packId);
+    packIds.push(packId);
+  }
 
   for (const [index, packId] of packIds.entries()) {
     const pack = findPackById(packId);
