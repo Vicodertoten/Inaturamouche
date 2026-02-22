@@ -11,13 +11,6 @@ const {
   roundStateTtl: ROUND_STATE_TTL_MS,
   roundHmacSecret,
   maxSelectionStates,
-  adaptivePerformanceWindow,
-  adaptiveMinSamples,
-  adaptiveHarderAccuracy,
-  adaptiveEasierAccuracy,
-  adaptiveLureDelta,
-  iconicRotationWindow,
-  iconicRotationDominance,
   balanceDashboardEventLimit,
 } = config;
 
@@ -31,11 +24,6 @@ const submissionDedupCache = new SmartCache({
   ttl: ROUND_STATE_TTL_MS,
 });
 
-const clientAdaptiveCache = new SmartCache({
-  max: Math.max(500, (maxSelectionStates || 200) * 10),
-  ttl: ROUND_STATE_TTL_MS * 6,
-});
-
 const balanceEvents = [];
 
 const DEFAULT_DEV_SECRET = 'dev-round-secret-change-me';
@@ -46,40 +34,8 @@ const DEFAULT_TAXONOMIC_MAX_HINTS = 1;
 import { SCORE_PER_RANK as DEFAULT_SCORE_PER_RANK } from '../../shared/scoring.js';
 const GAME_MODES = ['easy', 'riddle', 'hard', 'taxonomic'];
 
-function getAdaptiveProfile(clientId) {
-  const key = String(clientId || 'anon');
-  const existing = clientAdaptiveCache.get(key);
-  if (existing && typeof existing === 'object') return existing;
-  const initial = {
-    byMode: {
-      easy: [],
-      riddle: [],
-      hard: [],
-      taxonomic: [],
-    },
-    recentIconicTaxa: [],
-    recentTaxa: [],
-    updatedAt: Date.now(),
-  };
-  clientAdaptiveCache.set(key, initial);
-  return initial;
-}
-
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
-}
-
-function computeAccuracy(history) {
-  if (!Array.isArray(history) || history.length === 0) return null;
-  const wins = history.reduce((sum, value) => sum + (value === true ? 1 : 0), 0);
-  return wins / history.length;
-}
-
-function pushLimited(arr, value, max) {
-  arr.push(value);
-  while (arr.length > max) {
-    arr.shift();
-  }
 }
 
 function pushBalanceEvent(event) {
@@ -98,24 +54,7 @@ function extractHintCountFromResult(result) {
 function trackRoundOutcome(round, result) {
   if (!result?.round_consumed) return;
   const mode = GAME_MODES.includes(round?.gameMode) ? round.gameMode : 'easy';
-  const clientId = String(round?.clientId || 'anon');
-  const profile = getAdaptiveProfile(clientId);
-  const modeHistory = Array.isArray(profile.byMode?.[mode]) ? profile.byMode[mode] : [];
   const isWin = result?.status === 'win';
-
-  pushLimited(modeHistory, isWin, adaptivePerformanceWindow);
-  profile.byMode[mode] = modeHistory;
-
-  const correctTaxonId = round?.correctTaxonId ? String(round.correctTaxonId) : null;
-  if (correctTaxonId) {
-    pushLimited(profile.recentTaxa, correctTaxonId, Math.max(adaptivePerformanceWindow * 2, 20));
-  }
-  const iconicTaxonId = round?.correctAnswer?.iconic_taxon_id;
-  if (Number.isFinite(Number(iconicTaxonId))) {
-    pushLimited(profile.recentIconicTaxa, String(iconicTaxonId), Math.max(iconicRotationWindow * 2, 12));
-  }
-  profile.updatedAt = Date.now();
-  clientAdaptiveCache.set(clientId, profile);
 
   pushBalanceEvent({
     ts: Date.now(),
@@ -125,58 +64,6 @@ function trackRoundOutcome(round, result) {
     hintsUsed: extractHintCountFromResult(result),
     iconicTaxonId: round?.correctAnswer?.iconic_taxon_id ?? null,
   });
-}
-
-function computeDominantIconicId(recentIconicTaxa) {
-  if (!Array.isArray(recentIconicTaxa) || recentIconicTaxa.length === 0) return null;
-  const window = recentIconicTaxa.slice(-iconicRotationWindow);
-  if (window.length < 3) return null;
-  const counts = new Map();
-  for (const iconicId of window) {
-    counts.set(iconicId, (counts.get(iconicId) || 0) + 1);
-  }
-  let bestId = null;
-  let bestCount = 0;
-  for (const [iconicId, count] of counts.entries()) {
-    if (count > bestCount) {
-      bestId = iconicId;
-      bestCount = count;
-    }
-  }
-  if (!bestId) return null;
-  const dominance = bestCount / window.length;
-  if (dominance < iconicRotationDominance) return null;
-  return bestId;
-}
-
-export function getAdaptiveQuestionTuning({ clientId, gameMode } = {}) {
-  const safeMode = GAME_MODES.includes(String(gameMode || '')) ? String(gameMode) : 'easy';
-  const profile = getAdaptiveProfile(clientId);
-  const history = Array.isArray(profile.byMode?.[safeMode]) ? profile.byMode[safeMode] : [];
-  const sample = history.slice(-adaptivePerformanceWindow);
-  const sampleSize = sample.length;
-  const accuracyLastN = computeAccuracy(sample);
-  let lureClosenessDelta = 0;
-  let difficultyBand = 'normal';
-
-  if (sampleSize >= adaptiveMinSamples && accuracyLastN != null) {
-    if (accuracyLastN >= adaptiveHarderAccuracy) {
-      lureClosenessDelta = adaptiveLureDelta;
-      difficultyBand = 'harder';
-    } else if (accuracyLastN <= adaptiveEasierAccuracy) {
-      lureClosenessDelta = -adaptiveLureDelta;
-      difficultyBand = 'easier';
-    }
-  }
-
-  const avoidIconicTaxonId = computeDominantIconicId(profile.recentIconicTaxa);
-  return {
-    sampleSize,
-    accuracyLastN: accuracyLastN == null ? null : clamp01(accuracyLastN),
-    difficultyBand,
-    lureClosenessDelta,
-    avoidIconicTaxonId,
-  };
 }
 
 export function getBalanceDashboardSnapshot() {
@@ -243,7 +130,6 @@ export function getBalanceDashboardSnapshot() {
 export function __resetRoundStoreForTests() {
   roundCache.clear();
   submissionDedupCache.clear();
-  clientAdaptiveCache.clear();
   balanceEvents.length = 0;
 }
 

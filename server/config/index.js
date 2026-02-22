@@ -101,41 +101,12 @@ export const config = {
     max: 20000,
   }),
 
-  // Adaptive difficulty tuning (last-N validated rounds)
-  adaptivePerformanceWindow: parseIntWithFallback(process.env.ADAPTIVE_PERFORMANCE_WINDOW, 10, {
-    min: 5,
-    max: 30,
-  }),
-  adaptiveMinSamples: parseIntWithFallback(process.env.ADAPTIVE_MIN_SAMPLES, 5, {
-    min: 3,
-    max: 20,
-  }),
-  adaptiveHarderAccuracy: parseFloatWithFallback(process.env.ADAPTIVE_HARDER_ACCURACY, 0.8, {
-    min: 0.5,
-    max: 0.99,
-  }),
-  adaptiveEasierAccuracy: parseFloatWithFallback(process.env.ADAPTIVE_EASIER_ACCURACY, 0.45, {
-    min: 0.01,
-    max: 0.7,
-  }),
-  adaptiveLureDelta: parseFloatWithFallback(process.env.ADAPTIVE_LURE_DELTA, 0.04, {
-    min: 0.01,
-    max: 0.2,
-  }),
   // Global difficulty boost:
   // 0   => no boost
   // 0.2 => "20% harder" baseline (lures are closer to the target)
   globalDifficultyBoost: parseFloatWithFallback(process.env.GLOBAL_DIFFICULTY_BOOST, 0.2, {
     min: -0.5,
     max: 0.8,
-  }),
-  iconicRotationWindow: parseIntWithFallback(process.env.ICONIC_ROTATION_WINDOW, 6, {
-    min: 3,
-    max: 20,
-  }),
-  iconicRotationDominance: parseFloatWithFallback(process.env.ICONIC_ROTATION_DOMINANCE, 0.66, {
-    min: 0.5,
-    max: 0.95,
   }),
   
   // Cache TTLs (en millisecondes)
@@ -206,6 +177,7 @@ export const config = {
   // Cooldown
   cooldownTargetN: 60,
   cooldownTargetMs: null, // null = désactivé
+  cooldownLureN: parseIntWithFallback(process.env.COOLDOWN_LURE_N, 6, { min: 0, max: 60 }),
   
   // Pool extension
   maxObsPages: parseIntWithFallback(process.env.OBS_POOL_MAX_PAGES, 3, { min: 1, max: 12 }),
@@ -214,10 +186,7 @@ export const config = {
   degradePoolMaxObsPerTaxon: parseIntWithFallback(process.env.DEGRADE_POOL_MAX_OBS_PER_TAXON, 2, { min: 1, max: 6 }),
   
   // Lure thresholds (profondeur LCA normalisée)
-  lureNearThreshold: 0.9,
-  lureMidThreshold: 0.75,
   easyLureMinCloseness: 0.82,
-  hardLureMinCloseness: 0.74,
   riddleLureMinCloseness: 0.76,
   
   // Circuit breaker

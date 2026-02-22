@@ -38,7 +38,6 @@ export const corsOptions = {
     'Content-Type',
     'X-Cache-Key',
     'X-Lures-Relaxed',
-    'X-Lure-Buckets',
     'X-Pool-Pages',
     'X-Pool-Obs',
     'X-Pool-Taxa',

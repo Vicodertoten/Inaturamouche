@@ -16,7 +16,6 @@ import { generateCustomExplanation } from '../services/aiService.js';
 import {
   createRoundSession,
   submitRoundAnswer,
-  getAdaptiveQuestionTuning,
   getBalanceDashboardSnapshot,
 } from '../services/roundStore.js';
 import { config } from '../config/index.js';
@@ -156,7 +155,6 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       d1,
       d2,
       seed,
-      seed_session,
       question_index,
       locale = 'fr',
       media_type,
@@ -168,7 +166,6 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     const hasSeed = normalizedSeed.length > 0;
     const rng = hasSeed ? createSeededRandom(normalizedSeed) : undefined;
     const poolRng = hasSeed ? createSeededRandom(`${normalizedSeed}|pool`) : undefined;
-    const normalizedSeedSession = typeof seed_session === 'string' ? seed_session.trim() : '';
 
     const gameMode = game_mode || 'easy';
     const geo = hasSeed ? { p: {}, mode: 'global' } : geoParams({ place_id, nelat, nelng, swlat, swlng });
@@ -255,7 +252,7 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       'Session persistence'
     );
 
-    const queueKey = `${cacheKey}|${clientKey || 'anon'}`;
+    const queueKey = `${cacheKey}|${clientKey || 'anon'}|${gameMode}`;
     const clientQuestionIndex = hasSeed && Number.isInteger(question_index) ? question_index : undefined;
     const context = {
       params,
@@ -265,13 +262,6 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
       gameMode,
       geoMode: geo.mode,
       clientId: clientKey,
-      hasPackFilter: Boolean(pack_id),
-      adaptiveTuning: hasSeed
-        ? null
-        : getAdaptiveQuestionTuning({
-            clientId: clientKey,
-            gameMode,
-          }),
       logger: req.log,
       requestId: req.id,
       rng,

@@ -11,6 +11,7 @@ import {
   pickObservationForTaxon,
   pushTargetCooldown,
   buildLureCooldownExclusionSet,
+  pushLureCooldown,
 } from './selectionState.js';
 import { buildLures } from './lureBuilder.js';
 import { getFullTaxaDetails, getTaxonName } from './iNaturalistClient.js';
@@ -26,35 +27,6 @@ const { questionQueueSize: QUESTION_QUEUE_SIZE } = config;
 const { quizChoices: QUIZ_CHOICES } = config;
 const HARD_DEFAULT_MAX_GUESSES = 3;
 const TAXONOMIC_DEFAULT_MAX_HINTS = 1;
-const MAX_LURE_CLOSENESS = 0.98;
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function applyDifficultyBoost(baseCloseness, boost) {
-  const normalizedBase = clamp(Number(baseCloseness) || 0, 0, 1);
-  const normalizedBoost = clamp(Number(boost) || 0, -1, 1);
-  if (normalizedBoost >= 0) {
-    // Move closer to 1.0 by the requested proportion.
-    return normalizedBase + (1 - normalizedBase) * normalizedBoost;
-  }
-  // Negative boost makes the game easier by moving towards 0.
-  return normalizedBase * (1 + normalizedBoost);
-}
-
-function buildIconicRotationExclusionSet(cacheEntry, avoidIconicTaxonId) {
-  if (!cacheEntry || !Array.isArray(cacheEntry.taxonList) || !avoidIconicTaxonId) return new Set();
-  const avoidId = String(avoidIconicTaxonId);
-  const excluded = new Set();
-  for (const taxonId of cacheEntry.taxonList) {
-    const obs = cacheEntry.byTaxon.get(String(taxonId))?.[0];
-    const iconic = obs?.taxon?.iconic_taxon_id;
-    if (iconic == null) continue;
-    if (String(iconic) === avoidId) excluded.add(String(taxonId));
-  }
-  return excluded;
-}
 
 export function buildUniqueEasyChoicePairs(detailsMap, ids) {
   const seen = new Set();
@@ -257,8 +229,6 @@ export async function buildQuizQuestion({
   gameMode,
   geoMode,
   clientId,
-  hasPackFilter,
-  adaptiveTuning,
   logger,
   requestId,
   rng,
@@ -330,30 +300,13 @@ export async function buildQuizQuestion({
             : 0;
         const questionRng = rng;
         const now = Date.now();
-        const iconicRotationExclusions = buildIconicRotationExclusionSet(
-          cacheEntry,
-          adaptiveTuning?.avoidIconicTaxonId
-        );
-        const excludeTaxaForTarget = new Set(iconicRotationExclusions);
+        const excludeTaxaForTarget = new Set();
         let targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
           seed: undefined,
           questionIndex,
         });
 
         let selectionMode = 'normal';
-        if (!targetTaxonId && excludeTaxaForTarget.size > 0) {
-          excludeTaxaForTarget.clear();
-          targetTaxonId = nextEligibleTaxonId(cacheEntry, selectionState, now, excludeTaxaForTarget, questionRng, {
-            seed: undefined,
-            questionIndex,
-          });
-          if (targetTaxonId) {
-            selectionMode = 'adaptive_rotation_relaxed';
-          }
-        }
-        if (targetTaxonId && iconicRotationExclusions.size > 0 && selectionMode === 'normal') {
-          selectionMode = 'adaptive_rotation';
-        }
         if (!targetTaxonId) {
           targetTaxonId = pickRelaxedTaxon(cacheEntry, selectionState, excludeTaxaForTarget, questionRng);
           selectionMode = 'fallback_relax';
@@ -396,7 +349,7 @@ export async function buildQuizQuestion({
   rememberObservation(selectionState, targetObservation.id);
   marks.pickedTarget = performance.now();
   const isTaxonomicMode = gameMode === 'taxonomic';
-  let buckets = { near: 0, mid: 0, far: 0 };
+  const isHardMode = gameMode === 'hard';
   let taxonomicSteps = null;
   let taxonomicMeta = null;
   let details = new Map();
@@ -408,53 +361,33 @@ export async function buildQuizQuestion({
   let choix_mode_facile = [];
   let choix_mode_facile_ids = [];
 
-  const hasExplicitTaxa = Boolean(params?.taxon_id);
-  // Only exclude a small window of upcoming targets from lures to avoid
-  // "spoiling" future questions.  For small pools (e.g. list packs like
-  // mushrooms with ≤49 taxa) excluding the entire deck would starve the
-  // lure builder of candidates.
-  const excludeFutureTargets = (() => {
-    if (!hasExplicitTaxa) return null;
-    const deck = selectionState.taxonDeck || [];
-    if (deck.length === 0) return null;
-    const poolSize = cacheEntry.taxonList?.length || 0;
-    // Keep at least quizChoices taxa available for lures + target.
-    const maxExclude = Math.max(0, poolSize - config.quizChoices - 1);
-    if (maxExclude === 0) return null;
-    const windowSize = Math.min(deck.length, maxExclude, config.questionQueueSize);
-    return new Set(deck.slice(-windowSize).map((id) => String(id)));
-  })();
-  const lureCooldownExclusions = buildLureCooldownExclusionSet(cacheEntry, selectionState);
-  const strictLureExclusions = new Set();
-  if (excludeFutureTargets?.size) {
-    for (const id of excludeFutureTargets) strictLureExclusions.add(String(id));
-  }
-  if (lureCooldownExclusions?.size) {
-    for (const id of lureCooldownExclusions) strictLureExclusions.add(String(id));
-  }
-  const hasStrictLureExclusions = strictLureExclusions.size > 0;
-  const hasLureCooldownExclusions = Boolean(lureCooldownExclusions?.size);
+  if (!isTaxonomicMode && !isHardMode) {
+    const hasExplicitTaxa = Boolean(params?.taxon_id);
+    // Only exclude a small window of upcoming targets from lures to avoid
+    // "spoiling" future questions.  For small pools (e.g. list packs like
+    // mushrooms with ≤49 taxa) excluding the entire deck would starve the
+    // lure builder of candidates.
+    const excludeFutureTargets = (() => {
+      if (!hasExplicitTaxa) return null;
+      const deck = selectionState.taxonDeck || [];
+      if (deck.length === 0) return null;
+      const poolSize = cacheEntry.taxonList?.length || 0;
+      // Keep at least quizChoices taxa available for lures + target.
+      const maxExclude = Math.max(0, poolSize - config.quizChoices - 1);
+      if (maxExclude === 0) return null;
+      const windowSize = Math.min(deck.length, maxExclude, config.questionQueueSize);
+      return new Set(deck.slice(-windowSize).map((id) => String(id)));
+    })();
+    const lureCooldownExclusions = buildLureCooldownExclusionSet(cacheEntry, selectionState);
+    const strictLureExclusions = new Set();
+    if (excludeFutureTargets?.size) {
+      for (const id of excludeFutureTargets) strictLureExclusions.add(String(id));
+    }
+    if (lureCooldownExclusions?.size) {
+      for (const id of lureCooldownExclusions) strictLureExclusions.add(String(id));
+    }
 
-  if (!isTaxonomicMode) {
-    const adaptiveLureDelta = Number(adaptiveTuning?.lureClosenessDelta) || 0;
-    const globalDifficultyBoost = Number(config.globalDifficultyBoost) || 0;
-    const baseModeMinCloseness =
-      gameMode === 'easy'
-        ? config.easyLureMinCloseness
-        : gameMode === 'riddle'
-          ? config.riddleLureMinCloseness
-          : config.hardLureMinCloseness;
-    const boostedBaseCloseness = applyDifficultyBoost(baseModeMinCloseness, globalDifficultyBoost);
-    const modeMinCloseness =
-      clamp(
-        boostedBaseCloseness + adaptiveLureDelta,
-        0,
-        MAX_LURE_CLOSENESS
-      );
-
-    // buildLures is now synchronous — it reads from the pre-computed
-    // confusion map (built once at pool construction time).
-    let { lures } = buildLures(
+    const { lures } = buildLures(
       cacheEntry,
       selectionState,
       targetTaxonId,
@@ -462,38 +395,12 @@ export async function buildQuizQuestion({
       config.lureCount,
       questionRng,
       {
+        gameMode,
+        globalDifficultyBoost: config.globalDifficultyBoost,
         excludeTaxonIds: strictLureExclusions,
-        minCloseness: modeMinCloseness,
         lureUsageCount: selectionState.lureUsageCount || null,
       }
     );
-
-    // Retry with relaxed closeness if lures are insufficient.
-    if ((!lures || lures.length < config.lureCount) && modeMinCloseness > 0) {
-      logger?.info(
-        {
-          requestId,
-          targetTaxonId: String(targetTaxonId),
-          luresFound: lures?.length || 0,
-          lureCount: config.lureCount,
-          modeMinCloseness,
-        },
-        'Lure closeness too strict, retrying with minCloseness=0'
-      );
-      ({ lures } = buildLures(
-        cacheEntry,
-        selectionState,
-        targetTaxonId,
-        targetObservation,
-        config.lureCount,
-        questionRng,
-        {
-          excludeTaxonIds: null,
-          minCloseness: 0,
-          lureUsageCount: null,
-        }
-      ));
-    }
 
     if (!lures || lures.length < config.lureCount) {
       const err = new Error("Pas assez d'espèces différentes pour composer les choix.");
@@ -502,15 +409,14 @@ export async function buildQuizQuestion({
     }
     marks.builtLures = performance.now();
 
-    // Increment lure usage counters for diversity weighting.
-    // The counter persists across questions so that lures used more often
-    // get progressively lower weight in future selections.
+    // Persist lure usage for diversity and recent cooldown windows.
     if (selectionState.lureUsageCount) {
       for (const lure of lures) {
         const tid = String(lure.taxonId);
         selectionState.lureUsageCount.set(tid, (selectionState.lureUsageCount.get(tid) || 0) + 1);
       }
     }
+    pushLureCooldown(cacheEntry, selectionState, lures.map((lure) => String(lure.taxonId)));
 
     choiceIdsInOrder = [String(targetTaxonId), ...lures.map((l) => String(l.taxonId))];
     const fallbackDetails = new Map();
@@ -520,18 +426,18 @@ export async function buildQuizQuestion({
     }
 
     const choiceTaxaDetails = await getFullTaxaDetails(
-    choiceIdsInOrder,
-    locale,
-    {
-      logger,
-      requestId,
-      fallbackDetails,
-      // Always allow partial for quiz choices: observation taxa already provide enough
-      // data to render labels, while full taxon enrichment can happen in background.
-      allowPartial: true,
-    },
-    taxonDetailsCache
-  );
+      choiceIdsInOrder,
+      locale,
+      {
+        logger,
+        requestId,
+        fallbackDetails,
+        // Always allow partial for quiz choices: observation taxa already provide enough
+        // data to render labels, while full taxon enrichment can happen in background.
+        allowPartial: true,
+      },
+      taxonDetailsCache
+    );
 
     details = new Map();
     for (const taxon of choiceTaxaDetails) {
@@ -562,6 +468,27 @@ export async function buildQuizQuestion({
     const facileShuffled = shuffleFisherYates(facilePairs, questionRng);
     choix_mode_facile = facileShuffled.map((p) => p.label);
     choix_mode_facile_ids = facileShuffled.map((p) => p.taxon_id);
+  } else if (isHardMode) {
+    const fallbackDetails = new Map([[String(targetTaxonId), targetObservation?.taxon || {}]]);
+    const targetDetails = await getFullTaxaDetails(
+      [String(targetTaxonId)],
+      locale,
+      {
+        logger,
+        requestId,
+        fallbackDetails,
+        allowPartial: true,
+      },
+      taxonDetailsCache
+    );
+    details = new Map();
+    for (const taxon of targetDetails) {
+      details.set(String(taxon.id), taxon);
+    }
+    if (!details.has(String(targetTaxonId))) {
+      details.set(String(targetTaxonId), fallbackDetails.get(String(targetTaxonId)) || {});
+    }
+    marks.builtLures = performance.now();
   } else {
     const ascensionData = await buildTaxonomicAscension({
       pool: cacheEntry,
@@ -575,7 +502,6 @@ export async function buildQuizQuestion({
     taxonomicSteps = ascensionData.steps;
     taxonomicMeta = ascensionData.meta;
     details = ascensionData.detailMap;
-    buckets = { near: 0, mid: 0, far: 0 };
     marks.builtLures = performance.now();
   }
   const correct = details.get(String(targetTaxonId));
@@ -653,7 +579,7 @@ export async function buildQuizQuestion({
     conservation_status: correct.conservation_status ?? null,
   };
 
-  if (!isTaxonomicMode) {
+  if (gameMode === 'easy' || gameMode === 'riddle') {
     assertStrictChoiceContract({
       shuffledChoices,
       choiceIdsInOrder,
@@ -736,14 +662,10 @@ export async function buildQuizQuestion({
     headers: {
       'X-Cache-Key': cacheKey,
       'X-Lures-Relaxed': selectionMode === 'fallback_relax' ? '1' : '0',
-      'X-Lure-Buckets': `${buckets.near}|${buckets.mid}|${buckets.far}`,
       'X-Pool-Pages': String(pagesFetched),
       'X-Pool-Obs': String(poolObs),
       'X-Pool-Taxa': String(poolTaxa),
       'X-Selection-Geo': geoMode,
-      'X-Adaptive-Band': String(adaptiveTuning?.difficultyBand || 'normal'),
-      'X-Adaptive-Samples': String(adaptiveTuning?.sampleSize || 0),
-      'X-Adaptive-Accuracy': adaptiveTuning?.accuracyLastN == null ? '' : String(adaptiveTuning.accuracyLastN),
       'X-Target-Selection-Mode': selectionMode,
       'Server-Timing': serverTiming,
       'X-Timing': xTiming,
