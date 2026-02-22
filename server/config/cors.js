@@ -24,7 +24,9 @@ export const corsOptions = {
     err.status = 403;
     return cb(err);
   },
-  credentials: false,
+  // Frontend requests may include credentials mode "include"
+  // and custom tracing/session headers for metrics/report routes.
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
   allowedHeaders: [
     'Origin',
@@ -32,6 +34,8 @@ export const corsOptions = {
     'Content-Type',
     'Accept',
     'Authorization',
+    'X-Client-Session-Id',
+    'X-Current-Route',
   ],
   exposedHeaders: [
     'Content-Length',
