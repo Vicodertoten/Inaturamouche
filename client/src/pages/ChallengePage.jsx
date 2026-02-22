@@ -12,7 +12,7 @@ const ChallengePage = () => {
   const navigate = useNavigate();
   const { startGame, setActivePackId } = useGameData();
   const { t } = useLanguage();
-  const { packs, loading: packsLoading } = usePacks();
+  const { packs, loading: packsLoading, error: packsError, refresh: refreshPacks } = usePacks();
   const [challenge, setChallenge] = useState(null);
   const [error, setError] = useState(false);
   const startedRef = useRef(false);
@@ -62,7 +62,43 @@ const ChallengePage = () => {
     );
   }
 
-  if (!challenge || packsLoading) return null;
+  if (!challenge || packsLoading) {
+    return (
+      <div className="screen challenge-screen">
+        <div className="card challenge-card challenge-status-card" role="status" aria-live="polite">
+          <div className="challenge-status-spinner" aria-hidden="true" />
+          <h1 className="challenge-status-title">
+            {t('challenge.loading_title', {}, 'Chargement du défi…')}
+          </h1>
+          <p className="challenge-status-text">
+            {t('challenge.loading_text', {}, 'Préparation des réglages et du pack.')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (packsError) {
+    return (
+      <div className="screen challenge-screen">
+        <div className="card challenge-card challenge-status-card" role="alert" aria-live="assertive">
+          <h1 className="challenge-status-title">
+            {t('challenge.packs_error_title', {}, 'Impossible de charger le défi')}
+          </h1>
+          <p className="challenge-status-text">{packsError}</p>
+          <div className="challenge-status-actions">
+            <button type="button" className="btn btn--primary" onClick={() => void refreshPacks()}>
+              {t('common.retry', {}, 'Réessayer')}
+            </button>
+            <button type="button" className="btn btn--secondary" onClick={() => navigate('/')}>
+              {t('common.home', {}, 'Accueil')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const challengeMode = normalizeGameMode(challenge.gameMode, 'hard');
 
   return (

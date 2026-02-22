@@ -206,11 +206,11 @@ export async function generateCustomExplanation(
           const parsed = parseAIResponse(text);
           if (parsed) {
             const validation = validateAndClean(parsed);
+            const qualityIssues = validation.issues.filter((issue) => issue.startsWith('QUALITY:'));
 
-            if (validation.explanation) {
-              // v6: on accepte même si c'est "pas parfait" — mieux que le fallback
+            if (validation.explanation && qualityIssues.length === 0) {
               if (validation.issues.length > 0) {
-                logger?.info?.({ issues: validation.issues }, 'AI response has issues, keeping anyway');
+                logger?.info?.({ issues: validation.issues }, 'AI response has non-blocking issues, keeping anyway');
               }
               result = {
                 explanation: validation.explanation,
@@ -218,6 +218,8 @@ export async function generateCustomExplanation(
                 sources: mergeAllSources(dataCorrect, dataWrong),
                 fallback: false,
               };
+            } else if (qualityIssues.length > 0) {
+              logger?.warn?.({ issues: qualityIssues }, 'AI response rejected due to quality issues');
             }
           } else {
             logger?.warn?.({ textSlice: text.slice(0, 200) }, 'Could not parse AI response');

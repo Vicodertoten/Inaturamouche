@@ -116,6 +116,33 @@
   letter-spacing: 0.02em;
 }
 
+.app-footer--compact {
+  padding: 0.55rem 0.8rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-footer--compact .footer-inner {
+  gap: 0.38rem;
+}
+
+.app-footer--compact .footer-credit {
+  font-size: 0.66rem;
+  line-height: 1.28;
+}
+
+.app-footer--compact .footer-link {
+  font-size: 0.62rem;
+  padding: 0.16rem 0.48rem;
+}
+
+.app-footer--compact .footer-report-btn {
+  font-size: 0.64rem;
+  padding: 0.24rem 0.58rem;
+}
+
+.app-footer--compact .footer-copy {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .app-footer {
     margin-bottom: calc(-1 * (5rem + var(--space-2) + env(safe-area-inset-bottom, 0px)));
@@ -155,6 +182,48 @@
     white-space: nowrap;
     margin: 0;
     padding: 0.2rem 0.52rem;
+  }
+
+  .app-footer--compact {
+    margin-bottom: calc(-1 * (4.7rem + var(--space-2) + env(safe-area-inset-bottom, 0px)));
+    padding: 0.5rem 0.65rem calc(4.2rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-footer--compact .footer-main-row {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .app-footer--compact .footer-credit {
+    font-size: 0.62rem;
+  }
+
+  .app-footer--compact .footer-links {
+    column-gap: 0.3rem;
+    row-gap: 0.28rem;
+  }
+
+  .app-footer--compact .footer-link {
+    font-size: 0.6rem;
+    padding: 0.14rem 0.44rem;
+  }
+
+  .app-footer--compact .footer-report-btn {
+    justify-self: end;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.61rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-footer--compact .footer-main-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .app-footer--compact .footer-report-btn {
+    justify-self: start;
   }
 }
 

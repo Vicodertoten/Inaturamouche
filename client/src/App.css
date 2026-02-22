@@ -998,6 +998,60 @@ button:active:not(:disabled),
     width: 60%;
   }
 }
+
+/* Easy mode mobile compaction: keep image + choices visible with minimal scroll */
+@media (max-width: 768px) {
+  .game-screen.easy-mode .game-main {
+    gap: 0.35rem;
+  }
+
+  .game-screen.easy-mode .image-section {
+    margin-bottom: 0;
+    min-height: clamp(180px, 36vh, 250px);
+    max-height: 42vh;
+  }
+
+  .game-screen.easy-mode .choices {
+    margin-top: 0;
+    gap: 0.4rem;
+    padding-top: 0.25rem;
+  }
+
+  .game-screen.easy-mode .choices button {
+    padding: 0.6rem 0.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .game-screen.easy-mode .image-section {
+    min-height: clamp(160px, 34vh, 220px);
+    max-height: 40vh;
+  }
+
+  .game-screen.easy-mode .choices button {
+    min-height: 44px;
+    padding: 0.52rem 0.7rem;
+    gap: 0.55rem;
+  }
+
+  .game-screen.easy-mode .choice-number {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 0.82rem;
+  }
+
+  .game-screen.easy-mode .choice-primary {
+    font-size: 0.88rem;
+    line-height: 1.2;
+  }
+
+  .game-screen.easy-mode .choice-secondary {
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+}
   .inat-link { display: inline-flex; align-self: center; gap: 8px; padding: var(--space-2) calc(var(--space-2) + var(--space-1)); background-color: rgba(0, 0, 0, 0.2); border-radius: var(--radius-small); color: var(--text-color-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
 .inat-link:hover { background-color: var(--primary-color); color: var(--text-color); }
 .mode-selector { display: flex; align-items: center; gap: 1rem; padding: var(--space-3); background-color: rgba(0,0,0,0.1); border-radius: var(--radius-small); justify-content: center; }

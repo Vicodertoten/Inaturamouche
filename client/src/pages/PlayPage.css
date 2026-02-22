@@ -1,0 +1,35 @@
+.play-status-card {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  display: grid;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.play-status-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.play-status-text {
+  margin: 0;
+  color: var(--text-color-muted);
+  line-height: 1.45;
+}
+
+.play-status-actions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .play-status-actions {
+    flex-direction: column;
+  }
+
+  .play-status-actions .btn {
+    width: 100%;
+  }
+}

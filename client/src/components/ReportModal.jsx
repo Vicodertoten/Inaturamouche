@@ -1,6 +1,6 @@
 // src/components/ReportModal.jsx
 
-import React, { useState, useEffect, useId } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import './ReportModal.css'; // We'll create this CSS file
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { submitBugReport } from '../services/api.js';
@@ -13,21 +13,69 @@ function ReportModal({ onClose }) {
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  const getFocusableElements = useCallback(() => {
+    if (!modalRef.current) return [];
+    const selectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'textarea:not([disabled])',
+      'input:not([type="hidden"]):not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ];
+    return Array.from(modalRef.current.querySelectorAll(selectors.join(','))).filter((el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      return !el.hasAttribute('aria-hidden') && el.tabIndex >= 0;
+    });
+  }, []);
 
   useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const focusTimer = window.setTimeout(() => {
+      descriptionRef.current?.focus();
+    }, 0);
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey) {
+        if (active === first || !modalRef.current?.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    document.querySelector('.modal-content')?.focus();
 
     return () => {
+      window.clearTimeout(focusTimer);
       window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
     };
-  }, [onClose]);
+  }, [getFocusableElements, onClose]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,6 +102,7 @@ function ReportModal({ onClose }) {
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <div
         className="modal-content report-modal"
+        ref={modalRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -73,6 +122,7 @@ function ReportModal({ onClose }) {
             <label htmlFor="report-description">{t('report.label', {}, 'Description du problème :')}</label>
             <textarea
               id="report-description"
+              ref={descriptionRef}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('report.placeholder', {}, 'Décrivez le problème (ex: photo floue, mauvaise identification, etc.)')}

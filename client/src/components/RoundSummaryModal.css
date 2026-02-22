@@ -738,6 +738,109 @@
   }
 }
 
+/* Narrow phones (421px-600px): keep wrong-answer cards side by side */
+@media (min-width: 421px) and (max-width: 600px) {
+  .summary-modal.summary-modal--lose .answers-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(8px, 2vh, var(--space-3));
+    width: 100%;
+    max-width: none;
+  }
+
+  .summary-modal.summary-modal--lose .answer-card {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* Ultra-narrow devices: keep wrong-answer cards side by side and preserve room for AI text */
+@media (max-width: 420px) {
+  .summary-modal.summary-modal--lose {
+    max-height: 96vh;
+  }
+
+  .summary-modal.summary-modal--lose .summary-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .summary-modal.summary-modal--lose .answers-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    max-width: none;
+  }
+
+  .summary-modal.summary-modal--lose .answer-card {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .summary-modal.summary-modal--lose .answer-card-title {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .summary-modal.summary-modal--lose .answer-card-body {
+    gap: 4px;
+  }
+
+  .summary-modal.summary-modal--lose .answer-image {
+    width: 56px;
+    height: 56px;
+  }
+
+  .summary-modal.summary-modal--lose .answer-name {
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+
+  .summary-modal.summary-modal--lose .answer-scientific-name {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  .summary-modal.summary-modal--lose .modal-links {
+    margin-top: 4px;
+    gap: 4px;
+  }
+
+  .summary-modal.summary-modal--lose .external-link__icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .summary-modal.summary-modal--lose .external-link__icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .summary-modal.summary-modal--lose .explanation-section {
+    width: 100%;
+    margin-top: 0;
+    padding: 6px;
+  }
+
+  .summary-modal.summary-modal--lose .explanation-content {
+    padding: 6px;
+    min-height: 56px;
+  }
+
+  .summary-modal.summary-modal--lose .explanation-section__text {
+    font-size: 0.74rem;
+    line-height: 1.26;
+  }
+}
+
 
 /* --- Animations --- */
 @keyframes modal-fade-in {

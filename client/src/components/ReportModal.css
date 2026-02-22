@@ -1,6 +1,6 @@
 /* src/components/ReportModal.css */
 
-.report-modal .modal-content {
+.report-modal {
   max-width: 500px;
 }
 
@@ -52,7 +52,7 @@
 }
 
 @media (max-width: 480px) {
-  .report-modal .modal-content {
+  .report-modal {
     width: 95%;
     padding: var(--space-3);
   }

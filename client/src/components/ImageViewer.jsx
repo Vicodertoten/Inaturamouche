@@ -206,7 +206,9 @@ function ImageViewer({ imageUrls, alt, photoMeta = [] }) {
               onClick={(e) => { e.stopPropagation(); handlePrev(); }}
               aria-label={t('imageViewer.previous')}
             >
-              ‹
+              <svg className="nav-button__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M14.71 6.29a1 1 0 0 1 0 1.41L10.41 12l4.3 4.29a1 1 0 1 1-1.42 1.42l-5-5a1 1 0 0 1 0-1.42l5-5a1 1 0 0 1 1.42 0z" />
+              </svg>
             </button>
 
             <button
@@ -215,7 +217,9 @@ function ImageViewer({ imageUrls, alt, photoMeta = [] }) {
               onClick={(e) => { e.stopPropagation(); handleNext(); }}
               aria-label={t('imageViewer.next')}
             >
-              ›
+              <svg className="nav-button__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9.29 17.71a1 1 0 0 1 0-1.41L13.59 12l-4.3-4.29a1 1 0 0 1 1.42-1.42l5 5a1 1 0 0 1 0 1.42l-5 5a1 1 0 0 1-1.42 0z" />
+              </svg>
             </button>
             
             <div className="dots">

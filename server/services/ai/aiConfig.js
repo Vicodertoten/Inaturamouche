@@ -7,9 +7,10 @@ export const MODEL_CONFIG = {
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 
   generate: {
-    temperature: 0.5,
-    topP: 0.9,
-    maxOutputTokens: 1024,
+    // Plus déterministe pour limiter fautes/artefacts, plus court pour réduire latence/tokens.
+    temperature: 0.2,
+    topP: 0.8,
+    maxOutputTokens: 640,
   },
 
   riddle: {
@@ -44,7 +45,7 @@ export const PERSONA = {
 };
 
 export const OUTPUT_CONSTRAINTS = {
-  explanation: { minWords: 15, maxWords: 200 },
+  explanation: { minWords: 15, maxWords: 170 },
   riddle: { clueCount: 3, maxClueLength: 180 },
 };
 

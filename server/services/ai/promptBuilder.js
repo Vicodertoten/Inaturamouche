@@ -69,6 +69,8 @@ CONSIGNES :
 5. 2 à 4 phrases, 30 à 100 mots.
 6. Ton : ${tone.description}.
 7. Même si les données sont en anglais, traduis TOUT en ${lang}.
+8. Orthographe irréprochable : pas de faute, pas de lettres doublées anormales, pas de mot tronqué.
+9. Relis silencieusement avant de répondre.
 
 Réponds en deux parties séparées par "---" :
 - D'abord l'explication (2-4 phrases directes)

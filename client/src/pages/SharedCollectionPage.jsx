@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { decodeCollectionSnapshot } from '../utils/collectionShare';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -13,18 +13,25 @@ const SharedCollectionPage = () => {
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const decodeSnapshot = useCallback(() => {
     if (!token) {
       setError(true);
+      setSnapshot(null);
       return;
     }
     const decoded = decodeCollectionSnapshot(token);
     if (!decoded) {
       setError(true);
+      setSnapshot(null);
       return;
     }
+    setError(false);
     setSnapshot(decoded);
   }, [token]);
+
+  useEffect(() => {
+    decodeSnapshot();
+  }, [decodeSnapshot]);
 
   if (error) {
     return (
@@ -40,7 +47,24 @@ const SharedCollectionPage = () => {
     );
   }
 
-  if (!snapshot) return null;
+  if (!snapshot) {
+    return (
+      <div className="screen shared-collection-screen">
+        <div className="card shared-collection-card shared-status-card" role="status" aria-live="polite">
+          <div className="shared-status-spinner" aria-hidden="true" />
+          <h1 className="shared-status-title">
+            {t('collection_share.loading_title', {}, 'Chargement de la collection…')}
+          </h1>
+          <p className="shared-status-text">
+            {t('collection_share.loading_text', {}, 'Décodage du lien partagé.')}
+          </p>
+          <button type="button" className="btn btn--secondary" onClick={decodeSnapshot}>
+            {t('common.retry', {}, 'Réessayer')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const speciesCount = snapshot.s?.length || 0;
 

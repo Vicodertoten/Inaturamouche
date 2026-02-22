@@ -10,6 +10,28 @@ const countWords = (text) => {
   return text.split(/\s+/).filter(Boolean).length;
 };
 
+const collectQualityIssues = (text, { label = 'texte' } = {}) => {
+  if (!text) return [];
+  const issues = [];
+
+  // Exemple visé: "boooon", "mammifèree", artefacts de génération.
+  if (/\b[\p{L}]*([\p{L}])\1{2,}[\p{L}]*\b/iu.test(text)) {
+    issues.push(`QUALITY: ${label} contient des lettres répétées anormales`);
+  }
+
+  // Exemple visé: "de de", "avec avec".
+  if (/\b(\p{L}{2,})\s+\1\b/iu.test(text)) {
+    issues.push(`QUALITY: ${label} contient un mot dupliqué`);
+  }
+
+  // Garde-fou simple contre mots "cassés" très longs.
+  if (/\b[\p{L}-]{31,}\b/u.test(text)) {
+    issues.push(`QUALITY: ${label} contient un mot anormalement long`);
+  }
+
+  return issues;
+};
+
 const getCommonName = (taxon) =>
   taxon?.preferred_common_name || taxon?.common_name || null;
 
@@ -95,6 +117,10 @@ export function validateAndClean(responseObj) {
   const wordCount = countWords(explanation);
   if (wordCount < c.minWords) issues.push(`Trop court (${wordCount} mots)`);
   if (wordCount > c.maxWords * 1.5) issues.push(`Trop long (${wordCount} mots)`);
+  issues.push(...collectQualityIssues(explanation, { label: 'explication' }));
+  if (discriminant) {
+    issues.push(...collectQualityIssues(discriminant, { label: 'critère' }));
+  }
 
   return {
     valid: issues.length === 0,

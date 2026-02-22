@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import XPProgressBar from './XPProgressBar';
 import ShareButtons from './ShareButtons';
-import { getLevelFromXp } from '../utils/scoring';
+import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
 import { useGameData } from '../context/GameContext';
 import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -164,8 +164,13 @@ const EndScreen = ({
   const currentXP = (initialSessionXP || 0) + sessionXPGained;
   const startLevel = getLevelFromXp(initialSessionXP || 0);
   const endLevel = getLevelFromXp(currentXP);
+  const currentLevelFloorXp = getXpForLevel(endLevel);
+  const nextLevelXp = getXpForLevel(endLevel + 1);
+  const xpInCurrentLevel = Math.max(0, currentXP - currentLevelFloorXp);
+  const xpNeededForLevel = Math.max(1, nextLevelXp - currentLevelFloorXp);
   // Level up seulement si on a vraiment gagné de l'XP ET que le niveau a changé
   const leveledUp = sessionXPGained > 0 && endLevel > startLevel;
+  const hasXpDetails = Boolean(xpBreakdown || leveledUp);
 
   // Callback pour les level-ups détectés lors de l'animation XP
   const handleLevelUp = (newLevel) => {
@@ -198,6 +203,7 @@ const EndScreen = ({
   }, [sessionRewards, t]);
 
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showXpDetails, setShowXpDetails] = useState(false);
 
   useEffect(() => {
     const prefersReduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -269,82 +275,151 @@ const EndScreen = ({
               {t('end.session_complete', {}, 'Session Terminée')}
             </h2>
           )}
-          
-          {sessionXPGained > 0 && (
-            <div className="xp-gained-display">
-              <span className="xp-gained-icon" aria-hidden="true">
-                <SparklesIcon className="result-icon-svg" />
-              </span>
-              <span className="xp-gained-label">{t('end.xp_earned', {}, 'XP gagné cette session')}</span>
-              <span className="xp-gained-value">+{sessionXPGained}</span>
-            </div>
-          )}
 
-          {xpBreakdown && (
-            <div className="xp-breakdown">
-              <div className="xp-breakdown-row">
-                <span className="xp-breakdown-label">
-                  <TargetIcon className="xp-breakdown-icon" />
-                  {t('end.xp_base', {}, 'Base')}
-                </span>
-                <span className="xp-breakdown-value">+{xpBreakdown.totalBase}</span>
+          <div className="xp-focus-shell">
+            {sessionXPGained > 0 && (
+              <div className="xp-session-bubble" aria-live="polite">
+                <span className="xp-session-bubble-label">{t('end.xp_earned', {}, 'XP gagné cette session')}</span>
+                <span className="xp-session-bubble-value">+{sessionXPGained.toLocaleString()} XP</span>
               </div>
-              {xpBreakdown.totalStreak > 0 && (
-                <div className="xp-breakdown-row streak">
-                  <span className="xp-breakdown-label">
-                    <StreakIcon className="xp-breakdown-icon" />
-                    {t('end.xp_streak', {}, 'Streak')}
-                  </span>
-                  <span className="xp-breakdown-value">+{xpBreakdown.totalStreak}</span>
-                </div>
-              )}
-              {xpBreakdown.totalRarity > 0 && (
-                <div className="xp-breakdown-row rarity">
-                  <span className="xp-breakdown-label">
-                    <GemIcon className="xp-breakdown-icon" />
-                    {t('end.xp_rarity', {}, 'Rareté')}
-                  </span>
-                  <span className="xp-breakdown-value">+{xpBreakdown.totalRarity}</span>
-                </div>
-              )}
-              {xpBreakdown.totalScientificBonus > 0 && (
-                <div className="xp-breakdown-row scientific">
-                  <span className="xp-breakdown-label">
-                    <FlaskIcon className="xp-breakdown-icon" />
-                    {t('end.xp_scientific_mode', {}, 'Nom scientifique (x2)')}
-                  </span>
-                  <span className="xp-breakdown-value">+{xpBreakdown.totalScientificBonus}</span>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {leveledUp && (
-            <div className="level-progress-info">
-              <span className="level-from">{t('end.level_from', { level: startLevel }, `Niveau ${startLevel}`)}</span>
-              <span className="level-arrow">→</span>
-              <span className="level-to">{t('end.level_to', { level: endLevel }, `Niveau ${endLevel}`)}</span>
-              {(endLevel - startLevel) > 1 && (
-                <span className="multi-level-badge">
-                  {t('end.multi_level', { count: endLevel - startLevel }, `${endLevel - startLevel} niveaux!`)}
-                  <LevelUpIcon className="multi-level-icon" />
+            )}
+
+            {hasXpDetails ? (
+              <button
+                type="button"
+                className={`xp-bar-toggle ${showXpDetails ? 'is-open' : ''}`}
+                onClick={() => setShowXpDetails((prev) => !prev)}
+                aria-expanded={showXpDetails}
+                aria-controls="xp-details-panel"
+              >
+                <span className="xp-bar-side xp-bar-side--level">
+                  <span className="xp-bar-side-label">{t('xp.level_label', {}, 'Niveau')}</span>
+                  <span className="xp-bar-side-value">{endLevel}</span>
                 </span>
+
+                <div className="xp-bar-main">
+                  <div className="xp-bar-progress-shell">
+                    <XPProgressBar
+                      currentXP={currentXP}
+                      startXP={initialSessionXP || 0}
+                      recentXPGain={0}
+                      showDetailed={false}
+                      animate={true}
+                      size="default"
+                      onLevelUp={handleLevelUp}
+                    />
+                  </div>
+                  <span className="xp-bar-toggle-hint">
+                    {showXpDetails
+                      ? t('end.xp_hide_details', {}, 'Masquer le détail XP')
+                      : t('end.xp_show_details', {}, 'Voir le détail XP')}
+                    {showXpDetails ? (
+                      <ChevronDownIcon className="xp-toggle-icon-svg" />
+                    ) : (
+                      <ChevronRightIcon className="xp-toggle-icon-svg" />
+                    )}
+                  </span>
+                </div>
+
+                <span className="xp-bar-side xp-bar-side--progress">
+                  <span className="xp-bar-side-label">{t('end.xp_in_level', {}, 'Progression')}</span>
+                  <span className="xp-bar-side-value">
+                    {xpInCurrentLevel.toLocaleString()} / {xpNeededForLevel.toLocaleString()} XP
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <div className="xp-bar-toggle xp-bar-toggle--static">
+                <span className="xp-bar-side xp-bar-side--level">
+                  <span className="xp-bar-side-label">{t('xp.level_label', {}, 'Niveau')}</span>
+                  <span className="xp-bar-side-value">{endLevel}</span>
+                </span>
+                <div className="xp-bar-main">
+                  <div className="xp-bar-progress-shell">
+                    <XPProgressBar
+                      currentXP={currentXP}
+                      startXP={initialSessionXP || 0}
+                      recentXPGain={0}
+                      showDetailed={false}
+                      animate={true}
+                      size="default"
+                      onLevelUp={handleLevelUp}
+                    />
+                  </div>
+                </div>
+                <span className="xp-bar-side xp-bar-side--progress">
+                  <span className="xp-bar-side-label">{t('end.xp_in_level', {}, 'Progression')}</span>
+                  <span className="xp-bar-side-value">
+                    {xpInCurrentLevel.toLocaleString()} / {xpNeededForLevel.toLocaleString()} XP
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {hasXpDetails && showXpDetails && (
+            <div id="xp-details-panel" className="xp-details-panel">
+              {xpBreakdown && (
+                <div className="xp-breakdown">
+                  <div className="xp-breakdown-row">
+                    <span className="xp-breakdown-label">
+                      <TargetIcon className="xp-breakdown-icon" />
+                      {t('end.xp_base', {}, 'Base')}
+                    </span>
+                    <span className="xp-breakdown-value">+{xpBreakdown.totalBase.toLocaleString()}</span>
+                  </div>
+                  {xpBreakdown.totalStreak > 0 && (
+                    <div className="xp-breakdown-row streak">
+                      <span className="xp-breakdown-label">
+                        <StreakIcon className="xp-breakdown-icon" />
+                        {t('end.xp_streak', {}, 'Streak')}
+                      </span>
+                      <span className="xp-breakdown-value">+{xpBreakdown.totalStreak.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {xpBreakdown.totalRarity > 0 && (
+                    <div className="xp-breakdown-row rarity">
+                      <span className="xp-breakdown-label">
+                        <GemIcon className="xp-breakdown-icon" />
+                        {t('end.xp_rarity', {}, 'Rareté')}
+                      </span>
+                      <span className="xp-breakdown-value">+{xpBreakdown.totalRarity.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {xpBreakdown.totalScientificBonus > 0 && (
+                    <div className="xp-breakdown-row scientific">
+                      <span className="xp-breakdown-label">
+                        <FlaskIcon className="xp-breakdown-icon" />
+                        {t('end.xp_scientific_mode', {}, 'Nom scientifique (x2)')}
+                      </span>
+                      <span className="xp-breakdown-value">+{xpBreakdown.totalScientificBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="xp-breakdown-row total">
+                    <span className="xp-breakdown-label">
+                      <SparklesIcon className="xp-breakdown-icon" />
+                      {t('end.xp_total_session', {}, 'Total session')}
+                    </span>
+                    <span className="xp-breakdown-value">+{xpBreakdown.total.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              {leveledUp && (
+                <div className="level-progress-info">
+                  <span className="level-from">{t('end.level_from', { level: startLevel }, `Niveau ${startLevel}`)}</span>
+                  <span className="level-arrow">→</span>
+                  <span className="level-to">{t('end.level_to', { level: endLevel }, `Niveau ${endLevel}`)}</span>
+                  {(endLevel - startLevel) > 1 && (
+                    <span className="multi-level-badge">
+                      {t('end.multi_level', { count: endLevel - startLevel }, `${endLevel - startLevel} niveaux!`)}
+                      <LevelUpIcon className="multi-level-icon" />
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
-          
-          <div className="level-info">
-            
-            <XPProgressBar 
-                currentXP={currentXP}
-                startXP={initialSessionXP || 0}
-                recentXPGain={sessionXPGained}
-                showDetailed={true}
-                animate={true}
-                size="default"
-                onLevelUp={handleLevelUp}
-              />
-          </div>
         </div>
 
         {/* 2. Achievements débloqués */}

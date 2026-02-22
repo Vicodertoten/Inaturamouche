@@ -28,13 +28,6 @@ const ShareIcon = ({ className }) => (
   </IconBase>
 );
 
-const CopyIcon = ({ className }) => (
-  <IconBase className={className}>
-    <rect x="9" y="9" width="11" height="11" rx="2" />
-    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-  </IconBase>
-);
-
 const ChallengeIcon = ({ className }) => (
   <IconBase className={className}>
     <path d="M4 4l7 7" />
@@ -85,17 +78,6 @@ const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activ
     }
   }, [shareData, t]);
 
-  const handleCopy = useCallback(async () => {
-    const text = buildShareText(shareData);
-    const ok = await copyToClipboard(text);
-    notify(
-      ok
-        ? t('share.copied', {}, 'Résultat copié !')
-        : t('share.copy_fail', {}, 'Impossible de copier – copie le texte manuellement.'),
-      { type: ok ? 'success' : 'info', duration: 3000 },
-    );
-  }, [shareData, t]);
-
   const handleChallenge = useCallback(async () => {
     if (!activePackId) return;
     const token = encodeChallenge({
@@ -120,21 +102,15 @@ const ShareButtons = ({ score, total, packName, topSpecies, isDaily, mode, activ
     <div className="share-buttons">
       <button
         type="button"
-        className="btn btn--share"
+        className={`btn btn--share${sharing ? ' is-loading' : ''}`}
         onClick={handleShare}
         disabled={sharing}
+        aria-busy={sharing}
       >
         <ShareIcon className="share-btn-icon" />
-        {t('share.share_result', {}, 'Partager')}
-      </button>
-
-      <button
-        type="button"
-        className="btn btn--copy"
-        onClick={handleCopy}
-      >
-        <CopyIcon className="share-btn-icon" />
-        {t('share.copy_text', {}, 'Copier')}
+        {sharing
+          ? t('share.sharing', {}, 'Partage…')
+          : t('share.share_result', {}, 'Partager')}
       </button>
 
       {!isDaily && activePackId && (

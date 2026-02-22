@@ -81,13 +81,18 @@
   }
 
   /* Touch-friendly image navigation */
-  .nav-button {
+  .image-viewer-container .nav-button {
     width: 44px;
     height: 44px;
     min-width: 44px;
     min-height: 44px;
-    font-size: 1.25rem;
-    padding: 0.75rem;
+    padding: 0;
+  }
+
+  .image-viewer-container .nav-button__icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
   }
 
   .dots {

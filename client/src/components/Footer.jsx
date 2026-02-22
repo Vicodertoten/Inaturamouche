@@ -2,22 +2,33 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import './Footer.css';
 
-const Footer = ({ onReportClick }) => {
+const Footer = ({ onReportClick, compact = false }) => {
   const { t } = useLanguage();
   const year = new Date().getFullYear();
+  const footerClassName = compact ? 'app-footer app-footer--compact' : 'app-footer';
+  const attributionPrefix = compact
+    ? t('footer.inat_attribution_compact', {}, 'Données et photos')
+    : t(
+      'footer.inat_attribution_long',
+      {},
+      'Les observations et photos proviennent de'
+    );
+  const attributionSuffix = compact
+    ? ''
+    : t(
+      'footer.inat_attribution_suffix',
+      {},
+      ', une plateforme collaborative. Chaque photo affiche l\'observateur original et sa licence CC.'
+    );
 
   return (
-    <footer className="app-footer">
+    <footer className={footerClassName}>
       <div className="footer-inner">
         <div className="footer-main-row">
           <p className="footer-credit">
             <span className="footer-credit-label">{t('footer.data_source', {}, '📊 Source des données')}</span>{' '}
             <span className="footer-credit-text">
-              {t(
-                'footer.inat_attribution_long',
-                {},
-                'Les observations et photos proviennent de'
-              )}{' '}
+              {attributionPrefix}{' '}
               <a
                 href="https://www.inaturalist.org"
                 target="_blank"
@@ -27,11 +38,7 @@ const Footer = ({ onReportClick }) => {
               >
                 iNaturalist
               </a>
-              {t(
-                'footer.inat_attribution_suffix',
-                {},
-                ', une plateforme collaborative. Chaque photo affiche l\'observateur original et sa licence CC.'
-              )}
+              {attributionSuffix}
             </span>
           </p>
 

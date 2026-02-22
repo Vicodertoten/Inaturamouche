@@ -54,13 +54,14 @@ const AppLayout = () => {
     if (location.pathname !== '/profile') navigate('/profile');
   }, [location.pathname, navigate]);
 
+  const isCompactFooter = location.pathname === '/play';
+
   const togglePreferences = useCallback(() => {
     setIsPreferencesOpen((prev) => !prev);
   }, []);
 
   const outletContext = useMemo(() => ({ showReport }), [showReport]);
 
-  const isPlayScreen = location.pathname === '/play';
   const pageMeta = useMemo(() => {
     const path = location.pathname || '/';
     if (path === '/') {
@@ -259,7 +260,7 @@ const AppLayout = () => {
         <Outlet context={outletContext} />
       </main>
 
-      {!isPlayScreen && <Footer onReportClick={showReport} />}
+      <Footer onReportClick={showReport} compact={isCompactFooter} />
     </div>
   );
 };
