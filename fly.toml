@@ -32,3 +32,7 @@ primary_region = 'cdg'
   cpus = 1
   memory_mb = 256
   count = 1
+
+[[mounts]]
+  source = "inatura_data"
+  destination = "/data"
