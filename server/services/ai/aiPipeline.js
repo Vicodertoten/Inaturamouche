@@ -143,7 +143,7 @@ export async function generateCustomExplanation(
   wrongTaxon,
   locale = 'fr',
   logger,
-  { focusRank = null } = {}
+  { focusRank: _focusRank = null } = {}
 ) {
   if (!aiEnabled || !aiApiKey) {
     logger?.warn?.('AI explanations disabled or no API key');

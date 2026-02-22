@@ -47,7 +47,6 @@ export function useGameScoring({
   setInGameShields,
   setRecentXPGain,
   setLevelUpNotification,
-  calculateXPMultipliers,
   setRarityCelebration,
   // injected from useGameRewards
   finalizeGame,
@@ -335,7 +334,6 @@ export function useGameScoring({
     [
       activePack,
       recordEncounter,
-      calculateXPMultipliers,
       currentStreak,
       fetchQuestion,
       finalizeGame,

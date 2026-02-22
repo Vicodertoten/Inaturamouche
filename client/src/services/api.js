@@ -3,6 +3,7 @@
 import { notify } from "./notifications.js";
 import { getApiErrorMessage, isApiLanguageSupported, CODE_TO_KEY } from './apiErrors.js';
 import { debugWarn } from '../utils/logger.js';
+import { trackMetric } from './metrics.js';
 const LANGUAGE_STORAGE_KEY = 'inaturamouche_lang';
 const CLIENT_SESSION_ID_KEY = 'inaturamouche_client_session_id';
 
@@ -45,6 +46,10 @@ function getCurrentLanguage() {
 
 // Base URL : garde ta logique actuelle (VITE_API_URL en priorité, sinon dev/prod par défaut)
 const runtimeEnv = typeof import.meta !== "undefined" ? import.meta.env || {} : {};
+const REPORTS_WRITE_TOKEN =
+  typeof runtimeEnv.VITE_REPORTS_WRITE_TOKEN === 'string'
+    ? runtimeEnv.VITE_REPORTS_WRITE_TOKEN.trim()
+    : '';
 
 export const API_BASE_URL =
   runtimeEnv.VITE_API_URL ||
@@ -189,6 +194,13 @@ async function apiGet(path, params = {}, options = {}) {
         error.status = res.status;
         if (apiError && apiError.code) error.code = apiError.code;
         error.raw = apiError;
+
+        void trackMetric('api_error', {
+          endpoint: path,
+          method: 'GET',
+          status: res.status,
+          code: error.code || null,
+        });
         
         // Check if we should retry
         if (attempt < maxRetries && isRetryableError(error)) {
@@ -205,6 +217,12 @@ async function apiGet(path, params = {}, options = {}) {
       }
       return data;
     } catch (error) {
+      void trackMetric('api_error', {
+        endpoint: path,
+        method: 'GET',
+        status: error?.status || 0,
+        code: error?.code || null,
+      });
       // Check if we should retry
       if (attempt < maxRetries && isRetryableError(error)) {
         // Use exponential backoff: attempt is always 0-2 for maxRetries=3
@@ -225,7 +243,12 @@ async function apiGet(path, params = {}, options = {}) {
 }
 
 async function apiPost(path, body = {}, options = {}) {
-  const { signal, timeout = DEFAULT_TIMEOUT, maxRetries = MAX_RETRIES } = options;
+  const {
+    signal,
+    timeout = DEFAULT_TIMEOUT,
+    maxRetries = MAX_RETRIES,
+    headers: customHeaders = {},
+  } = options;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const url = buildApiUrl(path);
@@ -248,6 +271,7 @@ async function apiPost(path, body = {}, options = {}) {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          ...customHeaders,
         },
         body: JSON.stringify(body),
       });
@@ -265,6 +289,13 @@ async function apiPost(path, body = {}, options = {}) {
         if (apiError?.code) error.code = apiError.code;
         error.raw = apiError;
 
+        void trackMetric('api_error', {
+          endpoint: path,
+          method: 'POST',
+          status: res.status,
+          code: error.code || null,
+        });
+
         if (attempt < maxRetries && isRetryableError(error)) {
           const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
           await sleep(RETRY_DELAYS[delayIndex]);
@@ -276,6 +307,12 @@ async function apiPost(path, body = {}, options = {}) {
       }
       return data;
     } catch (error) {
+      void trackMetric('api_error', {
+        endpoint: path,
+        method: 'POST',
+        status: error?.status || 0,
+        code: error?.code || null,
+      });
       if (attempt < maxRetries && isRetryableError(error)) {
         const delayIndex = Math.min(attempt, RETRY_DELAYS.length - 1);
         await sleep(RETRY_DELAYS[delayIndex]);
@@ -365,15 +402,39 @@ export const submitBugReport = ({
   url = typeof window !== 'undefined' ? window.location.href : '',
   userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '',
   website = '',
-}) =>
-  apiPost(
+}) => {
+  const headers = REPORTS_WRITE_TOKEN
+    ? { Authorization: `Bearer ${REPORTS_WRITE_TOKEN}` }
+    : {};
+
+  headers['X-Client-Session-Id'] = getClientSessionId();
+  headers['X-Current-Route'] = typeof window !== 'undefined' ? window.location.pathname : '';
+
+  return apiPost(
     '/api/reports',
     { description, url, userAgent, website },
     {
       timeout: 10000,
       maxRetries: 1,
+      headers,
     }
-  );
+  )
+    .then((result) => {
+      void trackMetric('report_submit', {
+        success: true,
+        http_status: 200,
+      }, { useBeacon: true });
+      return result;
+    })
+    .catch((error) => {
+      void trackMetric('report_submit', {
+        success: false,
+        http_status: error?.status || 0,
+        code: error?.code || null,
+      }, { useBeacon: true });
+      throw error;
+    });
+};
 
 /**
  * Détails complets pour un taxon.

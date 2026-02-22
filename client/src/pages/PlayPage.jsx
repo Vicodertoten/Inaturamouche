@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HardMode from '../features/quiz/components/HardMode';
 import EasyMode from '../components/Easymode';
-import RiddleMode from '../components/RiddleMode';
-import TaxonomicAscension from '../features/quiz/components/TaxonomicAscension';
 import QuestionSkeleton from '../components/QuestionSkeleton';
 import RarityCelebration from '../components/RarityCelebration';
 import { useGameData, useGameUI } from '../context/GameContext';
@@ -31,6 +29,8 @@ const PlayPage = () => {
     return <QuestionSkeleton />;
   }
 
+  const activeMode = gameMode === 'hard' ? 'hard' : 'easy';
+
   return (
     <>
       {rarityCelebration?.tier && (
@@ -40,10 +40,8 @@ const PlayPage = () => {
           onComplete={() => setRarityCelebration(null)}
         />
       )}
-      {gameMode === 'easy' && <EasyMode />}
-      {gameMode === 'riddle' && <RiddleMode />}
-      {gameMode === 'taxonomic' && <TaxonomicAscension />}
-      {gameMode !== 'easy' && gameMode !== 'riddle' && gameMode !== 'taxonomic' && <HardMode />}
+      {activeMode === 'easy' && <EasyMode />}
+      {activeMode === 'hard' && <HardMode />}
     </>
   );
 };

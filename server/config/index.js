@@ -88,12 +88,39 @@ export const config = {
   explainDailyQuotaPerIp: parseIntWithFallback(process.env.EXPLAIN_DAILY_QUOTA_PER_IP, 60, { min: 1, max: 5000 }),
 
   // Reports
-  reportsRequireWriteToken: parseBoolean(process.env.REPORTS_REQUIRE_WRITE_TOKEN, true),
+  reportsRequireWriteToken: parseBoolean(process.env.REPORTS_REQUIRE_WRITE_TOKEN, false),
   reportsRateLimitPerWindow: parseIntWithFallback(process.env.REPORTS_RATE_LIMIT_PER_WINDOW, 8, { min: 1, max: 200 }),
   reportsRateLimitWindowMs: parseIntWithFallback(process.env.REPORTS_RATE_LIMIT_WINDOW_MS, 10 * 60 * 1000, {
     min: 10 * 1000,
     max: 24 * 60 * 60 * 1000,
   }),
+  reportsStoreFile: process.env.REPORTS_STORE_FILE || 'server/data/reports-store.json',
+  reportsMaxEntries: parseIntWithFallback(process.env.REPORTS_MAX_ENTRIES, 3000, { min: 100, max: 100000 }),
+  reportsRetentionDays: parseIntWithFallback(process.env.REPORTS_RETENTION_DAYS, 45, { min: 1, max: 365 }),
+  reportsIpHashSalt:
+    process.env.REPORTS_IP_HASH_SALT ||
+    process.env.ROUND_HMAC_SECRET ||
+    'dev-reports-ip-hash-salt',
+
+  // Product analytics / KPI dashboard (first-party only)
+  metricsStoreFile: process.env.METRICS_STORE_FILE || 'server/data/metrics-store.json',
+  metricsRetentionHours: parseIntWithFallback(process.env.METRICS_RETENTION_HOURS, 24 * 14, {
+    min: 24,
+    max: 24 * 90,
+  }),
+  metricsMaxApiEvents: parseIntWithFallback(process.env.METRICS_MAX_API_EVENTS, 200000, {
+    min: 1000,
+    max: 2000000,
+  }),
+  metricsMaxClientEvents: parseIntWithFallback(process.env.METRICS_MAX_CLIENT_EVENTS, 100000, {
+    min: 1000,
+    max: 1000000,
+  }),
+  metricsDashboardToken: process.env.METRICS_DASHBOARD_TOKEN || '',
+  metricsDashboardRequireToken: parseBoolean(
+    process.env.METRICS_DASHBOARD_REQUIRE_TOKEN,
+    process.env.NODE_ENV === 'production'
+  ),
   balanceDashboardToken: process.env.BALANCE_DASHBOARD_TOKEN || '',
   balanceDashboardRequireToken: parseBoolean(process.env.BALANCE_DASHBOARD_REQUIRE_TOKEN, true),
   balanceDashboardEventLimit: parseIntWithFallback(process.env.BALANCE_DASHBOARD_EVENT_LIMIT, 2000, {

@@ -167,6 +167,8 @@ export function GameProvider({ children }) {
     setDailySeed: gameConfig.setDailySeed,
     setDailySeedSession: gameConfig.setDailySeedSession,
     setIsChallenge: gameConfig.setIsChallenge,
+    isChallenge: gameConfig.isChallenge,
+    dailySeed: gameConfig.dailySeed,
     isGameActive: gameSession.isGameActive,
     setIsGameActive: gameSession.setIsGameActive,
     setIsStartingNewGame: gameSession.setIsStartingNewGame,

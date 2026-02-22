@@ -13,6 +13,9 @@ COPY server ./server
 COPY lib ./lib
 COPY shared ./shared
 
+# Ensure runtime user can persist local stores (reports/metrics) under /app/server/data
+RUN mkdir -p /app/server/data && chown -R node:node /app
+
 USER node
 EXPOSE 8080
 CMD ["node", "server/index.js"]

@@ -59,7 +59,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const [explanation, setExplanation] = useState('');
   const [discriminant, setDiscriminant] = useState('');
   const [aiSources, setAiSources] = useState([]);
-  const [aiConfidence, setAiConfidence] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [explanationMinHeight, setExplanationMinHeight] = useState(null);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
@@ -155,8 +154,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           console.debug('[RoundSummaryModal] Fetching explanation for:', {
             correctId: explanationCorrectId,
             wrongId: explanationWrongId,
-            correctDisplayName: correctDisplayTaxon?.name,
-            wrongDisplayName: userDisplayTaxon?.name
           });
           const data = await fetchExplanation(
             explanationCorrectId,
@@ -168,7 +165,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             setExplanation(data.explanation || '');
             setDiscriminant(data.discriminant || '');
             setAiSources(Array.isArray(data.sources) ? data.sources : []);
-            setAiConfidence(data.confidence ?? null);
           }
         } catch (error) {
           console.error('Failed to fetch explanation:', {
@@ -177,14 +173,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             code: error.code,
             correctId: explanationCorrectId,
             wrongId: explanationWrongId,
-            correctName: correctDisplayTaxon?.name,
-            wrongName: userDisplayTaxon?.name
           });
           if (isActive) {
             setExplanation('');
             setDiscriminant('');
             setAiSources([]);
-            setAiConfidence(null);
           }
         } finally {
           if (isActive) setIsLoading(false);

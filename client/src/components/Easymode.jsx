@@ -25,8 +25,6 @@ const EasyMode = () => {
     maxQuestions,
     mediaType,
     currentStreak,
-    inGameShields,
-    hasPermanentShield,
     levelUpNotification,
     nextImageUrl,
     completeRound,
@@ -162,7 +160,16 @@ const EasyMode = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [answeredThisQuestion, isSubmitting, question, remainingPairs, t, completeRound, roundMeta]);
+  }, [
+    answeredThisQuestion,
+    isSubmitting,
+    question,
+    remainingPairs,
+    t,
+    completeRound,
+    roundMeta,
+    dailySeedSession,
+  ]);
 
   const handleNext = () => {
     completeRound({

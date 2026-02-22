@@ -42,7 +42,7 @@ export function decodeChallenge(token) {
       packId: data.p,
       gameMode: data.m || 'easy',
       maxQuestions: data.q || 10,
-      mediaType: data.t || 'photo',
+      mediaType: data.t || 'images',
       score: typeof data.sc === 'number' ? data.sc : undefined,
       total: typeof data.st === 'number' ? data.st : undefined,
     };

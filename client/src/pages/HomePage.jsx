@@ -128,6 +128,19 @@ const WarningIndicatorIcon = ({ className = '' }) => (
   </svg>
 );
 
+const DropdownChevronIcon = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      d="M7 10.5 12 15.5 17 10.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const HomePage = () => {
   const navigate = useNavigate();
   const {
@@ -322,6 +335,8 @@ const HomePage = () => {
   const [customOpen, setCustomOpen] = useState(false);
   const advancedPanelRef = useRef(null);
   const advancedButtonRef = useRef(null);
+  const customPanelRef = useRef(null);
+  const customButtonRef = useRef(null);
 
   /* ── Derived ── */
   const activePack = packs.find((p) => p.id === activePackId);
@@ -382,6 +397,33 @@ const HomePage = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [advancedOpen]);
+
+  useEffect(() => {
+    if (!customOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+      if (customPanelRef.current?.contains(target)) return;
+      if (customButtonRef.current?.contains(target)) return;
+      setCustomOpen(false);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setCustomOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [customOpen]);
 
   const isCatalogLoading = packsLoading || homeLoading;
   const packsById = useMemo(
@@ -618,12 +660,13 @@ const HomePage = () => {
 
       {/* ═══════ PACK CATALOG — Netflix-style cards ═══════ */}
       <section className="home-packs">
-        <p className="home-section-label">{t('home.pick_pack', {}, 'Choisis un pack')}</p>
+        <p className="home-section-label home-pick-pack-label">{t('home.pick_pack', {}, 'Choisis un pack')}</p>
 
         {!isCatalogLoading && (
           <div className="home-custom-entry">
             <button
               type="button"
+              ref={customButtonRef}
               className={`home-custom-card ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
               onMouseEnter={preloadCustomFilter}
               onFocus={preloadCustomFilter}
@@ -636,6 +679,7 @@ const HomePage = () => {
               aria-pressed={activePackId === 'custom'}
               aria-expanded={customOpen}
               aria-controls="home-custom-panel"
+              aria-haspopup="menu"
             >
               <span className="home-custom-card-icon" aria-hidden="true">
                 <PackIcon packId="custom" className="pack-card-icon" />
@@ -644,21 +688,21 @@ const HomePage = () => {
                 <span className="home-custom-card-title">{customEntryTitle}</span>
                 <span className="home-custom-card-subtitle">{customEntryDescription}</span>
               </span>
+              <span className="home-custom-card-chevron" aria-hidden="true">
+                <DropdownChevronIcon />
+              </span>
             </button>
           </div>
         )}
 
         {/* ── Custom filter panel (collapsible) ── */}
         {customOpen && (
-          <div className="home-custom-panel" id="home-custom-panel">
+          <div className="home-custom-panel" id="home-custom-panel" ref={customPanelRef}>
             <div className="home-custom-header">
               <p className="home-section-label home-section-label-icon">
                 <PackSettingsIcon />
                 <span>{customEntryTitle}</span>
               </p>
-              <button type="button" className="home-custom-close" onClick={() => setCustomOpen(false)} aria-label="Fermer">
-                <CloseIcon />
-              </button>
             </div>
             <Suspense
               fallback={

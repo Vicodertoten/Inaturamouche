@@ -336,7 +336,7 @@ function SpeciesGrid({ iconicTaxonId, onBack, onSpeciesSelect }) {
     return () => {
       isMounted = false;
     };
-  }, [iconicTaxonId, sortOrder, debouncedSearch, filterStatus, page, collectionVersion]);
+  }, [iconicTaxonId, sortOrder, debouncedSearch, filterStatus, page, collectionVersion, language]);
 
   // Listen for collection updates
   useEffect(() => {

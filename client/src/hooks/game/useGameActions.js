@@ -11,6 +11,7 @@ import { getCollectionStatsForAchievements, updateWeekendStats } from '../../ser
 import { getSpeciesDueForReview } from '../../services/CollectionService';
 import { notify } from '../../services/notifications';
 import { notifyApiError } from '../../services/api';
+import { trackMetric } from '../../services/metrics';
 import { getLevelFromXp } from '../../utils/scoring';
 import { getRarityInfo } from '../../utils/rarityUtils';
 import { computeRoundEconomy } from '../../utils/economy';
@@ -86,6 +87,8 @@ export function useGameActions({
   setDailySeed,
   setDailySeedSession,
   setIsChallenge,
+  isChallenge,
+  dailySeed,
   isGameActive,
   setIsGameActive,
   setIsStartingNewGame,
@@ -275,6 +278,15 @@ export function useGameActions({
         forcedMaxQuestions === undefined ? prev : normalizeMaxQuestions(forcedMaxQuestions, prev)
       );
       setMediaType((prev) => (nextMediaType === undefined ? prev : normalizeMediaType(nextMediaType, prev)));
+      void trackMetric('round_start', {
+        mode: forcedGameMode || gameMode || 'easy',
+        max_questions: Number.isInteger(forcedMaxQuestions) ? forcedMaxQuestions : null,
+        media_type: nextMediaType || null,
+        pack_id: activePackId || null,
+        review: Boolean(review),
+        is_challenge: Boolean(isChallenge),
+        is_daily_challenge: Boolean(isDailyChallenge),
+      });
     },
     [
       abortActiveFetch,
@@ -282,6 +294,8 @@ export function useGameActions({
       clearSessionFromDB,
       profile?.xp,
       resetSessionState,
+      activePackId,
+      gameMode,
       setDailySeed,
       setDailySeedSession,
       setIsChallenge,
@@ -626,6 +640,23 @@ export function useGameActions({
 
       clearSessionFromDB()
         .then(() => {
+          void trackMetric(
+            'round_complete',
+            {
+              mode: gameMode || 'easy',
+              pack_id: activePackId || null,
+              total_questions: validatedTotalQuestions,
+              correct_answers: validatedCorrectAnswers,
+              success:
+                validatedTotalQuestions > 0
+                  ? validatedCorrectAnswers / validatedTotalQuestions >= 0.5
+                  : false,
+              review: Boolean(isReviewMode),
+              is_challenge: Boolean(isChallenge),
+              is_daily_challenge: Boolean(dailySeed && !isChallenge),
+            },
+            { useBeacon: true }
+          );
           updateProfile(profileWithWeekendStats);
           setIsGameActive(false);
           setIsGameOver(true);
@@ -633,6 +664,23 @@ export function useGameActions({
         })
         .catch((err) => {
           console.error('[GameContext] Error clearing session after game end:', err);
+          void trackMetric(
+            'round_complete',
+            {
+              mode: gameMode || 'easy',
+              pack_id: activePackId || null,
+              total_questions: validatedTotalQuestions,
+              correct_answers: validatedCorrectAnswers,
+              success:
+                validatedTotalQuestions > 0
+                  ? validatedCorrectAnswers / validatedTotalQuestions >= 0.5
+                  : false,
+              review: Boolean(isReviewMode),
+              is_challenge: Boolean(isChallenge),
+              is_daily_challenge: Boolean(dailySeed && !isChallenge),
+            },
+            { useBeacon: true }
+          );
           updateProfile(profileWithStreakUpdate);
           setIsGameActive(false);
           setIsGameOver(true);
@@ -645,9 +693,11 @@ export function useGameActions({
       clearSessionFromDB,
       clearUnlockedLater,
       currentStreak,
+      dailySeed,
       daysBetween,
       getDateKey,
       gameMode,
+      isChallenge,
       isReviewMode,
       longestStreak,
       maxQuestions,

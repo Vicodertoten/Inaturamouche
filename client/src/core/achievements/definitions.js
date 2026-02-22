@@ -138,11 +138,9 @@ export const evaluateMicroChallenges = (snapshot = {}, alreadyUnlocked = []) => 
   const sessionSpeciesData = (snapshot.sessionSpeciesData || []).filter(
     (entry) => entry?.validatedEvent === true
   );
-  const roundMeta = snapshot.roundMeta || {};
   const consecutiveFastAnswers = snapshot.consecutiveFastAnswers || 0;
   const sessionXP = snapshot.sessionXP || 0;
   const totalQuestionsAnswered = snapshot.totalQuestionsAnswered || sessionSpeciesData.length;
-  const hintsUsedInSession = snapshot.hintsUsedInSession || 0;
   const correctAnswersInSession = snapshot.correctAnswersInSession || sessionSpeciesData.filter(e => e.wasCorrect).length;
 
   // SPEED_LIGHTNING: 5 réponses < 1.5s consécutives
@@ -195,7 +193,6 @@ export const checkEndOfGameAchievements = (sessionData = {}, alreadyUnlocked = [
     gameHour = new Date().getHours(),
     totalQuestions = 0,
     correctAnswers = 0,
-    hintsUsed = 0,
     shieldsUsed = 0,
     gameMode = 'easy',
     gameWon = false,

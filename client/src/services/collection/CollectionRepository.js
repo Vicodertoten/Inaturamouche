@@ -386,7 +386,7 @@ export async function getSpeciesPage(params = {}) {
     searchQuery = '',
     filterStatus = 'all',
     filterRarity = 'all',
-    language = 'fr',
+    _language = 'fr',
   } = params;
 
   if (!iconicId) throw new Error('iconicId required for getSpeciesPage');

@@ -181,10 +181,15 @@ function Configurator({ onStartGame }) {
     () => packs.find((pack) => pack.id === activePackId),
     [activePackId, packs]
   );
-  const isRiddleMode = gameMode === 'riddle';
   const selectedQuestionValue =
     Number.isInteger(maxQuestions) && maxQuestions > 0 ? String(maxQuestions) : 'infinite';
-  const showSoundsNotice = !isRiddleMode && (mediaType === 'sounds' || mediaType === 'both');
+  const showSoundsNotice = mediaType === 'sounds' || mediaType === 'both';
+
+  useEffect(() => {
+    if (gameMode !== 'easy' && gameMode !== 'hard') {
+      setGameMode('easy');
+    }
+  }, [gameMode, setGameMode]);
 
   const questionOptions = useMemo(
     () => [
@@ -311,11 +316,8 @@ function Configurator({ onStartGame }) {
   const handleModeChange = useCallback(
     (mode) => {
       setGameMode(mode);
-      if (mode === 'riddle') {
-        setMediaType('images');
-      }
     },
-    [setGameMode, setMediaType]
+    [setGameMode]
   );
 
   const handleQuestionLimitChange = useCallback(
@@ -517,22 +519,6 @@ function Configurator({ onStartGame }) {
               </div>
             </label>
 
-            <label className={`mode-card ${gameMode === 'riddle' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="mode"
-                value="riddle"
-                checked={gameMode === 'riddle'}
-                onChange={() => handleModeChange('riddle')}
-                aria-label={t('home.riddle_mode')}
-              />
-              <ModeVisual variant="riddle" />
-              <div className="mode-content">
-                <h4>{t('home.riddle_mode')}</h4>
-                <p className="mode-description">{t('home.riddle_mode_description')}</p>
-              </div>
-            </label>
-
             <label className={`mode-card ${gameMode === 'hard' ? 'selected' : ''}`}>
               <input
                 type="radio"
@@ -546,22 +532,6 @@ function Configurator({ onStartGame }) {
               <div className="mode-content">
                 <h4>{t('home.hard_mode')}</h4>
                 <p className="mode-description">{t('home.hard_mode_description')}</p>
-              </div>
-            </label>
-
-            <label className={`mode-card mode-card-beta ${gameMode === 'taxonomic' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="mode"
-                value="taxonomic"
-                checked={gameMode === 'taxonomic'}
-                onChange={() => handleModeChange('taxonomic')}
-                aria-label={t('home.taxonomic_mode')}
-              />
-              <ModeVisual variant="hard" />
-              <div className="mode-content">
-                <h4>{t('home.taxonomic_mode')} <span className="beta-badge">Labo β</span></h4>
-                <p className="mode-description">{t('home.taxonomic_mode_description')}</p>
               </div>
             </label>
           </div>
@@ -617,7 +587,7 @@ function Configurator({ onStartGame }) {
                   return (
                     <label
                       key={value}
-                      className={`setting-option media-option ${isActive ? 'active' : ''} ${isRiddleMode ? 'disabled' : ''}`}
+                      className={`setting-option media-option ${isActive ? 'active' : ''}`}
                     >
                       <input
                         type="radio"
@@ -625,7 +595,6 @@ function Configurator({ onStartGame }) {
                         value={value}
                         checked={isActive}
                         onChange={() => handleMediaTypeChange(value)}
-                        disabled={isRiddleMode}
                         aria-label={label}
                       />
                       <span className="option-icon" aria-hidden="true">
@@ -636,9 +605,6 @@ function Configurator({ onStartGame }) {
                   );
                 })}
               </div>
-              {isRiddleMode && (
-                <p className="settings-hint">{t('configurator.riddle_media_hint')}</p>
-              )}
               {showSoundsNotice && (
                 <p className="settings-hint">{t('configurator.sounds_warning')}</p>
               )}

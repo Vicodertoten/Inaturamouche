@@ -35,8 +35,6 @@ function TaxonomicAscension() {
     questionCount,
     maxQuestions,
     currentStreak,
-    inGameShields,
-    hasPermanentShield,
     nextImageUrl,
     levelUpNotification,
     completeRound,
@@ -198,6 +196,7 @@ function TaxonomicAscension() {
     question,
     roundStatus,
     t,
+    dailySeedSession,
   ]);
 
   const handleHint = useCallback(async () => {
@@ -252,6 +251,7 @@ function TaxonomicAscension() {
     question,
     roundStatus,
     t,
+    dailySeedSession,
   ]);
 
   const resolvedQuestion = useMemo(() => {

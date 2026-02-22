@@ -1,5 +1,6 @@
 export const DEFAULT_MAX_QUESTIONS = 5;
 export const DEFAULT_MEDIA_TYPE = 'images';
+export const ACTIVE_GAME_MODES = Object.freeze(['easy', 'hard']);
 
 export const normalizeMaxQuestions = (value, fallback = DEFAULT_MAX_QUESTIONS) => {
   if (value === null || value === -1 || value === 'infinite') return null;
@@ -15,7 +16,7 @@ export const normalizeMediaType = (value, fallback = DEFAULT_MEDIA_TYPE) => {
 };
 
 export const normalizeGameMode = (value, fallback = 'easy') => {
-  if (value === 'easy' || value === 'hard' || value === 'riddle' || value === 'taxonomic') {
+  if (ACTIVE_GAME_MODES.includes(value)) {
     return value;
   }
   return fallback;

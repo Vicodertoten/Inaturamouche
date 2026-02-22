@@ -25,6 +25,7 @@ import { isAuthorized, isConfiguredToken } from '../utils/auth.js';
 const router = Router();
 const { balanceDashboardToken, balanceDashboardRequireToken, nodeEnv } = config;
 const requireBalanceDashboardToken = balanceDashboardRequireToken || nodeEnv === 'production';
+const ARCHIVED_GAME_MODES = new Set(['riddle', 'taxonomic']);
 
 const explainSchema = z
   .object({
@@ -168,6 +169,13 @@ router.get('/api/quiz-question', quizLimiter, validate(quizSchema), async (req, 
     const poolRng = hasSeed ? createSeededRandom(`${normalizedSeed}|pool`) : undefined;
 
     const gameMode = game_mode || 'easy';
+    if (ARCHIVED_GAME_MODES.has(gameMode)) {
+      return sendError(req, res, {
+        status: 410,
+        code: 'MODE_ARCHIVED',
+        message: 'This game mode is temporarily archived.',
+      });
+    }
     const geo = hasSeed ? { p: {}, mode: 'global' } : geoParams({ place_id, nelat, nelng, swlat, swlng });
     const params = {
       quality_grade: 'research',
@@ -358,6 +366,13 @@ router.post('/api/quiz/submit', quizLimiter, validate(submitAnswerSchema), async
       client_session_id,
       seed_session,
     } = req.valid;
+    if (round_action === 'taxonomic_select' || round_action === 'taxonomic_hint') {
+      return sendError(req, res, {
+        status: 410,
+        code: 'MODE_ARCHIVED',
+        message: 'This game mode is temporarily archived.',
+      });
+    }
 
     const clientIp = getClientIp(req);
     const normalizedSeedSession = typeof seed_session === 'string' ? seed_session.trim() : '';

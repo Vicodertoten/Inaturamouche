@@ -7,6 +7,9 @@ import { PacksProvider } from './context/PacksContext.jsx'
 import { UserProvider } from './context/UserContext'
 import { GameProvider } from './context/GameContext'
 import { registerSW } from 'virtual:pwa-register'
+import { initClientObservability } from './services/metrics.js'
+
+initClientObservability()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

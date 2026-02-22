@@ -51,10 +51,9 @@ export function computeScore({
  * Simple: +2 per consecutive correct answer, capped at +20.
  * 
  * @param {number} streak - Current streak value
- * @param {'easy'|'hard'} mode - Game mode (unused now, kept for API compat)
  * @returns {number} Bonus points for the streak
  */
-export function computeInGameStreakBonus(streak, mode) {
+export function computeInGameStreakBonus(streak) {
   if (streak <= 0) return 0;
   // +2 per streak answer, cap at +20 (streak 10)
   return Math.min(streak * 2, 20);

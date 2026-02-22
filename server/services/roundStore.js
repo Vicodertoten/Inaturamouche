@@ -32,7 +32,15 @@ const DEFAULT_HARD_MAX_GUESSES = 3;
 const DEFAULT_TAXONOMIC_MAX_MISTAKES = 2;
 const DEFAULT_TAXONOMIC_MAX_HINTS = 1;
 import { SCORE_PER_RANK as DEFAULT_SCORE_PER_RANK } from '../../shared/scoring.js';
-const GAME_MODES = ['easy', 'riddle', 'hard', 'taxonomic'];
+const GAME_MODES = ['easy', 'hard'];
+const ARCHIVED_GAME_MODES = new Set(['riddle', 'taxonomic']);
+
+function createModeArchivedError() {
+  const err = new Error('This game mode is temporarily archived.');
+  err.status = 410;
+  err.code = 'MODE_ARCHIVED';
+  return err;
+}
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
@@ -248,6 +256,9 @@ export function createRoundSession({
   const expiresAt = Date.now() + ROUND_STATE_TTL_MS;
 
   const normalizedGameMode = String(gameMode || 'easy');
+  if (ARCHIVED_GAME_MODES.has(normalizedGameMode)) {
+    throw createModeArchivedError();
+  }
   const round = {
     roundId,
     clientId: String(clientId || 'anon'),
@@ -621,6 +632,9 @@ export async function submitRoundAnswer({
   requestId,
 }) {
   const round = getRound(roundId);
+  if (ARCHIVED_GAME_MODES.has(String(round.gameMode || ''))) {
+    throw createModeArchivedError();
+  }
 
   if (!verifyRoundSignature(round, roundSignature, clientId)) {
     const err = new Error('Invalid round signature.');

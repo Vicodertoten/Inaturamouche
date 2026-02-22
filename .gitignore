@@ -9,6 +9,7 @@
 /client/coverage
 /client/dev-dist
 /client/test-results
+/server/data
 
 # Logs
 npm-debug.log*

@@ -17,8 +17,6 @@ const RiddleMode = () => {
     questionCount,
     maxQuestions,
     currentStreak,
-    inGameShields,
-    hasPermanentShield,
     levelUpNotification,
     completeRound,
     endGame,

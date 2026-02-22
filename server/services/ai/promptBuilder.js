@@ -80,7 +80,7 @@ ${tone.lead}Le chapeau de la première est visqueux et brun, avec des tubes en d
 Tubes visqueux vs lamelles blanches`;
 }
 
-export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale, severity, dataCorrect, dataWrong }) {
+export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _locale, severity, dataCorrect, dataWrong }) {
   const correct = {
     scientific: correctTaxon?.name || 'inconnue',
     common: getCommonName(correctTaxon) || null,
@@ -130,7 +130,7 @@ CONSIGNES :
 Format : 3 lignes, une par indice, numérotées 1. 2. 3.`;
 }
 
-export function buildRiddleUserParts({ targetTaxon, locale, speciesData }) {
+export function buildRiddleUserParts({ targetTaxon, locale: _locale, speciesData }) {
   const common = getCommonName(targetTaxon);
   const scientific = targetTaxon?.name;
   const label = common ? `${common} (${scientific})` : scientific;

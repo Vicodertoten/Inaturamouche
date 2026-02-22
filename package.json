@@ -20,6 +20,8 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "reports": "node scripts/view-reports.js",
+    "beta:smoke": "node scripts/run-beta-smoke.mjs",
+    "beta:thresholds": "node scripts/check-beta-thresholds.mjs",
     "build": "npm --prefix client install --include=dev && npm --prefix client run build"
   },
   "keywords": [],

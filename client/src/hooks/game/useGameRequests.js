@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { fetchQuizQuestion } from '../../services/api';
 import { preloadQuestionImages } from '../../utils/imagePreload';
-import { DEFAULT_MEDIA_TYPE, normalizeGameMode } from './gameUtils';
+import { normalizeGameMode } from './gameUtils';
 
 export function useGameRequests({
   activePack,
@@ -61,9 +61,8 @@ export function useGameRequests({
     const params = new URLSearchParams();
     const hasSeed = typeof dailySeed === 'string' && dailySeed.length > 0;
     const effectiveGameMode = normalizeGameMode(gameMode, 'easy');
-    const resolvedMediaType = effectiveGameMode === 'riddle' ? DEFAULT_MEDIA_TYPE : mediaType;
     params.set('locale', language);
-    params.set('media_type', resolvedMediaType);
+    params.set('media_type', mediaType);
     params.set('game_mode', effectiveGameMode);
     if (hasSeed) {
       params.set('seed', dailySeed);
@@ -175,14 +174,10 @@ export function useGameRequests({
         }
 
         if (prefetchOnly) {
-          if (gameMode !== 'riddle') {
-            preloadQuestionImages(questionData).catch(() => {});
-          }
+          preloadQuestionImages(questionData).catch(() => {});
           setNextQuestion(questionData);
         } else {
-          if (gameMode !== 'riddle') {
-            preloadQuestionImages(questionData).catch(() => {});
-          }
+          preloadQuestionImages(questionData).catch(() => {});
           setQuestion(questionData);
           fetchQuestion(true);
         }
@@ -212,7 +207,6 @@ export function useGameRequests({
       abortPrefetchFetch,
       buildQuizParams,
       dailySeed,
-      gameMode,
       questionCount,
       setLoading,
       setError,

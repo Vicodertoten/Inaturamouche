@@ -69,7 +69,7 @@ async function viewReports() {
       console.log(`Description: ${report.description}`);
       console.log(`URL: ${report.url}`);
       console.log(`Navigateur: ${report.userAgent}`);
-      console.log(`IP: ${report.sourceIp || report.ip || 'N/A'}`);
+      console.log(`IP hash: ${report.sourceIpHash || 'N/A'}`);
       console.log('');
     });
 

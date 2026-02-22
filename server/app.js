@@ -11,6 +11,7 @@ import { httpLogger } from './middleware/logging.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import routes from './routes/index.js';
+import { recordApiMetric } from './services/metricsStore.js';
 
 /**
  * Create and configure Express application
@@ -74,6 +75,33 @@ export function createApp() {
 
   // HTTP logging (Pino)
   app.use(httpLogger);
+
+  // First-party API metrics (latency + status by endpoint)
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api/')) {
+      next();
+      return;
+    }
+    const skipPath = req.path === '/api/metrics/events';
+    if (skipPath) {
+      next();
+      return;
+    }
+    const startedAt = process.hrtime.bigint();
+    res.on('finish', () => {
+      const finishedAt = process.hrtime.bigint();
+      const durationMs = Number(finishedAt - startedAt) / 1_000_000;
+      void recordApiMetric({
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        duration_ms: durationMs,
+      }).catch((err) => {
+        req.log?.debug?.({ err, requestId: req.id }, 'metrics record failed');
+      });
+    });
+    next();
+  });
 
   // Rate limiting
   app.use('/api', apiLimiter);

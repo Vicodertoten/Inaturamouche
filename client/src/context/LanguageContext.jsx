@@ -48,9 +48,12 @@ function safeStorageRemove(key) {
   }
 }
 
+
 function getStoredLanguage() {
   const stored = safeStorageGet(LANGUAGE_STORAGE_KEY);
-  return stored && LANGUAGE_LOADERS[stored] ? stored : DEFAULT_LANGUAGE;
+  if (stored && LANGUAGE_LOADERS[stored]) return stored;
+  // fall back to detecting browser preference
+  return detectBrowserLanguage();
 }
 
 function getStoredNameFormat() {
@@ -61,6 +64,23 @@ function getStoredNameFormat() {
   const legacyScientificPreference = safeStorageGet(LEGACY_SCIENTIFIC_STORAGE_KEY);
   if (legacyScientificPreference === '1') return 'scientific';
   return DEFAULT_NAME_FORMAT;
+}
+
+export function detectBrowserLanguage() {
+  if (typeof navigator === 'undefined') return DEFAULT_LANGUAGE;
+
+  const candidates = [];
+  if (Array.isArray(navigator.languages)) candidates.push(...navigator.languages);
+  if (navigator.language) candidates.push(navigator.language);
+  if (navigator.userLanguage) candidates.push(navigator.userLanguage);
+
+  for (let lang of candidates) {
+    if (!lang) continue;
+    const primary = lang.split('-')[0];
+    if (LANGUAGE_LOADERS[lang]) return lang;
+    if (LANGUAGE_LOADERS[primary]) return primary;
+  }
+  return DEFAULT_LANGUAGE;
 }
 
 export function LanguageProvider({ children }) {

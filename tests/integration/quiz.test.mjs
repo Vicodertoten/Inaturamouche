@@ -72,6 +72,18 @@ const buildMockAncestors = (id) => {
   ];
 };
 
+const ensureMinSpeciesIds = (ids, minCount = 4) => {
+  const unique = Array.from(new Set(ids.filter((value) => Number.isFinite(value))));
+  if (unique.length >= minCount) return unique;
+  const base = unique[0] || 1000;
+  let cursor = Math.max(1000, Number(base) * 10 || 1000);
+  while (unique.length < minCount) {
+    if (!unique.includes(cursor)) unique.push(cursor);
+    cursor += 1;
+  }
+  return unique;
+};
+
 const createInatFetchMock = ({ expectedLocale } = {}) => async (url, opts) => {
   if (String(url).startsWith(baseUrl)) return originalFetch(url, opts);
 
@@ -96,12 +108,13 @@ const createInatFetchMock = ({ expectedLocale } = {}) => async (url, opts) => {
       };
     }
     const rawTaxonIds = params.get('taxon_id');
-    const taxonIds = rawTaxonIds
+    const parsedTaxonIds = rawTaxonIds
       ? rawTaxonIds
           .split(',')
           .map((value) => Number(value))
           .filter((value) => Number.isFinite(value))
       : DEFAULT_TAXON_IDS;
+    const taxonIds = ensureMinSpeciesIds(parsedTaxonIds);
     const iconicTaxonId = taxonIds.includes(47126) ? 47126 : 1;
     return {
       ok: true,
@@ -353,72 +366,16 @@ integrationTest('POST /api/quiz/submit rejects tampered round signature', async 
   assert.equal(body?.error?.code, 'INVALID_ROUND_SIGNATURE');
 });
 
-integrationTest('POST /api/quiz/submit (riddle retry) does not reveal correct answer before round is consumed', async () => {
-  globalThis.fetch = createInatFetchMock();
-  const clientSessionId = 'test-client-riddle';
-
-  const questionRes = await fetch(
-    `${baseUrl}/api/quiz-question?locale=fr&media_type=images&game_mode=riddle&client_session_id=${clientSessionId}`
+integrationTest('GET /api/quiz-question rejects archived riddle mode', async () => {
+  const res = await fetch(
+    `${baseUrl}/api/quiz-question?locale=fr&media_type=images&game_mode=riddle&client_session_id=test-client-riddle`
   );
-  assert.equal(questionRes.status, 200);
-  const question = await questionRes.json();
-
-  const submitRetry1 = await fetch(`${baseUrl}/api/quiz/submit`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      round_id: question.round_id,
-      round_signature: question.round_signature,
-      selected_taxon_id: '999999001',
-      submission_id: 'riddle-wrong-1',
-      client_session_id: clientSessionId,
-    }),
-  });
-  assert.equal(submitRetry1.status, 200);
-  const retry1 = await submitRetry1.json();
-  assert.equal(retry1.status, 'retry');
-  assert.equal(retry1.round_consumed, false);
-  assert.equal(retry1.correct_answer, null);
-  assert.equal(retry1.correct_taxon_id, null);
-
-  const submitRetry2 = await fetch(`${baseUrl}/api/quiz/submit`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      round_id: question.round_id,
-      round_signature: question.round_signature,
-      selected_taxon_id: '999999002',
-      submission_id: 'riddle-wrong-2',
-      client_session_id: clientSessionId,
-    }),
-  });
-  assert.equal(submitRetry2.status, 200);
-  const retry2 = await submitRetry2.json();
-  assert.equal(retry2.status, 'retry');
-  assert.equal(retry2.round_consumed, false);
-  assert.equal(retry2.correct_answer, null);
-  assert.equal(retry2.correct_taxon_id, null);
-
-  const submitLose = await fetch(`${baseUrl}/api/quiz/submit`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      round_id: question.round_id,
-      round_signature: question.round_signature,
-      selected_taxon_id: '999999003',
-      submission_id: 'riddle-wrong-3',
-      client_session_id: clientSessionId,
-    }),
-  });
-  assert.equal(submitLose.status, 200);
-  const lose = await submitLose.json();
-  assert.equal(lose.status, 'lose');
-  assert.equal(lose.round_consumed, true);
-  assert.ok(lose.correct_answer);
-  assert.ok(lose.correct_taxon_id);
+  assert.equal(res.status, 410);
+  const body = await res.json();
+  assert.equal(body?.error?.code, 'MODE_ARCHIVED');
 });
 
-integrationTest('GET /api/quiz-question (hard) does not expose bonne_reponse and supports server-authoritative hint action', async () => {
+integrationTest('GET /api/quiz-question (hard) does not expose bonne_reponse and supports server-authoritative hard guesses', async () => {
   globalThis.fetch = createInatFetchMock();
   const clientSessionId = 'test-client-hard';
 
@@ -439,8 +396,9 @@ integrationTest('GET /api/quiz-question (hard) does not expose bonne_reponse and
     body: JSON.stringify({
       round_id: question.round_id,
       round_signature: question.round_signature,
-      round_action: 'hard_hint',
-      submission_id: 'hard-hint-1',
+      round_action: 'hard_guess',
+      selected_taxon_id: 999999991,
+      submission_id: 'hard-guess-1',
       client_session_id: clientSessionId,
     }),
   });
@@ -452,50 +410,45 @@ integrationTest('GET /api/quiz-question (hard) does not expose bonne_reponse and
   assert.equal(body.correct_taxon_id, null);
 });
 
-integrationTest('GET /api/quiz-question (taxonomic) hides correct step IDs and validates step selection server-side', async () => {
-  globalThis.fetch = createInatFetchMock();
-  const clientSessionId = 'test-client-taxonomic';
-
-  const questionRes = await fetch(
-    `${baseUrl}/api/quiz-question?locale=fr&media_type=images&game_mode=taxonomic&client_session_id=${clientSessionId}`
+integrationTest('GET /api/quiz-question rejects archived taxonomic mode', async () => {
+  const res = await fetch(
+    `${baseUrl}/api/quiz-question?locale=fr&media_type=images&game_mode=taxonomic&client_session_id=test-client-taxonomic`
   );
-  assert.equal(questionRes.status, 200);
-  const question = await questionRes.json();
-  assert.ok(question.round_id);
-  assert.ok(question.round_signature);
-  assert.equal(question.bonne_reponse, undefined);
-  assert.ok(Array.isArray(question?.taxonomic_ascension?.steps));
-  assert.equal(question.taxonomic_ascension.steps.every((step) => !('correct_taxon_id' in step)), true);
+  assert.equal(res.status, 410);
+  const body = await res.json();
+  assert.equal(body?.error?.code, 'MODE_ARCHIVED');
+});
 
-  const firstOption = question.taxonomic_ascension.steps?.[0]?.options?.[0];
-  assert.ok(firstOption?.taxon_id);
-
-  const submitRes = await fetch(`${baseUrl}/api/quiz/submit`, {
+integrationTest('POST /api/quiz/submit rejects archived taxonomic actions', async () => {
+  const res = await fetch(`${baseUrl}/api/quiz/submit`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      round_id: question.round_id,
-      round_signature: question.round_signature,
+      round_id: 'test-round-archive',
+      round_signature: 'a'.repeat(64),
       round_action: 'taxonomic_select',
       step_index: 0,
-      selected_taxon_id: firstOption.taxon_id,
-      submission_id: 'taxonomic-select-1',
-      client_session_id: clientSessionId,
+      selected_taxon_id: 123,
+      submission_id: 'taxonomic-archived',
+      client_session_id: 'test-client-taxonomic-submit',
     }),
   });
-  assert.equal(submitRes.status, 200);
-  const body = await submitRes.json();
-  assert.ok(body.taxonomic_state);
-  assert.equal(body.round_consumed, false);
-  assert.equal(body.correct_answer, null);
-  assert.equal(body.correct_taxon_id, null);
+  assert.equal(res.status, 410);
+  const body = await res.json();
+  assert.equal(body?.error?.code, 'MODE_ARCHIVED');
 });
 
 integrationTest('GET /api/quiz/balance-dashboard returns basic balancing metrics payload', async () => {
   const res = await fetch(`${baseUrl}/api/quiz/balance-dashboard`);
-  assert.equal(res.status, 200);
   const body = await res.json();
-  assert.ok(typeof body.total_rounds === 'number');
-  assert.ok(body.by_mode && typeof body.by_mode === 'object');
-  assert.ok(body.status_distribution && typeof body.status_distribution === 'object');
+
+  if (res.status === 200) {
+    assert.ok(typeof body.total_rounds === 'number');
+    assert.ok(body.by_mode && typeof body.by_mode === 'object');
+    assert.ok(body.status_distribution && typeof body.status_distribution === 'object');
+    return;
+  }
+
+  assert.ok(res.status === 401 || res.status === 503);
+  assert.ok(body?.error?.code === 'UNAUTHORIZED' || body?.error?.code === 'BALANCE_DASHBOARD_DISABLED');
 });

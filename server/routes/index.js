@@ -10,6 +10,7 @@ import taxaRouter from './taxa.js';
 import placesRouter from './places.js';
 import reportsRouter from './reports.js';
 import dailyRouter from './daily.js';
+import metricsRouter from './metrics.js';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use(taxaRouter);
 router.use(placesRouter);
 router.use(reportsRouter);
 router.use(dailyRouter);
+router.use(metricsRouter);
 
 export default router;

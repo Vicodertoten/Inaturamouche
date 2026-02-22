@@ -15,6 +15,30 @@ const makeAnswer = (id, iconicTaxonId = 1) => ({
   ancestors: [],
 });
 
+test('createRoundSession rejects archived game modes', () => {
+  assert.throws(
+    () =>
+      createRoundSession({
+        clientId: 'archived-client',
+        gameMode: 'riddle',
+        correctTaxonId: '1001',
+        correctAnswer: makeAnswer('1001'),
+      }),
+    (err) => err?.code === 'MODE_ARCHIVED' && err?.status === 410
+  );
+
+  assert.throws(
+    () =>
+      createRoundSession({
+        clientId: 'archived-client',
+        gameMode: 'taxonomic',
+        correctTaxonId: '1002',
+        correctAnswer: makeAnswer('1002'),
+      }),
+    (err) => err?.code === 'MODE_ARCHIVED' && err?.status === 410
+  );
+});
+
 async function completeEasyRound({
   clientId,
   correctTaxonId,

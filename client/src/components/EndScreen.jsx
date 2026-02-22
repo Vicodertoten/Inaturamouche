@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import XPProgressBar from './XPProgressBar';
 import ShareButtons from './ShareButtons';
-import DailyLeaderboard from './DailyLeaderboard';
 import { getLevelFromXp } from '../utils/scoring';
 import { useGameData } from '../context/GameContext';
 import { ACHIEVEMENTS } from '../core/achievements';
@@ -483,17 +482,6 @@ const EndScreen = ({
             maxQuestions={maxQuestions}
             mediaType={mediaType}
           />
-
-          {/* Daily Leaderboard */}
-          {isDailyChallenge && (
-            <DailyLeaderboard
-              playerScore={sessionCorrectSpecies.length}
-              playerTotal={sessionSpeciesData.length}
-              playerPseudo={(() => {
-                try { return localStorage.getItem('daily_pseudo') || ''; } catch { return ''; }
-              })()}
-            />
-          )}
         </div>
 
         <div className="end-actions end-nav-actions">

@@ -4,6 +4,7 @@ import { decodeChallenge } from '../utils/challengeSeed';
 import { useGameData } from '../context/GameContext';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
+import { normalizeGameMode } from '../hooks/game/gameUtils';
 import './ChallengePage.css';
 
 const ChallengePage = () => {
@@ -35,11 +36,12 @@ const ChallengePage = () => {
   const handleAccept = () => {
     if (!challenge || startedRef.current) return;
     startedRef.current = true;
+    const challengeMode = normalizeGameMode(challenge.gameMode, 'hard');
 
     // Set the pack and start a normal game with the same settings
     setActivePackId(challenge.packId);
     startGame({
-      gameMode: challenge.gameMode,
+      gameMode: challengeMode,
       maxQuestions: challenge.maxQuestions,
       mediaType: challenge.mediaType,
     });
@@ -61,6 +63,7 @@ const ChallengePage = () => {
   }
 
   if (!challenge || packsLoading) return null;
+  const challengeMode = normalizeGameMode(challenge.gameMode, 'hard');
 
   return (
     <div className="screen challenge-screen">
@@ -84,11 +87,9 @@ const ChallengePage = () => {
             </span>
           )}
           <span className="challenge-detail">
-            🎮 {challenge.gameMode === 'hard'
+            🎮 {challengeMode === 'hard'
               ? t('config.mode_hard', {}, 'Difficile')
-              : challenge.gameMode === 'riddle'
-                ? t('config.mode_riddle', {}, 'Énigme')
-                : t('config.mode_easy', {}, 'Facile')}
+              : t('config.mode_easy', {}, 'Facile')}
           </span>
           <span className="challenge-detail">❓ {challenge.maxQuestions} questions</span>
         </div>

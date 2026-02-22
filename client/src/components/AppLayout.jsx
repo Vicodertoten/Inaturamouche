@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PreferencesMenu from './PreferencesMenu';
 import ToastContainer from './ToastContainer';
 import BottomNavigationBar from './BottomNavigationBar';
-import { CollectionIcon, ProfileIcon as SharedProfileIcon, HelpIcon } from './NavigationIcons';
+import { CollectionIcon, ProfileIcon as SharedProfileIcon } from './NavigationIcons';
 import Footer from './Footer';
 import titleImage from '../assets/inaturaquizz-title.webp';
 import logoImage from '../assets/inaturaquizz-logo.webp';
@@ -48,7 +48,6 @@ const AppLayout = () => {
 
   const showReport = useCallback(() => setIsReportVisible(true), []);
   const closeReport = useCallback(() => setIsReportVisible(false), []);
-  const openHelp = useCallback(() => setIsHelpOpen(true), []);
   const closeHelp = useCallback(() => setIsHelpOpen(false), []);
 
   const showProfile = useCallback(() => {
@@ -190,15 +189,6 @@ const AppLayout = () => {
       {/* Desktop Navigation (Top Right) - Hidden on Mobile */}
       <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">
-          <button
-            className="nav-pill nav-icon nav-elevated"
-            onClick={openHelp}
-            aria-label={t('nav.help_label', {}, 'Aide et informations')}
-            title={t('nav.help_label', {}, 'Aide et informations')}
-            type="button"
-          >
-            <HelpIcon />
-          </button>
           <button
             className="nav-pill nav-icon nav-elevated tutorial-nav-collection"
             onClick={() => navigate('/collection')}

@@ -1,0 +1,17 @@
+{
+  "watch": ["server", "shared"],
+  "ext": "js,mjs",
+  "delay": "500",
+  "ignore": [
+    "**/server/data/**",
+    "server/data/**",
+    "**/*.tmp",
+    "**/*.log",
+    "client/**",
+    "tests/**",
+    "test-results/**",
+    "tmp/**",
+    "wiki/**",
+    "node_modules/**"
+  ]
+}
