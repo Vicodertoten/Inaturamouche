@@ -64,6 +64,14 @@ export const config = {
     process.env.ENABLE_STARTUP_WARMUP,
     process.env.NODE_ENV === 'production'
   ),
+  startupWarmupDelayMs: parseIntWithFallback(process.env.STARTUP_WARMUP_DELAY_MS, 1000, {
+    min: 0,
+    max: 5 * 60 * 1000,
+  }),
+  warmupIntervalMs: parseIntWithFallback(process.env.WARMUP_INTERVAL_MS, 15 * 60 * 1000, {
+    min: 60 * 1000,
+    max: 24 * 60 * 60 * 1000,
+  }),
   
   // Proxy
   trustProxyList: process.env.TRUST_PROXY_LIST || 'loopback,uniquelocal',
@@ -72,8 +80,8 @@ export const config = {
   corsOrigins: parseCsvList(rawCorsOrigins, DEFAULT_CORS_ORIGINS),
   
   // Timeouts & Retries
-  requestTimeoutMs: parseIntWithFallback(process.env.INAT_REQUEST_TIMEOUT_MS, 8000, { min: 500, max: 30000 }),
-  maxRetries: parseIntWithFallback(process.env.INAT_MAX_RETRIES, 2, { min: 0, max: 6 }),
+  requestTimeoutMs: parseIntWithFallback(process.env.INAT_REQUEST_TIMEOUT_MS, 5000, { min: 500, max: 30000 }),
+  maxRetries: parseIntWithFallback(process.env.INAT_MAX_RETRIES, 1, { min: 0, max: 6 }),
   inatMaxConcurrentRequests: parseIntWithFallback(process.env.INAT_MAX_CONCURRENT_REQUESTS, 14, {
     min: 2,
     max: 200,
@@ -141,7 +149,7 @@ export const config = {
     min: 1000 * 30,
     max: 1000 * 60 * 60 * 6,
   }),
-  questionCacheStaleTtl: parseIntWithFallback(process.env.QUESTION_CACHE_STALE_TTL_MS, 1000 * 60 * 30, {
+  questionCacheStaleTtl: parseIntWithFallback(process.env.QUESTION_CACHE_STALE_TTL_MS, 1000 * 60 * 60 * 2, {
     min: 1000 * 30,
     max: 1000 * 60 * 60 * 24,
   }),

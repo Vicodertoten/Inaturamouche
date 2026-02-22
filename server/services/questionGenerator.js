@@ -240,6 +240,12 @@ export async function buildQuizQuestion({
   marks.start = performance.now();
 
   const hasSeed = typeof seed === 'string' && seed.length > 0;
+  // Fast-path for foreground question generation:
+  // - skip total probe (removes one iNat call on misses)
+  // - cap max pages to reduce tail latency while preserving enough diversity
+  const poolFetchConfig = hasSeed
+    ? { skipTotalProbe: true, maxPagesOverride: 1 }
+    : { skipTotalProbe: true, maxPagesOverride: 2 };
 
   const { pool: cacheEntry, pagesFetched, poolObs, poolTaxa } = await getObservationPool({
     cacheKey,
@@ -249,6 +255,7 @@ export async function buildQuizQuestion({
     requestId,
     rng: poolRng,
     seed: hasSeed ? seed : undefined,
+    ...poolFetchConfig,
   });
 
   marks.fetchedObs = performance.now();

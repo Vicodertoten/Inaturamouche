@@ -19,12 +19,32 @@ if (!config.roundHmacSecret || config.roundHmacSecret.trim().length === 0) {
 // Démarrer le serveur seulement si pas en mode test
 if (config.nodeEnv !== 'test') {
   if (config.enableStartupWarmup) {
-    setTimeout(() => {
-      (async () => {
+    let warmupInFlight = false;
+
+    const runWarmupCycle = async () => {
+      if (warmupInFlight) return;
+      warmupInFlight = true;
+      try {
         await warmDefaultObservationPool({ logger });
         await warmPackPools({ logger });
-      })().catch(() => {});
-    }, 1000).unref();
+      } catch (_) {
+        // best effort
+      } finally {
+        warmupInFlight = false;
+      }
+    };
+
+    const startupTimer = setTimeout(() => {
+      void runWarmupCycle();
+    }, config.startupWarmupDelayMs);
+    if (typeof startupTimer.unref === 'function') startupTimer.unref();
+
+    if (config.warmupIntervalMs > 0) {
+      const periodicTimer = setInterval(() => {
+        void runWarmupCycle();
+      }, config.warmupIntervalMs);
+      if (typeof periodicTimer.unref === 'function') periodicTimer.unref();
+    }
   } else {
     logger.info('Startup warmup disabled (ENABLE_STARTUP_WARMUP=false)');
   }
