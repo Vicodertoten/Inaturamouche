@@ -35,7 +35,8 @@ jobs:
     if: >
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       contains(fromJson('["main","master"]'), github.event.workflow_run.head_branch)) ||
+       contains(fromJson('["main","master"]'), github.event.workflow_run.head_branch) &&
+       !contains(github.event.workflow_run.head_commit.message || '', '[no-deploy]')) ||
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.action == 'deploy')
     steps:
@@ -96,6 +97,7 @@ jobs:
       ((github.event_name == 'workflow_run' &&
         github.event.workflow_run.conclusion == 'success' &&
         contains(fromJson('["main","master"]'), github.event.workflow_run.head_branch) &&
+        !contains(github.event.workflow_run.head_commit.message || '', '[no-deploy]') &&
         needs.deploy-staging.result == 'success' &&
         needs.lighthouse-staging.result == 'success') ||
        (github.event_name == 'workflow_dispatch' &&
