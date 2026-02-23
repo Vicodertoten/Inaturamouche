@@ -88,6 +88,20 @@ const getCommonName = (taxon) =>
 
 // ── Normalisation du texte ──────────────────────────────────────
 
+/**
+ * Nettoyage typographique fin pour une écriture "irréprochable".
+ */
+function cleanTypography(text) {
+  if (!text) return '';
+  return text
+    .replace(/\s+([,.;:!?])/g, '$1') // Enlève espace avant ponctuation (ex: "mot ." -> "mot.")
+    .replace(/([.!?])\s*([a-zà-ÿ])/g, (match, p1, p2) => `${p1} ${p2.toUpperCase()}`) // Force majuscule après phrase
+    .replace(/\s{2,}/g, ' ') // Double espaces
+    .replace(/^\s*[a-zà-ÿ]/, (c) => c.toUpperCase()) // Force majuscule début de texte
+    .replace(/\( /g, '(').replace(/ \)/g, ')') // Espaces dans parenthèses
+    .trim();
+}
+
 export function normalizeExplanation(text, {correctName, wrongName, locale} = {}) {
   if (!text) return '';
   let value = text.trim().replace(/\s+/g, ' ');
@@ -115,14 +129,15 @@ export function normalizeExplanation(text, {correctName, wrongName, locale} = {}
   value = value.replace(/\b(visible|montr[ée]e?|présent[ée]e?)\s+(sur|dans)\s+(la|l')\s*(premi[eè]re|seconde|deuxi[eè]me)?\s*(image|photo)\b/gi, '');
   value = value.replace(/\b(sur|dans)\s+(la|l')\s*(image|photo)\b/gi, '');
   value = value.replace(/\b(selon|d'apr[eè]s)\s+wikip[ée]dia\b/gi, '');
-  return value.replace(/\s{2,}/g, ' ').trim();
+  
+  return cleanTypography(value);
 }
 
 // ── Parsing de la réponse IA ────────────────────────────────────
 
 /**
- * Parse la réponse de l'IA. v6 : on attend du texte brut avec "---" comme séparateur.
- * On accepte aussi du JSON en fallback (au cas où l'IA en génère quand même).
+ * Parse la réponse de l'IA. v6.2 : JSON natif strict.
+ * Le parsing texte brut est conservé uniquement comme fallback ultime.
  */
 export function parseAIResponse(text) {
   if (!text) return null;

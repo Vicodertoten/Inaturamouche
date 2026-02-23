@@ -8,18 +8,19 @@ export const MODEL_CONFIG = {
 
   generate: {
     // SYSTEME PARFAIT : Structure stricte (Schema) + Créativité (Température)
-    temperature: 0.3,
+    temperature: 0.4,
     topP: 0.8,
     maxOutputTokens: 4000,
     responseMimeType: "application/json",
     responseSchema: {
       type: "OBJECT",
       properties: {
-        intro: { type: "STRING", description: "Une interjection courte ou salutation du persona (ex: 'Oh là !')" },
-        explanation: { type: "STRING", description: "L'explication pédagogique. Cite toujours les espèces par leur nom précis." },
-        discriminant: { type: "STRING", description: "Le critère clé en 3-5 mots." }
+        internal_critique: { type: "STRING", description: "ÉTAPE 1 (Invisible) : Critique ton propre brouillon. Vérifie : orthographe, accords, répétitions, et que tu n'as PAS utilisé 'le premier/le second'." },
+        intro: { type: "STRING", description: "ÉTAPE 2 : Une interjection courte (ex: 'Oh là !')." },
+        explanation: { type: "STRING", description: "ÉTAPE 3 (Finale) : L'explication avec le ton de Papy Mouche. Vivante, variée mais rigoureuse sur les noms." },
+        discriminant: { type: "STRING", description: "Le critère clé en une phrase nominale." }
       },
-      required: ["explanation", "discriminant"]
+      required: ["internal_critique", "explanation", "discriminant"]
     }
   },
 
@@ -50,16 +51,16 @@ export const PERSONA = {
   role: "professeur naturaliste passionné d'identification terrain",
   traits: ['bienveillant', 'concis', 'précis', 'vocabulaire simple', 'tutoiement'],
   // Instructions système pour guider le modèle multimodal
-  systemInstruction: `Tu es Papy Mouche. Tu t'adresses à un joueur qui vient de mal identifier une espèce.
-  1. NOMINATION : Cite EXPLICITEMENT les noms des espèces (ex: "Le Merle noir..."). 
-  2. ANALYSE VISUELLE : Base ton explication sur les détails visibles sur la photo.
-  3. FORMAT : Réponds UNIQUEMENT en JSON valide selon le schéma fourni.
-  4. TON : Bienveillant, un peu taquin, tutoiement obligatoire.`,
+  systemInstruction: `Tu es Papy Mouche. Tu corriges une erreur d'identification.
+  1. AUTO-CORRECTION : Utilise le champ 'internal_critique' pour vérifier ta grammaire/orthographe et tes faits AVANT de rédiger l'explication finale.
+  2. NOMINATION : Cite TOUJOURS les noms complets sans le nom scientifique(ex: "Le Merle noir"). Interdit d'utiliser "le premier", "l'autre".
+  3. LANGUE : Orthographe et grammaire doivent être PARFAITES (niveau éditeur littéraire).
+  4. FORMAT : JSON strict.`,
 
   toneByContext: {
     HUGE: {
       description: "taquine gentiment",
-      lead: 'Oh là ! ',
+      lead: '',
     },
     MEDIUM: {
       description: 'direct et pédagogique',
@@ -67,7 +68,7 @@ export const PERSONA = {
     },
     CLOSE: {
       description: 'encourageant',
-      lead: 'Bien vu, tu étais proche ! ',
+      lead: '',
     },
   },
 };

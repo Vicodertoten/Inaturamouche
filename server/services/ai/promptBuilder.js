@@ -56,31 +56,24 @@ export function buildExplanationSystemPrompt({ severity, locale }) {
   const tone = PERSONA.toneByContext[severity] || PERSONA.toneByContext.MEDIUM;
   const lang = LOCALE_LABELS[locale] || 'français';
 
-  // v6.1: Prompt renforcé pour nomination explicite et grammaire
   return `Tu es Papy Mouche, un naturaliste passionné qui aide les gens à identifier les espèces sur le terrain. Tu tutoies, tu es bienveillant et direct.
 
 L'utilisateur a confondu deux espèces dans un quiz. Explique-lui comment les distinguer.
 
 CONSIGNES STRICTES :
 1. Réponds UNIQUEMENT en ${lang}.
-2. NOMINATION OBLIGATOIRE : Utilise TOUJOURS le nom complet de l'espèce (ex: "Le Merle noir", "The Red Fox") à chaque mention.
-3. INTERDIT : Ne dis JAMAIS "le premier", "le second", "l'autre", "celui-ci", "the first one", "de andere", etc. C'est confus pour l'élève.
-4. Donne LE critère visuel concret qui les distingue : forme, couleur, taille, texture, motif.
-5. Sois direct : commence par le critère, pas par une introduction.
-6. Longueur : 2 à 4 phrases, 30 à 100 mots.
-7. Ton : ${tone.description}.
-8. Traduction : Même si les données fournies sont en anglais, ta réponse doit être 100% en ${lang}.
-9. Qualité : Grammaire et orthographe irréprochables. Phrases simples et bien construites.
-10. Format : Pas d'emoji, pas de "Sources:", pas de méta-texte.
+2. FORMAT : Remplis le JSON. Utilise 'internal_critique' pour faire ta "repasse" et corriger tes fautes.
+3. NOMINATION : Utilise les noms exacts ci-dessous. Ne dis JAMAIS "le premier" ou "l'autre".
+4. STYLE : Adopte le ton de Papy Mouche (vivant, un peu imagé). Varie la structure de tes phrases pour ne pas être répétitif.
+5. CONTENU : Donne LE critère visuel concret, mais amène-le avec fluidité.
 
-Réponds en deux parties séparées par "---" :
-- D'abord l'explication (2-4 phrases directes)
-- Puis après "---", le critère clé en UNE courte phrase (max 15 mots)
-
-Exemple de format ATTENDU (si les espèces sont Bolet bai et Amanite phalloïde) :
-${tone.lead}Le chapeau du Bolet bai est visqueux et brun, avec des tubes en dessous. L'Amanite phalloïde a des lamelles blanches et un pied plus fin avec une volve. Regarde toujours le dessous du chapeau !
----
-Tubes visqueux vs lamelles blanches`;
+Exemple de réflexion attendue (JSON) :
+{
+  "internal_critique": "J'ai écrit 'le premier', je dois remplacer par 'Le Bolet'. J'ai oublié un 's' à 'tubes'. Correction effectuée.",
+  "intro": "${tone.lead}",
+  "explanation": "Regarde bien le chapeau du Bolet bai : il est tout visqueux et brun ! À l'inverse, l'Amanite phalloïde se trahit par ses lamelles blanches.",
+  "discriminant": "Tubes visqueux vs lamelles blanches"
+}`;
 }
 
 export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _locale, severity, dataCorrect, dataWrong }) {
@@ -104,15 +97,15 @@ export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _l
 
   // Injection explicite des noms dans les headers de données pour guider l'IA
   if (dataCorrect?.contextText) {
-    parts.push({ text: `ESPÈCE 1 (La bonne réponse) - ${correctLabel} :\n${dataCorrect.contextText}` });
+    parts.push({ text: `NOM À UTILISER : "${correctLabel}"\nDESCRIPTION :\n${dataCorrect.contextText}` });
   } else {
-    parts.push({ text: `ESPÈCE 1 (La bonne réponse) - ${correctLabel} : (pas de description)` });
+    parts.push({ text: `NOM À UTILISER : "${correctLabel}"\n(pas de description)` });
   }
 
   if (dataWrong?.contextText) {
-    parts.push({ text: `ESPÈCE 2 (La mauvaise réponse) - ${wrongLabel} :\n${dataWrong.contextText}` });
+    parts.push({ text: `NOM À UTILISER : "${wrongLabel}"\nDESCRIPTION :\n${dataWrong.contextText}` });
   } else {
-    parts.push({ text: `ESPÈCE 2 (La mauvaise réponse) - ${wrongLabel} : (pas de description)` });
+    parts.push({ text: `NOM À UTILISER : "${wrongLabel}"\n(pas de description)` });
   }
 
   return parts;
