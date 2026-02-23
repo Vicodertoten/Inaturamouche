@@ -62,7 +62,7 @@ export function createApp() {
           ],
           'style-src': ["'self'", "'unsafe-inline'"],
           'font-src': ["'self'", 'https:', 'data:'],
-          'script-src': ["'self'"],
+          'script-src': ["'self'", 'https://static.cloudflareinsights.com'],
         },
       },
     })
