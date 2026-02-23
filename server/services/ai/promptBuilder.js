@@ -56,29 +56,29 @@ export function buildExplanationSystemPrompt({ severity, locale }) {
   const tone = PERSONA.toneByContext[severity] || PERSONA.toneByContext.MEDIUM;
   const lang = LOCALE_LABELS[locale] || 'français';
 
-  // v6: prompt SIMPLE et COURT. Moins de règles = meilleur respect.
+  // v6.1: Prompt renforcé pour nomination explicite et grammaire
   return `Tu es Papy Mouche, un naturaliste passionné qui aide les gens à identifier les espèces sur le terrain. Tu tutoies, tu es bienveillant et direct.
 
-L'utilisateur a confondu deux espèces dans un quiz de reconnaissance. Tu dois lui expliquer comment les distinguer la prochaine fois.
+L'utilisateur a confondu deux espèces dans un quiz. Explique-lui comment les distinguer.
 
-CONSIGNES :
+CONSIGNES STRICTES :
 1. Réponds UNIQUEMENT en ${lang}.
-2. Ne cite PAS les noms des espèces (l'utilisateur les voit à l'écran).
-3. Donne LE critère visuel concret qui les distingue : forme, couleur, taille, texture, motif, habitat.
-4. Sois direct : commence par le critère, pas par une introduction.
-5. 2 à 4 phrases, 30 à 100 mots.
-6. Ton : ${tone.description}.
-7. Même si les données sont en anglais, traduis TOUT en ${lang}.
-8. Orthographe irréprochable : pas de faute, pas de lettres doublées anormales, pas de mot tronqué.
-9. Relis silencieusement avant de répondre.
-10. N'ajoute aucun emoji, aucun préfixe de type "Sources:", aucun texte annexe.
+2. NOMINATION OBLIGATOIRE : Utilise TOUJOURS le nom complet de l'espèce (ex: "Le Merle noir", "The Red Fox") à chaque mention.
+3. INTERDIT : Ne dis JAMAIS "le premier", "le second", "l'autre", "celui-ci", "the first one", "de andere", etc. C'est confus pour l'élève.
+4. Donne LE critère visuel concret qui les distingue : forme, couleur, taille, texture, motif.
+5. Sois direct : commence par le critère, pas par une introduction.
+6. Longueur : 2 à 4 phrases, 30 à 100 mots.
+7. Ton : ${tone.description}.
+8. Traduction : Même si les données fournies sont en anglais, ta réponse doit être 100% en ${lang}.
+9. Qualité : Grammaire et orthographe irréprochables. Phrases simples et bien construites.
+10. Format : Pas d'emoji, pas de "Sources:", pas de méta-texte.
 
 Réponds en deux parties séparées par "---" :
 - D'abord l'explication (2-4 phrases directes)
 - Puis après "---", le critère clé en UNE courte phrase (max 15 mots)
 
-Exemple de format :
-${tone.lead}Le chapeau de la première est visqueux et brun, avec des tubes en dessous. L'autre a des lamelles blanches et un pied plus fin. Regarde toujours le dessous du chapeau !
+Exemple de format ATTENDU (si les espèces sont Bolet bai et Amanite phalloïde) :
+${tone.lead}Le chapeau du Bolet bai est visqueux et brun, avec des tubes en dessous. L'Amanite phalloïde a des lamelles blanches et un pied plus fin avec une volve. Regarde toujours le dessous du chapeau !
 ---
 Tubes visqueux vs lamelles blanches`;
 }
@@ -93,22 +93,26 @@ export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _l
     common: getCommonName(wrongTaxon) || null,
   };
 
+  const correctLabel = correct.common ? `${correct.common} (${correct.scientific})` : correct.scientific;
+  const wrongLabel = wrong.common ? `${wrong.common} (${wrong.scientific})` : wrong.scientific;
+
   const parts = [];
 
   parts.push({
-    text: `Confusion : ${correct.common || correct.scientific} vs ${wrong.common || wrong.scientific}. Distance : ${severity}.`,
+    text: `Confusion entre : ${correctLabel} (CORRECT) et ${wrongLabel} (INCORRECT). Distance : ${severity}.`,
   });
 
+  // Injection explicite des noms dans les headers de données pour guider l'IA
   if (dataCorrect?.contextText) {
-    parts.push({ text: `BONNE RÉPONSE :\n${dataCorrect.contextText}` });
+    parts.push({ text: `ESPÈCE 1 (La bonne réponse) - ${correctLabel} :\n${dataCorrect.contextText}` });
   } else {
-    parts.push({ text: `BONNE RÉPONSE : ${correct.scientific} (pas de description)` });
+    parts.push({ text: `ESPÈCE 1 (La bonne réponse) - ${correctLabel} : (pas de description)` });
   }
 
   if (dataWrong?.contextText) {
-    parts.push({ text: `MAUVAISE RÉPONSE :\n${dataWrong.contextText}` });
+    parts.push({ text: `ESPÈCE 2 (La mauvaise réponse) - ${wrongLabel} :\n${dataWrong.contextText}` });
   } else {
-    parts.push({ text: `MAUVAISE RÉPONSE : ${wrong.scientific} (pas de description)` });
+    parts.push({ text: `ESPÈCE 2 (La mauvaise réponse) - ${wrongLabel} : (pas de description)` });
   }
 
   return parts;

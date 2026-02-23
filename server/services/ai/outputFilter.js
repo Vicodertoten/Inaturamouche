@@ -68,9 +68,16 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
     }
   }
 
-  // Détection des comparaisons anonymes interdites (ex: "L'un est...", "Le premier a...")
-  if (/(?:^|[.!?]\s+)(?:L'un|Le premier|La première|Le second|La seconde)\s+(?:est|a|ont|possède)\b/i.test(text)) {
-    issues.push(`WARN: ${label} ne cite pas l'espèce (comparaison anonyme)`);
+  // helper for anonymous comparison in various languages
+  function containsAnonymousComparison(t) {
+    if (!t) return false;
+    // français, anglais, espagnol et néerlandais (ajout de "het")
+    const pattern = /\b(?:L'un|Le premier|La première|Le second|La seconde|the first|the second|the other|first one|second one|el primero|el segundo|el otro|la primera|la segunda|de eerste|het eerste|de tweede|het tweede|de andere|het andere)\b/i;
+    return pattern.test(t);
+  }
+  if (containsAnonymousComparison(text)) {
+    // on considère désormais que c'est un défaut bloquant :
+    issues.push(`QUALITY: ${label} ne cite pas l'espèce (comparaison anonyme)`);
   }
 
   return issues;
@@ -81,9 +88,30 @@ const getCommonName = (taxon) =>
 
 // ── Normalisation du texte ──────────────────────────────────────
 
-export function normalizeExplanation(text) {
+export function normalizeExplanation(text, {correctName, wrongName, locale} = {}) {
   if (!text) return '';
   let value = text.trim().replace(/\s+/g, ' ');
+
+  // remplacement simpliste des pronoms vagues par les noms d'espèces fournis
+  // C'est un filet de sécurité, mais le prompt devrait éviter d'arriver ici.
+  if (correctName && wrongName) {
+    const replacers = [
+      // FR
+      {pattern: /\b(le premier|la première|premier|première)\b/gi, replacement: correctName},
+      {pattern: /\b(le second|la seconde|l'autre|second|seconde)\b/gi, replacement: wrongName},
+      // EN
+      {pattern: /\b(the first(?: one)?|first one)\b/gi, replacement: correctName},
+      {pattern: /\b(the second(?: one)?|the other|second one)\b/gi, replacement: wrongName},
+      // NL (ajout du neutre 'het')
+      {pattern: /\b(de eerste|het eerste)\b/gi, replacement: correctName},
+      {pattern: /\b(de tweede|het tweede|de andere|het andere)\b/gi, replacement: wrongName},
+    ];
+
+    replacers.forEach(({pattern, replacement}) => {
+      value = value.replace(pattern, replacement);
+    });
+  }
+
   value = value.replace(/\b(visible|montr[ée]e?|présent[ée]e?)\s+(sur|dans)\s+(la|l')\s*(premi[eè]re|seconde|deuxi[eè]me)?\s*(image|photo)\b/gi, '');
   value = value.replace(/\b(sur|dans)\s+(la|l')\s*(image|photo)\b/gi, '');
   value = value.replace(/\b(selon|d'apr[eè]s)\s+wikip[ée]dia\b/gi, '');
@@ -126,7 +154,7 @@ export function parseAIResponse(text) {
       : parsed.explanation;
 
     return {
-      explanation: normalizeExplanation(fullExplanation),
+      explanation: normalizeExplanation(fullExplanation), // Note: names not available here yet, done in validate
       discriminant: parsed.discriminant ? String(parsed.discriminant).trim() : null,
     };
   }
@@ -137,7 +165,7 @@ export function parseAIResponse(text) {
 
 // ── Validation ──────────────────────────────────────────────────
 
-export function validateAndClean(responseObj) {
+export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
   const c = OUTPUT_CONSTRAINTS.explanation;
   const issues = [];
 
@@ -145,12 +173,21 @@ export function validateAndClean(responseObj) {
     return { valid: false, issues: ['Réponse non-objet'], explanation: null, discriminant: null };
   }
 
-  const explanation = normalizeExplanation(responseObj.explanation);
+  const explanation = normalizeExplanation(responseObj.explanation, {correctName, wrongName});
   const discriminant = responseObj.discriminant
     ? String(responseObj.discriminant).trim()
     : null;
 
   const wordCount = countWords(explanation);
+  // vérifier que l'une des deux espèces est mentionnée
+  if (correctName || wrongName) {
+    const lower = explanation.toLowerCase();
+    const hasCorrect = correctName && lower.includes(correctName.toLowerCase());
+    const hasWrong = wrongName && lower.includes(wrongName.toLowerCase());
+    if (!hasCorrect && !hasWrong) {
+      issues.push('QUALITY: explication ne mentionne aucune des espèces');
+    }
+  }
   if (wordCount < c.minWords) issues.push(`Trop court (${wordCount} mots)`);
   if (wordCount > c.maxWords * 1.5) issues.push(`Trop long (${wordCount} mots)`);
   issues.push(...collectQualityIssues(explanation, { label: 'explication' }));
