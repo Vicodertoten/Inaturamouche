@@ -1,0 +1,349 @@
+{
+  "generatedAt": "2026-02-23T08:48:56.067Z",
+  "durationMs": 95154,
+  "config": {
+    "locale": "fr",
+    "perGroupSpecies": 14,
+    "pairsPerGroup": 3,
+    "maxPages": 2,
+    "groups": [
+      "BIRDS",
+      "MAMMALS",
+      "PLANTS",
+      "FUNGI",
+      "INSECTS"
+    ],
+    "seed": 20260223
+  },
+  "summary": {
+    "total": 15,
+    "fallbackTrue": 10,
+    "fallbackRatePct": 66.7,
+    "withDiscriminant": 13,
+    "discriminantRatePct": 86.7,
+    "withQualityIssues": 1,
+    "qualityIssuesRatePct": 6.7,
+    "avgWords": 26.1,
+    "avgDurationMs": 5164.3,
+    "byGroup": {
+      "BIRDS": {
+        "total": 3,
+        "fallbackTrue": 2,
+        "avgWords": 20
+      },
+      "MAMMALS": {
+        "total": 3,
+        "fallbackTrue": 1,
+        "avgWords": 31
+      },
+      "PLANTS": {
+        "total": 3,
+        "fallbackTrue": 2,
+        "avgWords": 19
+      },
+      "FUNGI": {
+        "total": 3,
+        "fallbackTrue": 3,
+        "avgWords": 29.7
+      },
+      "INSECTS": {
+        "total": 3,
+        "fallbackTrue": 2,
+        "avgWords": 31
+      }
+    },
+    "examples": {
+      "ai": [
+        {
+          "group": "BIRDS",
+          "pair": "979598/72486",
+          "explanation": "Mon petit, la première est un tout petit oiseau délicat, avec un bec fin et courbé, fait pour",
+          "discriminant": null
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "41663/41955",
+          "explanation": "Regarde d'abord le pelage : l'un a un masque noir autour des yeux et une queue annelée",
+          "discriminant": null
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "75053/1641421",
+          "explanation": "Mon petit, la prochaine fois, regarde bien si l'animal a des ailes ou des pattes ! L'un est un grand mammifère terrestre qui marche sur quatre pattes, souvent avec des bois sur la tête pour les mâles. L'autre est une ch…",
+          "discriminant": "Ailes pour voler ou quatre pattes pour marcher."
+        },
+        {
+          "group": "PLANTS",
+          "pair": "472475/287316",
+          "explanation": "Oh là là, mon petit naturaliste !",
+          "discriminant": "Tu as confondu une fougère avec un arbuste fleuri !"
+        },
+        {
+          "group": "INSECTS",
+          "pair": "51588/338194",
+          "explanation": "Regarde bien la forme du corps et les ailes. Le premier a un corps fin et de grandes ailes colorées, souvent avec des motifs complexes. L'autre est plus trapu, velu, avec des ailes plus petites et transparentes. C'est l…",
+          "discriminant": "Corps fin et grandes ailes colorées vs corps velu et petites ailes."
+        }
+      ],
+      "fallback": [
+        {
+          "group": "BIRDS",
+          "pair": "13851/3048",
+          "explanation": "La posture, le vol (battu, plané, ondulé), les marques faciales et le bec sont souvent plus utiles que la couleur générale.",
+          "discriminant": "Bec, silhouette, barres alaires"
+        },
+        {
+          "group": "BIRDS",
+          "pair": "12716/4936",
+          "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent.",
+          "discriminant": "Bec, silhouette, barres alaires"
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "42166/42983",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "427363/203008",
+          "explanation": "Oh là ! Le bord de la feuille (lisse ou denté ?), la tige (carrée ou ronde ?) et la fleur (pétales soudés ou libres ?) sont des critères fiables.",
+          "discriminant": "Feuilles, fleur, tige"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "55882/189436",
+          "explanation": "Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+          "discriminant": "Feuilles, fleur, tige"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "groupKey": "BIRDS",
+      "correctId": 13851,
+      "wrongId": 3048,
+      "fallback": true,
+      "wordCount": 21,
+      "durationMs": 3709,
+      "discriminant": "Bec, silhouette, barres alaires",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "La posture, le vol (battu, plané, ondulé), les marques faciales et le bec sont souvent plus utiles que la couleur générale."
+    },
+    {
+      "groupKey": "BIRDS",
+      "correctId": 979598,
+      "wrongId": 72486,
+      "fallback": false,
+      "wordCount": 18,
+      "durationMs": 5930,
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Mon petit, la première est un tout petit oiseau délicat, avec un bec fin et courbé, fait pour"
+    },
+    {
+      "groupKey": "BIRDS",
+      "correctId": 12716,
+      "wrongId": 4936,
+      "fallback": true,
+      "wordCount": 21,
+      "durationMs": 5468,
+      "discriminant": "Bec, silhouette, barres alaires",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent."
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 42166,
+      "wrongId": 42983,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 3982,
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice."
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 41663,
+      "wrongId": 41955,
+      "fallback": false,
+      "wordCount": 17,
+      "durationMs": 5080,
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Regarde d'abord le pelage : l'un a un masque noir autour des yeux et une queue annelée"
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 75053,
+      "wrongId": 1641421,
+      "fallback": false,
+      "wordCount": 57,
+      "durationMs": 4065,
+      "discriminant": "Ailes pour voler ou quatre pattes pour marcher.",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Mon petit, la prochaine fois, regarde bien si l'animal a des ailes ou des pattes ! L'un est un grand mammifère terrestre qui marche sur quatre pattes, souvent avec des bois sur la tête pour les mâles. L'autre est une chauve-souris géante, avec de grandes ailes membraneuses qui lui permettent de voler. C'est une différence fondamentale !"
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 427363,
+      "wrongId": 203008,
+      "fallback": true,
+      "wordCount": 30,
+      "durationMs": 4009,
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là ! Le bord de la feuille (lisse ou denté ?), la tige (carrée ou ronde ?) et la fleur (pétales soudés ou libres ?) sont des critères fiables."
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 55882,
+      "wrongId": 189436,
+      "fallback": true,
+      "wordCount": 20,
+      "durationMs": 7153,
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie)."
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 472475,
+      "wrongId": 287316,
+      "fallback": false,
+      "wordCount": 7,
+      "durationMs": 5198,
+      "discriminant": "Tu as confondu une fougère avec un arbuste fleuri !",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [
+        "Trop court (7 mots)"
+      ],
+      "explanation": "Oh là là, mon petit naturaliste !"
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 48715,
+      "wrongId": 354648,
+      "fallback": true,
+      "wordCount": 29,
+      "durationMs": 8698,
+      "discriminant": "Lamelles vs tubes, forme du chapeau, anneau",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "La forme du chapeau (convexe, plat, en entonnoir), la couleur et la texture du pied, et surtout le dessous : lamelles ou tubes ? C'est souvent le détail décisif."
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 699640,
+      "wrongId": 706905,
+      "fallback": true,
+      "wordCount": 32,
+      "durationMs": 5594,
+      "discriminant": "Lamelles vs tubes, forme du chapeau, anneau",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là ! La forme du chapeau (convexe, plat, en entonnoir), la couleur et la texture du pied, et surtout le dessous : lamelles ou tubes ? C'est souvent le détail décisif."
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 974661,
+      "wrongId": 416307,
+      "fallback": true,
+      "wordCount": 28,
+      "durationMs": 3669,
+      "discriminant": "Lamelles vs tubes, forme du chapeau, anneau",
+      "sources": [],
+      "validationIssues": [],
+      "explanation": "Regarde bien le dessous du chapeau : lamelles, tubes ou aiguillons ? Et le pied : lisse, strié, avec un anneau ? Ces détails séparent beaucoup d'espèces proches."
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 543944,
+      "wrongId": 155512,
+      "fallback": true,
+      "wordCount": 24,
+      "durationMs": 5403,
+      "discriminant": "Antennes, motifs, forme du corps",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "Observe les antennes (massue, filiformes, pectinées ?), le nombre de points ou de bandes, et la forme du corps. Souvent un seul détail suffit."
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 244816,
+      "wrongId": 51702,
+      "fallback": true,
+      "wordCount": 24,
+      "durationMs": 5242,
+      "discriminant": "Antennes, motifs, forme du corps",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Observe les antennes (massue, filiformes, pectinées ?), le nombre de points ou de bandes, et la forme du corps. Souvent un seul détail suffit."
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 51588,
+      "wrongId": 338194,
+      "fallback": false,
+      "wordCount": 45,
+      "durationMs": 4264,
+      "discriminant": "Corps fin et grandes ailes colorées vs corps velu et petites ailes.",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Regarde bien la forme du corps et les ailes. Le premier a un corps fin et de grandes ailes colorées, souvent avec des motifs complexes. L'autre est plus trapu, velu, avec des ailes plus petites et transparentes. C'est la silhouette générale qui te donnera l'indice."
+    }
+  ]
+}

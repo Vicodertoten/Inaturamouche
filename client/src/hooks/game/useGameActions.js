@@ -757,10 +757,6 @@ export function useGameActions({
 
       const isValidatedRoundEvent = roundMeta?.serverValidated === true;
       const modeForRound = roundMeta.mode || gameMode;
-      const hintCountForRound = Math.max(0, Number.parseInt(String(roundMeta?.hintCount || 0), 10) || 0);
-      const repeatCountForTaxon = sessionSpeciesData.filter(
-        (entry) => entry?.id === currentQuestionId && entry?.wasCorrect
-      ).length;
 
       const adjustedBonus = (bonus || 0) + (streakBonus || 0);
       const roundEconomyBase = computeRoundEconomy({
@@ -768,9 +764,6 @@ export function useGameActions({
         points,
         bonus,
         streakBonus,
-        mode: modeForRound,
-        hintCount: hintCountForRound,
-        repeatCount: repeatCountForTaxon,
         rarityBonusXp: 0,
       });
 
@@ -794,9 +787,6 @@ export function useGameActions({
         points,
         bonus,
         streakBonus,
-        mode: modeForRound,
-        hintCount: hintCountForRound,
-        repeatCount: repeatCountForTaxon,
         rarityBonusXp,
       });
 

@@ -9,8 +9,10 @@ let baseUrl;
 let app;
 let originalFetch;
 let serverAvailable = true;
+const AI_RUNTIME_AVAILABLE = Boolean(config.aiEnabled && config.aiApiKey);
 
 const SOCKET_SKIP_REASON = 'Socket binding not permitted in this environment';
+const DEFAULT_AI_TEXT = 'Ces deux especes se distinguent par leur morphologie et leur habitat.';
 
 async function listenOnEphemeralPort(instance) {
   return new Promise((resolve, reject) => {
@@ -29,7 +31,10 @@ async function listenOnEphemeralPort(instance) {
   });
 }
 
-function buildExternalFetchMock() {
+function buildExternalFetchMock({
+  aiText = DEFAULT_AI_TEXT,
+  aiResponse = null,
+} = {}) {
   return async (url, opts) => {
     const rawUrl = String(url);
     if (rawUrl.startsWith(baseUrl)) {
@@ -65,6 +70,12 @@ function buildExternalFetchMock() {
     }
 
     if (rawUrl.includes('generativelanguage.googleapis.com')) {
+      if (typeof aiResponse === 'function') {
+        return aiResponse(rawUrl, opts);
+      }
+      if (aiResponse) {
+        return aiResponse;
+      }
       return {
         ok: true,
         status: 200,
@@ -73,7 +84,7 @@ function buildExternalFetchMock() {
           candidates: [
             {
               content: {
-                parts: [{ text: 'Ces deux especes se distinguent par leur morphologie et leur habitat.' }],
+                parts: [{ text: aiText }],
               },
             },
           ],
@@ -122,38 +133,111 @@ function integrationTest(name, fn) {
   });
 }
 
-integrationTest('POST /api/quiz/explain returns a valid explanation payload', async () => {
-  globalThis.fetch = buildExternalFetchMock();
-
-  const res = await fetch(`${baseUrl}/api/quiz/explain`, {
+async function postExplain(body) {
+  return fetch(`${baseUrl}/api/quiz/explain`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      correctId: 101,
-      wrongId: 202,
-      locale: 'fr',
-    }),
+    body: JSON.stringify(body),
+  });
+}
+
+integrationTest('POST /api/quiz/explain returns a valid explanation payload', async () => {
+  globalThis.fetch = buildExternalFetchMock();
+
+  const res = await postExplain({
+    correctId: 101,
+    wrongId: 202,
+    locale: 'fr',
   });
 
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(typeof body.explanation, 'string');
   assert.ok(body.explanation.length > 0);
+  assert.equal(typeof body.fallback, 'boolean');
+});
+
+integrationTest('POST /api/quiz/explain sets fallback=false when AI output passes quality checks', async (t) => {
+  if (!AI_RUNTIME_AVAILABLE) {
+    t.skip('AI runtime not configured in this environment');
+    return;
+  }
+  globalThis.fetch = buildExternalFetchMock({
+    aiText:
+      "Compare la forme des ailes, le bec et la posture generale. Ces details visuels permettent de distinguer clairement ces deux especes proches.",
+  });
+
+  const res = await postExplain({
+    correctId: 901,
+    wrongId: 902,
+    locale: 'fr',
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.fallback, false);
+  assert.equal(typeof body.explanation, 'string');
+  assert.ok(body.explanation.length > 0);
+});
+
+integrationTest('POST /api/quiz/explain sets fallback=true when AI output is low quality', async (t) => {
+  if (!AI_RUNTIME_AVAILABLE) {
+    t.skip('AI runtime not configured in this environment');
+    return;
+  }
+  globalThis.fetch = buildExternalFetchMock({
+    aiText:
+      "Regarde,, la silhouette et les couleuurs inhabituelles pour separer ces especes proches. Le critere principal est de de comparer l'aile.",
+  });
+
+  const res = await postExplain({
+    correctId: 903,
+    wrongId: 904,
+    locale: 'fr',
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.fallback, true);
+  assert.equal(typeof body.explanation, 'string');
+  assert.ok(body.explanation.length > 0);
+});
+
+integrationTest('POST /api/quiz/explain sets fallback=true when AI response is empty', async (t) => {
+  if (!AI_RUNTIME_AVAILABLE) {
+    t.skip('AI runtime not configured in this environment');
+    return;
+  }
+  globalThis.fetch = buildExternalFetchMock({
+    aiResponse: {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ candidates: [] }),
+      text: async () => JSON.stringify({ candidates: [] }),
+    },
+  });
+
+  const res = await postExplain({
+    correctId: 905,
+    wrongId: 906,
+    locale: 'fr',
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.fallback, true);
+  assert.equal(typeof body.explanation, 'string');
+  assert.ok(body.explanation.length > 0);
 });
 
 integrationTest('POST /api/quiz/explain rejects invalid payloads with standardized BAD_REQUEST errors', async () => {
-  const res = await fetch(`${baseUrl}/api/quiz/explain`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      correctId: 101,
-      wrongId: 101,
-      locale: 'fr',
-    }),
+  const res = await postExplain({
+    correctId: 101,
+    wrongId: 101,
+    locale: 'fr',
   });
 
   assert.equal(res.status, 400);
@@ -170,16 +254,10 @@ integrationTest('POST /api/quiz/explain is rate-limited for abusive callers', as
   let limitedResponse = null;
 
   for (let i = 0; i < maxAttempts; i += 1) {
-    const res = await fetch(`${baseUrl}/api/quiz/explain`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        correctId: 303,
-        wrongId: 404,
-        locale: 'fr',
-      }),
+    const res = await postExplain({
+      correctId: 303,
+      wrongId: 404,
+      locale: 'fr',
     });
     if (res.status === 429) {
       limitedResponse = res;

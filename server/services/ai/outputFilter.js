@@ -16,13 +16,22 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
   const trimmed = text.trim();
 
   // Exemple visé: "boooon", "mammifèree", artefacts de génération.
-  if (/\b[\p{L}]*([\p{L}])\1{2,}[\p{L}]*\b/iu.test(text)) {
-    issues.push(`QUALITY: ${label} contient des lettres répétées anormales`);
+  // SYSTEME PARFAIT : On autorise 3 lettres (ex: "Bzzz") pour les onomatopées, on flag à partir de 4.
+  if (/\b[\p{L}]*([\p{L}])\1{3,}[\p{L}]*\b/iu.test(text)) {
+    issues.push(`QUALITY: ${label} contient trop de lettres répétées`);
   }
 
   // Exemple visé: "de de", "avec avec".
-  if (/\b(\p{L}{2,})\s+\1\b/iu.test(text)) {
-    issues.push(`QUALITY: ${label} contient un mot dupliqué`);
+  // Exception pour "nous nous", "vous vous" (verbes pronominaux).
+  const dupMatches = text.match(/\b(\p{L}{2,})\s+\1\b/giu);
+  if (dupMatches) {
+    const realDups = dupMatches.filter((m) => {
+      const word = m.split(/\s+/)[0].toLowerCase();
+      return !['nous', 'vous'].includes(word);
+    });
+    if (realDups.length > 0) {
+      issues.push(`QUALITY: ${label} contient un mot dupliqué (${realDups[0]})`);
+    }
   }
 
   // Garde-fou simple contre mots "cassés" très longs.
@@ -46,7 +55,8 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
   }
 
   // Exemple visé: "uu", "noiie", "plussvariées".
-  if (/\b[\p{L}-]*(?:aa|ee|ii|oo|uu|yy|ss[bcdfghjklmnpqrstvwxz]|mm[bcdfghjklmnpqrstvwxz])[\p{L}-]*\b/iu.test(text)) {
+  // MODIF: Retrait de 'ee' (créée) et 'oo' (zoo, alcool) pour le français
+  if (/\b[\p{L}-]*(?:aa|ii|uu|yy|ss[bcdfghjklmnpqrstvwxz]|mm[bcdfghjklmnpqrstvwxz])[\p{L}-]*\b/iu.test(text)) {
     issues.push(`QUALITY: ${label} contient des séquences de lettres suspectes`);
   }
 
@@ -56,6 +66,11 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
     if (lastToken.length <= 2) {
       issues.push(`QUALITY: ${label} semble tronqué`);
     }
+  }
+
+  // Détection des comparaisons anonymes interdites (ex: "L'un est...", "Le premier a...")
+  if (/(?:^|[.!?]\s+)(?:L'un|Le premier|La première|Le second|La seconde)\s+(?:est|a|ont|possède)\b/i.test(text)) {
+    issues.push(`WARN: ${label} ne cite pas l'espèce (comparaison anonyme)`);
   }
 
   return issues;
@@ -83,52 +98,40 @@ export function normalizeExplanation(text) {
  */
 export function parseAIResponse(text) {
   if (!text) return null;
-  const cleanedInput = text
-    .replace(/[🔍]/gu, '')
-    .replace(/^\s*source(?:s)?\s*:.*$/gimu, '')
-    .trim();
-  const trimmed = cleanedInput;
 
-  // ── Stratégie 1 : texte brut avec séparateur "---" ──────────
-  if (trimmed.includes('---')) {
-    const parts = trimmed.split('---').map((p) => p.trim()).filter(Boolean);
-    if (parts.length >= 2) {
-      const explanation = normalizeExplanation(parts[0]);
-      const discriminant = parts[1].replace(/^(critère|discriminant|clé)\s*:\s*/i, '').trim();
-      if (explanation.length > 15 && discriminant.length > 3) {
-        return { explanation, discriminant };
-      }
-    }
-  }
-
-  // ── Stratégie 2 : JSON (fallback si l'IA génère du JSON malgré tout) ──
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
+  const attemptParse = (jsonStr) => {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.explanation) {
-        return {
-          explanation: normalizeExplanation(parsed.explanation),
-          discriminant: parsed.discriminant ? String(parsed.discriminant).trim() : null,
-        };
-      }
-    } catch (_) { /* fallthrough */ }
+      const cleanJson = jsonStr.replace(/```json\n?|\n?```/g, '').trim();
+      return JSON.parse(cleanJson);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // 1. Parsing standard
+  let parsed = attemptParse(text);
+
+  // 2. Tentative de réparation si JSON tronqué (ex: "Unterminated string...")
+  if (!parsed) {
+    // On essaie de fermer la chaîne et l'objet pour sauver les meubles
+    parsed = attemptParse(text + '"}');
+    // Si ça échoue, peut-être que la chaine était déjà fermée mais pas l'objet
+    if (!parsed) parsed = attemptParse(text + '}');
   }
 
-  // ── Stratégie 3 : texte brut simple (pas de séparateur) ─────
-  const cleaned = normalizeExplanation(trimmed);
-  if (cleaned.length > 20) {
-    // Essayer d'extraire un discriminant de la dernière phrase
-    const sentences = cleaned.split(/(?<=[.!?])\s+/).filter((s) => s.length > 5);
-    const lastSentence = sentences[sentences.length - 1] || '';
-    const mainText = sentences.length > 1 ? sentences.slice(0, -1).join(' ') : cleaned;
+  if (parsed && parsed.explanation) {
+    // On combine l'intro (si présente) avec l'explication pour l'UI actuelle
+    const fullExplanation = parsed.intro 
+      ? `${parsed.intro} ${parsed.explanation}`
+      : parsed.explanation;
 
     return {
-      explanation: mainText || cleaned,
-      discriminant: sentences.length > 1 ? lastSentence : null,
+      explanation: normalizeExplanation(fullExplanation),
+      discriminant: parsed.discriminant ? String(parsed.discriminant).trim() : null,
     };
   }
 
+  console.error("JSON Parse Error in AI Response (Unrecoverable)");
   return null;
 }
 
@@ -192,7 +195,11 @@ export function buildMorphologyFallback(correctTaxon, wrongTaxon, severity, data
   const tipIndex = ((correctTaxon?.id || 0) + (wrongTaxon?.id || 0)) % tips.length;
   const tip = tips[tipIndex];
 
-  const explanation = `${tone.lead}${tip}`;
+  // AMÉLIORATION: Injection du nom pour contexte
+  const correctName = getCommonName(correctTaxon) || "cette espèce";
+  const contextIntro = `Pour reconnaître ${correctName}, `;
+
+  const explanation = `${tone.lead}${contextIntro}${tip.toLowerCase()}`;
   const discriminant = getGroupDiscriminant(group);
 
   return {
@@ -279,22 +286,14 @@ export function parseRiddleResponse(text) {
 
   const trimmed = text.trim();
 
-  // JSON
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed?.clues)) return { clues: parsed.clues, sources: parsed.sources || [] };
-    } catch (_) { /* fallthrough */ }
-  }
+  // JSON natif
+  try {
+    const cleanJson = trimmed.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(cleanJson);
+    if (Array.isArray(parsed?.clues)) return { clues: parsed.clues, sources: parsed.sources || [] };
+  } catch (_) { /* fallthrough */ }
 
-  // Lignes numérotées
-  const lines = trimmed
-    .split('\n')
-    .map((l) => l.replace(/^\s*\d+[\s.):-]+/, '').trim())
-    .filter((l) => l.length > 5);
-
-  return { clues: lines.slice(0, 3), sources: [] };
+  return { clues: [], sources: [] };
 }
 
 export function normalizeRiddleClues(clues, targetTaxon) {

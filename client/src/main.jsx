@@ -25,11 +25,18 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-if (import.meta.env.PROD) {
-  const updateSW = registerSW({
-    immediate: true,
-    onNeedRefresh() {
-      updateSW(true)
-    },
-  })
+if (import.meta.env.PROD && typeof window !== 'undefined') {
+  const registerServiceWorker = () => {
+    const updateSW = registerSW({
+      onNeedRefresh() {
+        updateSW(true)
+      },
+    })
+  }
+
+  if (document.readyState === 'complete') {
+    registerServiceWorker()
+  } else {
+    window.addEventListener('load', registerServiceWorker, { once: true })
+  }
 }

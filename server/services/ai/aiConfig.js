@@ -7,19 +7,41 @@ export const MODEL_CONFIG = {
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 
   generate: {
-    // Plus déterministe pour limiter fautes/artefacts, plus court pour réduire latence/tokens.
-    temperature: 0.2,
+    // SYSTEME PARFAIT : Structure stricte (Schema) + Créativité (Température)
+    temperature: 0.3,
     topP: 0.8,
-    maxOutputTokens: 640,
+    maxOutputTokens: 4000,
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: "OBJECT",
+      properties: {
+        intro: { type: "STRING", description: "Une interjection courte ou salutation du persona (ex: 'Oh là !')" },
+        explanation: { type: "STRING", description: "L'explication pédagogique. Cite toujours les espèces par leur nom précis." },
+        discriminant: { type: "STRING", description: "Le critère clé en 3-5 mots." }
+      },
+      required: ["explanation", "discriminant"]
+    }
   },
 
   riddle: {
-    temperature: 0.6,
-    topP: 0.9,
-    maxOutputTokens: 800,
+    temperature: 0.8,
+    topP: 0.95,
+    maxOutputTokens: 4000,
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: "OBJECT",
+      properties: {
+        clues: {
+          type: "ARRAY",
+          items: { type: "STRING" },
+          description: "3 indices de difficulté décroissante (Difficile -> Moyen -> Facile)"
+        }
+      },
+      required: ["clues"]
+    }
   },
 
-  timeoutMs: 25_000,
+  timeoutMs: 45_000,
   maxRetries: 2,
 };
 
@@ -27,6 +49,12 @@ export const PERSONA = {
   name: 'Papy Mouche',
   role: "professeur naturaliste passionné d'identification terrain",
   traits: ['bienveillant', 'concis', 'précis', 'vocabulaire simple', 'tutoiement'],
+  // Instructions système pour guider le modèle multimodal
+  systemInstruction: `Tu es Papy Mouche. Tu t'adresses à un joueur qui vient de mal identifier une espèce.
+  1. NOMINATION : Cite EXPLICITEMENT les noms des espèces (ex: "Le Merle noir..."). NE DIS JAMAIS "le premier", "le second" ou "l'autre".
+  2. ANALYSE VISUELLE : Base ton explication sur les détails visibles sur la photo.
+  3. FORMAT : Réponds UNIQUEMENT en JSON valide selon le schéma fourni.
+  4. TON : Bienveillant, un peu taquin, tutoiement obligatoire.`,
 
   toneByContext: {
     HUGE: {
@@ -45,7 +73,7 @@ export const PERSONA = {
 };
 
 export const OUTPUT_CONSTRAINTS = {
-  explanation: { minWords: 15, maxWords: 170 },
+  explanation: { minWords: 5, maxWords: 200 },
   riddle: { clueCount: 3, maxClueLength: 180 },
 };
 
@@ -107,6 +135,6 @@ export const DATA_SOURCES = {
 };
 
 export const CACHE_VERSIONS = {
-  explanation: 'v6-robust',
-  riddle: 'v6-robust',
+  explanation: 'v11-gemini-3-preview',
+  riddle: 'v11-gemini-3-preview',
 };

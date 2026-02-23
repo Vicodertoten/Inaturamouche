@@ -1,0 +1,319 @@
+{
+  "generatedAt": "2026-02-23T08:50:44.432Z",
+  "durationMs": 58513,
+  "config": {
+    "locale": "fr",
+    "perGroupSpecies": 12,
+    "pairsPerGroup": 2,
+    "maxPages": 2,
+    "groups": [
+      "BIRDS",
+      "MAMMALS",
+      "PLANTS",
+      "FUNGI",
+      "INSECTS"
+    ],
+    "seed": 20260223
+  },
+  "summary": {
+    "total": 10,
+    "fallbackTrue": 8,
+    "fallbackRatePct": 80,
+    "withDiscriminant": 9,
+    "discriminantRatePct": 90,
+    "withQualityIssues": 0,
+    "qualityIssuesRatePct": 0,
+    "avgWords": 19.3,
+    "avgDurationMs": 4679.5,
+    "byGroup": {
+      "BIRDS": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 18
+      },
+      "MAMMALS": {
+        "total": 2,
+        "fallbackTrue": 2,
+        "avgWords": 19
+      },
+      "PLANTS": {
+        "total": 2,
+        "fallbackTrue": 2,
+        "avgWords": 23
+      },
+      "FUNGI": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 20.5
+      },
+      "INSECTS": {
+        "total": 2,
+        "fallbackTrue": 2,
+        "avgWords": 16
+      }
+    },
+    "fallbackReasonCounts": {
+      "quality_rejected": 8,
+      "ai_accepted": 2
+    },
+    "examples": {
+      "ai": [
+        {
+          "group": "BIRDS",
+          "pair": "10070/9191",
+          "explanation": "Tu vois, le premier a une calotte bleu-gris bien marquée et une poitrine rousse éclatante.",
+          "discriminant": "Regarde aussi"
+        },
+        {
+          "group": "FUNGI",
+          "pair": "51135/354648",
+          "explanation": "Tu vois, la première espèce sort d'un œuf et déploie des bras rouges, un peu comme",
+          "discriminant": null
+        }
+      ],
+      "fallback": [
+        {
+          "group": "BIRDS",
+          "pair": "12716/3048",
+          "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent.",
+          "discriminant": "Bec, silhouette, barres alaires"
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "43494/42166",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "43239/44576",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "810549/191183",
+          "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+          "discriminant": "Feuilles, fleur, tige"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "189436/203008",
+          "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+          "discriminant": "Feuilles, fleur, tige"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "groupKey": "BIRDS",
+      "correctId": 12716,
+      "wrongId": 3048,
+      "fallback": true,
+      "wordCount": 21,
+      "durationMs": 3958,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Bec, silhouette, barres alaires",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "BIRDS",
+      "correctId": 10070,
+      "wrongId": 9191,
+      "fallback": false,
+      "wordCount": 15,
+      "durationMs": 5549,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "Regarde aussi",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Tu vois, le premier a une calotte bleu-gris bien marquée et une poitrine rousse éclatante.",
+      "logs": []
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 43494,
+      "wrongId": 42166,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 4037,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 43239,
+      "wrongId": 44576,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 4235,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 810549,
+      "wrongId": 191183,
+      "fallback": true,
+      "wordCount": 23,
+      "durationMs": 4916,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 189436,
+      "wrongId": 203008,
+      "fallback": true,
+      "wordCount": 23,
+      "durationMs": 3858,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 841174,
+      "wrongId": 699640,
+      "fallback": true,
+      "wordCount": 25,
+      "durationMs": 4062,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Lamelles vs tubes, forme du chapeau, anneau",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "La couleur peut varier, mais le type de dessous (lamelles vs tubes), la présence d'un anneau et l'habitat (sous quels arbres ?) sont plus fiables.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 51135,
+      "wrongId": 354648,
+      "fallback": false,
+      "wordCount": 16,
+      "durationMs": 5577,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Tu vois, la première espèce sort d'un œuf et déploie des bras rouges, un peu comme",
+      "logs": []
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 51569,
+      "wrongId": 321672,
+      "fallback": true,
+      "wordCount": 16,
+      "durationMs": 4863,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Antennes, motifs, forme du corps",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "La nervation des ailes, les antennes et les dessins sur le thorax sont de bons critères.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 117293,
+      "wrongId": 892426,
+      "fallback": true,
+      "wordCount": 16,
+      "durationMs": 5740,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Antennes, motifs, forme du corps",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "La nervation des ailes, les antennes et les dessins sur le thorax sont de bons critères.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues"
+        }
+      ]
+    }
+  ]
+}

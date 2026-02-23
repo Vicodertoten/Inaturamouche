@@ -1,0 +1,192 @@
+{
+  "generatedAt": "2026-02-23T08:51:38.502Z",
+  "durationMs": 29087,
+  "config": {
+    "locale": "fr",
+    "perGroupSpecies": 10,
+    "pairsPerGroup": 1,
+    "maxPages": 2,
+    "groups": [
+      "BIRDS",
+      "MAMMALS",
+      "PLANTS",
+      "FUNGI",
+      "INSECTS"
+    ],
+    "seed": 20260223
+  },
+  "summary": {
+    "total": 5,
+    "fallbackTrue": 1,
+    "fallbackRatePct": 20,
+    "withDiscriminant": 3,
+    "discriminantRatePct": 60,
+    "withQualityIssues": 0,
+    "qualityIssuesRatePct": 0,
+    "avgWords": 18.8,
+    "avgDurationMs": 4280.2,
+    "byGroup": {
+      "BIRDS": {
+        "total": 1,
+        "fallbackTrue": 0,
+        "avgWords": 19
+      },
+      "MAMMALS": {
+        "total": 1,
+        "fallbackTrue": 1,
+        "avgWords": 19
+      },
+      "PLANTS": {
+        "total": 1,
+        "fallbackTrue": 0,
+        "avgWords": 17
+      },
+      "FUNGI": {
+        "total": 1,
+        "fallbackTrue": 0,
+        "avgWords": 21
+      },
+      "INSECTS": {
+        "total": 1,
+        "fallbackTrue": 0,
+        "avgWords": 18
+      }
+    },
+    "fallbackReasonCounts": {
+      "ai_accepted": 4,
+      "quality_rejected": 1
+    },
+    "examples": {
+      "ai": [
+        {
+          "group": "BIRDS",
+          "pair": "10070/13695",
+          "explanation": "Regarde bien la queue : l'une a une queue très longue qu'elle agite constamment de haut en bas, comme",
+          "discriminant": null
+        },
+        {
+          "group": "PLANTS",
+          "pair": "56121/203008",
+          "explanation": "Oh là là, mon petit naturaliste ! Tu as confondu une plante terrestre avec une aquatique !",
+          "discriminant": "La première,"
+        },
+        {
+          "group": "FUNGI",
+          "pair": "841174/117308",
+          "explanation": "Tu vois, la première est un champignon qui pousse directement sur le bois, sans pied, et qui a des pores sous",
+          "discriminant": null
+        },
+        {
+          "group": "INSECTS",
+          "pair": "321672/155512",
+          "explanation": "Mon petit, la première est un insecte sauteur, avec un corps très allongé et des pattes arrière puissantes.",
+          "discriminant": "La seconde"
+        }
+      ],
+      "fallback": [
+        {
+          "group": "MAMMALS",
+          "pair": "45952/42983",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "groupKey": "BIRDS",
+      "correctId": 10070,
+      "wrongId": 13695,
+      "fallback": false,
+      "wordCount": 19,
+      "durationMs": 4535,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Regarde bien la queue : l'une a une queue très longue qu'elle agite constamment de haut en bas, comme",
+      "logs": []
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 45952,
+      "wrongId": 42983,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 3501,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère trop long (28 mots)",
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 56121,
+      "wrongId": 203008,
+      "fallback": false,
+      "wordCount": 17,
+      "durationMs": 3573,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "La première,",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là là, mon petit naturaliste ! Tu as confondu une plante terrestre avec une aquatique !",
+      "logs": []
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 841174,
+      "wrongId": 117308,
+      "fallback": false,
+      "wordCount": 21,
+      "durationMs": 5993,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Tu vois, la première est un champignon qui pousse directement sur le bois, sans pied, et qui a des pores sous",
+      "logs": []
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 321672,
+      "wrongId": 155512,
+      "fallback": false,
+      "wordCount": 18,
+      "durationMs": 3799,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "La seconde",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "Mon petit, la première est un insecte sauteur, avec un corps très allongé et des pattes arrière puissantes.",
+      "logs": []
+    }
+  ]
+}

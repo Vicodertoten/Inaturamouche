@@ -1,0 +1,342 @@
+{
+  "generatedAt": "2026-02-23T08:52:55.092Z",
+  "durationMs": 57444,
+  "config": {
+    "locale": "fr",
+    "perGroupSpecies": 12,
+    "pairsPerGroup": 2,
+    "maxPages": 2,
+    "groups": [
+      "BIRDS",
+      "MAMMALS",
+      "PLANTS",
+      "FUNGI",
+      "INSECTS"
+    ],
+    "seed": 20260223
+  },
+  "summary": {
+    "total": 10,
+    "fallbackTrue": 6,
+    "fallbackRatePct": 60,
+    "withDiscriminant": 7,
+    "discriminantRatePct": 70,
+    "withQualityIssues": 1,
+    "qualityIssuesRatePct": 10,
+    "avgWords": 18.6,
+    "avgDurationMs": 4305.5,
+    "byGroup": {
+      "BIRDS": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 20
+      },
+      "MAMMALS": {
+        "total": 2,
+        "fallbackTrue": 2,
+        "avgWords": 19
+      },
+      "PLANTS": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 18
+      },
+      "FUNGI": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 20
+      },
+      "INSECTS": {
+        "total": 2,
+        "fallbackTrue": 1,
+        "avgWords": 16
+      }
+    },
+    "fallbackReasonCounts": {
+      "quality_rejected": 6,
+      "ai_accepted": 4
+    },
+    "examples": {
+      "ai": [
+        {
+          "group": "BIRDS",
+          "pair": "5106/13695",
+          "explanation": "Le critère le plus évident, c'est la silhouette générale : la première est un rapace, avec un corps tra",
+          "discriminant": null
+        },
+        {
+          "group": "PLANTS",
+          "pair": "203008/53211",
+          "explanation": "Oh là là, mon petit naturaliste en herbe !",
+          "discriminant": "La première, tu la trouveras les pieds dans l'eau"
+        },
+        {
+          "group": "FUNGI",
+          "pair": "51135/354648",
+          "explanation": "Pour la première, tu as des bras rouges qui sortent d'un œuf, comme des tentacules.",
+          "discriminant": null
+        },
+        {
+          "group": "INSECTS",
+          "pair": "117293/892426",
+          "explanation": "Tu vois, la première est une fourmi, elle n'a pas d'ailes et son corps est bien",
+          "discriminant": null
+        }
+      ],
+      "fallback": [
+        {
+          "group": "BIRDS",
+          "pair": "3048/10070",
+          "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent.",
+          "discriminant": "Bec, silhouette, barres alaires"
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "43494/42166",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "MAMMALS",
+          "pair": "43239/44576",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "56121/196520",
+          "explanation": "Le bord de la feuille (lisse ou denté ?), la tige (carrée ou ronde ?) et la fleur (pétales soudés ou libres ?) sont des critères fiables.",
+          "discriminant": "Feuilles, fleur, tige"
+        },
+        {
+          "group": "FUNGI",
+          "pair": "841174/699640",
+          "explanation": "La couleur peut varier, mais le type de dessous (lamelles vs tubes), la présence d'un anneau et l'habitat (sous quels arbres ?) sont plus fiables.",
+          "discriminant": "Lamelles vs tubes, forme du chapeau, anneau"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "groupKey": "BIRDS",
+      "correctId": 3048,
+      "wrongId": 10070,
+      "fallback": true,
+      "wordCount": 21,
+      "durationMs": 3807,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Bec, silhouette, barres alaires",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare le bec (fin, conique, crochu ?), la silhouette en vol, les barres alaires et la queue. Un détail suffit souvent.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "BIRDS",
+      "correctId": 5106,
+      "wrongId": 13695,
+      "fallback": false,
+      "wordCount": 19,
+      "durationMs": 4852,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Le critère le plus évident, c'est la silhouette générale : la première est un rapace, avec un corps tra",
+      "logs": []
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 43494,
+      "wrongId": 42166,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 3760,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 43239,
+      "wrongId": 44576,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 3426,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 56121,
+      "wrongId": 196520,
+      "fallback": true,
+      "wordCount": 27,
+      "durationMs": 5292,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Le bord de la feuille (lisse ou denté ?), la tige (carrée ou ronde ?) et la fleur (pétales soudés ou libres ?) sont des critères fiables.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: explication semble tronqué"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 203008,
+      "wrongId": 53211,
+      "fallback": false,
+      "wordCount": 9,
+      "durationMs": 6926,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "La première, tu la trouveras les pieds dans l'eau",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [
+        "Trop court (9 mots)"
+      ],
+      "explanation": "Oh là là, mon petit naturaliste en herbe !",
+      "logs": []
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 841174,
+      "wrongId": 699640,
+      "fallback": true,
+      "wordCount": 25,
+      "durationMs": 3655,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Lamelles vs tubes, forme du chapeau, anneau",
+      "sources": [
+        "Wikipedia (en)"
+      ],
+      "validationIssues": [],
+      "explanation": "La couleur peut varier, mais le type de dessous (lamelles vs tubes), la présence d'un anneau et l'habitat (sous quels arbres ?) sont plus fiables.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "FUNGI",
+      "correctId": 51135,
+      "wrongId": 354648,
+      "fallback": false,
+      "wordCount": 15,
+      "durationMs": 3939,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Pour la première, tu as des bras rouges qui sortent d'un œuf, comme des tentacules.",
+      "logs": []
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 51569,
+      "wrongId": 321672,
+      "fallback": true,
+      "wordCount": 16,
+      "durationMs": 3785,
+      "fallbackReason": "quality_rejected",
+      "discriminant": "Antennes, motifs, forme du corps",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "La nervation des ailes, les antennes et les dessins sur le thorax sont de bons critères.",
+      "logs": [
+        {
+          "level": "warn",
+          "message": "AI response rejected due to quality issues",
+          "issues": [
+            "QUALITY: critère ressemble à une phrase incomplète"
+          ]
+        }
+      ]
+    },
+    {
+      "groupKey": "INSECTS",
+      "correctId": 117293,
+      "wrongId": 892426,
+      "fallback": false,
+      "wordCount": 16,
+      "durationMs": 3613,
+      "fallbackReason": "ai_accepted",
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Tu vois, la première est une fourmi, elle n'a pas d'ailes et son corps est bien",
+      "logs": []
+    }
+  ]
+}

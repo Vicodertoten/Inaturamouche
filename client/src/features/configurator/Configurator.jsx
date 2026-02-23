@@ -26,18 +26,6 @@ const ModeVisual = ({ variant }) => {
       </div>
     );
   }
-  if (variant === 'riddle') {
-    return (
-      <div className="mode-visual mode-visual-riddle" aria-hidden="true">
-        <div className="riddle-card">
-          <span className="riddle-line riddle-line-1" />
-          <span className="riddle-line riddle-line-2" />
-          <span className="riddle-line riddle-line-3" />
-        </div>
-        <div className="riddle-glow" />
-      </div>
-    );
-  }
   const gradientUrl = `url(#${gradientId})`;
   return (
     <div className="mode-visual mode-visual-hard" aria-hidden="true">

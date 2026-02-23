@@ -241,27 +241,6 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    let idleId;
-    if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(() => {
-        preloadPlayPage();
-      }, { timeout: 1200 });
-      return () => {
-        if (typeof window.cancelIdleCallback === 'function') {
-          window.cancelIdleCallback(idleId);
-        }
-      };
-    }
-
-    idleId = window.setTimeout(() => {
-      preloadPlayPage();
-    }, 250);
-    return () => window.clearTimeout(idleId);
-  }, [preloadPlayPage]);
-
-  useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mq = window.matchMedia(DESKTOP_MEDIA_QUERY);
     const onChange = () => setIsDesktop(mq.matches);
@@ -395,10 +374,7 @@ const HomePage = () => {
     {},
     'Choisis tes taxons, ton lieu et ta periode'
   );
-  const modeName = gameMode === 'easy' ? t('home.easy_mode')
-    : gameMode === 'hard' ? t('home.hard_mode')
-    : gameMode === 'riddle' ? t('home.riddle_mode')
-    : t('home.taxonomic_mode');
+  const modeName = gameMode === 'hard' ? t('home.hard_mode') : t('home.easy_mode');
   const qLabel = Number.isInteger(maxQuestions) && maxQuestions > 0 ? `${maxQuestions} Q` : '∞';
   const mediaName = mediaType === 'sounds'
     ? t('configurator.option_sounds', {}, 'Sons')

@@ -29,7 +29,8 @@
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* use auto so overflowed explanation/content can be scrolled instead of clipped */
+  overflow: auto;
   animation: modal-slide-in 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
@@ -58,6 +59,8 @@
   .summary-modal.summary-modal--wide .explanation-section {
     margin-top: var(--space-3);
     width: 100%;
+    /* avoid accidental overflow when modal is very wide */
+    max-width: 100%;
   }
 }
 
@@ -106,7 +109,8 @@
   gap: clamp(8px, 2vh, var(--space-4));
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  /* allow scrolling if cards+explanation exceed viewport height */
+  overflow: auto;
 }
 
 @media (min-width: 1400px) {
@@ -298,7 +302,10 @@
   animation: fadeIn 0.5s 0.2s ease-in-out backwards;
   position: relative;
   margin-top: clamp(4px, 1.2vh, var(--space-3));
+  /* the section should never overflow its parent nor be wider than viewport */
   width: 100%; /* ensure explanation always sits below the cards and spans full width */
+  max-width: 100%;
+  box-sizing: border-box;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
@@ -317,6 +324,7 @@
     clamp(6px, 1.2vh, var(--space-3)) clamp(6px, 1.2vh, var(--space-3));
   min-height: 72px; /* Évite le saut de taille pendant le chargement */
   transition: min-height 0.18s ease;
+  overflow: auto; /* ensure overflowing text is scrollable on small/heights */
 }
 
 .explanation-section__text {

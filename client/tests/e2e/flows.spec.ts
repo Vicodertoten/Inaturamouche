@@ -282,6 +282,77 @@ test('home pack cards render without badges', async ({ page, baseURL }) => {
   await expect(page.locator('.pack-card', { hasText: /Nouveau|Populaire|Facile/i })).toHaveCount(0);
 });
 
+// Regression test for #issue where AI explanation frame could be clipped on very wide
+// viewports.  We simulate a wrong answer and supply a lengthy explanation to force
+// scrolling; the modal should render the full box and allow scrolling instead of
+// cutting the bottom/right edges off.
+test('wide viewport shows whole explanation container and allows scroll', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto(baseURL || '/');
+
+  // override answer route so we fail the question
+  await page.route('**/api/quiz/submit', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'lose',
+        is_correct: false,
+        correct_taxon_id: '2',
+        correct_answer: mockQuestion.choice_taxa_details[1],
+        user_answer: mockQuestion.choice_taxa_details[0],
+        attempts_used: 1,
+        attempts_remaining: 0,
+        round_consumed: true,
+      }),
+    });
+  });
+
+  // return a very long explanation so the section needs to scroll/expand
+  const longExplanation = Array(200)
+    .fill('Lorem ipsum dolor sit amet, consectetur adipiscing elit.')
+    .join(' ');
+
+  await page.route('**/api/quiz/explain', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        explanation: longExplanation,
+        discriminant: 'Indice important',
+        sources: ['Source A'],
+      }),
+    });
+  });
+
+  // start a round and select a wrong answer
+  await page.locator('.hero-cta--resume, .tutorial-hero-cta').first().click();
+  await expect(page).toHaveURL(/\/play$/);
+
+  // pick first choice (wrong by our route logic)
+  await page.locator('.answer-button').first().click();
+
+  // the summary modal should appear
+  const modal = page.locator('.summary-modal');
+  await expect(modal).toBeVisible();
+
+  const explanationCard = modal.locator('.explanation-section');
+  await expect(explanationCard).toBeVisible();
+
+  // check that bounding box is fully within viewport and content is scrollable
+  const box = await explanationCard.boundingBox();
+  expect(box).not.toBeNull();
+  if (box) {
+    expect(box.width).toBeLessThanOrEqual(1920);
+    expect(box.x + box.width).toBeLessThanOrEqual(1920);
+    expect(box.y + box.height).toBeLessThanOrEqual(1080);
+  }
+
+  // the inner content should have overflow:auto style applied
+  const overflow = await explanationCard.evaluate((el) => window.getComputedStyle(el).overflow);
+  expect(overflow).toMatch(/auto|scroll/);
+});
+
 test('mobile pack cards keep compact mode without description panel', async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(baseURL || '/');

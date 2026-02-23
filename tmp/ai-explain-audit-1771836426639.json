@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-02-23T08:47:06.630Z",
+  "durationMs": 23022,
+  "config": {
+    "locale": "fr",
+    "perGroupSpecies": 8,
+    "pairsPerGroup": 1,
+    "maxPages": 1,
+    "groups": [
+      "BIRDS",
+      "MAMMALS",
+      "PLANTS"
+    ],
+    "seed": 20260223
+  },
+  "summary": {
+    "total": 3,
+    "fallbackTrue": 2,
+    "fallbackRatePct": 66.7,
+    "withDiscriminant": 2,
+    "discriminantRatePct": 66.7,
+    "withQualityIssues": 0,
+    "qualityIssuesRatePct": 0,
+    "avgWords": 19.7,
+    "avgDurationMs": 4882.3,
+    "byGroup": {
+      "BIRDS": {
+        "total": 1,
+        "fallbackTrue": 0,
+        "avgWords": 17
+      },
+      "MAMMALS": {
+        "total": 1,
+        "fallbackTrue": 1,
+        "avgWords": 19
+      },
+      "PLANTS": {
+        "total": 1,
+        "fallbackTrue": 1,
+        "avgWords": 23
+      }
+    },
+    "examples": {
+      "ai": [
+        {
+          "group": "BIRDS",
+          "pair": "336399/10070",
+          "explanation": "Tu vois, le Choucas est bien plus grand et son plumage est majoritairement gris-noir, avec des yeux",
+          "discriminant": null
+        }
+      ],
+      "fallback": [
+        {
+          "group": "MAMMALS",
+          "pair": "46001/45952",
+          "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice.",
+          "discriminant": "Taille, oreilles, pelage"
+        },
+        {
+          "group": "PLANTS",
+          "pair": "60295/56121",
+          "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie).",
+          "discriminant": "Feuilles, fleur, tige"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "groupKey": "BIRDS",
+      "correctId": 336399,
+      "wrongId": 10070,
+      "fallback": false,
+      "wordCount": 17,
+      "durationMs": 3780,
+      "discriminant": "",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia",
+        "iNaturalist"
+      ],
+      "validationIssues": [],
+      "explanation": "Tu vois, le Choucas est bien plus grand et son plumage est majoritairement gris-noir, avec des yeux"
+    },
+    {
+      "groupKey": "MAMMALS",
+      "correctId": 46001,
+      "wrongId": 45952,
+      "fallback": true,
+      "wordCount": 19,
+      "durationMs": 5522,
+      "discriminant": "Taille, oreilles, pelage",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Compare la taille, la forme des oreilles, du museau et le pelage. La queue est aussi un bon indice."
+    },
+    {
+      "groupKey": "PLANTS",
+      "correctId": 60295,
+      "wrongId": 56121,
+      "fallback": true,
+      "wordCount": 23,
+      "durationMs": 5345,
+      "discriminant": "Feuilles, fleur, tige",
+      "sources": [
+        "Wikipedia (en)",
+        "Wikipedia"
+      ],
+      "validationIssues": [],
+      "explanation": "Oh là ! Regarde la forme des feuilles (dentées, lobées, entières ?), leur disposition (alternes, opposées) et la fleur (nombre de pétales, symétrie)."
+    }
+  ]
+}
