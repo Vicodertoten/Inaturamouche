@@ -51,3 +51,13 @@ Si une route backend change:
 Source canonique: `wiki/`.
 
 Toute modification d architecture, d API ou d ops doit etre accompagnee d une mise a jour de la doc correspondante.
+
+## Systeme IA
+
+Si le systeme IA (`server/services/ai/`) est modifie:
+- Tester avec le script d'audit: `node scripts/audit-ai-explanations.mjs`
+- Verifier les metriques AI (taux de fallback, qualite, latence)
+- Mettre a jour `wiki/ARCHITECTURE.md` si changement d'architecture
+- S'assurer que les fallbacks generiques restent coherents
+
+Architecture actuelle: RAG → Generate (JSON structure) → Validate → Fallback

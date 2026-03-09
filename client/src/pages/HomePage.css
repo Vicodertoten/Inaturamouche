@@ -1117,6 +1117,169 @@
   display: none;
 }
 
+/* ── Custom pack save / share actions ── */
+.custom-pack-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color, rgba(255,255,255,0.08));
+}
+
+.save-pack-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.save-pack-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: var(--radius-small, 6px);
+  font-size: 0.85rem;
+  font-family: var(--font-family-main);
+  background: var(--surface-color, #263321);
+  color: var(--text-color, #f1f5e9);
+  transition: border-color 0.15s;
+}
+.save-pack-input::placeholder {
+  color: var(--text-color-muted, #c4c9bf);
+  opacity: 0.6;
+}
+.save-pack-input:focus {
+  outline: none;
+  border-color: var(--accent-color, #eebb4d);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.18);
+}
+
+.action-inline-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.1em;
+  flex-shrink: 0;
+}
+
+.btn--sm {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn--ghost {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color-muted, #c4c9bf);
+  font-size: 0.9rem;
+  padding: 5px;
+  border-radius: var(--radius-small, 6px);
+  transition: color 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+}
+.btn--ghost:hover {
+  color: var(--error-color, #e05550);
+  background: rgba(224, 85, 80, 0.1);
+}
+
+/* ── Saved pack card styling ── */
+.pack-card--saved {
+  border-style: dashed;
+  border-color: rgba(var(--primary-color-rgb, 123, 140, 72), 0.35);
+}
+.pack-card--saved:hover {
+  border-color: var(--accent-color, #eebb4d);
+}
+
+.pack-card-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 50%;
+  color: var(--text-color-muted, #c4c9bf);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  cursor: pointer;
+  z-index: 3;
+}
+.pack-card-delete .action-inline-icon {
+  width: 0.7em;
+  height: 0.7em;
+}
+.pack-card:hover .pack-card-delete {
+  opacity: 1;
+}
+.pack-card-delete:hover {
+  color: #fff;
+  background: var(--error-color, #e05550);
+}
+
+/* ── Delete confirmation dialog ── */
+.delete-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal, 1000);
+  animation: fade-in-overlay 0.15s ease;
+}
+.delete-confirm-dialog {
+  background: var(--surface-color, #263321);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  border-radius: var(--radius, 12px);
+  padding: 1.5rem;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-2, 0 10px 30px rgba(0,0,0,0.32));
+}
+.delete-confirm-text {
+  font-size: 0.95rem;
+  color: var(--text-color, #f1f5e9);
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+.delete-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+.btn--danger {
+  background: var(--error-color, #e05550);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-small, 6px);
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn--danger:hover {
+  background: #c9413d;
+  transform: translateY(-1px);
+}
+@keyframes fade-in-overlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @keyframes card-desc-in {
   from { opacity: 0; }
   to   { opacity: 1; }

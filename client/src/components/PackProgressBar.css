@@ -1,0 +1,68 @@
+/* PackProgressBar.css — pack mastery progress bar */
+
+.pack-progress {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.pack-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  margin-bottom: 0.25rem;
+}
+
+.pack-progress-percent {
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.pack-progress-bar {
+  position: relative;
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-dim, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+}
+
+.pack-progress--compact .pack-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 0.35rem;
+}
+
+.pack-progress-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.pack-progress-diamond {
+  background: linear-gradient(90deg, #b9f2ff, #7ee8fa);
+}
+
+.pack-progress-gold {
+  background: linear-gradient(90deg, #ffd700, #ffb300);
+}
+
+.pack-progress-silver {
+  background: linear-gradient(90deg, #c0c0c0, #a0a0a0);
+}
+
+.pack-progress-bronze {
+  background: linear-gradient(90deg, #cd7f32, #a0522d);
+}
+
+.pack-progress-legend {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--text-muted, #888);
+}
+
+.pack-progress-stat {
+  white-space: nowrap;
+}

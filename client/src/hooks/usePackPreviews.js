@@ -35,6 +35,29 @@ function warmImageCache(photos) {
   }
 }
 
+const INAT_SIZE_TOKEN_RE = /(square|small|medium|large|original)(?=(?:\.[^/?#]+)?(?:[?#]|$))/i;
+
+function toPreviewSizedUrl(url, size = 'small') {
+  if (!url) return '';
+  if (!INAT_SIZE_TOKEN_RE.test(url)) return url;
+  return url.replace(INAT_SIZE_TOKEN_RE, size);
+}
+
+function mapTaxonToPhoto(taxon) {
+  const baseUrl =
+    taxon?.default_photo?.small_url ||
+    taxon?.default_photo?.square_url ||
+    taxon?.default_photo?.medium_url ||
+    taxon?.default_photo?.url ||
+    '';
+  if (!baseUrl) return null;
+  return {
+    url: toPreviewSizedUrl(baseUrl, 'small'),
+    attribution: taxon?.default_photo?.attribution || '',
+    name: taxon.preferred_common_name || taxon.name || '',
+  };
+}
+
 /**
  * Loads pack previews progressively:
  * - visible/hovered packs are high priority
@@ -212,6 +235,46 @@ export function usePackPreviews() {
 
   const getPhotos = useCallback((packId) => previews[packId] ?? null, [previews]);
 
+  /**
+   * Fetch preview photos for a saved custom pack directly from iNaturalist.
+   * @param {string} savedPackId  Unique id of the saved pack (e.g. "saved_xxx")
+   * @param {number[]} taxaIds    Taxa IDs from savedPack.filters.includedTaxa
+   */
+  const loadSavedPackPreview = useCallback((savedPackId, taxaIds) => {
+    if (!savedPackId || !Array.isArray(taxaIds) || taxaIds.length === 0) return;
+
+    const meta = metaRef.current.get(savedPackId);
+    if (meta && (meta.state === 'loaded' || meta.state === 'loading')) return;
+
+    metaRef.current.set(savedPackId, { state: 'loading', attempts: 0, nextRetryAt: 0 });
+
+    const ids = taxaIds.slice(0, 4).join(',');
+
+    fetch(`https://api.inaturalist.org/v1/taxa/${ids}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`iNat taxa API ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!mountedRef.current) return;
+        const photos = (data.results || [])
+          .map(mapTaxonToPhoto)
+          .filter(Boolean)
+          .slice(0, 4);
+
+        metaRef.current.set(savedPackId, { state: 'loaded', attempts: 1, nextRetryAt: 0 });
+        if (photos.length > 0) {
+          warmImageCache(photos);
+          setPreviews((prev) => ({ ...prev, [savedPackId]: photos }));
+        }
+      })
+      .catch((err) => {
+        if (!mountedRef.current) return;
+        console.warn(`[usePackPreviews] saved pack preview failed for ${savedPackId}:`, err);
+        metaRef.current.set(savedPackId, { state: 'error', attempts: 1, nextRetryAt: 0 });
+      });
+  }, []);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -220,5 +283,5 @@ export function usePackPreviews() {
     };
   }, [clearScheduled]);
 
-  return { getPhotos, loadPreview, preloadPackPreviews };
+  return { getPhotos, loadPreview, preloadPackPreviews, loadSavedPackPreview };
 }

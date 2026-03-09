@@ -19,9 +19,18 @@ Flux principal:
 - `server/index.js`: demarrage et warmup
 - `server/app.js`: middleware globaux (CORS, Helmet, compression, logging, rate limits)
 - `server/routes/*`: endpoints API
-- `server/services/*`: logique metier (generation question, store de manches, iNaturalist, IA)
+- `server/services/*`: logique metier (generation question, store de manches, iNaturalist, IA, metriques, catalogue packs)
+  - `aiService.js`: orchestration du système IA (explications et enigmes)
+  - `ai/`: modules IA (config, pipeline, prompt builder, RAG, output filter)
+  - `catalogService.js`: construction du catalogue de packs pour la page d'accueil
+  - `metricsStore.js`: collecte et analyse des metriques first-party
+  - `questionGenerator.js`, `lureBuilder.js`, `observationPool.js`: generation de questions
+  - `roundStore.js`: validation des manches cote serveur
+  - `iNaturalistClient.js`: client API iNaturalist avec rate limiting
+  - `taxonomicAscension.js`: mode de jeu taxonomique
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod + helpers + contrat HTTP
+- `server/packs/*`: definitions des packs V3
 
 Contrats et securite:
 
@@ -44,9 +53,27 @@ Routes UI principales:
 - `/play`
 - `/end`
 - `/collection`
+- `/collection/share/:token`
 - `/profile`
+- `/challenge/:token`
 - `/about`
 - `/legal`
+
+## Systeme IA
+
+Architecture RAG → Generate → Validate → Fallback pour explications et enigmes:
+
+- **Model**: Gemini 2.5 Flash avec sortie JSON structuree (`responseMimeType: "application/json"`)
+- **Persona**: "Papy Mouche", naturaliste bienveillant et pedagogique
+- **Pipeline**:
+  1. RAG: collecte de donnees via Wikipedia et iNaturalist
+  2. Prompt: construction contextuelle avec severite d'erreur (HUGE/MEDIUM/CLOSE)
+  3. Generation: appel API avec schema JSON strict (internal_critique, explanation, discriminant)
+  4. Validation: verification de qualite (longueur, orthographe, contenu)
+  5. Fallback: conseils generiques par classe taxonomique si echec
+- **Observabilite**: metriques AI (latence, cout, taux de fallback, raisons d'echec)
+- **Configuration**: `server/services/ai/aiConfig.js`
+- **RAG Sources**: Wikipedia (summaries), iNaturalist (descriptions)
 
 ## Caching
 

@@ -12,10 +12,14 @@ import { notify } from '../services/notifications';
 import { trackMetric } from '../services/metrics';
 import AdvancedSettings from '../components/AdvancedSettings';
 import PackIcon from '../components/PackIcons';
+import PackProgressBar from '../components/PackProgressBar';
 import { SettingsIcon } from '../components/NavigationIcons';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
 import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
 import { getPackEducationalWarningKey } from '../utils/packWarnings';
+import { buildPackSnapshot, encodePackSnapshot, buildPackShareUrl } from '../utils/packShare';
+import { savePack as savePackToStorage, getSavedPacks, deleteSavedPack } from '../utils/savedPacks';
+import { copyToClipboard } from '../utils/shareCard';
 import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
@@ -112,6 +116,40 @@ const PackSettingsIcon = () => (
 const CloseIcon = () => (
   <svg className="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
+
+/* ── Inline SVG icons for save / share / pack actions ── */
+const SaveIcon = ({ className = '' }) => (
+  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M7 3v6h8V3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <circle cx="12" cy="15" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+);
+
+const ShareLinkIcon = ({ className = '' }) => (
+  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const MyPacksIcon = ({ className = '' }) => (
+  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+  </svg>
+);
+
+const DeleteIcon = ({ className = '' }) => (
+  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const CheckIcon = ({ className = '' }) => (
+  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M5 12l5 5L19 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -334,28 +372,49 @@ const HomePage = () => {
 
   const handleStartReview = useCallback(async () => {
     preloadPlayPage();
-    const started = await startReviewMode();
+    const started = await startReviewMode(gameMode);
     if (started) {
       void trackMetric('play_click', {
         source: 'review_mode_cta',
         pack_id: activePackId || null,
-        mode: 'easy',
+        mode: gameMode || 'easy',
         media_type: mediaType || 'images',
         review: true,
       });
       navigate('/play');
     }
     return started;
-  }, [activePackId, mediaType, navigate, preloadPlayPage, startReviewMode]);
+  }, [activePackId, gameMode, mediaType, navigate, preloadPlayPage, startReviewMode]);
 
   const handlePackSelect = useCallback((packId) => {
     setActivePackId(packId);
+    if (packId !== 'custom') {
+      setCustomPackLabel(null);
+      setSavePackName('');
+    }
   }, [setActivePackId]);
+
   const preloadCustomFilter = useCallback(() => {
     import('../features/configurator/components/CustomFilter');
   }, []);
 
   const [customOpen, setCustomOpen] = useState(false);
+  const [savePackName, setSavePackName] = useState('');
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [savedPacksVersion, setSavedPacksVersion] = useState(0);
+  const [customPackLabel, setCustomPackLabel] = useState(null);
+  const [pendingDeletePack, setPendingDeletePack] = useState(null);
+
+  const handleCustomEntryClick = useCallback(() => {
+    const alreadyCustom = activePackId === 'custom';
+    setActivePackId('custom');
+    setCustomOpen(alreadyCustom ? !customOpen : true);
+    if (!alreadyCustom) {
+      setCustomPackLabel(null);
+      setSavePackName('');
+    }
+  }, [activePackId, customOpen, setActivePackId]);
+  const savedPacks = useMemo(() => getSavedPacks(), [savedPacksVersion]);
   const advancedPanelRef = useRef(null);
   const advancedButtonRef = useRef(null);
   const customPanelRef = useRef(null);
@@ -363,7 +422,9 @@ const HomePage = () => {
 
   /* ── Derived ── */
   const activePack = packs.find((p) => p.id === activePackId);
-  const activePackLabel = activePack?.titleKey ? t(activePack.titleKey) : activePackId;
+  const activePackLabel = activePackId === 'custom' && customPackLabel
+    ? customPackLabel
+    : activePack?.titleKey ? t(activePack.titleKey) : activePackId;
   const customEntryTitle = t(
     homeCustomEntry?.titleKey || 'home.custom_create_title',
     {},
@@ -445,6 +506,68 @@ const HomePage = () => {
     };
   }, [customOpen]);
 
+  // ── Save / Share custom pack ──
+  const handleSavePack = useCallback(() => {
+    const name = savePackName.trim();
+    if (!name) return;
+    savePackToStorage(name, customFilters);
+    setCustomPackLabel(name);
+    notify(t('pack_share.saved', {}, 'Pack sauvegardé !'), { type: 'success' });
+    setShowSaveInput(false);
+    setSavedPacksVersion((v) => v + 1);
+  }, [savePackName, customFilters, t]);
+
+  const handleSharePack = useCallback(async () => {
+    const name = savePackName.trim();
+    if (!name) {
+      setShowSaveInput(true);
+      notify(t('pack_share.name_required', {}, 'Donne un nom au pack avant de partager'), { type: 'warning' });
+      return;
+    }
+    const snapshot = buildPackSnapshot(name, customFilters);
+    if (!snapshot) return;
+    const token = encodePackSnapshot(snapshot);
+    if (!token) return;
+    const url = buildPackShareUrl(token);
+    const ok = await copyToClipboard(url);
+    notify(
+      ok
+        ? t('pack_share.link_copied', {}, 'Lien du pack copié !')
+        : t('pack_share.copy_failed', {}, 'Échec de la copie'),
+      { type: ok ? 'success' : 'error' }
+    );
+  }, [customFilters, savePackName, t]);
+
+  const handleSelectSavedPack = useCallback(
+    (savedPack) => {
+      setActivePackId('custom');
+      setCustomOpen(true);
+      setCustomPackLabel(savedPack.name);
+      setSavePackName(savedPack.name);
+      dispatchCustomFilters({ type: 'RESTORE', payload: savedPack.filters });
+    },
+    [setActivePackId, dispatchCustomFilters]
+  );
+
+  const handleDeleteSavedPack = useCallback(
+    (e, pack) => {
+      e.stopPropagation();
+      setPendingDeletePack(pack);
+    },
+    []
+  );
+
+  const confirmDeletePack = useCallback(() => {
+    if (!pendingDeletePack) return;
+    deleteSavedPack(pendingDeletePack.id);
+    setSavedPacksVersion((v) => v + 1);
+    setPendingDeletePack(null);
+  }, [pendingDeletePack]);
+
+  const cancelDeletePack = useCallback(() => {
+    setPendingDeletePack(null);
+  }, []);
+
   const isCatalogLoading = packsLoading || homeLoading;
   const packsById = useMemo(
     () => Object.fromEntries(packs.map((pack) => [pack.id, pack])),
@@ -472,7 +595,7 @@ const HomePage = () => {
   }, [homeSections, packsById]);
 
   /* ── Pack preview images ── */
-  const { getPhotos, loadPreview, preloadPackPreviews } = usePackPreviews();
+  const { getPhotos, loadPreview, preloadPackPreviews, loadSavedPackPreview } = usePackPreviews();
   const activePackHeroImage = useMemo(() => {
     if (!activePackId || activePackId === 'custom') return null;
     const photos = getPhotos(activePackId);
@@ -484,6 +607,16 @@ const HomePage = () => {
     if (activePackHeroImage) return;
     loadPreview(activePackId);
   }, [activePackHeroImage, activePackId, loadPreview]);
+
+  /* ── Load saved pack previews ── */
+  useEffect(() => {
+    for (const sp of savedPacks) {
+      const taxaIds = sp.filters?.includedTaxa?.map((t) => t.id).filter(Boolean);
+      if (taxaIds && taxaIds.length > 0) {
+        loadSavedPackPreview(sp.id, taxaIds);
+      }
+    }
+  }, [savedPacks, loadSavedPackPreview]);
 
   /* ── Hover description with delay ── */
   const hoverTimerRef = useRef(null);
@@ -642,6 +775,11 @@ const HomePage = () => {
           </div>
         )}
 
+        {/* Pack progression bar for list packs */}
+        {activePack?.taxa_ids?.length > 0 && (
+          <PackProgressBar taxaIds={activePack.taxa_ids} />
+        )}
+
         {/* Quick-action chips */}
         <div className="home-chips">
           <button
@@ -691,11 +829,7 @@ const HomePage = () => {
               onMouseEnter={preloadCustomFilter}
               onFocus={preloadCustomFilter}
               onTouchStart={preloadCustomFilter}
-              onClick={() => {
-                const alreadyCustom = activePackId === 'custom';
-                handlePackSelect('custom');
-                setCustomOpen(alreadyCustom ? !customOpen : true);
-              }}
+              onClick={handleCustomEntryClick}
               aria-pressed={activePackId === 'custom'}
               aria-expanded={customOpen}
               aria-controls="home-custom-panel"
@@ -733,6 +867,48 @@ const HomePage = () => {
             >
               <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
             </Suspense>
+
+            {/* Save / Share custom pack */}
+            <div className="custom-pack-actions">
+              {!showSaveInput ? (
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm"
+                  onClick={() => setShowSaveInput(true)}
+                >
+                  <SaveIcon /> {t('pack_share.save_btn', {}, 'Sauvegarder')}
+                </button>
+              ) : (
+                <div className="save-pack-row">
+                  <input
+                    type="text"
+                    className="save-pack-input"
+                    placeholder={t('pack_share.name_placeholder', {}, 'Nom du pack…')}
+                    value={savePackName}
+                    onChange={(e) => setSavePackName(e.target.value)}
+                    maxLength={80}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSavePack();
+                      if (e.key === 'Escape') setShowSaveInput(false);
+                    }}
+                  />
+                  <button type="button" className="btn btn--primary btn--sm" onClick={handleSavePack} disabled={!savePackName.trim()}>
+                    <CheckIcon />
+                  </button>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setShowSaveInput(false)}>
+                    <DeleteIcon />
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                className="btn btn--outline btn--sm"
+                onClick={handleSharePack}
+              >
+                <ShareLinkIcon /> {t('pack_share.share_btn', {}, 'Partager')}
+              </button>
+            </div>
           </div>
         )}
 
@@ -741,6 +917,82 @@ const HomePage = () => {
             {Array.from({ length: 4 }, (_, i) => (
               <div className="pack-card skeleton" key={`sk-${i}`} aria-hidden="true" />
             ))}
+          </div>
+        )}
+
+        {/* Saved custom packs */}
+        {!isCatalogLoading && savedPacks.length > 0 && (
+          <div className="home-section">
+            <p className="home-section-label home-section-label-icon"><MyPacksIcon /><span>{t('pack_share.my_packs', {}, 'Mes packs')}</span></p>
+            <div className="home-catalog-row">
+              {savedPacks.map((sp) => {
+                const spPhotos = getPhotos(sp.id);
+                return (
+                <div key={sp.id} className="pack-card-shell">
+                  <button
+                    type="button"
+                    className="pack-card pack-card--saved"
+                    onClick={() => handleSelectSavedPack(sp)}
+                  >
+                    {spPhotos && spPhotos.length > 0 ? (
+                      <div className="pack-card-photos">
+                        {Array.from({ length: 4 }, (_, i) => {
+                          const photo = spPhotos[i % spPhotos.length];
+                          return (
+                            <div key={i} className="pack-card-photo-cell">
+                              <img
+                                src={photo.url}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="pack-card-img"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="pack-card-photo-placeholder pack-card-skeleton">
+                        <PackIcon packId="custom" className="pack-card-icon-large" />
+                      </div>
+                    )}
+                    <div className="pack-card-info">
+                      <span className="pack-card-title">{sp.name}</span>
+                    </div>
+                    <span
+                      className="pack-card-delete"
+                      onClick={(e) => handleDeleteSavedPack(e, sp)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t('pack_share.delete', {}, 'Supprimer')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleDeleteSavedPack(e, sp); }}
+                    >
+                      <DeleteIcon />
+                    </span>
+                  </button>
+                </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Delete confirmation dialog */}
+        {pendingDeletePack && (
+          <div className="delete-confirm-overlay" onClick={cancelDeletePack}>
+            <div className="delete-confirm-dialog" onClick={(e) => e.stopPropagation()}>
+              <p className="delete-confirm-text">
+                {t('pack_share.delete_confirm', { name: pendingDeletePack.name }, `Supprimer « ${pendingDeletePack.name} » ?`)}
+              </p>
+              <div className="delete-confirm-actions">
+                <button type="button" className="btn btn--outline btn--sm" onClick={cancelDeletePack}>
+                  {t('common.cancel', {}, 'Annuler')}
+                </button>
+                <button type="button" className="btn btn--danger btn--sm" onClick={confirmDeletePack}>
+                  {t('pack_share.delete', {}, 'Supprimer')}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1012,6 +1264,9 @@ function PackRow({
           {/* Always visible title strip */}
           <div className="pack-card-info">
             <span className="pack-card-title">{packTitle}</span>
+            {Array.isArray(pack.taxa_ids) && pack.taxa_ids.length > 0 && (
+              <PackProgressBar taxaIds={pack.taxa_ids} compact />
+            )}
           </div>
 
           {/* Hover-expand description */}

@@ -188,6 +188,31 @@ select.nav-pill {
   box-sizing: border-box;
 }
 
+/* Skip-to-main link — visible only on focus for keyboard users */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 10000;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary, #2563eb);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0 0 0.5rem 0;
+  text-decoration: none;
+}
+.skip-to-main:focus {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: auto;
+  overflow: visible;
+}
+
 .App {
   position: relative;
   width: 100%;

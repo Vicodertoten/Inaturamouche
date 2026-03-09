@@ -2,6 +2,17 @@
 
 Quiz naturaliste educatif base sur des observations iNaturalist. Frontend React (PWA) + API Express.
 
+## Fonctionnalites principales
+
+- **4 modes de jeu**: Easy, Hard, Riddle (enigmes), Taxonomic (ascension taxonomique)
+- **44 packs thematiques**: Discovery (14), Threatened (12), Curated (14), Creative (4)
+- **Systeme de progression**: XP, niveaux, streak, achievements, collection d'especes
+- **IA educative**: Explications personnalisees via Gemini 2.5 Flash (RAG + JSON structure)
+- **PWA offline-ready**: Installation sur device, cache intelligent
+- **Multilingue**: fr, en, nl avec detection automatique
+- **Partage**: Collections et defis partageables
+- **Metrics first-party**: Analyse produit sans tracking tiers invasif
+
 ## Liens rapides
 
 - `wiki/INDEX.md`
@@ -37,6 +48,27 @@ npm --prefix client run dev
 
 - API: `http://localhost:3001`
 - Front: `http://localhost:5173`
+
+## Stack technique
+
+**Backend:**
+- Express 5, Node.js 20+
+- Gemini 2.5 Flash (IA avec JSON structure)
+- Zod validation, Pino logging
+- SmartCache (TTL + stale)
+- iNaturalist API + Wikipedia RAG
+
+**Frontend:**
+- React 19, React Router, Vite
+- Zustand (state), TanStack Query
+- Leaflet maps, Dexie (IndexedDB)
+- PWA (vite-plugin-pwa)
+- Vitest + Playwright E2E
+
+**Data:**
+- 44 packs V3 (dynamic + list-based)
+- iNaturalist observations (CC licenses)
+- Local storage: progression, preferences
 
 ## Donnees et attribution
 

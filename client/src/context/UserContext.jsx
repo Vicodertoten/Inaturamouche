@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../services/PlayerProfile';
 import { checkDailyStreak } from '../services/StreakService';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
+import { useLanguage } from './LanguageContext';
 import CollectionService, { MASTERY_LEVELS } from '../services/CollectionService';
 import { getTaxaByIds } from '../services/api';
 import { stats as statsTable, taxa as taxaTable } from '../services/db';
@@ -95,6 +96,7 @@ async function seedEncyclopedia() {
 }
 
 export function UserProvider({ children }) {
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
@@ -133,7 +135,7 @@ export function UserProvider({ children }) {
         let loadedProfile = persistedProfile;
         
         // Check daily streak on app load
-        loadedProfile = checkDailyStreak(loadedProfile);
+        loadedProfile = checkDailyStreak(loadedProfile, t);
         
         if (!isMounted) return;
         setProfile(sanitizeProfile(loadedProfile));

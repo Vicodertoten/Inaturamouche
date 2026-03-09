@@ -13,10 +13,10 @@ const BottomNavigationBar = ({
   const { t } = useLanguage();
 
   const navItems = [
-    { path: '/', icon: HomeIcon, label: 'Acceuil', type: 'route', tutorialClass: 'tutorial-nav-home' },
-    { path: '/profile', icon: ProfileIcon, label: 'Profil', type: 'route', tutorialClass: 'tutorial-nav-profile' },
-    { path: '/collection', icon: CollectionIcon, label: 'Collection', type: 'route', tutorialClass: 'tutorial-nav-collection' },
-    { path: 'settings', icon: LanguageIcon, label: 'Langue', type: 'action', tutorialClass: 'tutorial-nav-settings' },
+    { path: '/', icon: HomeIcon, label: t('nav.home', {}, 'Accueil'), type: 'route', tutorialClass: 'tutorial-nav-home' },
+    { path: '/profile', icon: ProfileIcon, label: t('nav.profile', {}, 'Profil'), type: 'route', tutorialClass: 'tutorial-nav-profile' },
+    { path: '/collection', icon: CollectionIcon, label: t('nav.collection', {}, 'Collection'), type: 'route', tutorialClass: 'tutorial-nav-collection' },
+    { path: 'settings', icon: LanguageIcon, label: t('nav.settings', {}, 'Langue'), type: 'action', tutorialClass: 'tutorial-nav-settings' },
   ];
 
   const handleNavClick = (item) => {

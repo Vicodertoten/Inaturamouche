@@ -18,6 +18,10 @@ La liste complete est dans `wiki/API_REFERENCE.md`.
 - Erreurs: contrat unifie (`error.code`, `error.message`, `error.requestId`)
 - Rate limiting: global + endpoints sensibles
 - Signature HMAC des manches: `ROUND_HMAC_SECRET`
+- Cache: SmartCache (TTL + stale) pour questions, taxons, autocomplete
+- IA: Gemini 2.5 Flash avec JSON structure pour explications et enigmes
+- Metrics: Store first-party avec retention configurable (metricsStore.js)
+- Packs: Catalogue V3 avec 44 packs (discovery, threatened, curated, creative)
 
 ## Commandes
 

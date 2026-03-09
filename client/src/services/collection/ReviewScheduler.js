@@ -8,8 +8,10 @@ import { stats as statsTable, taxa as taxaTable } from '../db.js';
 /**
  * Calculate the next review date based on Spaced Repetition algorithm.
  * First encounter → review in 1 day
- * Correct answer → double interval (max 90 days)
+ * Correct answer → interval * easeFactor (max 90 days)
  * Wrong answer → reset to 1 day
+ * The ease factor personalises spacing per species: hard species
+ * (low ease) are reviewed sooner, easy ones are spaced further.
  * @param {Object} existing - Existing stats object
  * @param {boolean} isCorrect
  * @param {string} now - Current timestamp (ISO string)
@@ -24,8 +26,7 @@ export function calculateNextReviewDate(existing, isCorrect, now) {
     return nextDate.toISOString();
   }
 
-  const currentInterval = existing.reviewInterval || 1;
-  const newInterval = isCorrect ? Math.min(currentInterval * 2, 90) : 1;
+  const newInterval = calculateReviewInterval(existing, isCorrect);
 
   const nextDate = new Date(currentDate);
   nextDate.setDate(nextDate.getDate() + newInterval);
@@ -34,14 +35,22 @@ export function calculateNextReviewDate(existing, isCorrect, now) {
 
 /**
  * Calculate the review interval in days.
+ * Uses the species’ ease factor to modulate spacing:
+ * - ease > 2.5 → interval grows faster (easy species)
+ * - ease < 2.5 → interval grows slower (hard species)
  * @param {Object} existing
  * @param {boolean} isCorrect
  * @returns {number}
  */
 export function calculateReviewInterval(existing, isCorrect) {
   if (!existing) return 1;
+  if (!isCorrect) return 1;
   const current = existing.reviewInterval || 1;
-  return isCorrect ? Math.min(current * 2, 90) : 1;
+  const ease = existing.easeFactor || 2.5;
+  // Normalise ease around default 2.5 so the multiplier is
+  // > 1 for easy species and < 1 for hard ones.
+  const multiplier = ease / 2.5;
+  return Math.min(Math.round(current * 2 * multiplier), 90);
 }
 
 /**

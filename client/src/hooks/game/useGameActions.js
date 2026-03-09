@@ -14,6 +14,7 @@ import { notifyApiError } from '../../services/api';
 import { trackMetric } from '../../services/metrics';
 import { getLevelFromXp } from '../../utils/scoring';
 import { getRarityInfo } from '../../utils/rarityUtils';
+import { useLanguage } from '../../context/LanguageContext';
 import { computeRoundEconomy } from '../../utils/economy';
 import {
   createSeedSessionId,
@@ -133,6 +134,7 @@ export function useGameActions({
   clearUnlockedLater,
   setRarityCelebration,
 }) {
+  const { t } = useLanguage();
   // Refs to track pending timers for cleanup on unmount
   const xpGainTimerRef = useRef(null);
   const levelUpTimerRef = useRef(null);
@@ -316,7 +318,7 @@ export function useGameActions({
     ]
   );
 
-  const startReviewMode = useCallback(async () => {
+  const startReviewMode = useCallback(async (reviewGameMode = 'easy') => {
     try {
       const speciesToReview = await getSpeciesDueForReview(50);
       const taxonIds = speciesToReview
@@ -324,7 +326,7 @@ export function useGameActions({
         .filter((id) => Number.isFinite(id));
 
       if (taxonIds.length === 0) {
-        notify("Aucune espèce à réviser aujourd'hui ! 🎉", {
+        notify(t('review.none_due', {}, "Aucune espèce à réviser aujourd'hui ! 🎉"), {
           type: 'success',
           duration: 3000,
         });
@@ -332,9 +334,9 @@ export function useGameActions({
       }
 
       setReviewTaxonIds(taxonIds);
-      startGame({ review: true, gameMode: 'easy', maxQuestions: taxonIds.length });
+      startGame({ review: true, gameMode: normalizeGameMode(reviewGameMode, 'easy'), maxQuestions: taxonIds.length });
 
-      notify(`📚 ${taxonIds.length} espèce${taxonIds.length > 1 ? 's' : ''} à réviser`, {
+      notify(t('review.start_count', { count: taxonIds.length }, `📚 ${taxonIds.length} espèce${taxonIds.length > 1 ? 's' : ''} à réviser`), {
         type: 'info',
         duration: 3000,
       });
@@ -343,13 +345,13 @@ export function useGameActions({
     } catch (error) {
       console.error('Failed to start review mode:', error);
       if (typeof notifyApiError === 'function') {
-        notifyApiError(error, 'Impossible de démarrer le mode révision');
+        notifyApiError(error, t('review.start_error', {}, 'Impossible de démarrer le mode révision'));
       } else {
-        notify('Impossible de démarrer le mode révision', { type: 'error' });
+        notify(t('review.start_error', {}, 'Impossible de démarrer le mode révision'), { type: 'error' });
       }
       return false;
     }
-  }, [setReviewTaxonIds, startGame]);
+  }, [setReviewTaxonIds, startGame, t]);
 
   const finalizeGame = useCallback(
     async ({
@@ -775,7 +777,7 @@ export function useGameActions({
       if (isCorrectFinal && rarityBonusXp > 0) {
         if (rarityInfo.tier === 'legendary' || rarityInfo.tier === 'epic') {
           triggerRarityCelebration(rarityInfo.tier);
-          notify(`✨ ${rarityInfo.label} +${rarityBonusXp} XP`, {
+          notify(t('results.rarity_bonus', { label: t('rarity.' + rarityInfo.tier, {}, rarityInfo.label), xp: rarityBonusXp }, `✨ ${rarityInfo.label} +${rarityBonusXp} XP`), {
             type: 'success',
             duration: 2500,
           });

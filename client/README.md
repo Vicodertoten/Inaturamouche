@@ -15,7 +15,11 @@ SPA React de iNaturaQuizz (Vite + PWA).
 - `/play`
 - `/end`
 - `/collection`
+- `/collection/share/:token`
 - `/profile`
+- `/challenge/:token`
+- `/about`
+- `/legal`
 
 ## Scripts
 
@@ -37,6 +41,7 @@ Endpoints utilises:
 - `/api/quiz/explain`
 - `/api/reports`
 - `/api/packs`
+- `/api/packs/home`
 - `/api/packs/:id/preview`
 - `/api/taxa/autocomplete`
 - `/api/taxon/:id`
@@ -45,6 +50,7 @@ Endpoints utilises:
 - `/api/places/by-id`
 - `/api/daily/score`
 - `/api/daily/leaderboard`
+- `/api/metrics/events`
 
 ## PWA
 

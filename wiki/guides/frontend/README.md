@@ -13,15 +13,27 @@ Le frontend est une SPA React (Vite) avec PWA et modes de jeu (easy, hard, riddl
 - `client/src/state/*`: store Zustand (XP, streak, achievements)
 - `client/src/services/api.js`: client API
 
+## Features principales
+
+- **Modes de jeu**: Easy, Hard, Riddle (enigmes), Taxonomic (ascension taxonomique)
+- **Systeme de progression**: XP, niveaux, streak, achievements
+- **Collection**: Suivi des especes observees avec rarete
+- **Partage**: Collections et defis partageables via tokens
+- **PWA**: Support offline, installation sur device
+- **i18n**: Support fr/en/nl avec detection automatique
+- **Metrics**: Collecte first-party pour analyse produit (opt-out possible)
+
 Routes UI principales:
 
-- `/`
-- `/play`
-- `/end`
-- `/collection`
-- `/profile`
-- `/about`
-- `/legal`
+- `/`: HomePage (catalogue packs, daily challenge, stats)
+- `/play`: PlayPage (jeu principal avec modes easy/hard/riddle/taxonomic)
+- `/end`: EndPage (recap de manche)
+- `/collection`: CollectionPage (especes observees)
+- `/collection/share/:token`: SharedCollectionPage (partage de collection)
+- `/profile`: ProfilePage (profil utilisateur, XP, achievements)
+- `/challenge/:token`: ChallengePage (defis partageables)
+- `/about`: AboutPage (presentation du projet)
+- `/legal`: LegalPage (mentions legales, confidentialite, attribution)
 
 ## PWA
 

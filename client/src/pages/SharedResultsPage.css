@@ -1,0 +1,118 @@
+/* SharedResultsPage.css */
+
+.shared-results-screen {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 60vh;
+}
+
+.shared-results-card {
+  max-width: 600px;
+  width: 100%;
+}
+
+.shared-results-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.shared-results-name {
+  font-size: 1.6rem;
+  margin: 0 0 0.5rem;
+}
+
+.shared-results-meta {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #888);
+}
+
+.shared-results-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.shared-results-stat {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--surface-dim, rgba(255, 255, 255, 0.05));
+}
+
+.shared-results-stat--primary {
+  background: var(--primary-dim, rgba(37, 99, 235, 0.15));
+}
+
+.shared-results-stat .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.shared-results-stat .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  margin-top: 0.25rem;
+}
+
+.shared-results-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.shared-results-chip {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  background: var(--surface-dim, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, #ccc);
+}
+
+.shared-results-species-title {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.shared-results-species-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+
+.shared-results-species {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+}
+
+.shared-results-species.correct .species-name {
+  color: var(--success, #22c55e);
+}
+
+.shared-results-species.wrong .species-name {
+  color: var(--text-muted, #888);
+}
+
+.species-sci {
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 0.8em;
+}
+
+.shared-results-actions {
+  text-align: center;
+  margin-top: 1rem;
+}

@@ -64,6 +64,9 @@ const Footer = ({ onReportClick, compact = false }) => {
           <Link to="/about" className="footer-link">
             {t('footer.about', {}, 'À propos')}
           </Link>
+          <Link to="/guide" className="footer-link">
+            {t('footer.guide', {}, 'Guide enseignant')}
+          </Link>
         </nav>
 
         <p className="footer-copy">

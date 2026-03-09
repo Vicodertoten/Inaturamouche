@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MASTERY_LEVELS } from '../services/CollectionService';
 import { getRarityInfoForTaxon } from '../utils/rarityUtils';
+import { useLanguage } from '../context/LanguageContext';
 import { buildResponsiveSrcSet, getTaxonResponsiveImageUrls } from '../utils/imageUtils';
 import './CollectionCard.css';
 
 // Memoize the component to prevent re-renders in react-window
 const CollectionCard = React.memo(({ taxon, collection, style }) => {
+  const { t } = useLanguage();
   const masteryLevel = collection?.masteryLevel || MASTERY_LEVELS.NONE;
   const isUnseen = masteryLevel === MASTERY_LEVELS.NONE && (!collection || collection.seenCount === 0);
   
@@ -59,9 +61,9 @@ const CollectionCard = React.memo(({ taxon, collection, style }) => {
         {rarityInfo?.tier && rarityInfo.tier !== 'unknown' && (
           <span
             className={`rarity-badge rarity-${rarityInfo.tier}`}
-            title={`${rarityInfo.label}${rarityInfo.observationsCount ? ` • ${rarityInfo.observationsCount.toLocaleString()} obs.` : ''}`}
+            title={`${t('rarity.' + rarityInfo.tier, {}, rarityInfo.label)}${rarityInfo.observationsCount ? ` • ${rarityInfo.observationsCount.toLocaleString()} obs.` : ''}`}
           >
-            {rarityInfo.label}
+            {t('rarity.' + rarityInfo.tier, {}, rarityInfo.label)}
           </span>
         )}
       </div>

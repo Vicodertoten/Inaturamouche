@@ -1,5 +1,17 @@
 # Audit du Système IA - iNaturaQuizz
 
+> **STATUS UPDATE (Mars 2026):** Ce document d'audit est basé sur l'architecture précédente du système IA.
+> Depuis cet audit, le système a évolué significativement :
+> - ✅ **Faille #1 RÉSOLUE** : Migration vers JSON structuré avec `responseMimeType: "application/json"` et `responseSchema`
+> - ✅ Le parsing textuel fragile (`---`) a été remplacé par un schema JSON strict
+> - ✅ Introduction de `internal_critique` pour auto-correction du modèle
+> - ✅ Migration vers Gemini 2.5 Flash
+> - La plupart des recommandations restent pertinentes pour améliorer la robustesse et la qualité
+> 
+> Voir `server/services/ai/aiConfig.js` et `wiki/ARCHITECTURE.md` pour l'architecture actuelle.
+
+---
+
 ## Pass 1: Vue Stratégique et Architecture
 ... (Contenu précédent de Pass 1 et 2) ...
 

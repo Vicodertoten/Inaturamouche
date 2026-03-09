@@ -19,7 +19,7 @@ const daysBetween = (dateStr1, dateStr2) => {
  * Check and update daily streak on app initialization
  * Returns updated profile or original if no changes needed
  */
-export const checkDailyStreak = (profile) => {
+export const checkDailyStreak = (profile, t = (k, v, fb) => fb || k) => {
   if (!profile?.dailyStreak) {
     return profile;
   }
@@ -62,7 +62,7 @@ export const checkDailyStreak = (profile) => {
       updatedProfile.dailyStreak.shields -= 1;
       updatedProfile.dailyStreak.shieldUsedToday = true;
 
-      notify('🛡️ Bouclier utilisé! Streak préservée.', {
+      notify(t('streak.shield_used', {}, '🛡️ Bouclier utilisé! Streak préservée.'), {
         type: 'info',
         duration: 4000,
       });
@@ -73,7 +73,7 @@ export const checkDailyStreak = (profile) => {
       updatedProfile.dailyStreak.current = 0;
       updatedProfile.dailyStreak.shieldUsedToday = false;
 
-      notify('💔 Streak perdue! Recommence à zéro.', {
+      notify(t('streak.streak_lost', {}, '💔 Streak perdue! Recommence à zéro.'), {
         type: 'warning',
         duration: 4000,
       });

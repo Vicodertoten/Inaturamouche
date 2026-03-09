@@ -1,0 +1,98 @@
+.guide-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  color: var(--text-color, #f1f5e9);
+}
+
+.guide-page h1 {
+  font-size: 1.75rem;
+  margin-bottom: .5rem;
+  color: var(--text-color, #f1f5e9);
+}
+
+.guide-intro {
+  font-size: 1rem;
+  color: var(--text-color-muted, #c4c9bf);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.guide-section {
+  margin-bottom: 2rem;
+}
+
+.guide-section h2 {
+  font-size: 1.25rem;
+  border-bottom: 2px solid var(--primary-color, #7b8c48);
+  padding-bottom: .35rem;
+  margin-bottom: .75rem;
+  color: var(--accent-color, #eebb4d);
+}
+
+.guide-section h3 {
+  font-size: 1.05rem;
+  margin-top: 1rem;
+  margin-bottom: .5rem;
+  color: var(--text-color, #f1f5e9);
+}
+
+.guide-section p,
+.guide-section li {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-color-muted, #c4c9bf);
+}
+
+.guide-section ol,
+.guide-section ul {
+  padding-left: 1.5rem;
+  margin: .5rem 0;
+}
+
+.guide-section ol li,
+.guide-section ul li {
+  margin-bottom: .35rem;
+}
+
+.guide-tip {
+  background: var(--surface-2, #34422d);
+  border-left: 4px solid var(--accent-color, #eebb4d);
+  border-radius: var(--radius-small, 6px);
+  padding: .75rem 1rem;
+  margin: .75rem 0;
+  font-size: 0.88rem;
+  color: var(--text-color, #f1f5e9);
+}
+
+.guide-tip strong {
+  display: block;
+  margin-bottom: .25rem;
+  color: var(--accent-color, #eebb4d);
+}
+
+.guide-srs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: .75rem 0;
+  font-size: 0.85rem;
+}
+
+.guide-srs-table th,
+.guide-srs-table td {
+  border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+  padding: 6px 10px;
+  text-align: left;
+  color: var(--text-color-muted, #c4c9bf);
+}
+
+.guide-srs-table th {
+  background: var(--surface-2, #34422d);
+  font-weight: 600;
+  color: var(--text-color, #f1f5e9);
+}
+
+.guide-back {
+  margin-top: 2rem;
+  text-align: center;
+}

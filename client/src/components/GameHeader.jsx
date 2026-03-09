@@ -94,8 +94,8 @@ const GameHeader = ({
               <span className="streak-number">{currentStreak}</span>
             </div>
 
-            <div className="xp-chip" role="status" aria-label={`Niveau ${level}`} title={`${xpProgress} / ${xpNeeded} XP`}>
-              <span className="xp-chip-level">Nv.{level}</span>
+            <div className="xp-chip" role="status" aria-label={t('xp.level_aria', { level }, `Niveau ${level}`)} title={`${xpProgress} / ${xpNeeded} XP`}>
+              <span className="xp-chip-level">{t('xp.level_short', { level }, `Nv.${level}`)}</span>
               <div className="xp-chip-bar">
                 <div className={`xp-chip-fill${xpGain ? ' xp-gain' : ''}`} style={{ width: `${progressPercent}%` }} />
               </div>

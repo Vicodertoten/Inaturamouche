@@ -171,6 +171,9 @@ const AppLayout = () => {
 
   return (
     <div className="App">
+      <a href="#main-content" className="skip-to-main">
+        {t('nav.skip_to_main', {}, 'Skip to main content')}
+      </a>
       {isReportVisible && (
         <Suspense fallback={null}>
           <ReportModal onClose={closeReport} />
@@ -256,7 +259,7 @@ const AppLayout = () => {
         )}
       </header>
 
-      <main className="screen-container">
+      <main id="main-content" className="screen-container">
         <Outlet context={outletContext} />
       </main>
 

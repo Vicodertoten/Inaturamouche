@@ -7,6 +7,8 @@ import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
 import { notify } from '../services/notifications';
+import { buildResultsSnapshot, encodeResultsSnapshot, buildResultsUrl } from '../utils/resultsShare';
+import { copyToClipboard } from '../utils/shareCard';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import './EndScreen.css';
 
@@ -247,6 +249,41 @@ const EndScreen = ({
   }, [sessionCorrectSpecies.length, sessionSpeciesData, correctSpeciesSet, getTaxonDisplayNames]);
 
   const [showSpeciesList, setShowSpeciesList] = useState(false);
+
+  const handleShareResults = React.useCallback(async () => {
+    try {
+      const pack = packs?.find(p => p.id === activePackId);
+      const snapshot = buildResultsSnapshot({
+        playerName: profile?.name,
+        playerXp: profile?.xp,
+        score: sessionCorrectSpecies.length,
+        xpGained: sessionXPGained,
+        gameMode,
+        packId: activePackId,
+        packName: pack?.titleKey ? t(pack.titleKey) : '',
+        maxQuestions,
+        mediaType,
+        isReview: false,
+        speciesData: sessionSpeciesData,
+        correctSpecies: sessionCorrectSpecies,
+      });
+      const token = encodeResultsSnapshot(snapshot);
+      if (!token) {
+        notify(t('results_share.copy_failed', {}, 'Échec de la copie'), { type: 'error' });
+        return;
+      }
+      const url = buildResultsUrl(token);
+      const ok = await copyToClipboard(url);
+      notify(
+        ok
+          ? t('results_share.copied', {}, 'Lien copié dans le presse-papiers !')
+          : t('results_share.copy_failed', {}, 'Échec de la copie'),
+        { type: ok ? 'success' : 'error' }
+      );
+    } catch {
+      notify(t('results_share.copy_failed', {}, 'Échec de la copie'), { type: 'error' });
+    }
+  }, [packs, activePackId, profile, sessionCorrectSpecies, sessionXPGained, gameMode, maxQuestions, mediaType, sessionSpeciesData, t]);
 
   return (
     <div className="screen end-screen">
@@ -557,6 +594,9 @@ const EndScreen = ({
             maxQuestions={maxQuestions}
             mediaType={mediaType}
           />
+          <button onClick={handleShareResults} className="btn btn--outline share-results-btn">
+            📋 {t('results_share.share_button', {}, 'Partager mes résultats')}
+          </button>
         </div>
 
         <div className="end-actions end-nav-actions">

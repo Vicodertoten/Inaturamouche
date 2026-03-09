@@ -115,3 +115,22 @@ Locales supportees: `fr`, `en`, `nl`.
 
 - `GET /api/reports`
   - Token requis (`REPORTS_READ_TOKEN`).
+
+### Metrics (First-party)
+
+- `POST /api/metrics/events`
+  - Body: un seul event ou `{ events: [...] }` (max 50)
+  - Event schema: `{ name, session_id?, anon_user_id?, ts?, properties? }`
+  - Events supportes: `app_open`, `play_click`, `question_view`, `answer_submit`, `quit_mid_round`, `round_start`, `round_complete`, `report_submit`, `client_error`, `api_error`, `explanation_open`, `explanation_feedback`, `share_click`
+  - Headers optionnels: `X-Client-Session-Id`, `X-Anon-User-Id`
+  - Reponse: `{ accepted, success }` (202)
+
+- `GET /api/metrics/dashboard`
+  - Token requis selon env (`METRICS_DASHBOARD_TOKEN`).
+  - Reponse: dashboard complet des metriques sur 72h et 1h.
+
+### Packs (Extended)
+
+- `GET /api/packs/home`
+  - Query: `region?` (world|belgium|europe), `region_override?`, `recent_pack_ids?` (csv), `section_limit?`
+  - Reponse: catalogue organise par sections pour la page d'accueil.

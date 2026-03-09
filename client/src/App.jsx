@@ -13,6 +13,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
 const ChallengePage = lazy(() => import('./pages/ChallengePage'));
 const SharedCollectionPage = lazy(() => import('./pages/SharedCollectionPage'));
+const SharedResultsPage = lazy(() => import('./pages/SharedResultsPage'));
+const ImportPackPage = lazy(() => import('./pages/ImportPackPage'));
+const GuidePage = lazy(() => import('./pages/GuidePage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 
@@ -29,6 +32,9 @@ function App() {
               <Route path="end" element={<ErrorBoundary><EndPage /></ErrorBoundary>} />
               <Route path="collection" element={<ErrorBoundary><CollectionPage /></ErrorBoundary>} />
               <Route path="collection/share/:token" element={<ErrorBoundary><SharedCollectionPage /></ErrorBoundary>} />
+              <Route path="results/share/:token" element={<ErrorBoundary><SharedResultsPage /></ErrorBoundary>} />
+              <Route path="pack/import/:token" element={<ErrorBoundary><ImportPackPage /></ErrorBoundary>} />
+              <Route path="guide" element={<GuidePage />} />
               <Route path="challenge/:token" element={<ErrorBoundary><ChallengePage /></ErrorBoundary>} />
               <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
               <Route path="legal" element={<LegalPage />} />
