@@ -1,0 +1,103 @@
+/* ─── Chip — Atomic Design System ────────────────────────── */
+
+/* ── Base ─────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: var(--radius-pill, 9999px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-color, #f1f5e9);
+  font-family: var(--font-family-main);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+/* ── Sizes ────────────────────────────────────────────────── */
+.chip--sm {
+  padding: 0.15rem 0.5rem;
+  font-size: var(--type-xs, 0.75rem);
+  min-height: 24px;
+}
+
+.chip--md {
+  padding: 0.25rem 0.7rem;
+  font-size: var(--type-sm, 0.875rem);
+  min-height: 30px;
+}
+
+/* ── Variants ─────────────────────────────────────────────── */
+.chip--default {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chip--active,
+.chip--selected {
+  background: rgba(var(--accent-rgb, 238, 187, 77), 0.15);
+  border-color: var(--accent-color, #eebb4d);
+  color: var(--accent-color, #eebb4d);
+}
+
+.chip--muted {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-color-muted, #c4c9bf);
+}
+
+.chip--success {
+  background: rgba(var(--success-rgb, 76, 175, 106), 0.12);
+  border-color: var(--success-color, #4caf6a);
+  color: var(--success-color, #4caf6a);
+}
+
+.chip--error {
+  background: rgba(var(--error-rgb, 224, 85, 80), 0.12);
+  border-color: var(--error-color, #e05550);
+  color: var(--error-color, #e05550);
+}
+
+/* ── Interactive ──────────────────────────────────────────── */
+.chip--interactive {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.chip--interactive:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-color, #eebb4d);
+}
+
+.chip--interactive:active {
+  transform: scale(0.96);
+}
+
+.chip--interactive:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* ── Icon slots ───────────────────────────────────────────── */
+.chip__icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chip__icon svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.chip__label {
+  line-height: 1.2;
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none !important;
+  }
+}

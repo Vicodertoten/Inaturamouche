@@ -86,6 +86,50 @@ const collectQualityIssues = (text, { label = 'texte' } = {}) => {
 const getCommonName = (taxon) =>
   taxon?.preferred_common_name || taxon?.common_name || null;
 
+const buildFallbackPedagogyText = ({ key, correctName, wrongName, locale = 'fr' }) => {
+  const correct = correctName || (locale === 'en' ? 'the correct species' : 'la bonne espèce');
+  const wrong = wrongName || (locale === 'en' ? 'the confused species' : "l'espèce confondue");
+
+  if (locale === 'en') {
+    const map = {
+      visualClue: `Visual clue: focus on body shape, pattern, and texture to recognize ${correct}.`,
+      taxonomicRule: 'Taxonomic rule: start from a stable rank (family/genus), then confirm one concrete field mark.',
+      counterExample: `Counter-example: ${wrong} may share color or habitat, but not the key structural trait.`,
+    };
+    return map[key] || '';
+  }
+
+  const map = {
+    visualClue: `Indice visuel clé : observe la forme, le motif et la texture pour reconnaître ${correct}.`,
+    taxonomicRule: 'Règle taxonomique : pars d’un rang stable (famille/genre), puis confirme un caractère concret.',
+    counterExample: `Contre-exemple : ${wrong} peut partager la couleur ou l’habitat, mais pas le caractère structurel décisif.`,
+  };
+  return map[key] || '';
+};
+
+export function buildPedagogyBlocks(
+  {
+    visualClue,
+    taxonomicRule,
+    counterExample,
+    explanation,
+    correctName,
+    wrongName,
+    locale = 'fr',
+  } = {}
+) {
+  const visual = normalizeExplanation(visualClue || '', { correctName, wrongName, locale });
+  const rule = normalizeExplanation(taxonomicRule || '', { correctName, wrongName, locale });
+  const counter = normalizeExplanation(counterExample || '', { correctName, wrongName, locale });
+  const normalizedExplanation = normalizeExplanation(explanation || '', { correctName, wrongName, locale });
+
+  return {
+    visualClue: visual || normalizedExplanation || buildFallbackPedagogyText({ key: 'visualClue', correctName, wrongName, locale }),
+    taxonomicRule: rule || buildFallbackPedagogyText({ key: 'taxonomicRule', correctName, wrongName, locale }),
+    counterExample: counter || buildFallbackPedagogyText({ key: 'counterExample', correctName, wrongName, locale }),
+  };
+}
+
 // ── Normalisation du texte ──────────────────────────────────────
 
 /**
@@ -171,6 +215,9 @@ export function parseAIResponse(text) {
     return {
       explanation: normalizeExplanation(fullExplanation), // Note: names not available here yet, done in validate
       discriminant: parsed.discriminant ? String(parsed.discriminant).trim() : null,
+      visualClue: parsed.visual_clue ? String(parsed.visual_clue).trim() : null,
+      taxonomicRule: parsed.taxonomic_rule ? String(parsed.taxonomic_rule).trim() : null,
+      counterExample: parsed.counter_example ? String(parsed.counter_example).trim() : null,
     };
   }
 
@@ -192,6 +239,14 @@ export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
   const discriminant = responseObj.discriminant
     ? String(responseObj.discriminant).trim()
     : null;
+  const pedagogy = buildPedagogyBlocks({
+    visualClue: responseObj.visualClue,
+    taxonomicRule: responseObj.taxonomicRule,
+    counterExample: responseObj.counterExample,
+    explanation,
+    correctName,
+    wrongName,
+  });
 
   const wordCount = countWords(explanation);
   // vérifier que l'une des deux espèces est mentionnée
@@ -206,6 +261,9 @@ export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
   if (wordCount < c.minWords) issues.push(`Trop court (${wordCount} mots)`);
   if (wordCount > c.maxWords * 1.5) issues.push(`Trop long (${wordCount} mots)`);
   issues.push(...collectQualityIssues(explanation, { label: 'explication' }));
+  issues.push(...collectQualityIssues(pedagogy.visualClue, { label: 'indice visuel' }));
+  issues.push(...collectQualityIssues(pedagogy.taxonomicRule, { label: 'règle taxonomique' }));
+  issues.push(...collectQualityIssues(pedagogy.counterExample, { label: 'contre-exemple' }));
   if (discriminant) {
     const discriminantWords = countWords(discriminant);
     if (discriminantWords > 18) {
@@ -223,6 +281,7 @@ export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
     issues,
     explanation: explanation || null,
     discriminant,
+    pedagogy,
   };
 }
 
@@ -253,10 +312,19 @@ export function buildMorphologyFallback(correctTaxon, wrongTaxon, severity, data
 
   const explanation = `${tone.lead}${contextIntro}${tip.toLowerCase()}`;
   const discriminant = getGroupDiscriminant(group);
+  const pedagogy = buildPedagogyBlocks({
+    visualClue: `${contextIntro}${tip.toLowerCase()}`,
+    taxonomicRule: `Retiens ce repère : ${discriminant}.`,
+    counterExample: `${getCommonName(wrongTaxon) || "l'espèce confondue"} peut sembler proche au premier regard, mais ce critère permet de trancher.`,
+    explanation,
+    correctName,
+    wrongName: getCommonName(wrongTaxon),
+  });
 
   return {
     explanation,
     discriminant,
+    pedagogy,
     sources: [...(dataCorrect?.sources || []), ...(dataWrong?.sources || [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 2),
     fallback: true,
   };

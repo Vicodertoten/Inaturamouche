@@ -18,9 +18,12 @@ export const MODEL_CONFIG = {
         internal_critique: { type: "STRING", description: "ÉTAPE 1 (Invisible) : Critique ton propre brouillon. Vérifie : orthographe, accords, répétitions, et que tu n'as PAS utilisé 'le premier/le second'." },
         intro: { type: "STRING", description: "ÉTAPE 2 : Une interjection courte (ex: 'Oh là !')." },
         explanation: { type: "STRING", description: "ÉTAPE 3 (Finale) : L'explication avec le ton de Papy Mouche. Vivante, variée mais rigoureuse sur les noms." },
-        discriminant: { type: "STRING", description: "Le critère clé en une phrase nominale." }
+        discriminant: { type: "STRING", description: "Le critère clé en une phrase nominale." },
+        visual_clue: { type: "STRING", description: "Bloc 1 : indice visuel clé observable immédiatement." },
+        taxonomic_rule: { type: "STRING", description: "Bloc 2 : règle taxonomique courte et actionnable." },
+        counter_example: { type: "STRING", description: "Bloc 3 : contre-exemple pour éviter la confusion future." }
       },
-      required: ["internal_critique", "explanation", "discriminant"]
+      required: ["internal_critique", "explanation", "discriminant", "visual_clue", "taxonomic_rule", "counter_example"]
     }
   },
 
@@ -136,6 +139,6 @@ export const DATA_SOURCES = {
 };
 
 export const CACHE_VERSIONS = {
-  explanation: 'v11-gemini-3-preview',
+  explanation: 'v12-pedagogy-3-blocks',
   riddle: 'v11-gemini-3-preview',
 };

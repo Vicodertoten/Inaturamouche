@@ -194,22 +194,24 @@ const AppLayout = () => {
       <nav className="main-nav desktop-nav tutorial-main-nav" aria-label={t('nav.main_label', {}, 'Navigation principale')}>
         <div className="main-nav-items">
           <button
-            className="nav-pill nav-icon nav-elevated tutorial-nav-collection"
+            className="nav-pill nav-elevated tutorial-nav-collection"
             onClick={() => navigate('/collection')}
             aria-label={t('nav.collection_label')}
             title={t('nav.collection_label')}
             type="button"
           >
             <CollectionIcon />
+            <span className="nav-pill-label">{t('nav.collection', {}, 'Collection')}</span>
           </button>
           <button
-            className="profile-button nav-pill nav-icon nav-elevated tutorial-nav-profile"
+            className="profile-button nav-pill nav-elevated tutorial-nav-profile"
             onClick={showProfile}
             aria-label={t('nav.profile_label')}
             title={t('nav.profile_label')}
             type="button"
           >
             <SharedProfileIcon />
+            <span className="nav-pill-label">{t('nav.profile', {}, 'Profil')}</span>
           </button>
           <PreferencesMenu />
         </div>

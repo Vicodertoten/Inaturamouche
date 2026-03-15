@@ -21,6 +21,22 @@ function resolveLureObservation(pool, selectionState, candidate, rng) {
   );
 }
 
+/**
+ * Build a set of lure (distractor) species for a quiz question using the v2 engine.
+ *
+ * Pipeline: CandidateIndex → DifficultyPolicy → Selector (with relaxation ladder) → QualityValidator.
+ *
+ * @param {object} opts
+ * @param {object} opts.pool             Observation pool ({ byTaxon, taxonList, confusionMap }).
+ * @param {object} opts.selectionState   Per-client selection state.
+ * @param {string} opts.targetTaxonId    Target (correct) taxon ID.
+ * @param {object} opts.targetObservation Target observation with taxon ancestors.
+ * @param {number} opts.lureCount        Number of lures to produce (typically 3).
+ * @param {string} opts.gameMode         Game mode (easy | riddle).
+ * @param {Function} opts.rng            Seeded random number generator.
+ * @param {object} [opts.options]        Extra options (excludeTaxonIds, lureUsageCount, globalDifficultyBoost, minCloseness).
+ * @returns {{ lures: Array<{ taxonId: string, obs: object, score: number, closeness: number, source: string }>, source: string, relaxLevel: number, quality: { ok: boolean, reason?: string } }}
+ */
 export function buildLuresV2({
   pool,
   selectionState,

@@ -65,7 +65,7 @@ const fr = {
     home: 'Accueil',
     profile: 'Profil',
     collection: 'Collection',
-    settings: 'Langue',
+    settings: 'Préférences',
   },
   home: {
     easy_mode: 'Facile',
@@ -1106,6 +1106,7 @@ const fr = {
     },
     reset_button: 'Réinitialiser le profil',
     reset_confirm: 'Voulez-vous vraiment réinitialiser votre profil ?',
+    reset_type_confirm: 'Tapez RESET pour confirmer :',
     accuracy_title: 'Précision par mode',
     modes: {
       easy: 'Mode facile',
@@ -1257,6 +1258,7 @@ const fr = {
     legal_notice: 'Mentions légales',
     terms: 'CGU',
     privacy: 'Confidentialité',
+    legal_info: 'Mentions légales & CGU',
     inat_attribution: 'Données naturalistes fournies par iNaturalist (CC BY-NC). Photos © leurs auteurs respectifs.',
     data_source: '📊 Source des données',
     inat_attribution_long: 'Les observations et photos proviennent de',
@@ -1325,6 +1327,16 @@ const fr = {
     copy_failed: 'Échec de la copie',
     play_cta: 'Jouer aussi !',
     results_of: 'Résultats de {name}',
+  },
+  onboarding: {
+    welcome_title: 'Bienvenue sur iNaturaQuizz !',
+    welcome_description: 'Apprenez à reconnaître la faune et la flore qui vous entourent grâce à des quiz interactifs basés sur de vraies observations naturalistes.',
+    pack_title: 'Choisissez votre pack',
+    pack_description: 'Chaque pack contient des espèces d\'une région ou d\'un thème. Vous pourrez en changer à tout moment.',
+    ready_title: 'Vous êtes prêt !',
+    ready_description: 'Identifiez les espèces à partir de photos, gagnez des points et enrichissez votre collection. Bonne découverte !',
+    skip: 'Passer',
+    start_playing: 'C\'est parti !',
   },
 };
 

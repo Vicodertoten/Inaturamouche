@@ -1,11 +1,13 @@
 # Architecture
 
+> Vue d'ensemble rapide. Pour le détail complet avec diagrammes Mermaid, voir [`docs/explanation/architecture.md`](../docs/explanation/architecture.md).
+
 ## Vue d ensemble
 
 - Frontend SPA: `client/` (React + Vite + PWA)
 - Backend API: `server/` (Express 5)
 - Source data: iNaturalist API
-- IA optionnelle: Gemini pour explications et enigmes
+- IA optionnelle: Gemini pour explications educatives
 
 Flux principal:
 
@@ -20,14 +22,14 @@ Flux principal:
 - `server/app.js`: middleware globaux (CORS, Helmet, compression, logging, rate limits)
 - `server/routes/*`: endpoints API
 - `server/services/*`: logique metier (generation question, store de manches, iNaturalist, IA, metriques, catalogue packs)
-  - `aiService.js`: orchestration du système IA (explications et enigmes)
+  - `aiService.js`: re-export bridge vers `ai/` (l'orchestration reelle est dans `ai/aiPipeline.js`)
   - `ai/`: modules IA (config, pipeline, prompt builder, RAG, output filter)
   - `catalogService.js`: construction du catalogue de packs pour la page d'accueil
   - `metricsStore.js`: collecte et analyse des metriques first-party
   - `questionGenerator.js`, `lureBuilder.js`, `observationPool.js`: generation de questions
   - `roundStore.js`: validation des manches cote serveur
   - `iNaturalistClient.js`: client API iNaturalist avec rate limiting
-  - `taxonomicAscension.js`: mode de jeu taxonomique
+  - `taxonomicAscension.js`: mode de jeu taxonomique (archive — HTTP 410)
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod + helpers + contrat HTTP
 - `server/packs/*`: definitions des packs V3
@@ -54,6 +56,9 @@ Routes UI principales:
 - `/end`
 - `/collection`
 - `/collection/share/:token`
+- `/results/share/:token`
+- `/pack/import/:token`
+- `/guide`
 - `/profile`
 - `/challenge/:token`
 - `/about`
@@ -61,7 +66,7 @@ Routes UI principales:
 
 ## Systeme IA
 
-Architecture RAG → Generate → Validate → Fallback pour explications et enigmes:
+Architecture RAG → Generate → Validate → Fallback pour explications educatives:
 
 - **Model**: Gemini 2.5 Flash avec sortie JSON structuree (`responseMimeType: "application/json"`)
 - **Persona**: "Papy Mouche", naturaliste bienveillant et pedagogique

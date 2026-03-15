@@ -10,13 +10,14 @@ Le backend expose l API quiz et fait l orchestration des requetes iNaturalist (a
 - `server/app.js`: middleware globaux, cache headers, routes
 - `server/routes/*`: endpoints HTTP
 - `server/services/*`: logique metier
-  - `aiService.js` + `ai/*`: systeme IA avec RAG, prompting, validation
+  - `aiService.js`: re-export bridge vers `ai/` (l'orchestration est dans `aiPipeline.js`)
+  - `ai/*`: modules IA (config, pipeline, RAG, prompt builder, output filter)
   - `catalogService.js`: construction du catalogue de packs pour la home
   - `metricsStore.js`: collecte et analyse de metriques first-party
   - `questionGenerator.js`, `lureBuilder.js`, `observationPool.js`: generation quiz
   - `roundStore.js`: validation des manches cote serveur
   - `iNaturalistClient.js`: client API iNaturalist
-  - `taxonomicAscension.js`: mode taxonomique
+  - `taxonomicAscension.js`: mode taxonomique (archive — HTTP 410, code conserve)
   - `reportsStore.js`: gestion des rapports de bugs
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod, helpers, contrat HTTP
@@ -46,7 +47,7 @@ Architecture RAG → Generate → Validate → Fallback:
 - **Features**:
   - Auto-correction via champ `internal_critique` dans le schema JSON
   - Fallback generiques par classe taxonomique si echec de generation
-  - Support explications (differentiation especes) et enigmes (3 indices progressifs)
+  - Support explications (differentiation especes). Le mode enigmes est archive.
   - Cache des reponses generees pour reduire les couts
 - **Observabilite**: metriques AI dans metricsStore (latence, cout, taux de fallback, raisons)
 
@@ -70,3 +71,16 @@ Architecture RAG → Generate → Validate → Fallback:
 ## Erreurs
 
 Format unifie: `error.code`, `error.message`, `error.requestId`.
+
+## Documentation detaillee
+
+Pour aller plus loin :
+
+- [API Endpoints (reference)](../../docs/reference/api-endpoints.md)
+- [Configuration (reference)](../../docs/reference/configuration.md)
+- [Packs & donnees (reference)](../../docs/reference/packs-data.md)
+- [Pipeline de questions (explication)](../../docs/explanation/question-pipeline.md)
+- [Systeme IA (explication)](../../docs/explanation/ai-system.md)
+- [Strategie de cache (explication)](../../docs/explanation/caching-strategy.md)
+- [Securite des rounds (explication)](../../docs/explanation/round-security.md)
+- [Metriques (explication)](../../docs/explanation/metrics-system.md)

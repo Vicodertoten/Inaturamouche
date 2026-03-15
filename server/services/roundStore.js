@@ -74,6 +74,10 @@ function trackRoundOutcome(round, result) {
   });
 }
 
+/**
+ * Return a snapshot of the round outcome balance (accuracy, mode stats, iconic distribution).
+ * @returns {{ generated_at: string, events_window: number, total_rounds: number, global_accuracy: number, by_mode: Object, status_distribution: Object, iconic_distribution: Object }}
+ */
 export function getBalanceDashboardSnapshot() {
   const events = balanceEvents.slice();
   const summary = {
@@ -135,6 +139,7 @@ export function getBalanceDashboardSnapshot() {
   return summary;
 }
 
+/** @internal Reset all round caches and balance events (test-only). */
 export function __resetRoundStoreForTests() {
   roundCache.clear();
   submissionDedupCache.clear();
@@ -240,6 +245,24 @@ const makeBaseRoundResult = (round, status, { attemptsUsed = 0, attemptsRemainin
   round_consumed: roundConsumed,
 });
 
+/**
+ * Create a new HMAC-signed round session.
+ *
+ * Stores the correct answer server-side and returns a signed token the
+ * client must present when submitting. Throws 410 for archived game modes.
+ *
+ * @param {object} opts
+ * @param {string} opts.clientId        Client UUID.
+ * @param {string} opts.gameMode        Game mode (easy | hard). Archived modes throw 410.
+ * @param {string} opts.correctTaxonId  Correct taxon ID.
+ * @param {object} opts.correctAnswer   Full taxon details for the correct answer.
+ * @param {string} [opts.inaturalistUrl] Link to the source observation.
+ * @param {number} [opts.maxAttempts=1]  Max submissions before the round is consumed.
+ * @param {string} [opts.locale='fr']   Locale for taxon name resolution.
+ * @param {object} [opts.hardMode]      Hard mode config ({ max_guesses, base_points }).
+ * @param {object} [opts.taxonomicMode] Taxonomic mode config ({ steps, max_mistakes, max_hints, score_per_rank }).
+ * @returns {{ round_id: string, round_signature: string, round_expires_at: number }}
+ */
 export function createRoundSession({
   clientId,
   gameMode,
@@ -620,6 +643,24 @@ function processEasyOrRiddleAnswer(round, selectedTaxonId) {
   };
 }
 
+/**
+ * Submit an answer to an active round.
+ *
+ * Verifies the HMAC signature, checks TTL/dedup, delegates to the
+ * appropriate mode handler (easy, hard, taxonomic), and records the outcome.
+ *
+ * @param {object} opts
+ * @param {string} opts.roundId          Round UUID.
+ * @param {string} opts.roundSignature   HMAC-SHA256 hex signature.
+ * @param {string} opts.clientId         Client UUID.
+ * @param {string} [opts.roundAction]    Explicit action (answer | hard_guess | taxonomic_select | taxonomic_hint).
+ * @param {string} [opts.selectedTaxonId] Taxon chosen by the player.
+ * @param {number} [opts.stepIndex]      Current step index (taxonomic mode).
+ * @param {string} [opts.submissionId]   Client-generated dedup key.
+ * @param {object} [opts.logger]         Pino logger.
+ * @param {string} [opts.requestId]      Correlation ID.
+ * @returns {Promise<object>} Public round result (status, is_correct, correct_answer if consumed, etc.).
+ */
 export async function submitRoundAnswer({
   roundId,
   roundSignature,

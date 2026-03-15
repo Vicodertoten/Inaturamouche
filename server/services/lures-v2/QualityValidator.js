@@ -1,6 +1,18 @@
 // server/services/lures-v2/QualityValidator.js
 // Validation minimale de la qualité d'un set de lures
 
+/**
+ * Validate a set of selected lures before serving them.
+ *
+ * Checks: enough lures, no duplicates, none equals the target, all have
+ * a resolved observation.
+ *
+ * @param {object} opts
+ * @param {string} opts.targetTaxonId Target taxon ID.
+ * @param {Array<{ taxonId: string, obs: object }>} opts.lures Selected lures.
+ * @param {number} opts.expectedCount Required lure count.
+ * @returns {{ ok: boolean, reason?: 'not_enough_lures'|'invalid_taxon_ids'|'duplicate_lures'|'missing_observation' }}
+ */
 export function validateLureSet({ targetTaxonId, lures, expectedCount }) {
   if (!Array.isArray(lures) || lures.length < expectedCount) {
     return { ok: false, reason: 'not_enough_lures' };

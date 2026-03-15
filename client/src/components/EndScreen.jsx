@@ -7,8 +7,7 @@ import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { usePacks } from '../context/PacksContext.jsx';
 import { notify } from '../services/notifications';
-import { buildResultsSnapshot, encodeResultsSnapshot, buildResultsUrl } from '../utils/resultsShare';
-import { copyToClipboard } from '../utils/shareCard';
+
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import './EndScreen.css';
 
@@ -250,40 +249,6 @@ const EndScreen = ({
 
   const [showSpeciesList, setShowSpeciesList] = useState(false);
 
-  const handleShareResults = React.useCallback(async () => {
-    try {
-      const pack = packs?.find(p => p.id === activePackId);
-      const snapshot = buildResultsSnapshot({
-        playerName: profile?.name,
-        playerXp: profile?.xp,
-        score: sessionCorrectSpecies.length,
-        xpGained: sessionXPGained,
-        gameMode,
-        packId: activePackId,
-        packName: pack?.titleKey ? t(pack.titleKey) : '',
-        maxQuestions,
-        mediaType,
-        isReview: false,
-        speciesData: sessionSpeciesData,
-        correctSpecies: sessionCorrectSpecies,
-      });
-      const token = encodeResultsSnapshot(snapshot);
-      if (!token) {
-        notify(t('results_share.copy_failed', {}, 'Échec de la copie'), { type: 'error' });
-        return;
-      }
-      const url = buildResultsUrl(token);
-      const ok = await copyToClipboard(url);
-      notify(
-        ok
-          ? t('results_share.copied', {}, 'Lien copié dans le presse-papiers !')
-          : t('results_share.copy_failed', {}, 'Échec de la copie'),
-        { type: ok ? 'success' : 'error' }
-      );
-    } catch {
-      notify(t('results_share.copy_failed', {}, 'Échec de la copie'), { type: 'error' });
-    }
-  }, [packs, activePackId, profile, sessionCorrectSpecies, sessionXPGained, gameMode, maxQuestions, mediaType, sessionSpeciesData, t]);
 
   return (
     <div className="screen end-screen">
@@ -297,7 +262,98 @@ const EndScreen = ({
           </div>
         )}
 
-        {/* 1. XP et Progression fusionnés */}
+        {/* 1. Liste des espèces rencontrées (repliable) */}
+        {sortedSpecies.length > 0 && (
+          <div className="species-details-section">
+            <div className="species-section-summary">
+              <span className="species-summary-count">{newDiscoveries.length}</span>
+              <span className="species-summary-label">
+                {t('end.species_added_to_collection', {}, 'espèce(s) ajoutée(s) à la collection')}
+              </span>
+            </div>
+            <button 
+              className="species-toggle-button"
+              onClick={() => setShowSpeciesList(!showSpeciesList)}
+              type="button"
+            >
+              <span className="species-toggle-label">
+                <ListIcon className="section-title-icon" />
+                {t('end.species_seen', {}, 'Espèces rencontrées')}
+              </span>
+              <span className="species-toggle-meta">{sessionCorrectSpecies.length}/{sessionSpeciesData.length}</span>
+              <span className="toggle-icon" aria-hidden="true">
+                {showSpeciesList ? (
+                  <ChevronDownIcon className="toggle-icon-svg" />
+                ) : (
+                  <ChevronRightIcon className="toggle-icon-svg" />
+                )}
+              </span>
+            </button>
+            
+            {showSpeciesList && (
+              <ul className="species-list">
+                {sortedSpecies.map((sp) => {
+                  const isFound = correctSpeciesSet.has(String(sp.id));
+                  const { primary, secondary } = getTaxonDisplayNames(sp);
+                  const isNewDiscovery = isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
+                  const safeInaturalistUrl = toSafeHttpUrl(sp.inaturalist_url);
+                  const safeWikipediaUrl = toSafeHttpUrl(sp.wikipedia_url);
+
+                  return (
+                    <li
+                      key={sp.id}
+                      className={`species-item ${isFound ? 'found' : 'missed'}`}
+                    >
+                      <div className="species-info">
+                        <div>
+                          {primary && <span className="species-common">{primary}</span>}
+                          {secondary && <em>{secondary}</em>}
+                        </div>
+                        {isNewDiscovery && <span className="discovery-badge">{t('end.new_discovery')}</span>}
+                      </div>
+                      <div className="species-links">
+                        <span
+                          className={`species-status ${isFound ? 'found' : 'missed'}`}
+                          aria-label={isFound ? t('end.status.correct') : t('end.status.incorrect')}
+                        >
+                          {isFound ? (
+                            <CheckCircleIcon className="species-status-icon" />
+                          ) : (
+                            <XCircleIcon className="species-status-icon" />
+                          )}
+                        </span>
+                        <div className="external-links-container">
+                          {safeInaturalistUrl && (
+                            <a
+                              href={safeInaturalistUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="external-link"
+                            >
+                              {t('end.links.inaturalist')}
+                            </a>
+                          )}
+                          {safeWikipediaUrl && (
+                            <a
+                              href={safeWikipediaUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="external-link"
+                            >
+                              {t('end.links.wikipedia')}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* 2. XP et Progression fusionnés */}
         <div className="xp-progress-unified-section">
           {leveledUp ? (
             <div className="level-up-header">
@@ -459,7 +515,7 @@ const EndScreen = ({
           )}
         </div>
 
-        {/* 2. Achievements débloqués */}
+        {/* 3. Achievements débloqués */}
         {newlyUnlocked.length > 0 && (
           <div className="achievements-section">
             <h3 className="section-title section-title-with-icon">
@@ -486,97 +542,6 @@ const EndScreen = ({
           </div>
         )}
 
-        {/* 3. Liste des espèces rencontrées (repliable) */}
-        {sortedSpecies.length > 0 && (
-          <div className="species-details-section">
-            <div className="species-section-summary">
-              <span className="species-summary-count">{newDiscoveries.length}</span>
-              <span className="species-summary-label">
-                {t('end.species_added_to_collection', {}, 'espèce(s) ajoutée(s) à la collection')}
-              </span>
-            </div>
-            <button 
-              className="species-toggle-button"
-              onClick={() => setShowSpeciesList(!showSpeciesList)}
-              type="button"
-            >
-              <span className="species-toggle-label">
-                <ListIcon className="section-title-icon" />
-                {t('end.species_seen', {}, 'Espèces rencontrées')}
-              </span>
-              <span className="species-toggle-meta">{sessionCorrectSpecies.length}/{sessionSpeciesData.length}</span>
-              <span className="toggle-icon" aria-hidden="true">
-                {showSpeciesList ? (
-                  <ChevronDownIcon className="toggle-icon-svg" />
-                ) : (
-                  <ChevronRightIcon className="toggle-icon-svg" />
-                )}
-              </span>
-            </button>
-            
-            {showSpeciesList && (
-              <ul className="species-list">
-                {sortedSpecies.map((sp) => {
-                  const isFound = correctSpeciesSet.has(String(sp.id));
-                  const { primary, secondary } = getTaxonDisplayNames(sp);
-                  const isNewDiscovery = isFound && profile?.stats?.speciesMastery?.[sp.id]?.correct === 1;
-                  const safeInaturalistUrl = toSafeHttpUrl(sp.inaturalist_url);
-                  const safeWikipediaUrl = toSafeHttpUrl(sp.wikipedia_url);
-
-                  return (
-                    <li
-                      key={sp.id}
-                      className={`species-item ${isFound ? 'found' : 'missed'}`}
-                    >
-                      <div className="species-info">
-                        <div>
-                          {primary && <span className="species-common">{primary}</span>}
-                          {secondary && <em>{secondary}</em>}
-                        </div>
-                        {isNewDiscovery && <span className="discovery-badge">{t('end.new_discovery')}</span>}
-                      </div>
-                      <div className="species-links">
-                        <span
-                          className={`species-status ${isFound ? 'found' : 'missed'}`}
-                          aria-label={isFound ? t('end.status.correct') : t('end.status.incorrect')}
-                        >
-                          {isFound ? (
-                            <CheckCircleIcon className="species-status-icon" />
-                          ) : (
-                            <XCircleIcon className="species-status-icon" />
-                          )}
-                        </span>
-                        <div className="external-links-container">
-                          {safeInaturalistUrl && (
-                            <a
-                              href={safeInaturalistUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="external-link"
-                            >
-                              {t('end.links.inaturalist')}
-                            </a>
-                          )}
-                          {safeWikipediaUrl && (
-                            <a
-                              href={safeWikipediaUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="external-link"
-                            >
-                              {t('end.links.wikipedia')}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        )}
-
         <div className="end-actions">
           {/* Share & Challenge */}
           <ShareButtons
@@ -594,9 +559,6 @@ const EndScreen = ({
             maxQuestions={maxQuestions}
             mediaType={mediaType}
           />
-          <button onClick={handleShareResults} className="btn btn--outline share-results-btn">
-            📋 {t('results_share.share_button', {}, 'Partager mes résultats')}
-          </button>
         </div>
 
         <div className="end-actions end-nav-actions">

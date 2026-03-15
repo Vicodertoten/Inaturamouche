@@ -1,5 +1,5 @@
 /**
- * utils/achievementChecker.js
+ * core/achievements/checker.js
  * Utilities for checking and unlocking streak-related achievements
  */
 

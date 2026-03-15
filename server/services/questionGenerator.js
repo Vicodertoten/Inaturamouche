@@ -28,6 +28,16 @@ const { quizChoices: QUIZ_CHOICES } = config;
 const HARD_DEFAULT_MAX_GUESSES = 3;
 const TAXONOMIC_DEFAULT_MAX_HINTS = 1;
 
+/**
+ * Build deduplicated choice labels for easy mode.
+ *
+ * When two taxa share the same common name, appends the scientific name
+ * or a numeric suffix to guarantee visual uniqueness.
+ *
+ * @param {Map<string, object>} detailsMap Taxon details keyed by taxon ID string.
+ * @param {string[]} ids                   Taxon IDs in display order.
+ * @returns {Array<{ taxon_id: string, label: string }>} Choice objects with unique labels.
+ */
 export function buildUniqueEasyChoicePairs(detailsMap, ids) {
   const seen = new Set();
 
@@ -182,7 +192,10 @@ function assertStrictChoiceContract({
 }
 
 /**
- * Get or create queue entry for question pre-generation
+ * Get or create a question queue entry for the given cache key.
+ *
+ * @param {string} queueKey  Cache key identifying the pack+params combination.
+ * @returns {{ queue: Array<object>, inFlight: Promise|null, lastFailureAt: number }}
  */
 export function getQueueEntry(queueKey) {
   let entry = questionQueueCache.get(queueKey);
@@ -194,7 +207,13 @@ export function getQueueEntry(queueKey) {
 }
 
 /**
- * Fill question queue with pre-generated questions
+ * Fill a question queue up to `QUESTION_QUEUE_SIZE` by calling `buildQuizQuestion` in a loop.
+ *
+ * Returns a deduped in-flight promise so concurrent callers don't trigger parallel builds.
+ *
+ * @param {{ queue: Array, inFlight: Promise|null, lastFailureAt: number }} entry Queue entry.
+ * @param {object} context  Same parameter bag as `buildQuizQuestion`.
+ * @returns {Promise<void>}
  */
 export async function fillQuestionQueue(entry, context) {
   if (entry.inFlight) return entry.inFlight;
@@ -219,7 +238,26 @@ export async function fillQuestionQueue(entry, context) {
 }
 
 /**
- * Build a complete quiz question with all choices and metadata
+ * Build a complete quiz question with target observation, lure choices, and metadata.
+ *
+ * Orchestrates: getObservationPool → selectionState → target pick → buildLuresV2 →
+ * taxonDetailsCache → assertStrictChoiceContract → createRoundSession.
+ *
+ * @param {object} opts
+ * @param {object} opts.params              iNaturalist API query params.
+ * @param {string} opts.cacheKey            Pool cache key.
+ * @param {object} [opts.monthDayFilter]    Season filter ({ predicate }).
+ * @param {string} [opts.locale='fr']       Client locale.
+ * @param {string} opts.gameMode            Game mode (easy | riddle).
+ * @param {string} [opts.geoMode]           Geographic mode.
+ * @param {string} [opts.clientId]          Client identifier.
+ * @param {object} [opts.logger]            Pino logger.
+ * @param {string} [opts.requestId]         Request trace ID.
+ * @param {Function} [opts.rng]             Seeded RNG.
+ * @param {Function} [opts.poolRng]         Pool-specific RNG.
+ * @param {string} [opts.seed]              Deterministic seed (daily challenge).
+ * @param {number} [opts.clientQuestionIndex] Question index for seeded games.
+ * @returns {Promise<{ payload: object, round: object, timing: object }|null>}
  */
 export async function buildQuizQuestion({
   params,

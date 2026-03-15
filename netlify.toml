@@ -12,7 +12,7 @@
 # Redirects
 ########################################
 
-# Proxy API -> Render (utile si tu veux aussi consommer /api en relatif)
+# Proxy API -> Fly.io (consommer /api en relatif depuis le front)
 [[redirects]]
   from = "/api/*"
   to   = "https://inaturamouche-api.fly.dev/api/:splat"

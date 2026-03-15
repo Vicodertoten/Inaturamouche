@@ -44,6 +44,17 @@ function buildFallbackCandidates(pool, targetId, targetObservation) {
   return candidates.slice(0, MAX_CANDIDATES);
 }
 
+/**
+ * Build a ranked index of candidate lure taxa for a given target.
+ *
+ * Prefers the confusion map (visually confusable species) when available;
+ * falls back to LCA-based taxonomic distance otherwise.
+ *
+ * @param {object} pool              Observation pool with byTaxon, taxonList, confusionMap.
+ * @param {string} targetTaxonId     Target taxon ID.
+ * @param {object} targetObservation Target observation (used for ancestor_ids).
+ * @returns {{ source: 'confusion-map'|'lca-fallback', candidates: Array<{ tid: string, score: number, closeness: number, source: string }> }}
+ */
 export function buildCandidateIndex(pool, targetTaxonId, targetObservation) {
   const targetId = String(targetTaxonId);
   const fromMap = pool?.confusionMap?.get(targetId);

@@ -48,9 +48,22 @@ Si une route backend change:
 
 ## Documentation
 
-Source canonique: `wiki/`.
+Source canonique : `wiki/` (vue d'ensemble) + `docs/` (référence et explication détaillées).
 
-Toute modification d architecture, d API ou d ops doit etre accompagnee d une mise a jour de la doc correspondante.
+Structure de la documentation :
+
+```
+wiki/INDEX.md             ← Point d'entrée, liens vers tout
+wiki/ARCHITECTURE.md      ← Vue d'ensemble architecture
+wiki/API_REFERENCE.md     ← Référence API rapide
+wiki/guides/              ← Guides backend / frontend / ops
+docs/reference/           ← 6 fichiers de référence (contrats, formats, valeurs exactes)
+docs/explanation/         ← 7 fichiers d'explication (flux, raisonnement, diagrammes Mermaid)
+```
+
+Toute modification d'architecture, d'API ou d'ops doit être accompagnée d'une mise à jour du fichier correspondant dans `wiki/` ou `docs/`.
+
+Les fichiers critiques du serveur (`lib/smart-cache.js`, `server/services/`) sont documentés en JSDoc — maintenir les annotations `@param` / `@returns` à jour lors de changements de signature.
 
 ## Systeme IA
 

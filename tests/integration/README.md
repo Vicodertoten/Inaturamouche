@@ -11,6 +11,8 @@ Ce dossier couvre les routes backend avec un serveur HTTP ephemere.
 - `quiz.test.mjs`
 - `quiz-explain.test.mjs`
 - `reports.test.mjs`
+- `daily.test.mjs`
+- `metrics.test.mjs`
 
 ## Commandes
 

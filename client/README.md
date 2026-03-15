@@ -16,6 +16,9 @@ SPA React de iNaturaQuizz (Vite + PWA).
 - `/end`
 - `/collection`
 - `/collection/share/:token`
+- `/results/share/:token`
+- `/pack/import/:token`
+- `/guide`
 - `/profile`
 - `/challenge/:token`
 - `/about`
@@ -48,8 +51,8 @@ Endpoints utilises:
 - `/api/taxa`
 - `/api/places`
 - `/api/places/by-id`
-- `/api/daily/score`
-- `/api/daily/leaderboard`
+- `/api/daily/score` (archive — 410)
+- `/api/daily/leaderboard` (archive — 410)
 - `/api/metrics/events`
 
 ## PWA

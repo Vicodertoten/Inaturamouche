@@ -69,6 +69,24 @@ function splitByBuckets(candidates, thresholds) {
   return buckets;
 }
 
+/**
+ * Select lure candidates from an eligible pool using bucket composition
+ * and a relaxation ladder.
+ *
+ * Candidates are classified into close/mid/far buckets based on closeness
+ * thresholds. If not enough candidates pass the current level, the selector
+ * relaxes constraints (lower minCloseness, allow cross-iconic) up to 4 levels.
+ *
+ * @param {object} opts
+ * @param {Array} opts.candidates       Ranked candidate array from CandidateIndex.
+ * @param {number} opts.lureCount       Number of lures to select.
+ * @param {object} opts.policy          DifficultyPolicy output.
+ * @param {Set<string>} [opts.excludeTaxonIds] Taxon IDs to exclude (cooldowns).
+ * @param {Map<string,number>} [opts.lureUsageCount] Usage counter for diversity weighting.
+ * @param {Function} [opts.rng]         Random number generator.
+ * @param {boolean} [opts.strictMinCloseness=false] If true, only level 0 relaxation is tried.
+ * @returns {{ selected: Array<{ tid: string, score: number, closeness: number }>, relaxLevel: number }}
+ */
 export function selectLureCandidates({
   candidates,
   lureCount,

@@ -10,24 +10,24 @@ import { active_session } from '../services/db';
 import { getReviewStats } from '../services/CollectionService';
 import { notify } from '../services/notifications';
 import { trackMetric } from '../services/metrics';
-import AdvancedSettings from '../components/AdvancedSettings';
-import PackIcon from '../components/PackIcons';
-import PackProgressBar from '../components/PackProgressBar';
-import { SettingsIcon } from '../components/NavigationIcons';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
 import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
-import { getPackEducationalWarningKey } from '../utils/packWarnings';
 import { buildPackSnapshot, encodePackSnapshot, buildPackShareUrl } from '../utils/packShare';
 import { savePack as savePackToStorage, getSavedPacks, deleteSavedPack } from '../utils/savedPacks';
 import { copyToClipboard } from '../utils/shareCard';
+import { isOnboardingDone } from '../features/onboarding';
+import HeroZone from './home/HeroZone';
+import PackCatalog from './home/PackCatalog';
 import '../features/configurator/Configurator.css';
 import './HomePage.css';
 
+const OnboardingLazy = lazy(() =>
+  import('../features/onboarding/Onboarding').then((m) => ({ default: m.default }))
+);
+
 const DESKTOP_MEDIA_QUERY = '(min-width: 900px)';
-const DESKTOP_PACK_LIMIT = 6;
 const RECENT_PACKS_STORAGE_KEY = 'inaturamouche_recent_packs_v1';
 const RECENT_PACKS_MAX_ITEMS = 8;
-const CustomFilter = lazy(() => import('../features/configurator/components/CustomFilter'));
 
 function readRecentPackIds() {
   if (typeof window === 'undefined') return [];
@@ -69,117 +69,6 @@ function preloadPlayPageModule() {
   return playPagePreloadPromise;
 }
 
-const ResumeIcon = () => (
-  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M8 5v14l11-7z" fill="currentColor" />
-  </svg>
-);
-
-const TargetIcon = () => (
-  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none" />
-    <path d="M12 3v3M12 18v3M3 12h3M18 12h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-
-const QuestionIcon = () => (
-  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M9.2 9.1a2.8 2.8 0 1 1 4.5 2.2c-.9.7-1.6 1.3-1.6 2.3"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="12" cy="17.2" r="1.1" fill="currentColor" stroke="none" />
-  </svg>
-);
-
-const MediaIcon = () => (
-  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M4 8h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M8 8l1.3-2h5.4L16 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="12" cy="13.5" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-  </svg>
-);
-
-const PackSettingsIcon = () => (
-  <svg className="hero-inline-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M10 12h4M10 15h4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg className="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-  </svg>
-);
-
-/* ── Inline SVG icons for save / share / pack actions ── */
-const SaveIcon = ({ className = '' }) => (
-  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M7 3v6h8V3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <circle cx="12" cy="15" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-  </svg>
-);
-
-const ShareLinkIcon = ({ className = '' }) => (
-  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const MyPacksIcon = ({ className = '' }) => (
-  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-  </svg>
-);
-
-const DeleteIcon = ({ className = '' }) => (
-  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const CheckIcon = ({ className = '' }) => (
-  <svg className={`action-inline-icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M5 12l5 5L19 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const WarningIndicatorIcon = ({ className = '' }) => (
-  <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M12 3.7 21 19.2a1.2 1.2 0 0 1-1 1.8H4a1.2 1.2 0 0 1-1-1.8L12 3.7Z"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path d="M12 9.1v5.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="12" cy="17.6" r="1.05" fill="currentColor" stroke="none" />
-  </svg>
-);
-
-const DropdownChevronIcon = ({ className = '' }) => (
-  <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M7 10.5 12 15.5 17 10.5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const HomePage = () => {
   const navigate = useNavigate();
   const {
@@ -207,6 +96,7 @@ const HomePage = () => {
   const [reviewStats, setReviewStats] = useState(null);
   const [geoApplied, setGeoApplied] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined'
       ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches
@@ -252,7 +142,7 @@ const HomePage = () => {
           setResumeSessionData(null);
         }
       } catch (err) {
-        debugError('[HomePage] Error checking active session:', err);
+        debugError('[HomePage] Error checking session:', err);
         setHasActiveSession(false);
         setResumeSessionData(null);
       } finally {
@@ -260,24 +150,21 @@ const HomePage = () => {
       }
     };
     checkSession();
-    const handleVis = () => { if (document.visibilityState === 'visible') checkSession(); };
-    document.addEventListener('visibilitychange', handleVis);
-    return () => document.removeEventListener('visibilitychange', handleVis);
   }, []);
 
-  /* ── Load review stats ── */
+  /* ── Review stats ── */
   useEffect(() => {
-    let mounted = true;
     getReviewStats()
-      .then((s) => mounted && setReviewStats(s))
-      .catch((e) => debugError('[HomePage] review stats:', e));
-    return () => { mounted = false; };
+      .then((stats) => setReviewStats(stats))
+      .catch((err) => debugError('[HomePage] Error loading review stats:', err));
   }, []);
 
+  /* ── Preload play page ── */
   const preloadPlayPage = useCallback(() => {
-    preloadPlayPageModule().catch(() => {});
+    preloadPlayPageModule();
   }, []);
 
+  /* ── Desktop media query ── */
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mq = window.matchMedia(DESKTOP_MEDIA_QUERY);
@@ -310,16 +197,7 @@ const HomePage = () => {
     });
     startGame({ maxQuestions, mediaType });
     navigate('/play');
-  }, [
-    activePackId,
-    gameMode,
-    hasActiveSession,
-    maxQuestions,
-    mediaType,
-    navigate,
-    preloadPlayPage,
-    startGame,
-  ]);
+  }, [activePackId, gameMode, hasActiveSession, maxQuestions, mediaType, navigate, preloadPlayPage, startGame]);
 
   const handleResumeGame = useCallback(async () => {
     preloadPlayPage();
@@ -359,16 +237,7 @@ const HomePage = () => {
     });
     startGame({ seed: todaySeed, seed_session: todaySeed, gameMode: 'easy', maxQuestions: 10 });
     navigate('/play');
-  }, [
-    handleResumeGame,
-    hasActiveSession,
-    mediaType,
-    navigate,
-    preloadPlayPage,
-    resumeSessionData,
-    startGame,
-    todaySeed,
-  ]);
+  }, [handleResumeGame, hasActiveSession, mediaType, navigate, preloadPlayPage, resumeSessionData, startGame, todaySeed]);
 
   const handleStartReview = useCallback(async () => {
     preloadPlayPage();
@@ -392,6 +261,11 @@ const HomePage = () => {
       setCustomPackLabel(null);
       setSavePackName('');
     }
+    /* scroll hero CTA into view after selection */
+    requestAnimationFrame(() => {
+      const cta = document.querySelector('.hero-cta--play, .hero-cta--resume');
+      if (cta) cta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }, [setActivePackId]);
 
   const preloadCustomFilter = useCallback(() => {
@@ -414,6 +288,7 @@ const HomePage = () => {
       setSavePackName('');
     }
   }, [activePackId, customOpen, setActivePackId]);
+
   const savedPacks = useMemo(() => getSavedPacks(), [savedPacksVersion]);
   const advancedPanelRef = useRef(null);
   const advancedButtonRef = useRef(null);
@@ -452,26 +327,21 @@ const HomePage = () => {
     }
   }, [gameMode, isResuming, setGameMode]);
 
+  /* ── Click-outside: advanced settings ── */
   useEffect(() => {
     if (!advancedOpen) return undefined;
-
     const handlePointerDown = (event) => {
       const target = event.target;
       if (advancedPanelRef.current?.contains(target)) return;
       if (advancedButtonRef.current?.contains(target)) return;
       setAdvancedOpen(false);
     };
-
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setAdvancedOpen(false);
-      }
+      if (event.key === 'Escape') setAdvancedOpen(false);
     };
-
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('touchstart', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('touchstart', handlePointerDown);
@@ -479,26 +349,21 @@ const HomePage = () => {
     };
   }, [advancedOpen]);
 
+  /* ── Click-outside: custom panel ── */
   useEffect(() => {
     if (!customOpen) return undefined;
-
     const handlePointerDown = (event) => {
       const target = event.target;
       if (customPanelRef.current?.contains(target)) return;
       if (customButtonRef.current?.contains(target)) return;
       setCustomOpen(false);
     };
-
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setCustomOpen(false);
-      }
+      if (event.key === 'Escape') setCustomOpen(false);
     };
-
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('touchstart', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('touchstart', handlePointerDown);
@@ -506,7 +371,7 @@ const HomePage = () => {
     };
   }, [customOpen]);
 
-  // ── Save / Share custom pack ──
+  /* ── Save / Share custom pack ── */
   const handleSavePack = useCallback(() => {
     const name = savePackName.trim();
     if (!name) return;
@@ -549,13 +414,10 @@ const HomePage = () => {
     [setActivePackId, dispatchCustomFilters]
   );
 
-  const handleDeleteSavedPack = useCallback(
-    (e, pack) => {
-      e.stopPropagation();
-      setPendingDeletePack(pack);
-    },
-    []
-  );
+  const handleDeleteSavedPack = useCallback((e, pack) => {
+    e.stopPropagation();
+    setPendingDeletePack(pack);
+  }, []);
 
   const confirmDeletePack = useCallback(() => {
     if (!pendingDeletePack) return;
@@ -623,7 +485,7 @@ const HomePage = () => {
   const [hoveredPackId, setHoveredPackId] = useState(null);
   const handlePackMouseEnter = useCallback((packId) => {
     loadPreview(packId);
-    hoverTimerRef.current = setTimeout(() => setHoveredPackId(packId), 180);
+    hoverTimerRef.current = setTimeout(() => setHoveredPackId(packId), 300);
   }, [loadPreview]);
   const handlePackMouseLeave = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
@@ -631,7 +493,7 @@ const HomePage = () => {
   }, []);
   useEffect(() => () => clearTimeout(hoverTimerRef.current), []);
 
-  /* ── Loading ── */
+  /* ═══════ RENDER ═══════ */
   if (isCheckingSession) {
     return (
       <div className="screen home-screen">
@@ -646,710 +508,87 @@ const HomePage = () => {
 
   return (
     <div className="screen home-screen">
+      {/* ═══════ ONBOARDING (first-time users) ═══════ */}
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingLazy onComplete={() => {
+            setShowOnboarding(false);
+            handleStart();
+          }} />
+        </Suspense>
+      )}
+
       <h1 className="sr-only">
         {t('seo.home.h1', {}, 'iNaturaQuizz - Quiz nature interactif')}
       </h1>
+
       {/* ═══════ HERO ZONE ═══════ */}
-      <section className="home-hero">
-        {isResuming ? (
-          <div className="hero-cta-group">
-            <button
-              type="button"
-              className="hero-cta hero-cta--resume"
-              onClick={handleResumeGame}
-              onMouseEnter={preloadPlayPage}
-              onFocus={preloadPlayPage}
-              onTouchStart={preloadPlayPage}
-            >
-              <span className="hero-cta-label">
-                <span className="hero-cta-action-icon" aria-hidden="true">
-                  <ResumeIcon />
-                </span>
-                {t('home.resume_game_button_text', {}, 'Reprendre')}
-              </span>
-              <span className="hero-cta-meta">
-                {resumeSessionData.currentQuestionIndex > 0
-                  ? t('home.resume_progress', { current: resumeSessionData.currentQuestionIndex, total: resumeSessionData.gameConfig?.maxQuestions || '∞' }, `Question ${resumeSessionData.currentQuestionIndex} sur ${resumeSessionData.gameConfig?.maxQuestions || '∞'}`)
-                  : t('home.resume_game_subtitle', {}, 'Partie en cours')}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="hero-abandon"
-              onClick={handleAbandonSession}
-              title={t('home.abandon_session_tooltip', {}, 'Abandonner')}
-              aria-label={t('home.abandon_session_tooltip', {}, 'Abandonner')}
-            >
-              <CloseIcon />
-            </button>
-          </div>
-        ) : (
-          <div className="hero-cta-shell">
-            <button
-              type="button"
-              className="hero-cta hero-cta--play tutorial-hero-cta"
-              onClick={handleStart}
-              onMouseEnter={preloadPlayPage}
-              onFocus={preloadPlayPage}
-              onTouchStart={preloadPlayPage}
-              disabled={packsLoading}
-            >
-              {activePackHeroImage && (
-                <span
-                  className="hero-cta-pack-photo"
-                  aria-hidden="true"
-                  style={{ backgroundImage: `url("${activePackHeroImage}")` }}
-                />
-              )}
-              <span className="hero-cta-label">
-                <span className="hero-cta-play-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </span>
-                {t('common.start_game', {}, 'Jouer')}
-              </span>
-              <span className="hero-cta-meta">
-                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.pack_label', {}, 'Pack')} : ${activePackLabel}`}>
-                  <PackIcon packId={activePackId} className="hero-cta-pack-icon" />
-                  <span>{activePackLabel}</span>
-                </span>
-                <span className="hero-cta-meta-chip" aria-label={`${t('home.play_pillar_title', {}, 'Mode')} : ${modeName}`}>
-                  <span className="hero-chip-icon" aria-hidden="true">
-                    <TargetIcon />
-                  </span>
-                  <span>{modeName}</span>
-                </span>
-                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.question_count_label', {}, 'Questions')} : ${qLabel}`}>
-                  <span className="hero-chip-icon" aria-hidden="true">
-                    <QuestionIcon />
-                  </span>
-                  <span>{qLabel}</span>
-                </span>
-                <span className="hero-cta-meta-chip" aria-label={`${t('configurator.media_type_label', {}, 'Média')} : ${mediaName}`}>
-                  <span className="hero-chip-icon" aria-hidden="true">
-                    <MediaIcon />
-                  </span>
-                  <span>{mediaName}</span>
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              ref={advancedButtonRef}
-              className={`hero-advanced-trigger tutorial-nav-settings ${advancedOpen ? 'open' : ''}`}
-              onClick={() => setAdvancedOpen((v) => !v)}
-              aria-label={settingsLabel}
-              aria-expanded={advancedOpen}
-              aria-controls="home-advanced-settings-panel"
-            >
-              <SettingsIcon className="hero-advanced-trigger-icon" />
-            </button>
-            {advancedOpen && (
-              <>
-                <div
-                  className="home-advanced-backdrop"
-                  aria-hidden="true"
-                  onClick={() => setAdvancedOpen(false)}
-                />
-                <div
-                  id="home-advanced-settings-panel"
-                  ref={advancedPanelRef}
-                  className="home-advanced-popover"
-                  role="dialog"
-                  aria-modal="false"
-                  aria-label={settingsLabel}
-                >
-                  <p className="home-advanced-popover-title">
-                    {settingsLabel}
-                  </p>
-                  <AdvancedSettings
-                    open={advancedOpen}
-                    onOpenChange={setAdvancedOpen}
-                    showToggle={false}
-                    className="home-advanced-settings-popover"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        )}
+      <HeroZone
+        isResuming={isResuming}
+        resumeSessionData={resumeSessionData}
+        handleResumeGame={handleResumeGame}
+        handleAbandonSession={handleAbandonSession}
+        handleStart={handleStart}
+        packsLoading={packsLoading}
+        activePackId={activePackId}
+        activePackLabel={activePackLabel}
+        activePackHeroImage={activePackHeroImage}
+        hasPlayedGame={hasPlayedGame}
+        modeName={modeName}
+        qLabel={qLabel}
+        mediaName={mediaName}
+        preloadPlayPage={preloadPlayPage}
+        advancedOpen={advancedOpen}
+        setAdvancedOpen={setAdvancedOpen}
+        advancedButtonRef={advancedButtonRef}
+        advancedPanelRef={advancedPanelRef}
+        settingsLabel={settingsLabel}
+        activePack={activePack}
+        dailyAlreadyCompleted={dailyAlreadyCompleted}
+        handleDailyChallenge={handleDailyChallenge}
+        reviewStats={reviewStats}
+        handleStartReview={handleStartReview}
+        t={t}
+      />
 
-        {/* Pack progression bar for list packs */}
-        {activePack?.taxa_ids?.length > 0 && (
-          <PackProgressBar taxaIds={activePack.taxa_ids} />
-        )}
-
-        {/* Quick-action chips */}
-        <div className="home-chips">
-          <button
-            type="button"
-            className={`home-chip home-chip--daily ${dailyAlreadyCompleted ? 'done' : 'highlight'}`}
-            onClick={handleDailyChallenge}
-            onMouseEnter={preloadPlayPage}
-            onFocus={preloadPlayPage}
-            onTouchStart={preloadPlayPage}
-            disabled={dailyAlreadyCompleted}
-          >
-            <span className="chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="16" y1="2" x2="16" y2="6" /><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" /></svg></span>
-            <span className="chip-text">
-              {dailyAlreadyCompleted
-                ? t('home.daily_done_short_text', {}, 'Défi terminé')
-                : t('home.daily_chip', {}, 'Défi du jour')}
-            </span>
-          </button>
-
-          {reviewStats?.dueToday > 0 && (
-            <button
-              type="button"
-              className="home-chip home-chip--review highlight"
-              onClick={handleStartReview}
-              onMouseEnter={preloadPlayPage}
-              onFocus={preloadPlayPage}
-              onTouchStart={preloadPlayPage}
-            >
-              <span className="chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /></svg></span>
-              <span className="chip-text">{t('home.review_chip', {}, 'Révisions')}</span>
-              <span className="chip-badge">{reviewStats.dueToday}</span>
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* ═══════ PACK CATALOG — Netflix-style cards ═══════ */}
-      <section className="home-packs">
-        <p className="home-section-label home-pick-pack-label">{t('home.pick_pack', {}, 'Choisis un pack')}</p>
-
-        {!isCatalogLoading && (
-          <div className="home-custom-entry">
-            <button
-              type="button"
-              ref={customButtonRef}
-              className={`home-custom-card ${activePackId === 'custom' ? 'active' : ''} ${customOpen ? 'open' : ''}`}
-              onMouseEnter={preloadCustomFilter}
-              onFocus={preloadCustomFilter}
-              onTouchStart={preloadCustomFilter}
-              onClick={handleCustomEntryClick}
-              aria-pressed={activePackId === 'custom'}
-              aria-expanded={customOpen}
-              aria-controls="home-custom-panel"
-              aria-haspopup="menu"
-            >
-              <span className="home-custom-card-icon" aria-hidden="true">
-                <PackIcon packId="custom" className="pack-card-icon" />
-              </span>
-              <span className="home-custom-card-copy">
-                <span className="home-custom-card-title">{customEntryTitle}</span>
-                <span className="home-custom-card-subtitle">{customEntryDescription}</span>
-              </span>
-              <span className="home-custom-card-chevron" aria-hidden="true">
-                <DropdownChevronIcon />
-              </span>
-            </button>
-          </div>
-        )}
-
-        {/* ── Custom filter panel (collapsible) ── */}
-        {customOpen && (
-          <div className="home-custom-panel" id="home-custom-panel" ref={customPanelRef}>
-            <div className="home-custom-header">
-              <p className="home-section-label home-section-label-icon">
-                <PackSettingsIcon />
-                <span>{customEntryTitle}</span>
-              </p>
-            </div>
-            <Suspense
-              fallback={
-                <p className="custom-filter-description">
-                  {t('home.custom_filter_loading', {}, 'Chargement des filtres...')}
-                </p>
-              }
-            >
-              <CustomFilter filters={customFilters} dispatch={dispatchCustomFilters} />
-            </Suspense>
-
-            {/* Save / Share custom pack */}
-            <div className="custom-pack-actions">
-              {!showSaveInput ? (
-                <button
-                  type="button"
-                  className="btn btn--outline btn--sm"
-                  onClick={() => setShowSaveInput(true)}
-                >
-                  <SaveIcon /> {t('pack_share.save_btn', {}, 'Sauvegarder')}
-                </button>
-              ) : (
-                <div className="save-pack-row">
-                  <input
-                    type="text"
-                    className="save-pack-input"
-                    placeholder={t('pack_share.name_placeholder', {}, 'Nom du pack…')}
-                    value={savePackName}
-                    onChange={(e) => setSavePackName(e.target.value)}
-                    maxLength={80}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSavePack();
-                      if (e.key === 'Escape') setShowSaveInput(false);
-                    }}
-                  />
-                  <button type="button" className="btn btn--primary btn--sm" onClick={handleSavePack} disabled={!savePackName.trim()}>
-                    <CheckIcon />
-                  </button>
-                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setShowSaveInput(false)}>
-                    <DeleteIcon />
-                  </button>
-                </div>
-              )}
-              <button
-                type="button"
-                className="btn btn--outline btn--sm"
-                onClick={handleSharePack}
-              >
-                <ShareLinkIcon /> {t('pack_share.share_btn', {}, 'Partager')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isCatalogLoading && (
-          <div className="home-catalog-row">
-            {Array.from({ length: 4 }, (_, i) => (
-              <div className="pack-card skeleton" key={`sk-${i}`} aria-hidden="true" />
-            ))}
-          </div>
-        )}
-
-        {/* Saved custom packs */}
-        {!isCatalogLoading && savedPacks.length > 0 && (
-          <div className="home-section">
-            <p className="home-section-label home-section-label-icon"><MyPacksIcon /><span>{t('pack_share.my_packs', {}, 'Mes packs')}</span></p>
-            <div className="home-catalog-row">
-              {savedPacks.map((sp) => {
-                const spPhotos = getPhotos(sp.id);
-                return (
-                <div key={sp.id} className="pack-card-shell">
-                  <button
-                    type="button"
-                    className="pack-card pack-card--saved"
-                    onClick={() => handleSelectSavedPack(sp)}
-                  >
-                    {spPhotos && spPhotos.length > 0 ? (
-                      <div className="pack-card-photos">
-                        {Array.from({ length: 4 }, (_, i) => {
-                          const photo = spPhotos[i % spPhotos.length];
-                          return (
-                            <div key={i} className="pack-card-photo-cell">
-                              <img
-                                src={photo.url}
-                                alt=""
-                                loading="lazy"
-                                decoding="async"
-                                className="pack-card-img"
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="pack-card-photo-placeholder pack-card-skeleton">
-                        <PackIcon packId="custom" className="pack-card-icon-large" />
-                      </div>
-                    )}
-                    <div className="pack-card-info">
-                      <span className="pack-card-title">{sp.name}</span>
-                    </div>
-                    <span
-                      className="pack-card-delete"
-                      onClick={(e) => handleDeleteSavedPack(e, sp)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={t('pack_share.delete', {}, 'Supprimer')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleDeleteSavedPack(e, sp); }}
-                    >
-                      <DeleteIcon />
-                    </span>
-                  </button>
-                </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Delete confirmation dialog */}
-        {pendingDeletePack && (
-          <div className="delete-confirm-overlay" onClick={cancelDeletePack}>
-            <div className="delete-confirm-dialog" onClick={(e) => e.stopPropagation()}>
-              <p className="delete-confirm-text">
-                {t('pack_share.delete_confirm', { name: pendingDeletePack.name }, `Supprimer « ${pendingDeletePack.name} » ?`)}
-              </p>
-              <div className="delete-confirm-actions">
-                <button type="button" className="btn btn--outline btn--sm" onClick={cancelDeletePack}>
-                  {t('common.cancel', {}, 'Annuler')}
-                </button>
-                <button type="button" className="btn btn--danger btn--sm" onClick={confirmDeletePack}>
-                  {t('pack_share.delete', {}, 'Supprimer')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!isCatalogLoading && visibleHomeSections.map((section) => (
-          <PackRow
-            key={section.id}
-            label={t(section.titleKey, {}, section.id)}
-            packs={section.packs}
-            activePackId={activePackId}
-            hoveredPackId={hoveredPackId}
-            onSelect={(id) => { handlePackSelect(id); setCustomOpen(false); }}
-            onMouseEnter={handlePackMouseEnter}
-            onMouseLeave={handlePackMouseLeave}
-            getPhotos={getPhotos}
-            loadPreview={loadPreview}
-            preloadPackPreviews={preloadPackPreviews}
-            isDesktop={isDesktop}
-            maxDesktopCards={DESKTOP_PACK_LIMIT}
-            t={t}
-          />
-        ))}
-
-        {!isDesktop && (
-          <p className="home-pack-warning-legend">
-            <span className="home-pack-warning-pill" aria-hidden="true">
-              <WarningIndicatorIcon className="home-pack-warning-icon" />
-            </span>
-            <span className="home-pack-warning-text">
-              {t(
-                'home.educational_indicator_help',
-                {},
-                'Icone: contenu educatif uniquement, pas un guide de cueillette, de consommation ou d usage medical.'
-              )}
-            </span>
-          </p>
-        )}
-      </section>
-
+      {/* ═══════ PACK CATALOG ═══════ */}
+      <PackCatalog
+        isCatalogLoading={isCatalogLoading}
+        isDesktop={isDesktop}
+        customButtonRef={customButtonRef}
+        customPanelRef={customPanelRef}
+        activePackId={activePackId}
+        customOpen={customOpen}
+        handleCustomEntryClick={handleCustomEntryClick}
+        preloadCustomFilter={preloadCustomFilter}
+        customEntryTitle={customEntryTitle}
+        customEntryDescription={customEntryDescription}
+        customFilters={customFilters}
+        dispatchCustomFilters={dispatchCustomFilters}
+        showSaveInput={showSaveInput}
+        setShowSaveInput={setShowSaveInput}
+        savePackName={savePackName}
+        setSavePackName={setSavePackName}
+        handleSavePack={handleSavePack}
+        handleSharePack={handleSharePack}
+        savedPacks={savedPacks}
+        handleSelectSavedPack={handleSelectSavedPack}
+        handleDeleteSavedPack={handleDeleteSavedPack}
+        pendingDeletePack={pendingDeletePack}
+        confirmDeletePack={confirmDeletePack}
+        cancelDeletePack={cancelDeletePack}
+        visibleHomeSections={visibleHomeSections}
+        hoveredPackId={hoveredPackId}
+        handlePackSelect={handlePackSelect}
+        handlePackMouseEnter={handlePackMouseEnter}
+        handlePackMouseLeave={handlePackMouseLeave}
+        getPhotos={getPhotos}
+        loadPreview={loadPreview}
+        preloadPackPreviews={preloadPackPreviews}
+        t={t}
+      />
     </div>
   );
 };
-
-/* ═══════ PACK ROW — horizontal scroll with desktop cap ═══════ */
-function PackRow({
-  label,
-  packs: sourcePacks,
-  activePackId,
-  hoveredPackId,
-  onSelect,
-  onMouseEnter,
-  onMouseLeave,
-  getPhotos,
-  loadPreview,
-  preloadPackPreviews,
-  isDesktop,
-  maxDesktopCards = DESKTOP_PACK_LIMIT,
-  t,
-}) {
-  const scrollRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const dragState = useRef({ active: false, startX: 0, scrollStart: 0, moved: false });
-  const PRELOAD_BUFFER_CARDS = 2;
-  const FALLBACK_CARD_WIDTH = 140;
-  const [desktopVisibleCount, setDesktopVisibleCount] = useState(maxDesktopCards);
-  const hasDesktopOverflow = isDesktop && sourcePacks.length > maxDesktopCards;
-  const hasDesktopMore = isDesktop && sourcePacks.length > desktopVisibleCount;
-  const desktopRemainingCount = Math.max(0, sourcePacks.length - desktopVisibleCount);
-  const visiblePacks = useMemo(
-    () => (isDesktop ? sourcePacks.slice(0, desktopVisibleCount) : sourcePacks),
-    [desktopVisibleCount, isDesktop, sourcePacks]
-  );
-
-  useEffect(() => {
-    setDesktopVisibleCount(maxDesktopCards);
-  }, [isDesktop, maxDesktopCards, sourcePacks]);
-
-  useEffect(() => {
-    if (!isDesktop) return;
-    const visibleIds = visiblePacks
-      .map((pack) => pack?.id)
-      .filter(Boolean);
-    for (const packId of visibleIds) {
-      loadPreview(packId);
-    }
-
-    const nextIds = sourcePacks
-      .slice(desktopVisibleCount, desktopVisibleCount + maxDesktopCards)
-      .map((pack) => pack?.id)
-      .filter(Boolean);
-    if (nextIds.length > 0) {
-      preloadPackPreviews(nextIds);
-    }
-  }, [
-    desktopVisibleCount,
-    isDesktop,
-    loadPreview,
-    maxDesktopCards,
-    preloadPackPreviews,
-    sourcePacks,
-    visiblePacks,
-  ]);
-
-  const handleSeeMore = useCallback(() => {
-    if (!hasDesktopOverflow) return;
-    if (hasDesktopMore) {
-      setDesktopVisibleCount((current) => Math.min(sourcePacks.length, current + maxDesktopCards));
-      return;
-    }
-    setDesktopVisibleCount(maxDesktopCards);
-  }, [hasDesktopMore, hasDesktopOverflow, maxDesktopCards, sourcePacks.length]);
-
-  const updateScroll = useCallback(() => {
-    if (isDesktop) {
-      setCanScrollLeft(false);
-      setCanScrollRight(false);
-      setScrollProgress(0);
-      return;
-    }
-
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    setScrollProgress(maxScroll > 0 ? el.scrollLeft / maxScroll : 0);
-
-    // Load only cards that are visible (plus a small buffer) to avoid flooding /preview.
-    const firstCard = el.firstElementChild;
-    const measuredWidth = firstCard ? (firstCard.getBoundingClientRect().width || 0) : 0;
-    const cardWidth = measuredWidth > 0 ? measuredWidth + 10 : FALLBACK_CARD_WIDTH;
-    const startIndex = Math.max(0, Math.floor(el.scrollLeft / cardWidth) - PRELOAD_BUFFER_CARDS);
-    const visibleCount = Math.max(1, Math.ceil(el.clientWidth / cardWidth));
-    const endIndex = Math.min(
-      sourcePacks.length,
-      startIndex + visibleCount + PRELOAD_BUFFER_CARDS * 2
-    );
-    for (let i = startIndex; i < endIndex; i += 1) {
-      const packId = sourcePacks[i]?.id;
-      if (packId) loadPreview(packId);
-    }
-  }, [isDesktop, sourcePacks, loadPreview]);
-
-  useEffect(() => {
-    if (isDesktop) return undefined;
-    const el = scrollRef.current;
-    if (!el) return;
-    updateScroll();
-    el.addEventListener('scroll', updateScroll, { passive: true });
-    const ro = new ResizeObserver(updateScroll);
-    ro.observe(el);
-    return () => { el.removeEventListener('scroll', updateScroll); ro.disconnect(); };
-  }, [isDesktop, updateScroll, sourcePacks]);
-
-  const scrollBy = useCallback((dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.75, behavior: 'smooth' });
-  }, []);
-
-  /* ── Drag-to-scroll (pointer events) ── */
-  const DRAG_THRESHOLD = 10; // px – must exceed this to count as a drag (not a click)
-
-  const handlePointerDown = useCallback((e) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    dragState.current = { active: true, startX: e.clientX, scrollStart: el.scrollLeft, moved: false, pointerId: e.pointerId };
-    // Don't capture yet — capture lazily once the user actually drags past the threshold
-  }, []);
-
-  const handlePointerMove = useCallback((e) => {
-    const ds = dragState.current;
-    if (!ds.active) return;
-    const dx = e.clientX - ds.startX;
-    if (!ds.moved && Math.abs(dx) > DRAG_THRESHOLD) {
-      ds.moved = true;
-      const el = scrollRef.current;
-      // Lazy capture: only now grab pointer and apply drag styling
-      try { el.setPointerCapture(ds.pointerId); } catch (_) { /* ignore */ }
-      el.style.cursor = 'grabbing';
-      el.style.scrollSnapType = 'none';
-    }
-    if (ds.moved) {
-      scrollRef.current.scrollLeft = ds.scrollStart - dx;
-    }
-  }, []);
-
-  const handlePointerUp = useCallback((e) => {
-    const ds = dragState.current;
-    if (!ds.active) return;
-    const el = scrollRef.current;
-    ds.active = false;
-    if (ds.moved) {
-      try { el.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-      el.style.cursor = '';
-      el.style.scrollSnapType = '';
-      // Suppress the click that follows a real drag
-      const suppress = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
-      el.addEventListener('click', suppress, { capture: true, once: true });
-    }
-  }, []);
-
-  // Dot count based on total scroll pages
-  const dotCount = useMemo(() => {
-    if (isDesktop) return 0;
-    const el = scrollRef.current;
-    if (!el || el.scrollWidth <= el.clientWidth) return 0;
-    return Math.ceil(el.scrollWidth / el.clientWidth);
-  }, [isDesktop, sourcePacks]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const activeDot = dotCount > 0
-    ? Math.min(Math.round(scrollProgress * (dotCount - 1)), dotCount - 1)
-    : 0;
-
-  const renderPackCard = (pack) => {
-    const selected = activePackId === pack.id;
-    const photos = getPhotos(pack.id);
-    const isHovered = hoveredPackId === pack.id;
-    const warningKey = getPackEducationalWarningKey(pack);
-    const packTitle = pack.titleKey ? t(pack.titleKey) : pack.id;
-    const mobileAttentionLabel = t('home.educational_indicator_label', {}, 'Avertissement');
-
-    return (
-      <div key={pack.id} className={`pack-card-shell ${isHovered ? 'hovered' : ''}`}>
-        <button
-          data-pack-id={pack.id}
-          type="button"
-          className={`pack-card ${selected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
-          onClick={() => onSelect(pack.id)}
-          onMouseEnter={() => onMouseEnter(pack.id)}
-          onMouseLeave={onMouseLeave}
-          onFocus={() => onMouseEnter(pack.id)}
-          onBlur={onMouseLeave}
-          aria-pressed={selected}
-          aria-label={!isDesktop && warningKey ? `${packTitle} - ${mobileAttentionLabel}` : packTitle}
-          role="listitem"
-        >
-          {/* 2×2 photo grid — fills entire card */}
-          {photos && photos.length > 0 ? (
-            <div className="pack-card-photos">
-              {Array.from({ length: 4 }, (_, i) => {
-                const photo = photos[i % photos.length];
-                return (
-                  <div key={i} className="pack-card-photo-cell">
-                    <img
-                      src={photo.url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="pack-card-img"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="pack-card-photo-placeholder pack-card-skeleton">
-              <PackIcon packId={pack.id} className="pack-card-icon-large" />
-            </div>
-          )}
-
-          {!isDesktop && warningKey && (
-            <span className="pack-card-attention-indicator" aria-hidden="true">
-              <WarningIndicatorIcon className="pack-card-attention-icon" />
-            </span>
-          )}
-
-          {/* Always visible title strip */}
-          <div className="pack-card-info">
-            <span className="pack-card-title">{packTitle}</span>
-            {Array.isArray(pack.taxa_ids) && pack.taxa_ids.length > 0 && (
-              <PackProgressBar taxaIds={pack.taxa_ids} compact />
-            )}
-          </div>
-
-          {/* Hover-expand description */}
-          {isDesktop && isHovered && pack.descriptionKey && (
-            <div className="pack-card-desc">
-              <p className="pack-card-desc-title">{packTitle}</p>
-              <p className="pack-card-desc-body">{t(pack.descriptionKey)}</p>
-            </div>
-          )}
-        </button>
-        {isDesktop && isHovered && warningKey && (
-          <div className="pack-card-warning-bubble" role="note" aria-label={t(warningKey)}>
-            <p>{t(warningKey)}</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="home-pack-region">
-      <div className="home-region-header">
-        <div className="home-region-header-main">
-          <p className="home-region-label">{label}</p>
-          {!isDesktop && dotCount > 1 && (
-            <div className="home-region-dots">
-              {Array.from({ length: dotCount }, (_, i) => (
-                <span key={i} className={`region-dot ${i === activeDot ? 'active' : ''}`} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      {isDesktop ? (
-        <div className="home-catalog-grid" role="list">
-          {visiblePacks.map(renderPackCard)}
-        </div>
-      ) : (
-        <div className="home-catalog-row-wrapper">
-          {canScrollLeft && (
-            <div className="catalog-fade catalog-fade-left" />
-          )}
-          {canScrollLeft && (
-            <button type="button" className="catalog-scroll-arrow catalog-scroll-left" onClick={() => scrollBy(-1)} aria-label="Défiler à gauche">
-              <span className="catalog-scroll-glyph" aria-hidden="true">‹</span>
-            </button>
-          )}
-          <div
-            className="home-catalog-row"
-            ref={scrollRef}
-            role="list"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-          >
-            {visiblePacks.map(renderPackCard)}
-          </div>
-          {canScrollRight && (
-            <div className="catalog-fade catalog-fade-right" />
-          )}
-          {canScrollRight && (
-            <button type="button" className="catalog-scroll-arrow catalog-scroll-right" onClick={() => scrollBy(1)} aria-label="Défiler à droite">
-              <span className="catalog-scroll-glyph" aria-hidden="true">›</span>
-            </button>
-          )}
-        </div>
-      )}
-      {hasDesktopOverflow && (
-        <div className="home-region-footer">
-          <button
-            type="button"
-            className="home-region-see-more"
-            onClick={handleSeeMore}
-          >
-            {hasDesktopMore
-              ? `${t('home.see_more_packs', {}, 'Voir plus')} (${desktopRemainingCount})`
-              : t('home.see_less_packs', {}, 'Voir moins')}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default HomePage;

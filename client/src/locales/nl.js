@@ -65,7 +65,7 @@ const nl = {
     home: 'Start',
     profile: 'Profiel',
     collection: 'Collectie',
-    settings: 'Taal',
+    settings: 'Voorkeuren',
   },
   home: {
     easy_mode: 'Makkelijk',
@@ -1095,6 +1095,7 @@ const nl = {
     },
     reset_button: 'Profiel resetten',
     reset_confirm: 'Weet je zeker dat je je profiel wilt resetten?',
+    reset_type_confirm: 'Typ RESET om te bevestigen:',
     accuracy_title: 'Nauwkeurigheid per modus',
     modes: {
       easy: 'Makkelijke modus',
@@ -1250,6 +1251,7 @@ const nl = {
     legal_notice: 'Juridische kennisgeving',
     terms: 'Gebruiksvoorwaarden',
     privacy: 'Privacy',
+    legal_info: 'Juridisch & Privacy',
     inat_attribution: 'Natuurgegevens geleverd door iNaturalist (CC BY-NC). Foto\'s © hun respectieve auteurs.',
     data_source: '📊 Gegevensbron',
     inat_attribution_long: 'Waarnemingen en foto\'s zijn afkomstig van',
@@ -1318,6 +1320,16 @@ const nl = {
     copy_failed: 'Kopiëren mislukt',
     play_cta: 'Speel ook mee!',
     results_of: 'Resultaten van {name}',
+  },
+  onboarding: {
+    welcome_title: 'Welkom bij iNaturaQuizz!',
+    welcome_description: 'Leer de fauna en flora om je heen herkennen met interactieve quizzen op basis van echte natuurobservaties.',
+    pack_title: 'Kies je pack',
+    pack_description: 'Elk pack bevat soorten uit een regio of thema. Je kunt het op elk moment wijzigen.',
+    ready_title: 'Je bent er klaar voor!',
+    ready_description: 'Identificeer soorten aan de hand van foto\'s, verdien punten en bouw je collectie op. Veel ontdekplezier!',
+    skip: 'Overslaan',
+    start_playing: 'Laten we beginnen!',
   },
 };
 

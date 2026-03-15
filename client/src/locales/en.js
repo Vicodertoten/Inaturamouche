@@ -65,7 +65,7 @@ const en = {
     home: 'Home',
     profile: 'Profile',
     collection: 'Collection',
-    settings: 'Language',
+    settings: 'Preferences',
   },
   home: {
     easy_mode: 'Easy',
@@ -1103,6 +1103,7 @@ const en = {
     },
     reset_button: 'Reset profile',
     reset_confirm: 'Do you really want to reset your profile?',
+    reset_type_confirm: 'Type RESET to confirm:',
     accuracy_title: 'Accuracy by mode',
     modes: {
       easy: 'Easy mode',
@@ -1254,6 +1255,7 @@ const en = {
     legal_notice: 'Legal notice',
     terms: 'Terms of use',
     privacy: 'Privacy',
+    legal_info: 'Legal & Privacy',
     inat_attribution: 'Naturalist data provided by iNaturalist (CC BY-NC). Photos © their respective authors.',
     data_source: '📊 Data source',
     inat_attribution_long: 'Observations and photos come from',
@@ -1322,6 +1324,16 @@ const en = {
     copy_failed: 'Copy failed',
     play_cta: 'Play too!',
     results_of: 'Results of {name}',
+  },
+  onboarding: {
+    welcome_title: 'Welcome to iNaturaQuizz!',
+    welcome_description: 'Learn to identify the wildlife and plants around you through interactive quizzes based on real naturalist observations.',
+    pack_title: 'Choose your pack',
+    pack_description: 'Each pack contains species from a region or theme. You can change it anytime.',
+    ready_title: 'You\'re all set!',
+    ready_description: 'Identify species from photos, earn points and build your collection. Happy exploring!',
+    skip: 'Skip',
+    start_playing: 'Let\'s go!',
   },
 };
 

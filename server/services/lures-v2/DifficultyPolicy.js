@@ -23,6 +23,19 @@ const MODE_PRESETS = {
   },
 };
 
+/**
+ * Resolve the difficulty policy for lure selection based on game mode.
+ *
+ * Returns closeness thresholds and bucket composition that the Selector
+ * uses to pick close/mid/far lures. The globalDifficultyBoost env var
+ * shifts the minimum closeness up or down.
+ *
+ * @param {string} gameMode          Game mode ('easy' | 'riddle').
+ * @param {object} [options]
+ * @param {number} [options.globalDifficultyBoost] Global difficulty shift (-0.5 … +0.8).
+ * @param {number} [options.minClosenessOverride]  Hard override for minCloseness.
+ * @returns {{ mode: string, minCloseness: number, closeThreshold: number, midThreshold: number, composition: Array<{ bucket: string, count: number }> }}
+ */
 export function getDifficultyPolicy(gameMode, options = {}) {
   const mode = gameMode === 'riddle' ? 'riddle' : 'easy';
   const preset = MODE_PRESETS[mode];

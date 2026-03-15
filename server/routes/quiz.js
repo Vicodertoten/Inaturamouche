@@ -133,6 +133,7 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
     res.json({
       explanation: result.explanation,
       discriminant: result.discriminant || null,
+      pedagogy: result.pedagogy || null,
       sources: result.sources || [],
       fallback: result.fallback || false,
     });

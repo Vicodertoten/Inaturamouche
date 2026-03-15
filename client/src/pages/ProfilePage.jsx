@@ -19,6 +19,7 @@ const ProfilePage = () => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('summary');
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
 
@@ -196,14 +197,43 @@ const ProfilePage = () => {
       )}
 
       {isResetModalOpen && (
-        <Modal onClose={() => setIsResetModalOpen(false)}>
+        <Modal onClose={() => { setIsResetModalOpen(false); setResetConfirmText(''); }}>
           <h3 className="modal-title">{t('profile.reset_button')}</h3>
           <p>{t('profile.reset_confirm')}</p>
+          <p style={{ fontSize: '0.82rem', opacity: 0.8, marginTop: '0.5rem' }}>
+            {t('profile.reset_type_confirm', {}, 'Tapez RESET pour confirmer :')}
+          </p>
+          <input
+            type="text"
+            className="reset-confirm-input"
+            value={resetConfirmText}
+            onChange={(e) => setResetConfirmText(e.target.value)}
+            placeholder="RESET"
+            autoComplete="off"
+            spellCheck={false}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              marginTop: '0.35rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(0,0,0,0.25)',
+              color: 'var(--text-color)',
+              fontSize: '0.9rem',
+              fontFamily: 'monospace',
+              letterSpacing: '0.1em',
+              textAlign: 'center',
+            }}
+          />
           <div className="modal-actions">
-            <button className="action-button reset-profile-button" onClick={confirmResetProfile}>
+            <button
+              className="action-button reset-profile-button"
+              onClick={() => { confirmResetProfile(); setResetConfirmText(''); }}
+              disabled={resetConfirmText.trim().toUpperCase() !== 'RESET'}
+            >
               {t('profile.reset_button')}
             </button>
-            <button className="action-button modal-cancel-button" onClick={() => setIsResetModalOpen(false)}>
+            <button className="action-button modal-cancel-button" onClick={() => { setIsResetModalOpen(false); setResetConfirmText(''); }}>
               {t('common.cancel')}
             </button>
           </div>

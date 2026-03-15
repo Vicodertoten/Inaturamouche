@@ -769,6 +769,16 @@ function buildAnalysisSnapshot(apiEvents, clientEvents, nowTs) {
   };
 }
 
+/**
+ * Record a single API request metric (auto-called by the Express middleware).
+ * @param {object} opts
+ * @param {string} opts.method HTTP method.
+ * @param {string} opts.path   Request path (will be normalised — numeric segments → :id).
+ * @param {number} opts.status HTTP status code.
+ * @param {number} opts.duration_ms Response time in milliseconds.
+ * @param {object} [opts.tags] Optional tags (pack_id, game_mode, media_type, locale, round_action).
+ * @returns {Promise<void>}
+ */
 export async function recordApiMetric({ method, path, status, duration_ms, tags }) {
   const event = sanitizeApiEvent({ method, path, status, duration_ms, tags });
   await runExclusive(async () => {
@@ -779,6 +789,11 @@ export async function recordApiMetric({ method, path, status, duration_ms, tags 
   });
 }
 
+/**
+ * Record a batch of client-side events.
+ * @param {Array<{ name: string, ts?: number, session_id?: string, anon_user_id?: string, properties?: object }>} events
+ * @returns {Promise<number>} Number of events actually recorded.
+ */
 export async function recordClientEvents(events = []) {
   const normalized = Array.isArray(events)
     ? events.map(sanitizeClientEvent).filter((event) => event.name)
@@ -798,10 +813,26 @@ export async function recordClientEvents(events = []) {
   return normalized.length;
 }
 
+/**
+ * Record a single client-side event (convenience wrapper around {@link recordClientEvents}).
+ * @param {object} event
+ * @returns {Promise<number>}
+ */
 export async function recordClientEvent(event) {
   return recordClientEvents([event]);
 }
 
+/**
+ * Compute and return the full metrics dashboard.
+ *
+ * Includes core KPIs, per-endpoint stats, and 10 analysis sections
+ * (funnels, abandonment, pack health, difficulty fairness, explain value,
+ * reliability, performance by hour, AI cost, growth, retention).
+ *
+ * @param {object} [opts]
+ * @param {number} [opts.windowHours=24] Time window in hours (1 – 336).
+ * @returns {Promise<object>} Dashboard snapshot.
+ */
 export async function getMetricsDashboard({ windowHours = 24 } = {}) {
   const safeWindowHours = Math.max(1, Math.min(24 * 14, Number(windowHours) || 24));
   return runExclusive(async () => {

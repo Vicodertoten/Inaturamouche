@@ -18,8 +18,13 @@ const CONFUSION_MAP_RETRY_DELAY_MS = 5 * 60 * 1000;
 const confusionMapBuildInFlight = new WeakMap();
 
 /**
- * Sanitize an observation from iNaturalist
- * @param {Partial<import("../../types/inaturalist").InatObservation>} obs
+ * Sanitize a raw iNaturalist observation into a minimal safe shape.
+ *
+ * Strips unnecessary fields, normalises photos/sounds/ancestors, and extracts
+ * the observed month/day for seasonal filtering.
+ *
+ * @param {Partial<import('../../types/inaturalist').InatObservation>} obs  Raw observation.
+ * @returns {{ id: number, uri: string, photos: object[], sounds: object[], observedMonthDay: { month: number, day: number }|null, taxon: object }|null}
  */
 export function sanitizeObservation(obs) {
   if (!obs?.taxon?.id) return null;
@@ -97,7 +102,21 @@ function extractMonthDayFromObservation(obs) {
 }
 
 /**
- * Fetch observation pool from iNaturalist
+ * Fetch observations from iNaturalist API and build a raw result array.
+ *
+ * Supports total-probe random paging, seeded deterministic paging,
+ * month/day filtering, and early termination when distinct taxa target is met.
+ *
+ * @param {object} params                         iNaturalist query params.
+ * @param {object} [monthDayFilter]               Season filter ({ predicate }).
+ * @param {object} [opts]
+ * @param {object} [opts.logger]                  Pino logger.
+ * @param {string} [opts.requestId]               Request trace ID.
+ * @param {Function} [opts.rng]                   RNG for page randomisation.
+ * @param {string} [opts.seed]                    Deterministic seed.
+ * @param {boolean} [opts.skipTotalProbe=false]   Skip the initial total_results probe.
+ * @param {number|null} [opts.maxPagesOverride]   Cap the number of pages fetched.
+ * @returns {Promise<{ results: object[], byTaxon: Map, taxonList: string[], taxonSet: Set, observationCount: number, distinctTaxa: number, pagesFetched: number }>}
  */
 export async function fetchObservationPoolFromInat(
   params,
@@ -342,7 +361,22 @@ function buildDegradePoolFromCache(
 }
 
 /**
- * Get or refresh observation pool with cache management
+ * Get a cached or fresh observation pool, with automatic stale-while-revalidate.
+ *
+ * Wraps SmartCache around `fetchObservationPoolFromInat` and appends
+ * the confusion map for lure selection.
+ *
+ * @param {object} opts
+ * @param {string} opts.cacheKey         SmartCache key.
+ * @param {object} opts.params           iNaturalist query params.
+ * @param {object} [opts.monthDayFilter] Season filter.
+ * @param {object} [opts.logger]         Pino logger.
+ * @param {string} [opts.requestId]      Request trace ID.
+ * @param {Function} [opts.rng]          RNG.
+ * @param {string} [opts.seed]           Deterministic seed.
+ * @param {boolean} [opts.skipTotalProbe] Skip total probe.
+ * @param {number|null} [opts.maxPagesOverride] Page cap.
+ * @returns {Promise<{ pool: object, pagesFetched: number, poolObs: number, poolTaxa: number }>}
  */
 export async function getObservationPool({
   cacheKey,

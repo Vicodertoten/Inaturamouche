@@ -1,5 +1,7 @@
 # API Reference
 
+> Résumé rapide. Pour la référence complète (rate limits, cache-control, codes d'erreur, exemples), voir [`docs/reference/api-endpoints.md`](../docs/reference/api-endpoints.md).
+
 Base URL locale: `http://localhost:3001`
 
 ## Regles globales
@@ -50,7 +52,7 @@ Locales supportees: `fr`, `en`, `nl`.
     - `question_index?: number (0..50)`
     - `locale?: fr|en|nl` (defaut `fr`)
     - `media_type?: images|sounds|both`
-    - `game_mode?: easy|hard|riddle|taxonomic`
+    - `game_mode?: easy|hard` (les modes `riddle` et `taxonomic` sont archives et renvoient HTTP 410)
     - `client_session_id?: string`
   - Reponse: question + meta media + `round_id` + `round_signature`.
 
@@ -58,9 +60,8 @@ Locales supportees: `fr`, `en`, `nl`.
   - Body:
     - `round_id` (min 8)
     - `round_signature` (min 32)
-    - `round_action?: answer|hard_guess|taxonomic_select|taxonomic_hint`
-    - `selected_taxon_id?: string|number` (requis pour answer, hard_guess, taxonomic_select)
-    - `step_index?: number` (requis pour taxonomic_select, taxonomic_hint)
+    - `round_action?: answer|hard_guess` (les actions `taxonomic_select` et `taxonomic_hint` sont archivees — HTTP 410)
+    - `selected_taxon_id?: string|number` (requis pour answer, hard_guess)
     - `submission_id?: string`
     - `client_session_id?: string`
     - `seed_session?: string`
@@ -75,14 +76,12 @@ Locales supportees: `fr`, `en`, `nl`.
   - Token optionnel selon env (`BALANCE_DASHBOARD_TOKEN`).
   - Reponse: snapshot de metriques de balancing.
 
-### Daily challenge
+### Daily challenge (archive)
 
-- `POST /api/daily/score`
-  - Body: `pseudo` (1..30), `score` (0..100), `total` (1..100)
-  - Reponse: `{ ok, rank, totalPlayers }`
+> **⚠️ Ces endpoints sont archives et renvoient toujours HTTP 410 (`DAILY_LEADERBOARD_ARCHIVED`).**
 
-- `GET /api/daily/leaderboard`
-  - Reponse: `{ seed, entries, totalPlayers }`
+- `POST /api/daily/score` → 410
+- `GET /api/daily/leaderboard` → 410
 
 ### Taxa
 
@@ -121,7 +120,8 @@ Locales supportees: `fr`, `en`, `nl`.
 - `POST /api/metrics/events`
   - Body: un seul event ou `{ events: [...] }` (max 50)
   - Event schema: `{ name, session_id?, anon_user_id?, ts?, properties? }`
-  - Events supportes: `app_open`, `play_click`, `question_view`, `answer_submit`, `quit_mid_round`, `round_start`, `round_complete`, `report_submit`, `client_error`, `api_error`, `explanation_open`, `explanation_feedback`, `share_click`
+  - Events valides (`z.enum` strict): `app_open`, `play_click`, `question_view`, `answer_submit`, `quit_mid_round`, `round_start`, `round_complete`, `report_submit`, `client_error`, `api_error`, `explanation_open`, `explanation_feedback`, `share_click`
+  - Note: seuls ces 13 noms sont acceptes. Tout autre nom sera rejete avec `BAD_REQUEST`.
   - Headers optionnels: `X-Client-Session-Id`, `X-Anon-User-Id`
   - Reponse: `{ accepted, success }` (202)
 
@@ -132,5 +132,5 @@ Locales supportees: `fr`, `en`, `nl`.
 ### Packs (Extended)
 
 - `GET /api/packs/home`
-  - Query: `region?` (world|belgium|europe), `region_override?`, `recent_pack_ids?` (csv), `section_limit?`
+  - Query: `region?` (world|belgium|france|europe), `region_override?`, `recent_pack_ids?` (csv), `section_limit?`
   - Reponse: catalogue organise par sections pour la page d'accueil.

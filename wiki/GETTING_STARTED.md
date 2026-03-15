@@ -4,7 +4,7 @@ Ce guide explique comment lancer le projet localement et valider les checks de b
 
 ## Prerequis
 
-- Node.js 20+
+- Node.js 22+
 - npm 10+
 - Git
 

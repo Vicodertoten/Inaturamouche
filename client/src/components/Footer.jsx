@@ -53,13 +53,7 @@ const Footer = ({ onReportClick, compact = false }) => {
 
         <nav className="footer-links" aria-label={t('footer.links_label', {}, 'Liens de bas de page')}>
           <Link to="/legal" className="footer-link">
-            {t('footer.legal_notice', {}, 'Mentions légales')}
-          </Link>
-          <Link to="/legal#cgu" className="footer-link">
-            {t('footer.terms', {}, 'CGU')}
-          </Link>
-          <Link to="/legal#privacy" className="footer-link">
-            {t('footer.privacy', {}, 'Confidentialité')}
+            {t('footer.legal_info', {}, 'Mentions légales & CGU')}
           </Link>
           <Link to="/about" className="footer-link">
             {t('footer.about', {}, 'À propos')}

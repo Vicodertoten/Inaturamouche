@@ -6,52 +6,40 @@
   flex-wrap: nowrap;
 }
 
-/* --- Base Modal Styles --- */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal, 1000);
-  padding: var(--space-3);
-  animation: modal-fade-in 0.25s ease-out;
+/* --- BottomSheet variant for summary --- */
+.summary-sheet {
+  /* Win state: smaller initial snap, subtle accent glow at top */
 }
 
+.summary-sheet--win {
+  border-top-color: var(--success-color);
+}
+
+.summary-sheet--lose {
+  border-top-color: var(--error-color);
+}
+
+/* --- Summary content inside BottomSheet --- */
 .summary-modal {
   width: 100%;
-  max-width: 900px; /* Increased max-width to accommodate two cards */
-  max-height: 92vh;
-  background-color: var(--surface-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-2);
-  border: 1px solid var(--border-color);
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  /* use auto so overflowed explanation/content can be scrolled instead of clipped */
-  overflow: auto;
-  animation: modal-slide-in 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  gap: var(--space-2);
+}
+
+/* Remove BottomSheet content padding — summary sections have their own */
+.summary-sheet .bottom-sheet__content {
+  padding: 0;
 }
 
 @media (min-width: 1024px) {
-  .summary-modal {
-    max-width: 1600px;
-  }
-
-  /* Wide variant for wrong-answer view: use only the necessary width (cap at 1280px)
-     — shows both species side-by-side while keeping the explanation below */
-  .summary-modal.summary-modal--wide {
-    /* cap width so modal doesn't become full-bleed on very large screens */
-    max-width: min(92vw, 1280px);
-  }
-
-  /* Slightly reduced gaps so two cards + explanation fit comfortably */
+  /* Wide variant for wrong-answer view: two cards side-by-side */
   .summary-modal.summary-modal--wide .answers-container {
     gap: var(--space-6);
   }
 
-  /* Use a balanced card width so both cards sit side-by-side without stretching */
   .summary-modal.summary-modal--wide .answer-card {
     max-width: 46%;
   }
@@ -59,16 +47,12 @@
   .summary-modal.summary-modal--wide .explanation-section {
     margin-top: var(--space-3);
     width: 100%;
-    /* avoid accidental overflow when modal is very wide */
     max-width: 100%;
   }
 }
 
 @media (min-width: 1440px) {
-  .summary-modal {
-    max-width: min(95vw, 1800px);
-    max-height: 92vh;
-  }
+  /* BottomSheet handles width constraints at this breakpoint */
 }
 
 /* --- Header --- */
@@ -333,7 +317,50 @@
   white-space: pre-wrap;
   font-family: var(--font-family-main);
   font-size: clamp(0.72rem, 0.95vw, 0.86rem);
+  margin: 0 0 var(--space-2, 8px) 0;
+}
+
+.pedagogy-blocks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.pedagogy-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-small, 8px);
+  padding: 8px;
+}
+
+.pedagogy-block__title {
+  margin: 0 0 4px 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-color-light, var(--text-color));
+}
+
+.pedagogy-block__text {
   margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--text-color);
+}
+
+.explanation-section__text.is-typing {
+  cursor: pointer;
+}
+
+.typewriter-skip-hint {
+  display: inline;
+  opacity: 0.4;
+  font-size: 0.7em;
+  animation: blink-hint 1s steps(2, start) infinite;
+}
+
+@keyframes blink-hint {
+  to { opacity: 0; }
 }
 
 .explanation-discriminant {
@@ -398,6 +425,12 @@
 .explanation-feedback-btn:disabled {
   cursor: default;
   opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .pedagogy-blocks {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* --- Footer --- */
@@ -681,14 +714,6 @@
 }
 
 @media (max-width: 600px) {
-  .modal-backdrop {
-    padding: var(--space-2);
-  }
-
-  .summary-modal {
-    max-height: 94vh;
-  }
-
   .summary-header {
     padding: var(--space-3) var(--space-3);
   }
@@ -886,22 +911,6 @@
 
 
 /* --- Animations --- */
-@keyframes modal-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes modal-slide-in {
-  from {
-    opacity: 0.8;
-    transform: translateY(20px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

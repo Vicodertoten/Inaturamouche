@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import './RoundSummaryModal.css';
+import { BottomSheet } from '../shared/ui';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -8,41 +9,6 @@ import { trackMetric } from '../services/metrics';
 
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
-
-// Composant interne pour l'effet machine à écrire
-const Typewriter = ({ text, speed = 20, onComplete, onHeightChange }) => {
-  const [displayed, setDisplayed] = useState('');
-  const textRef = useRef(null);
-  
-  useEffect(() => {
-    setDisplayed(''); // Reset si le texte change
-    let i = 0;
-    const timer = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed((prev) => prev + text.charAt(i));
-        i++;
-      } else {
-        clearInterval(timer);
-        if (onComplete) onComplete();
-      }
-    }, speed);
-    return () => clearInterval(timer);
-  }, [text, speed, onComplete]);
-
-  useEffect(() => {
-    if (!textRef.current || !onHeightChange) return;
-    const nextHeight = textRef.current.scrollHeight;
-    if (nextHeight > 0) {
-      onHeightChange(nextHeight);
-    }
-  }, [displayed, onHeightChange]);
-
-  return (
-    <p ref={textRef} className="explanation-section__text">
-      {displayed}
-    </p>
-  );
-};
 
 const getObservationImageUrl = (taxon) => {
   if (!taxon) return null;
@@ -54,18 +20,47 @@ const getObservationImageUrl = (taxon) => {
   );
 };
 
+const trimText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const buildFallbackPedagogy = ({ pedagogy, explanation, correctName, wrongName, language }) => {
+  const source = pedagogy && typeof pedagogy === 'object' ? pedagogy : {};
+  const correct = correctName || (language === 'en' ? 'the correct species' : 'la bonne espèce');
+  const wrong = wrongName || (language === 'en' ? 'the confused species' : "l'espèce confondue");
+
+  const defaults = language === 'en'
+    ? {
+        visualClue: `Visual clue: focus on shape, pattern, and texture to recognize ${correct}.`,
+        taxonomicRule: 'Taxonomic rule: start from family/genus, then confirm one stable field mark.',
+        counterExample: `${wrong} may share color or habitat, but not the key structural trait.`,
+      }
+    : {
+        visualClue: `Indice visuel clé : observe forme, motif et texture pour reconnaître ${correct}.`,
+        taxonomicRule: 'Règle taxonomique : pars de la famille/du genre, puis confirme un caractère stable.',
+        counterExample: `${wrong} peut partager la couleur ou l’habitat, mais pas le caractère structurel décisif.`,
+      };
+
+  return {
+    visualClue: trimText(source.visualClue) || trimText(explanation) || defaults.visualClue,
+    taxonomicRule: trimText(source.taxonomicRule) || defaults.taxonomicRule,
+    counterExample: trimText(source.counterExample) || defaults.counterExample,
+  };
+};
+
 const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
   const { t, language, getTaxonDisplayNames } = useLanguage();
   const lang = language; // Alias pour compatibilité
   const [explanation, setExplanation] = useState('');
+  const [pedagogy, setPedagogy] = useState({
+    visualClue: '',
+    taxonomicRule: '',
+    counterExample: '',
+  });
   const [discriminant, setDiscriminant] = useState('');
   const [aiSources, setAiSources] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [explanationMinHeight, setExplanationMinHeight] = useState(null);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
   const [explanationFeedback, setExplanationFeedback] = useState(null);
   const buttonRef = useRef(null);
-  const previousActiveRef = useRef(null);
   const trackedExplanationOpenRef = useRef(null);
   const isWin = status === 'win';
 
@@ -120,6 +115,13 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     if (!userDisplayTaxon.scientificName) return null;
     return toSafeHttpUrl(`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(userDisplayTaxon.scientificName)}`);
   }, [userDisplayTaxon.wikipedia_url, userDisplayTaxon.scientificName, lang]);
+  const pedagogyFallbackNames = useMemo(() => ({
+    correctName: correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName || null,
+    wrongName: userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName || null,
+  }), [correctDisplayTaxon.primaryName, correctDisplayTaxon.secondaryName, userDisplayTaxon.primaryName, userDisplayTaxon.secondaryName]);
+  const hasPedagogy = useMemo(() => (
+    Boolean(pedagogy.visualClue || pedagogy.taxonomicRule || pedagogy.counterExample)
+  ), [pedagogy.counterExample, pedagogy.taxonomicRule, pedagogy.visualClue]);
 
   useEffect(() => {
     setUserDetailOverride(null);
@@ -168,6 +170,13 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             setExplanation(data.explanation || '');
             setDiscriminant(data.discriminant || '');
             setAiSources(Array.isArray(data.sources) ? data.sources : []);
+            setPedagogy(buildFallbackPedagogy({
+              pedagogy: data.pedagogy,
+              explanation: data.explanation || '',
+              correctName: pedagogyFallbackNames.correctName,
+              wrongName: pedagogyFallbackNames.wrongName,
+              language: lang,
+            }));
           }
         } catch (error) {
           console.error('Failed to fetch explanation:', {
@@ -181,6 +190,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             setExplanation('');
             setDiscriminant('');
             setAiSources([]);
+            setPedagogy(buildFallbackPedagogy({
+              explanation: '',
+              correctName: pedagogyFallbackNames.correctName,
+              wrongName: pedagogyFallbackNames.wrongName,
+              language: lang,
+            }));
           }
         } finally {
           if (isActive) setIsLoading(false);
@@ -194,11 +209,15 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     return () => {
       isActive = false; // Cleanup: ignore les résultats si le composant est démonté/rechargé
     };
-  }, [isWin, explanationCorrectId, explanationWrongId, explanationFocusRank, lang]);
-
-  useEffect(() => {
-    setExplanationMinHeight(null);
-  }, [explanation]);
+  }, [
+    explanationCorrectId,
+    explanationFocusRank,
+    explanationWrongId,
+    isWin,
+    lang,
+    pedagogyFallbackNames.correctName,
+    pedagogyFallbackNames.wrongName,
+  ]);
 
   useEffect(() => {
     trackedExplanationOpenRef.current = null;
@@ -209,7 +228,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     if (
       isWin ||
       isLoading ||
-      !explanation ||
+      !hasPedagogy ||
       !explanationCorrectId ||
       !explanationWrongId
     ) {
@@ -226,7 +245,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       focus_rank: explanationFocusRank || null,
     });
   }, [
-    explanation,
+    hasPedagogy,
     explanationCorrectId,
     explanationFocusRank,
     explanationWrongId,
@@ -237,7 +256,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   const handleExplanationFeedback = useCallback(
     (isUseful) => {
-      if (!explanation || isLoading || explanationFeedback !== null) return;
+      if (!hasPedagogy || isLoading || explanationFeedback !== null) return;
       setExplanationFeedback(isUseful);
       void trackMetric('explanation_feedback', {
         useful: Boolean(isUseful),
@@ -248,7 +267,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       });
     },
     [
-      explanation,
+      hasPedagogy,
       explanationCorrectId,
       explanationFeedback,
       explanationFocusRank,
@@ -258,23 +277,15 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     ]
   );
 
+  // Enter key → advance to next question (Escape is handled by BottomSheet)
   useEffect(() => {
-    previousActiveRef.current = document.activeElement;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape' || event.key === 'Enter') {
+    const handleEnter = (event) => {
+      if (event.key === 'Enter') {
         onNext();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    if (buttonRef.current) {
-      buttonRef.current.focus();
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      if (previousActiveRef.current && previousActiveRef.current.focus) {
-        previousActiveRef.current.focus();
-      }
-    };
+    window.addEventListener('keydown', handleEnter);
+    return () => window.removeEventListener('keydown', handleEnter);
   }, [onNext]);
 
   if (!question || !question.bonne_reponse) {
@@ -285,8 +296,16 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const correctImageUrl = getObservationImageUrl(question?.bonne_reponse) || correctDisplayTaxon.image_url;
 
   return (
-    <div className="modal-backdrop">
-      <div className={`modal-content summary-modal ${isWin ? 'summary-modal--win' : 'summary-modal--lose summary-modal--wide'}`} role="dialog" aria-modal="true" aria-labelledby="summary-title">
+    <BottomSheet
+      open={true}
+      onClose={onNext}
+      initialSnap={isWin ? 0 : 1}
+      snapPoints={[0.45, 0.85, 1]}
+      className={`summary-sheet ${isWin ? 'summary-sheet--win' : 'summary-sheet--lose'}`}
+      ariaLabel={title}
+      overlayClose={false}
+    >
+      <div className={`summary-modal ${isWin ? 'summary-modal--win' : 'summary-modal--lose summary-modal--wide'}`} aria-labelledby="summary-title">
         <header className="summary-header">
           <h2 id="summary-title" className={`summary-title ${isWin ? 'win' : 'lose'}`}>
         
@@ -418,7 +437,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
             <div className="summary-card explanation-section">
               <div
                 className="explanation-content"
-                style={explanationMinHeight ? { minHeight: `${explanationMinHeight}px` } : undefined}
               >
                 {isLoading ? (
                   <div className="explanation-section__loader">
@@ -426,14 +444,28 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                   </div>
                 ) : (
                   <>
-                    {explanation && (
-                      <Typewriter
-                        text={explanation}
-                        speed={20}
-                        onHeightChange={(height) => {
-                          setExplanationMinHeight((prev) => (prev && prev > height ? prev : height));
-                        }}
-                      />
+                    {explanation && <p className="explanation-section__text">{explanation}</p>}
+                    {hasPedagogy && (
+                      <div className="pedagogy-blocks">
+                        <article className="pedagogy-block">
+                          <h4 className="pedagogy-block__title">
+                            {t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel clé')}
+                          </h4>
+                          <p className="pedagogy-block__text">{pedagogy.visualClue}</p>
+                        </article>
+                        <article className="pedagogy-block">
+                          <h4 className="pedagogy-block__title">
+                            {t('summary.pedagogy.taxonomic_rule_title', {}, 'Règle taxonomique')}
+                          </h4>
+                          <p className="pedagogy-block__text">{pedagogy.taxonomicRule}</p>
+                        </article>
+                        <article className="pedagogy-block">
+                          <h4 className="pedagogy-block__title">
+                            {t('summary.pedagogy.counter_example_title', {}, 'Contre-exemple')}
+                          </h4>
+                          <p className="pedagogy-block__text">{pedagogy.counterExample}</p>
+                        </article>
+                      </div>
                     )}
                     {discriminant && (
                       <p className="explanation-discriminant">
@@ -447,7 +479,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                         {aiSources.join(', ')}
                       </p>
                     )}
-                    {explanation && (
+                    {hasPedagogy && (
                       <div className="explanation-feedback-actions" role="group" aria-label={t('summary.explanation_feedback_label', {}, "L'explication t'a aide ?")}>
                         <button
                           type="button"
@@ -480,7 +512,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           </button>
         </footer>
       </div>
-    </div>
+    </BottomSheet>
   );
 };
 

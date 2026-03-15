@@ -736,3 +736,17 @@
     min-width: 120px;
   }
 }
+
+/* Sticky bottom nav actions on mobile */
+@media (max-width: 768px) {
+  .end-nav-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--bg-main, #1a2015);
+    padding: var(--space-3, 12px) var(--space-2, 8px);
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    margin: 0 calc(-1 * var(--space-3, 12px));
+    margin-bottom: calc(-1 * var(--space-3, 12px));
+  }
+}

@@ -139,9 +139,16 @@ function extractInatDescription(taxon) {
 // ── Collecteur principal ────────────────────────────────────────
 
 /**
- * Collecte TOUTES les données disponibles pour un taxon.
- * v6 : retourne les descriptions EN + locale séparément.
- * L'IA recevra tout et fera la synthèse.
+ * Collect all available data for a taxon from Wikipedia and iNaturalist.
+ *
+ * Returns raw descriptions (all available languages) and taxonomy metadata.
+ * The AI model receives everything and synthesises the best response.
+ *
+ * @param {object} taxon         iNaturalist taxon object.
+ * @param {string} [locale='fr'] Preferred locale for Wikipedia lookups.
+ * @param {object} [opts]
+ * @param {object} [opts.logger]  Pino logger for debug/warn output.
+ * @returns {Promise<{ descriptions: Array<{ lang: string, text: string, source: string }>, description: string, sources: string[], taxonomy: object, contextText: string }>}
  */
 export async function collectSpeciesData(taxon, locale = 'fr', { logger } = {}) {
   if (!taxon) return { descriptions: [], sources: [], taxonomy: {}, contextText: '' };

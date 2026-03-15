@@ -163,7 +163,7 @@ const EasyMode = () => {
         if (questionRef.current === question) {
           setShowSummary(true);
         }
-      }, 1200);
+      }, 600);
     } catch (error) {
       if (error?.code === 'ROUND_EXPIRED') {
         notify(t('errors.round_expired', {}, 'Question expirée, passage à la suivante…'), { type: 'warning' });
@@ -187,6 +187,15 @@ const EasyMode = () => {
     isReviewMode,
     questionCount,
   ]);
+
+  const handleSkipToSummary = useCallback(() => {
+    if (!answeredThisQuestion || showSummary) return;
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
+    setShowSummary(true);
+  }, [answeredThisQuestion, showSummary]);
 
   const handleNext = () => {
     completeRound({
@@ -233,7 +242,7 @@ const EasyMode = () => {
           onQuit={endGame}
           isGameOver={answeredThisQuestion}
         />
-        <div className="card">
+        <div className="card" onClick={handleSkipToSummary}>
           <section className="game-main" aria-label={t('game.main_section', {}, 'Zone de jeu')}>
             <div className="image-section">
               {showAudio && (

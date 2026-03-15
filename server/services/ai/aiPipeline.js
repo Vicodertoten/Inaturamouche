@@ -16,6 +16,7 @@ import {
 import {
   parseAIResponse,
   validateAndClean,
+  buildPedagogyBlocks,
   buildMorphologyFallback,
   buildFallbackRiddleClues,
   parseRiddleResponse,
@@ -50,6 +51,8 @@ const createTimeoutSignal = (ms) => {
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getDisplayName = (taxon) => taxon?.preferred_common_name || taxon?.common_name || taxon?.name || null;
 
 // ── Appel Gemini avec retry ─────────────────────────────────────
 
@@ -177,9 +180,16 @@ export async function generateCustomExplanation(
 ) {
   if (!aiEnabled || !aiApiKey) {
     logger?.warn?.('AI explanations disabled or no API key');
+    const fallbackExplanation = 'Papy Mouche fait une pause, explication indisponible.';
     return {
-      explanation: 'Papy Mouche fait une pause, explication indisponible.',
+      explanation: fallbackExplanation,
       discriminant: null,
+      pedagogy: buildPedagogyBlocks({
+        explanation: fallbackExplanation,
+        correctName: getDisplayName(correctTaxon),
+        wrongName: getDisplayName(wrongTaxon),
+        locale,
+      }),
       sources: [],
       fallback: true,
     };
@@ -237,7 +247,10 @@ export async function generateCustomExplanation(
 
           const parsed = parseAIResponse(text);
           if (parsed) {
-            const validation = validateAndClean(parsed);
+            const validation = validateAndClean(parsed, {
+              correctName: getDisplayName(correctTaxon),
+              wrongName: getDisplayName(wrongTaxon),
+            });
             const qualityIssues = validation.issues.filter((issue) => issue.startsWith('QUALITY:'));
 
             if (validation.explanation && qualityIssues.length === 0) {
@@ -247,6 +260,7 @@ export async function generateCustomExplanation(
               result = {
                 explanation: validation.explanation,
                 discriminant: validation.discriminant || null,
+                pedagogy: validation.pedagogy,
                 sources: mergeAllSources(dataCorrect, dataWrong),
                 fallback: false,
               };
@@ -280,9 +294,16 @@ export async function generateCustomExplanation(
     );
   } catch (error) {
     logger?.error?.({ error: error.message }, 'Failed to generate explanation');
+    const fallbackExplanation = 'Papy Mouche a un trou de mémoire, reviens plus tard !';
     return {
-      explanation: 'Papy Mouche a un trou de mémoire, reviens plus tard !',
+      explanation: fallbackExplanation,
       discriminant: null,
+      pedagogy: buildPedagogyBlocks({
+        explanation: fallbackExplanation,
+        correctName: getDisplayName(correctTaxon),
+        wrongName: getDisplayName(wrongTaxon),
+        locale,
+      }),
       sources: [],
       fallback: true,
     };

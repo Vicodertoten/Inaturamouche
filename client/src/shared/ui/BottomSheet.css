@@ -1,0 +1,131 @@
+/* ─── BottomSheet ─── Reusable slide-up sheet ──────────────── */
+
+/* ── Overlay ──────────────────────────────────────────────── */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 1000);
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+  /* prevent page scroll while sheet is open */
+  touch-action: none;
+}
+
+.bottom-sheet-overlay.is-visible {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* ── Sheet panel ──────────────────────────────────────────── */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface-color, #263321);
+  border-radius: var(--radius-large, 16px) var(--radius-large, 16px) 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-direction: column;
+  /* Default state: off-screen */
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+              height 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, height;
+  z-index: calc(var(--z-modal, 1000) + 1);
+  /* safe area for notch devices */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  max-height: 100dvh;
+}
+
+.bottom-sheet.is-open {
+  transform: translateY(0);
+}
+
+.bottom-sheet.is-dragging {
+  transition: none; /* disable spring while dragging for direct feedback */
+}
+
+/* ── Handle ───────────────────────────────────────────────── */
+.bottom-sheet__handle-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0 4px;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.bottom-sheet__handle-zone:active {
+  cursor: grabbing;
+}
+
+.bottom-sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.25);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+
+.bottom-sheet__handle-zone:hover .bottom-sheet__handle,
+.bottom-sheet__handle-zone:focus-visible .bottom-sheet__handle {
+  background: rgba(255, 255, 255, 0.45);
+  width: 48px;
+}
+
+/* ── Scrollable content ───────────────────────────────────── */
+.bottom-sheet__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain; /* prevent scroll chaining */
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-2, 8px) var(--space-3, 16px) var(--space-4, 24px);
+  outline: none; /* focus handled programmatically */
+}
+
+/* ── Desktop adaptation — centered dialog ─────────────────── */
+@media (min-width: 768px) {
+  .bottom-sheet-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bottom-sheet {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    max-width: 640px;
+    width: 100%;
+    margin: 0;
+    border-radius: var(--radius-large, 16px);
+    max-height: 90vh;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bottom-sheet {
+    max-width: 900px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .bottom-sheet {
+    max-width: 1100px;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-sheet,
+  .bottom-sheet-overlay {
+    transition: none !important;
+  }
+}

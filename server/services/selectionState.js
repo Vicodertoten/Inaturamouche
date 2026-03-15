@@ -13,7 +13,14 @@ const OBS_HISTORY_LIMIT = obsHistoryLimit;
 const QUIZ_CHOICES = quizChoices;
 
 /**
- * Create initial selection state for a client
+ * Create a fresh selection state for a client.
+ *
+ * Includes: shuffled taxon deck, observation history buffer, target/lure
+ * cooldown lists, and lure usage counter.
+ *
+ * @param {object} pool  Observation pool ({ taxonList, observationCount }).
+ * @param {Function} rng Seeded random number generator.
+ * @returns {object} Initial selection state.
  */
 export function createSelectionState(pool, rng) {
   const historyLimit = Math.min(OBS_HISTORY_LIMIT, Math.max(0, (pool?.observationCount || 0) - 1));
@@ -35,7 +42,17 @@ export function createSelectionState(pool, rng) {
 }
 
 /**
- * Get or create selection state for a client
+ * Get or create the selection state for a specific client + cache key pair.
+ *
+ * Rehydrates observation history, migrates lure usage counts, and resets the
+ * taxon deck when the pool version changes.
+ *
+ * @param {string} cacheKey  Pool cache key.
+ * @param {string} clientId  Client identifier ('anon' if absent).
+ * @param {object} pool      Observation pool.
+ * @param {number} now       Current timestamp (ms).
+ * @param {Function} rng     RNG for deck shuffling.
+ * @returns {{ key: string, state: object }} Cache key and selection state.
  */
 export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
   const key = `${cacheKey}|${clientId || 'anon'}`;
@@ -91,7 +108,10 @@ export function getSelectionStateForClient(cacheKey, clientId, pool, now, rng) {
 }
 
 /**
- * Remember that an observation was used
+ * Record that an observation was shown to the user.
+ *
+ * @param {object} selectionState  Client selection state.
+ * @param {string|number} obsId    Observation ID.
  */
 export function rememberObservation(selectionState, obsId) {
   if (!selectionState?.observationHistory) return;
@@ -99,7 +119,12 @@ export function rememberObservation(selectionState, obsId) {
 }
 
 /**
- * Check if a taxon has eligible observations (not yet seen)
+ * Check whether a taxon has at least one unseen observation.
+ *
+ * @param {object} pool            Observation pool.
+ * @param {object} selectionState  Client selection state.
+ * @param {string} taxonId         Taxon ID to check.
+ * @returns {boolean}
  */
 export function hasEligibleObservation(pool, selectionState, taxonId) {
   const list = pool.byTaxon.get(String(taxonId)) || [];
@@ -109,7 +134,17 @@ export function hasEligibleObservation(pool, selectionState, taxonId) {
 }
 
 /**
- * Pick an observation for a taxon
+ * Pick a random unseen observation for a taxon.
+ *
+ * Falls back to seen observations when `allowSeen` is true.
+ *
+ * @param {object} pool            Observation pool.
+ * @param {object} selectionState  Client selection state.
+ * @param {string} taxonId         Taxon ID.
+ * @param {object} [opts]
+ * @param {boolean} [opts.allowSeen=false]  Allow previously seen observations.
+ * @param {Function} [rng=Math.random]      RNG.
+ * @returns {object|null} Observation or null.
  */
 export function pickObservationForTaxon(pool, selectionState, taxonId, { allowSeen = false } = {}, rng = Math.random) {
   const list = pool.byTaxon.get(String(taxonId)) || [];
@@ -131,6 +166,14 @@ function purgeTTLMap(ttlMap, now) {
   }
 }
 
+/**
+ * Check if a taxon is currently blocked by the target cooldown.
+ *
+ * @param {object} selectionState  Client selection state.
+ * @param {string} taxonId         Taxon ID.
+ * @param {number} now             Current timestamp (ms).
+ * @returns {boolean} True if blocked.
+ */
 export function isBlockedByTargetCooldown(selectionState, taxonId, now) {
   const id = String(taxonId);
   if (COOLDOWN_TARGET_MS && selectionState.cooldownTarget) {
@@ -141,6 +184,14 @@ export function isBlockedByTargetCooldown(selectionState, taxonId, now) {
   return false;
 }
 
+/**
+ * Push taxon IDs into the target cooldown (TTL-based or sliding window).
+ *
+ * @param {object} pool            Observation pool.
+ * @param {object} selectionState  Client selection state.
+ * @param {string[]} taxonIds      Taxon IDs to cool down.
+ * @param {number} now             Current timestamp (ms).
+ */
 export function pushTargetCooldown(pool, selectionState, taxonIds, now) {
   const ids = taxonIds.map(String);
   if (COOLDOWN_TARGET_MS && selectionState.cooldownTarget) {
@@ -161,6 +212,13 @@ export function pushTargetCooldown(pool, selectionState, taxonIds, now) {
   }
 }
 
+/**
+ * Build the set of taxon IDs currently excluded from lure selection.
+ *
+ * @param {object} pool            Observation pool.
+ * @param {object} selectionState  Client selection state.
+ * @returns {Set<string>} Excluded taxon IDs.
+ */
 export function buildLureCooldownExclusionSet(pool, selectionState) {
   if (!selectionState) return new Set();
   const limit = effectiveCooldownN(COOLDOWN_LURE_N, pool?.taxonList?.length || 0, QUIZ_CHOICES);
@@ -182,6 +240,13 @@ export function buildLureCooldownExclusionSet(pool, selectionState) {
   return new Set(selectionState.recentLureTaxa.map(String));
 }
 
+/**
+ * Push taxon IDs into the lure cooldown sliding window.
+ *
+ * @param {object} pool            Observation pool.
+ * @param {object} selectionState  Client selection state.
+ * @param {string[]} taxonIds      Lure taxon IDs to cool down.
+ */
 export function pushLureCooldown(pool, selectionState, taxonIds) {
   if (!selectionState) return;
   const limit = effectiveCooldownN(COOLDOWN_LURE_N, pool?.taxonList?.length || 0, QUIZ_CHOICES);

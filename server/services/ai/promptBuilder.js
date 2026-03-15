@@ -66,13 +66,20 @@ CONSIGNES STRICTES :
 3. NOMINATION : Utilise les noms exacts ci-dessous. Ne dis JAMAIS "le premier" ou "l'autre".
 4. STYLE : Adopte le ton de Papy Mouche (vivant, un peu imagé). Varie la structure de tes phrases pour ne pas être répétitif.
 5. CONTENU : Donne LE critère visuel concret, mais amène-le avec fluidité.
+6. DIDACTIQUE : Tu DOIS remplir 3 blocs pédagogiques distincts:
+  - visual_clue : 1 indice visuel observable sur photo/terrain.
+  - taxonomic_rule : 1 règle courte de tri taxonomique (famille/genre + caractère).
+  - counter_example : 1 confusion fréquente et pourquoi elle est trompeuse.
 
 Exemple de réflexion attendue (JSON) :
 {
   "internal_critique": "J'ai écrit 'le premier', je dois remplacer par 'Le Bolet'. J'ai oublié un 's' à 'tubes'. Correction effectuée.",
   "intro": "${tone.lead}",
   "explanation": "Regarde bien le chapeau du Bolet bai : il est tout visqueux et brun ! À l'inverse, l'Amanite phalloïde se trahit par ses lamelles blanches.",
-  "discriminant": "Tubes visqueux vs lamelles blanches"
+  "discriminant": "Tubes visqueux vs lamelles blanches",
+  "visual_clue": "Le Bolet bai a des tubes sous le chapeau, pas des lamelles.",
+  "taxonomic_rule": "Chez ces champignons, vérifie d'abord le dessous du chapeau : tubes ou lamelles.",
+  "counter_example": "La couleur brune peut tromper : certaines amanites brunes ont pourtant des lamelles nettes."
 }`;
 }
 

@@ -3,17 +3,22 @@ import assert from 'node:assert/strict';
 import { parseAIResponse, validateAndClean } from '../../server/services/ai/outputFilter.js';
 
 test('parseAIResponse removes emoji and source lines before parsing', () => {
-  const raw = `Observe bien la silhouette et la couleur dominante.
----
-Contraste silhouette/couleur
-
-🔍
-Sources : Wikipedia (en), iNaturalist`;
+  const raw = JSON.stringify({
+    intro: 'Bien vu, on corrige ça ensemble.',
+    explanation: 'Observe bien la silhouette et la couleur dominante.',
+    discriminant: 'Contraste silhouette/couleur',
+    visual_clue: 'Le motif de l’aile est plus contrasté chez la bonne espèce.',
+    taxonomic_rule: 'Commence par la famille, puis valide la forme du bec.',
+    counter_example: 'La couleur peut sembler proche, mais la silhouette reste différente.',
+  });
 
   const parsed = parseAIResponse(raw);
   assert.ok(parsed);
-  assert.equal(parsed.explanation, 'Observe bien la silhouette et la couleur dominante.');
+  assert.equal(parsed.explanation, 'Bien vu, on corrige ça ensemble. Observe bien la silhouette et la couleur dominante.');
   assert.equal(parsed.discriminant, 'Contraste silhouette/couleur');
+  assert.equal(parsed.visualClue, 'Le motif de l’aile est plus contrasté chez la bonne espèce.');
+  assert.equal(parsed.taxonomicRule, 'Commence par la famille, puis valide la forme du bec.');
+  assert.equal(parsed.counterExample, 'La couleur peut sembler proche, mais la silhouette reste différente.');
 });
 
 test('validateAndClean flags malformed punctuation and suspicious sequences', () => {

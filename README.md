@@ -4,7 +4,7 @@ Quiz naturaliste educatif base sur des observations iNaturalist. Frontend React 
 
 ## Fonctionnalites principales
 
-- **4 modes de jeu**: Easy, Hard, Riddle (enigmes), Taxonomic (ascension taxonomique)
+- **2 modes de jeu actifs**: Easy, Hard (les modes Riddle et Taxonomic sont archives)
 - **44 packs thematiques**: Discovery (14), Threatened (12), Curated (14), Creative (4)
 - **Systeme de progression**: XP, niveaux, streak, achievements, collection d'especes
 - **IA educative**: Explications personnalisees via Gemini 2.5 Flash (RAG + JSON structure)
@@ -15,17 +15,19 @@ Quiz naturaliste educatif base sur des observations iNaturalist. Frontend React 
 
 ## Liens rapides
 
-- `wiki/INDEX.md`
-- `wiki/GETTING_STARTED.md`
-- `wiki/ARCHITECTURE.md`
-- `wiki/API_REFERENCE.md`
-- `wiki/BETA_SMOKE_MATRIX.md`
-- `CONTRIBUTING.md`
+- [wiki/INDEX.md](wiki/INDEX.md) — point d'entrée documentation
+- [wiki/GETTING_STARTED.md](wiki/GETTING_STARTED.md) — démarrage local
+- [wiki/ARCHITECTURE.md](wiki/ARCHITECTURE.md) — vue d'ensemble
+- [wiki/API_REFERENCE.md](wiki/API_REFERENCE.md) — endpoints API
+- [wiki/BETA_SMOKE_MATRIX.md](wiki/BETA_SMOKE_MATRIX.md) — matrice smoke beta
+- [docs/reference/](docs/reference/) — documentation de référence détaillée (6 fichiers)
+- [docs/explanation/](docs/explanation/) — documentation d'explication (7 fichiers, diagrammes Mermaid)
+- [CONTRIBUTING.md](CONTRIBUTING.md) — guide de contribution
 
 ## Demarrage local
 
 Prerequis:
-- Node.js 20+
+- Node.js 22+
 - npm 10+
 
 Installation:
