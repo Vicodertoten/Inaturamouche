@@ -79,6 +79,7 @@ const EndPage = () => {
       onReturnHome={handleReturnHome}
       profile={profile}
       isDailyChallenge={isDailyChallenge}
+      isReviewMode={isReviewMode}
       activePackId={activePackId}
       gameMode={gameMode}
       maxQuestions={maxQuestions}

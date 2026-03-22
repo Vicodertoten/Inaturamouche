@@ -25,7 +25,7 @@ const AboutPage = () => {
           {t(
             'about.what_is_quality',
             {},
-            'Chaque quiz utilise des observations certifiées "Research Grade" par la communauté iNaturalist — du contenu scientifiquement fiable, validé par des experts.'
+            'Chaque quiz utilise des observations "Research Grade" issues d\'iNaturalist — un contenu naturaliste réel, structuré par l\'identification communautaire.'
           )}
         </p>
       </section>
@@ -63,7 +63,7 @@ const AboutPage = () => {
             {t(
               'about.why_privacy_text',
               {},
-              'Zéro tracking, zéro données collectées, zéro cookies tiers'
+              'Pas de tracking tiers, progression stockée localement, et métriques produit first-party pseudonymes pendant la bêta'
             )}
           </li>
         </ul>
@@ -115,7 +115,7 @@ const AboutPage = () => {
             {t(
               'about.how_inat_step4',
               {},
-              'Une fois "Research Grade" = acceptée par des experts'
+              'Une fois "Research Grade" = consensus communautaire suffisant selon les critères iNaturalist'
             )}
           </li>
           <li>
@@ -134,7 +134,7 @@ const AboutPage = () => {
           {t(
             'about.research_grade_text',
             {},
-            'iNaturalist a un système de qualité strict. Seules les observations identifiées avec accord de la communauté et validées par des experts deviennent "Research Grade". C\'est comme un peer review scientifique.'
+            'iNaturalist applique des critères de qualité stricts. En pratique, le statut "Research Grade" repose surtout sur des observations vérifiables et un accord suffisant de la communauté sur l\'identification.'
           )}
         </p>
         <p className="about-highlight">
@@ -143,7 +143,7 @@ const AboutPage = () => {
           {t(
             'about.research_grade_result_text',
             {},
-            'iNaturaQuizz utilise UNIQUEMENT du contenu de haute qualité scientifique.'
+            'iNaturaQuizz s\'appuie sur des observations réelles et un cadre de qualité communautaire utile pour l\'apprentissage.'
           )}
         </p>
       </section>

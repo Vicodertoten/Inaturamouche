@@ -19,7 +19,7 @@ const GuidePage = () => {
         <h2>🚀 {t('guide.quickstart_title', {}, 'Démarrage rapide')}</h2>
         <ol>
           <li>{t('guide.quickstart_1', {}, 'Ouvrez iNaturaQuizz sur les appareils de vos élèves (aucune installation nécessaire, fonctionne dans le navigateur).')}</li>
-          <li>{t('guide.quickstart_2', {}, 'Choisissez un pack thématique adapté à votre cours (ex : « Oiseaux de Belgique », « Pollinisateurs d\'Europe »).')}</li>
+          <li>{t('guide.quickstart_2', {}, 'Choisissez un pack thématique adapté à votre cours (ex : « Oiseaux de Belgique », « Plantes d\'Europe »).')}</li>
           <li>{t('guide.quickstart_3', {}, 'Sélectionnez le mode facile (QCM) pour une première découverte, ou le mode difficile (nom scientifique) pour approfondir.')}</li>
           <li>{t('guide.quickstart_4', {}, 'Lancez la session — chaque élève joue à son rythme sur son appareil.')}</li>
           <li>{t('guide.quickstart_5', {}, 'À la fin, chaque élève peut partager ses résultats via un lien.')}</li>
@@ -87,36 +87,36 @@ const GuidePage = () => {
       {/* Section 5 — Répétition espacée */}
       <section className="guide-section">
         <h2>🧠 {t('guide.srs_title', {}, 'Répétition espacée (SRS)')}</h2>
-        <p>{t('guide.srs_intro', {}, 'iNaturaQuizz utilise un algorithme inspiré du SM-2 pour optimiser la mémorisation à long terme. Voici comment fonctionnent les niveaux de maîtrise :')}</p>
+        <p>{t('guide.srs_intro', {}, 'iNaturaQuizz utilise un algorithme de révision inspiré du SM-2. La maîtrise d\'une espèce dépend de l\'XP accumulée, et les intervalles de révision s\'adaptent selon les réponses précédentes.')}</p>
 
         <table className="guide-srs-table">
           <thead>
             <tr>
               <th>{t('guide.srs_level', {}, 'Niveau')}</th>
-              <th>{t('guide.srs_criteria', {}, 'Critère')}</th>
-              <th>{t('guide.srs_interval', {}, 'Intervalle de révision')}</th>
+              <th>{t('guide.srs_criteria', {}, 'Seuil')}</th>
+              <th>{t('guide.srs_interval', {}, 'Logique de révision')}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>🥉 {t('guide.srs_bronze', {}, 'Bronze')}</td>
-              <td>{t('guide.srs_bronze_criteria', {}, '1 bonne réponse')}</td>
-              <td>{t('guide.srs_bronze_interval', {}, '1 jour')}</td>
+              <td>{t('guide.srs_bronze_criteria', {}, '10 XP')}</td>
+              <td>{t('guide.srs_bronze_interval', {}, 'Première révision après 1 jour')}</td>
             </tr>
             <tr>
               <td>🥈 {t('guide.srs_silver', {}, 'Argent')}</td>
-              <td>{t('guide.srs_silver_criteria', {}, '3 bonnes réponses')}</td>
-              <td>{t('guide.srs_silver_interval', {}, '3 jours')}</td>
+              <td>{t('guide.srs_silver_criteria', {}, '50 XP')}</td>
+              <td>{t('guide.srs_silver_interval', {}, 'L\'intervalle augmente si les réponses restent justes')}</td>
             </tr>
             <tr>
               <td>🥇 {t('guide.srs_gold', {}, 'Or')}</td>
-              <td>{t('guide.srs_gold_criteria', {}, '5 bonnes réponses')}</td>
-              <td>{t('guide.srs_gold_interval', {}, '7 jours')}</td>
+              <td>{t('guide.srs_gold_criteria', {}, '120 XP')}</td>
+              <td>{t('guide.srs_gold_interval', {}, 'Les espèces bien connues reviennent moins souvent')}</td>
             </tr>
             <tr>
               <td>💎 {t('guide.srs_diamond', {}, 'Diamant')}</td>
-              <td>{t('guide.srs_diamond_criteria', {}, '8+ bonnes réponses')}</td>
-              <td>{t('guide.srs_diamond_interval', {}, '14+ jours')}</td>
+              <td>{t('guide.srs_diamond_criteria', {}, '300 XP')}</td>
+              <td>{t('guide.srs_diamond_interval', {}, 'En cas d\'erreur, la révision retombe à 1 jour')}</td>
             </tr>
           </tbody>
         </table>

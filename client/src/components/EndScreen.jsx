@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import XPProgressBar from './XPProgressBar';
 import ShareButtons from './ShareButtons';
 import { getLevelFromXp, getXpForLevel } from '../utils/scoring';
+import { buildResultsSnapshot, encodeResultsSnapshot, buildResultsUrl } from '../utils/resultsShare';
 import { useGameData } from '../context/GameContext';
 import { ACHIEVEMENTS } from '../core/achievements';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -127,6 +128,7 @@ const EndScreen = ({
   onReturnHome,
   profile,
   isDailyChallenge = false,
+  isReviewMode = false,
   activePackId,
   gameMode,
   maxQuestions,
@@ -248,6 +250,46 @@ const EndScreen = ({
   }, [sessionCorrectSpecies.length, sessionSpeciesData, correctSpeciesSet, getTaxonDisplayNames]);
 
   const [showSpeciesList, setShowSpeciesList] = useState(false);
+  const packName = useMemo(() => {
+    const pack = packs?.find((p) => p.id === activePackId);
+    return pack?.titleKey ? t(pack.titleKey) : '';
+  }, [packs, activePackId, t]);
+  const playerShareName = useMemo(
+    () => profile?.name || profile?.username || 'Naturaliste',
+    [profile?.name, profile?.username],
+  );
+  const shareResultsUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    const snapshot = buildResultsSnapshot({
+      playerName: playerShareName || 'Naturaliste',
+      playerXp: profile?.xp || 0,
+      score: score || 0,
+      xpGained: sessionXPGained || 0,
+      gameMode,
+      packId: activePackId,
+      packName,
+      maxQuestions,
+      mediaType,
+      isReview: isReviewMode,
+      speciesData: sessionSpeciesData,
+      correctSpecies: sessionCorrectSpecies,
+    });
+    const token = encodeResultsSnapshot(snapshot);
+    return token ? buildResultsUrl(token) : `${window.location.origin}/`;
+  }, [
+    playerShareName,
+    profile?.xp,
+    score,
+    sessionXPGained,
+    gameMode,
+    activePackId,
+    packName,
+    maxQuestions,
+    mediaType,
+    isReviewMode,
+    sessionSpeciesData,
+    sessionCorrectSpecies,
+  ]);
 
 
   return (
@@ -547,13 +589,11 @@ const EndScreen = ({
           <ShareButtons
             score={sessionCorrectSpecies.length}
             total={sessionSpeciesData.length}
-            packName={(() => {
-              const pack = packs?.find(p => p.id === activePackId);
-              return pack?.titleKey ? t(pack.titleKey) : '';
-            })()}
+            packName={packName}
             topSpecies={topSpeciesName}
             isDaily={isDailyChallenge}
             mode={gameMode === 'hard' ? t('config.mode_hard', {}, 'Difficile') : t('config.mode_easy', {}, 'Facile')}
+            shareUrl={shareResultsUrl}
             activePackId={activePackId}
             gameMode={gameMode}
             maxQuestions={maxQuestions}

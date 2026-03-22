@@ -248,7 +248,6 @@ function BottomSheet({
   return (
     <div className={`bottom-sheet-overlay ${isVisible && !isClosing ? 'is-visible' : ''}`}
       onClick={overlayClose ? dismiss : undefined}
-      aria-hidden="true"
     >
       <div
         ref={sheetRef}

@@ -120,6 +120,18 @@ const AppLayout = () => {
         canonicalPath: '/collection/share',
       };
     }
+    if (path.startsWith('/results/share/')) {
+      return {
+        title: t('seo.results_share.title', {}, 'Récap partagé - iNaturaQuizz'),
+        description: t(
+          'seo.results_share.description',
+          {},
+          "Découvre le récap partagé d'une partie iNaturaQuizz et essaie à ton tour."
+        ),
+        robots: 'noindex,nofollow',
+        canonicalPath: '/results/share',
+      };
+    }
     if (path === '/play') {
       return {
         title: t('seo.play.title', {}, 'Partie en cours - iNaturaQuizz'),

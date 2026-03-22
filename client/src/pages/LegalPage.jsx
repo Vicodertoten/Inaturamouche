@@ -44,12 +44,12 @@ const LegalPage = () => {
         <h2>{t('legal.privacy_title', {}, 'Politique de confidentialité & RGPD')}</h2>
         <h3>{t('legal.data_collected_title', {}, 'Données collectées')}</h3>
         <ul>
-          <li>{t('legal.data_1', {}, "Progression de jeu : stockée localement dans votre navigateur (IndexedDB). Aucune donnée n'est envoyée à un serveur.")}</li>
-          <li>{t('legal.data_2', {}, "Préférences (langue, thème, mode) : stockées localement (localStorage).")}</li>
-          <li>{t('legal.data_3', {}, "Géolocalisation approximative : utilisée uniquement côté client pour proposer des packs régionaux. Jamais transmise au serveur.")}</li>
+          <li>{t('legal.data_1', {}, "Progression de jeu : stockée localement dans votre navigateur (IndexedDB). Préférences (langue, thème, mode) : stockées localement (localStorage).")}</li>
+          <li>{t('legal.data_2', {}, "Signalements de bug (si vous utilisez le formulaire) : description, URL courante, navigateur, horodatage et hash IP anti-abus. Rétention limitée et purge automatique.")}</li>
+          <li>{t('legal.data_3', {}, "Métriques produit first-party pendant la bêta (ex: ouverture app, début/fin de partie, erreurs API/client, succès report) sous identifiant pseudonyme. Aucun email requis.")}</li>
         </ul>
         <h3>{t('legal.no_tracking_title', {}, 'Absence de suivi')}</h3>
-        <p>{t('legal.no_tracking', {}, "Inaturamouche n'utilise aucun cookie tiers, aucun pixel de suivi, aucun outil d'analyse (pas de Google Analytics, pas de Facebook Pixel). Aucune donnée personnelle n'est partagée avec des tiers.")}</p>
+        <p>{t('legal.no_tracking', {}, "Inaturamouche n'utilise aucun cookie tiers, aucun pixel de suivi publicitaire, aucun SDK analytics tiers (pas de Google Analytics, pas de Facebook Pixel). Aucune donnée n'est vendue ni partagée à des fins marketing.")}</p>
         <h3>{t('legal.your_rights_title', {}, 'Vos droits')}</h3>
         <p>{t('legal.your_rights', {}, "Conformément au RGPD, vous pouvez supprimer toutes vos données locales à tout moment en effaçant les données du site dans les paramètres de votre navigateur.")}</p>
       </section>
