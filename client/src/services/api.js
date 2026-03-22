@@ -389,12 +389,17 @@ export const submitQuizAnswer = (
 /**
  * Récupère l'explication IA pour une réponse incorrecte.
  */
-export const fetchExplanation = (correctId, wrongId, locale = 'fr', focusRank = null) => {
+export const fetchExplanation = (correctIdOrPayload, wrongId, locale = 'fr', focusRank = null) => {
+    const payload =
+      correctIdOrPayload && typeof correctIdOrPayload === 'object'
+        ? correctIdOrPayload
+        : { correctId: correctIdOrPayload, wrongId, locale, focusRank };
+    const mode = payload?.mode === 'brief' ? 'brief' : 'full';
     return apiPost(
       '/api/quiz/explain',
-      { correctId, wrongId, locale, focusRank },
-      { timeout: 20000 }
-    ); // Timeout plus long pour l'IA
+      payload,
+      { timeout: mode === 'brief' ? 4500 : 8000 }
+    );
 };
 
 export const submitBugReport = ({

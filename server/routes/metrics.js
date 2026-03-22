@@ -22,7 +22,17 @@ const EVENT_NAMES = [
   'client_error',
   'api_error',
   'explanation_open',
+  'explanation_brief_requested',
+  'explanation_brief_loaded',
+  'explanation_brief_fallback',
+  'explanation_full_requested',
+  'explanation_full_loaded',
+  'explanation_source_expand',
+  'explanation_confidence',
   'explanation_feedback',
+  'explanation_rendered',
+  'explanation_render_ignored_stale',
+  'explanation_badge_displayed',
   'share_click',
 ];
 

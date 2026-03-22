@@ -32,6 +32,11 @@ const explainSchema = z
     correctId: z.coerce.number().int().positive(),
     wrongId: z.coerce.number().int().positive(),
     locale: z.enum(['fr', 'en', 'nl']).default('fr'),
+    mode: z.enum(['brief', 'full']).default('full'),
+    packId: z.string().trim().max(120).optional().nullable(),
+    gameMode: z.enum(['easy', 'hard', 'riddle', 'taxonomic']).optional().nullable(),
+    masteryBucket: z.enum(['new', 'fragile', 'familiar']).optional().nullable(),
+    confusionBucket: z.enum(['first', 'repeat']).optional().nullable(),
     focusRank: z.string().trim().max(32).optional().nullable(),
   })
   .refine((data) => data.correctId !== data.wrongId, {
@@ -72,7 +77,17 @@ const submitAnswerSchema = z.object({
 });
 
 router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(explainSchema), async (req, res) => {
-  const { correctId, wrongId, locale, focusRank } = req.valid;
+  const {
+    correctId,
+    wrongId,
+    locale,
+    mode,
+    packId,
+    gameMode,
+    masteryBucket,
+    confusionBucket,
+    focusRank,
+  } = req.valid;
   const logger = req.log;
   const requestId = req.id;
   const metricsSessionId = req.headers['x-client-session-id']
@@ -126,16 +141,32 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
       wrongTaxonFinal,
       locale,
       logger,
-      { focusRank, metricsSessionId, metricsAnonUserId }
+      {
+        mode,
+        packId,
+        gameMode,
+        masteryBucket,
+        confusionBucket,
+        focusRank,
+        metricsSessionId,
+        metricsAnonUserId,
+      }
     );
 
-    // Pipeline v4 — retourne explication + discriminant + sources
     res.json({
+      mode: result.mode || mode,
+      brief: result.brief || null,
+      full: result.full || null,
       explanation: result.explanation,
       discriminant: result.discriminant || null,
       pedagogy: result.pedagogy || null,
       sources: result.sources || [],
+      confidence: result.confidence || 'fallback',
       fallback: result.fallback || false,
+      reasonCodes: result.reasonCodes || [],
+      trace_id: result.traceId || null,
+      pair_key: result.pairKey || null,
+      severity: result.severity || null,
     });
 
   } catch (err) {

@@ -457,8 +457,30 @@ function computeDifficultyFairness(clientEvents) {
 function computeExplainValue(clientEvents) {
   const openEvents = clientEvents.filter((event) => event.name === 'explanation_open');
   const feedbackEvents = clientEvents.filter((event) => event.name === 'explanation_feedback');
+  const pipelineEvents = clientEvents.filter((event) => event.name === 'explanation_pipeline_result');
   const usefulCount = feedbackEvents.filter((event) => toBoolean(event?.properties?.useful) === true).length;
   const notUsefulCount = feedbackEvents.filter((event) => toBoolean(event?.properties?.useful) === false).length;
+  const briefEvents = pipelineEvents.filter((event) => event?.properties?.mode === 'brief');
+  const fullEvents = pipelineEvents.filter((event) => event?.properties?.mode === 'full');
+  const fallbackEvents = pipelineEvents.filter((event) => toBoolean(event?.properties?.fallback) === true);
+  const repairEvents = pipelineEvents.filter((event) =>
+    String(event?.properties?.reason_codes || '').includes('repair_used')
+  );
+  const cacheHits = pipelineEvents.filter((event) => ['hit', 'stale'].includes(String(event?.properties?.cache_status || '')));
+  const confidenceDistribution = {};
+  const fallbackReasons = {};
+
+  for (const event of pipelineEvents) {
+    const confidence = String(event?.properties?.confidence || 'unknown');
+    confidenceDistribution[confidence] = (confidenceDistribution[confidence] || 0) + 1;
+    const reasons = String(event?.properties?.reason_codes || '')
+      .split('|')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    reasons.forEach((reason) => {
+      fallbackReasons[reason] = (fallbackReasons[reason] || 0) + 1;
+    });
+  }
 
   return {
     explanation_open: openEvents.length,
@@ -466,6 +488,20 @@ function computeExplainValue(clientEvents) {
     useful_count: usefulCount,
     not_useful_count: notUsefulCount,
     useful_rate_pct: ratioPct(usefulCount, feedbackEvents.length),
+    pipeline_total: pipelineEvents.length,
+    brief_success_rate_pct: ratioPct(
+      briefEvents.filter((event) => toBoolean(event?.properties?.fallback) !== true).length,
+      briefEvents.length
+    ),
+    full_success_rate_pct: ratioPct(
+      fullEvents.filter((event) => toBoolean(event?.properties?.fallback) !== true).length,
+      fullEvents.length
+    ),
+    fallback_rate_pct: ratioPct(fallbackEvents.length, pipelineEvents.length),
+    repair_rate_pct: ratioPct(repairEvents.length, pipelineEvents.length),
+    cache_hit_rate_pct: ratioPct(cacheHits.length, pipelineEvents.length),
+    confidence_distribution: sortObjectCountDesc(confidenceDistribution),
+    fallback_reason_distribution: sortObjectCountDesc(fallbackReasons),
   };
 }
 

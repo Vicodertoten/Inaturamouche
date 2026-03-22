@@ -1,76 +1,114 @@
 // server/services/ai/aiConfig.js
-// Configuration centralisée du système IA v6 — robustesse et pertinence
+// Configuration centralisée du système IA v7 — explications brèves + détaillées.
 
 export const MODEL_CONFIG = {
-  model: 'gemini-2.5-flash',
   apiUrlTemplate: (model) =>
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 
-  generate: {
-    // SYSTEME PARFAIT : Structure stricte (Schema) + Créativité (Température)
-    temperature: 0.4,
-    topP: 0.8,
-    maxOutputTokens: 4000,
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: "OBJECT",
-      properties: {
-        internal_critique: { type: "STRING", description: "ÉTAPE 1 (Invisible) : Critique ton propre brouillon. Vérifie : orthographe, accords, répétitions, et que tu n'as PAS utilisé 'le premier/le second'." },
-        intro: { type: "STRING", description: "ÉTAPE 2 : Une interjection courte (ex: 'Oh là !')." },
-        explanation: { type: "STRING", description: "ÉTAPE 3 (Finale) : L'explication avec le ton de Papy Mouche. Vivante, variée mais rigoureuse sur les noms." },
-        discriminant: { type: "STRING", description: "Le critère clé en une phrase nominale." },
-        visual_clue: { type: "STRING", description: "Bloc 1 : indice visuel clé observable immédiatement." },
-        taxonomic_rule: { type: "STRING", description: "Bloc 2 : règle taxonomique courte et actionnable." },
-        counter_example: { type: "STRING", description: "Bloc 3 : contre-exemple pour éviter la confusion future." }
+  explanation: {
+    brief: {
+      model: 'gemini-2.5-flash-lite',
+      timeoutMs: 2_200,
+      maxRetries: 1,
+      pricePerMillion: { input: 0.1, output: 0.4 },
+      generate: {
+        temperature: 0.15,
+        topP: 0.8,
+        maxOutputTokens: 180,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            key_difference: { type: 'STRING', description: 'Différence visuelle ou structurelle principale.' },
+            why_tempting: { type: 'STRING', description: "Pourquoi l'erreur semble logique au premier regard." },
+            next_look_for: { type: 'STRING', description: 'Le détail concret à vérifier la prochaine fois.' },
+          },
+          required: ['key_difference', 'why_tempting', 'next_look_for'],
+        },
       },
-      required: ["internal_critique", "explanation", "discriminant", "visual_clue", "taxonomic_rule", "counter_example"]
-    }
+    },
+    full: {
+      model: 'gemini-2.5-flash',
+      timeoutMs: 5_000,
+      maxRetries: 1,
+      pricePerMillion: { input: 0.3, output: 2.5 },
+      generate: {
+        temperature: 0.2,
+        topP: 0.8,
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            explanation: { type: 'STRING', description: 'Explication pédagogique synthétique.' },
+            visual_clue: { type: 'STRING', description: 'Indice visuel observable immédiatement.' },
+            taxonomic_rule: { type: 'STRING', description: 'Règle de tri taxonomique courte et actionnable.' },
+            why_this_confusion_happens: {
+              type: 'STRING',
+              description: 'Pourquoi cette confusion précise est plausible et comment la corriger.',
+            },
+            discriminant: { type: 'STRING', description: 'Le repère-clé sous forme nominale.' },
+          },
+          required: [
+            'explanation',
+            'visual_clue',
+            'taxonomic_rule',
+            'why_this_confusion_happens',
+            'discriminant',
+          ],
+        },
+      },
+    },
+    repair: {
+      model: 'gemini-2.5-flash-lite',
+      timeoutMs: 1_500,
+      maxRetries: 1,
+      pricePerMillion: { input: 0.1, output: 0.4 },
+    },
   },
 
   riddle: {
-    temperature: 0.8,
-    topP: 0.95,
-    maxOutputTokens: 4000,
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: "OBJECT",
-      properties: {
-        clues: {
-          type: "ARRAY",
-          items: { type: "STRING" },
-          description: "3 indices de difficulté décroissante (Difficile -> Moyen -> Facile)"
-        }
+    model: 'gemini-2.5-flash',
+    timeoutMs: 45_000,
+    maxRetries: 2,
+    pricePerMillion: { input: 0.3, output: 2.5 },
+    generate: {
+      temperature: 0.8,
+      topP: 0.95,
+      maxOutputTokens: 4000,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          clues: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+            description: '3 indices de difficulté décroissante (Difficile -> Moyen -> Facile)',
+          },
+        },
+        required: ['clues'],
       },
-      required: ["clues"]
-    }
+    },
   },
-
-  timeoutMs: 45_000,
-  maxRetries: 2,
 };
 
 export const PERSONA = {
-  name: 'Papy Mouche',
-  role: "professeur naturaliste passionné d'identification terrain",
-  traits: ['bienveillant', 'concis', 'précis', 'vocabulaire simple', 'tutoiement'],
-  // Instructions système pour guider le modèle multimodal
-  systemInstruction: `Tu es Papy Mouche. Tu corriges une erreur d'identification.
-  1. AUTO-CORRECTION : Utilise le champ 'internal_critique' pour vérifier ta grammaire/orthographe et tes faits AVANT de rédiger l'explication finale.
-  2. NOMINATION : Cite TOUJOURS les noms complets sans le nom scientifique(ex: "Le Merle noir"). Interdit d'utiliser "le premier", "l'autre".
-  3. LANGUE : Orthographe et grammaire doivent être PARFAITES (niveau éditeur littéraire).
-  4. FORMAT : JSON strict.`,
-
+  name: 'Coach naturaliste',
+  role: "mentor de terrain qui aide a distinguer deux especes apres une confusion",
+  traits: ['bienveillant', 'concret', 'precis', 'sobre', 'non infantilisant'],
+  systemInstruction:
+    "Tu es un coach naturaliste. Tu aides a voir le bon repere sans inventer d'information. Tu cites toujours les deux especes explicitement et tu restes court, clair et pedagogique.",
   toneByContext: {
     HUGE: {
-      description: "taquine gentiment",
+      description: 'calme et recentre sur un repere tres concret',
       lead: '',
     },
     MEDIUM: {
-      description: 'direct et pédagogique',
+      description: 'direct et pedagogique',
       lead: '',
     },
     CLOSE: {
-      description: 'encourageant',
+      description: 'encourageant et precis',
       lead: '',
     },
   },
@@ -78,7 +116,35 @@ export const PERSONA = {
 
 export const OUTPUT_CONSTRAINTS = {
   explanation: { minWords: 5, maxWords: 200 },
+  brief: {
+    keyDifference: { minWords: 2, maxWords: 16 },
+    whyTempting: { minWords: 3, maxWords: 24 },
+    nextLookFor: { minWords: 3, maxWords: 18 },
+    displayText: { minWords: 12, maxWords: 70 },
+  },
+  full: {
+    explanation: { minWords: 8, maxWords: 90 },
+    visualClue: { minWords: 4, maxWords: 24 },
+    taxonomicRule: { minWords: 4, maxWords: 22 },
+    whyThisConfusionHappens: { minWords: 5, maxWords: 28 },
+    discriminant: { minWords: 2, maxWords: 12 },
+  },
   riddle: { clueCount: 3, maxClueLength: 180 },
+};
+
+export const EXPLANATION_CACHE_POLICIES = {
+  brief: {
+    success: { ttl: 1000 * 60 * 60 * 24 * 7, staleTtl: 1000 * 60 * 60 * 24 * 30 },
+    model_guided: { ttl: 1000 * 60 * 60 * 24 * 3, staleTtl: 1000 * 60 * 60 * 24 * 7 },
+    limited: { ttl: 1000 * 60 * 30, staleTtl: 1000 * 60 * 60 * 2 },
+    fallback: { ttl: 1000 * 60 * 5, staleTtl: 0 },
+  },
+  full: {
+    success: { ttl: 1000 * 60 * 60 * 24 * 14, staleTtl: 1000 * 60 * 60 * 24 * 30 },
+    model_guided: { ttl: 1000 * 60 * 60 * 24 * 5, staleTtl: 1000 * 60 * 60 * 24 * 14 },
+    limited: { ttl: 1000 * 60 * 60, staleTtl: 1000 * 60 * 60 * 4 },
+    fallback: { ttl: 1000 * 60 * 10, staleTtl: 0 },
+  },
 };
 
 export const FALLBACK_TIPS = {
@@ -136,9 +202,23 @@ export const DATA_SOURCES = {
     enabled: true,
     maxDescLength: 600,
   },
+  gbif: {
+    enabled: true,
+    apiUrl: (scientificName) =>
+      `https://api.gbif.org/v1/species/match?verbose=true&name=${encodeURIComponent(scientificName)}`,
+    timeoutMs: 5_000,
+  },
+  catalogueOfLife: {
+    enabled: true,
+    searchUrl: (scientificName) =>
+      `https://www.catalogueoflife.org/data/search?name=${encodeURIComponent(scientificName)}`,
+  },
 };
 
 export const CACHE_VERSIONS = {
-  explanation: 'v12-pedagogy-3-blocks',
+  taxonEvidence: 'v2-evidence-bundle',
+  taxonomySupport: 'v2-taxonomy-support',
+  briefExplanation: 'v2-brief-gemini-flash-lite',
+  fullExplanation: 'v3-full-gemini-flash-narrow-scope',
   riddle: 'v11-gemini-3-preview',
 };

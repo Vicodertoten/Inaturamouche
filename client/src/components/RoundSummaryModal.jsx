@@ -4,11 +4,15 @@ import { BottomSheet } from '../shared/ui';
 import { getSizedImageUrl } from '../utils/imageUtils';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useUser } from '../context/UserContext.jsx';
+import { useGameData } from '../context/GameContext.jsx';
 import { fetchExplanation, getTaxonDetails } from '../services/api';
 import { trackMetric } from '../services/metrics';
 
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
+const runtimeEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
+const FULL_EXPLANATION_ENABLED = runtimeEnv.VITE_AI_EXPLANATION_FULL_ENABLED !== 'false';
 
 const getObservationImageUrl = (taxon) => {
   if (!taxon) return null;
@@ -21,6 +25,45 @@ const getObservationImageUrl = (taxon) => {
 };
 
 const trimText = (value) => (typeof value === 'string' ? value.trim() : '');
+const SOURCE_PROVIDER_LABELS = {
+  inaturalist: 'iNaturalist',
+  wikimedia: 'Wikimedia / Wikipedia',
+  col: 'Catalogue of Life',
+  gbif: 'GBIF',
+  legacy: 'Legacy',
+  unknown: 'Source',
+};
+
+const normalizeAiSources = (sources = []) => {
+  if (!Array.isArray(sources)) return [];
+  return sources
+    .map((source, index) => {
+      if (typeof source === 'string') {
+        return {
+          id: `legacy-${index + 1}`,
+          provider: 'legacy',
+          kind: 'description',
+          label: source,
+          url: null,
+          lang: 'unknown',
+          license: null,
+          snippet: '',
+        };
+      }
+      if (!source || typeof source !== 'object') return null;
+      return {
+        id: source.id || `source-${index + 1}`,
+        provider: source.provider || 'unknown',
+        kind: source.kind || 'description',
+        label: source.label || source.provider || `Source ${index + 1}`,
+        url: source.url || null,
+        lang: source.lang || 'unknown',
+        license: source.license || null,
+        snippet: source.snippet || '',
+      };
+    })
+    .filter(Boolean);
+};
 
 const buildFallbackPedagogy = ({ pedagogy, explanation, correctName, wrongName, language }) => {
   const source = pedagogy && typeof pedagogy === 'object' ? pedagogy : {};
@@ -42,26 +85,227 @@ const buildFallbackPedagogy = ({ pedagogy, explanation, correctName, wrongName, 
   return {
     visualClue: trimText(source.visualClue) || trimText(explanation) || defaults.visualClue,
     taxonomicRule: trimText(source.taxonomicRule) || defaults.taxonomicRule,
-    counterExample: trimText(source.counterExample) || defaults.counterExample,
+    whyThisConfusionHappens:
+      trimText(source.whyThisConfusionHappens) || trimText(source.counterExample) || defaults.counterExample,
+  };
+};
+
+const buildFallbackBrief = ({ language, correctName }) => ({
+  keyDifference:
+    language === 'en'
+      ? 'Focus on one stable field mark.'
+      : language === 'nl'
+        ? 'Let op een stabiel veldkenmerk.'
+        : 'Regarde un repere stable en premier.',
+  whyTempting:
+    language === 'en'
+      ? 'the overall look can be misleading at first glance'
+      : language === 'nl'
+        ? 'het algemene uiterlijk kan op het eerste gezicht misleiden'
+        : "l'aspect general peut tromper au premier regard",
+  nextLookFor:
+    language === 'en'
+      ? `one clear structural trait on ${correctName || 'the correct species'}`
+      : language === 'nl'
+        ? `een duidelijk structureel kenmerk van ${correctName || 'de juiste soort'}`
+        : `un caractere structurel net chez ${correctName || 'la bonne espece'}`,
+  displayText:
+    language === 'en'
+      ? 'The quick hint is not available right now. Focus on the overall shape and one stable structural clue.'
+      : language === 'nl'
+        ? 'De korte hint is nu niet beschikbaar. Let vooral op het algemene silhouet en een stabiel structureel kenmerk.'
+        : "Le repere rapide n'est pas disponible pour le moment. Regarde surtout la silhouette generale et un detail structurel stable.",
+  sourceIdsByField: {
+    keyDifference: [],
+    whyTempting: [],
+    nextLookFor: [],
+  },
+  support: {
+    level: 'fallback',
+    sourceIds: [],
+  },
+  supportByField: {
+    keyDifference: [],
+    whyTempting: [],
+    nextLookFor: [],
+  },
+});
+
+const normalizeExplanationPayload = ({ data, language, correctName, wrongName }) => {
+  const normalizedSources = normalizeAiSources(data?.sources);
+  const confidence = data?.confidence || (data?.fallback ? 'fallback' : 'grounded');
+  const legacyExplanation = trimText(data?.explanation);
+  const legacyPedagogy = data?.pedagogy;
+  const full =
+    data?.full ||
+    (legacyExplanation
+      ? {
+          explanation: legacyExplanation,
+          visualClue: trimText(legacyPedagogy?.visualClue),
+          taxonomicRule: trimText(legacyPedagogy?.taxonomicRule),
+          whyThisConfusionHappens:
+            trimText(legacyPedagogy?.whyThisConfusionHappens) || trimText(legacyPedagogy?.counterExample),
+          counterExample:
+            trimText(legacyPedagogy?.whyThisConfusionHappens) || trimText(legacyPedagogy?.counterExample),
+          discriminant: trimText(data?.discriminant),
+          support: {
+            level: confidence,
+            sourceIds: [],
+          },
+          sourceIdsByField: {
+            explanation: [],
+            visualClue: [],
+            taxonomicRule: [],
+            whyThisConfusionHappens: [],
+            discriminant: [],
+          },
+        }
+      : null);
+  const brief =
+    data?.brief ||
+    (legacyExplanation
+      ? {
+          keyDifference: trimText(data?.discriminant) || buildFallbackBrief({ language, correctName }).keyDifference,
+          whyTempting:
+            trimText(legacyPedagogy?.counterExample) ||
+            buildFallbackBrief({ language, correctName }).whyTempting,
+          nextLookFor:
+            trimText(legacyPedagogy?.visualClue) ||
+            buildFallbackBrief({ language, correctName }).nextLookFor,
+          displayText: legacyExplanation,
+          sourceIdsByField: {
+            keyDifference: [],
+            whyTempting: [],
+            nextLookFor: [],
+          },
+          support: {
+            level: confidence,
+            sourceIds: [],
+          },
+          supportByField: {
+            keyDifference: [],
+            whyTempting: [],
+            nextLookFor: [],
+          },
+        }
+      : null);
+  const normalizedBrief = brief
+    ? {
+        ...brief,
+        supportByField: brief.supportByField || brief.sourceIdsByField || {
+          keyDifference: [],
+          whyTempting: [],
+          nextLookFor: [],
+        },
+        sourceIdsByField: brief.supportByField || brief.sourceIdsByField || {
+          keyDifference: [],
+          whyTempting: [],
+          nextLookFor: [],
+        },
+        support: brief.support || {
+          level: confidence,
+          sourceIds: Array.from(
+            new Set(
+              Object.values(brief.supportByField || brief.sourceIdsByField || {})
+                .flat()
+                .filter(Boolean)
+            )
+          ),
+        },
+      }
+    : null;
+  const normalizedFull = full
+    ? {
+        ...full,
+        whyThisConfusionHappens:
+          full.whyThisConfusionHappens || full.counterExample || '',
+        counterExample:
+          full.whyThisConfusionHappens || full.counterExample || '',
+        support: full.support || {
+          level: confidence,
+          sourceIds: Array.from(
+            new Set(
+              Object.values(full.supportByField || full.sourceIdsByField || {})
+                .flat()
+                .filter(Boolean)
+            )
+          ),
+        },
+        supportByField: {
+          explanation: full.supportByField?.explanation || full.sourceIdsByField?.explanation || [],
+          visualClue: full.supportByField?.visualClue || full.sourceIdsByField?.visualClue || [],
+          taxonomicRule: full.supportByField?.taxonomicRule || full.sourceIdsByField?.taxonomicRule || [],
+          whyThisConfusionHappens:
+            full.supportByField?.whyThisConfusionHappens ||
+            full.supportByField?.counterExample ||
+            full.sourceIdsByField?.whyThisConfusionHappens ||
+            full.sourceIdsByField?.counterExample ||
+            [],
+          discriminant: full.supportByField?.discriminant || full.sourceIdsByField?.discriminant || [],
+        },
+        sourceIdsByField: {
+          explanation: full.supportByField?.explanation || full.sourceIdsByField?.explanation || [],
+          visualClue: full.supportByField?.visualClue || full.sourceIdsByField?.visualClue || [],
+          taxonomicRule: full.supportByField?.taxonomicRule || full.sourceIdsByField?.taxonomicRule || [],
+          whyThisConfusionHappens:
+            full.supportByField?.whyThisConfusionHappens ||
+            full.supportByField?.counterExample ||
+            full.sourceIdsByField?.whyThisConfusionHappens ||
+            full.sourceIdsByField?.counterExample ||
+            [],
+          discriminant: full.supportByField?.discriminant || full.sourceIdsByField?.discriminant || [],
+        },
+      }
+    : null;
+  return {
+    mode: data?.mode || (data?.full ? 'full' : 'brief'),
+    brief: normalizedBrief,
+    full: normalizedFull,
+    sources: normalizedSources,
+    confidence,
+    fallback: Boolean(data?.fallback),
+    traceId: data?.trace_id || data?.traceId || null,
+    pairKey: data?.pair_key || data?.pairKey || null,
+    severity: data?.severity || null,
   };
 };
 
 const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationContext }) => {
   const { t, language, getTaxonDisplayNames } = useLanguage();
+  const { profile } = useUser();
+  const { activePackId, gameMode } = useGameData();
   const lang = language; // Alias pour compatibilité
   const [explanation, setExplanation] = useState('');
   const [pedagogy, setPedagogy] = useState({
     visualClue: '',
     taxonomicRule: '',
-    counterExample: '',
+    whyThisConfusionHappens: '',
   });
+  const [briefData, setBriefData] = useState(null);
+  const [fullData, setFullData] = useState(null);
   const [discriminant, setDiscriminant] = useState('');
   const [aiSources, setAiSources] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [briefConfidence, setBriefConfidence] = useState('grounded');
+  const [fullConfidence, setFullConfidence] = useState('grounded');
+  const [briefTraceId, setBriefTraceId] = useState(null);
+  const [fullTraceId, setFullTraceId] = useState(null);
+  const [briefPairKey, setBriefPairKey] = useState(null);
+  const [fullPairKey, setFullPairKey] = useState(null);
+  const [fullUsedFallback, setFullUsedFallback] = useState(false);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [fullLoading, setFullLoading] = useState(false);
+  const [hasRequestedFull, setHasRequestedFull] = useState(false);
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [userDetailOverride, setUserDetailOverride] = useState(null);
   const [explanationFeedback, setExplanationFeedback] = useState(null);
   const buttonRef = useRef(null);
   const trackedExplanationOpenRef = useRef(null);
+  const trackedSourcesExpandRef = useRef(false);
+  const trackedRenderedRef = useRef(null);
+  const trackedBadgeRef = useRef(null);
+  const pairKeyRef = useRef(null);
+  const briefRequestRef = useRef(0);
+  const fullRequestRef = useRef(0);
   const isWin = status === 'win';
 
   // Helper to extract relevant details from a taxon object, handling EasyMode's 'detail' structure
@@ -110,6 +354,10 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const explanationCorrectId = explanationContext?.correctId || correctDisplayTaxon.id;
   const explanationWrongId = explanationContext?.wrongId || userDisplayTaxon.id;
   const explanationFocusRank = explanationContext?.focusRank || null;
+  const pairBaseKey = useMemo(
+    () => `${question?.round_id || 'no-round'}:${explanationCorrectId || 'na'}:${explanationWrongId || 'na'}`,
+    [question?.round_id, explanationCorrectId, explanationWrongId]
+  );
   const userWikiUrl = useMemo(() => {
     if (userDisplayTaxon.wikipedia_url) return userDisplayTaxon.wikipedia_url;
     if (!userDisplayTaxon.scientificName) return null;
@@ -120,12 +368,114 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     wrongName: userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName || null,
   }), [correctDisplayTaxon.primaryName, correctDisplayTaxon.secondaryName, userDisplayTaxon.primaryName, userDisplayTaxon.secondaryName]);
   const hasPedagogy = useMemo(() => (
-    Boolean(pedagogy.visualClue || pedagogy.taxonomicRule || pedagogy.counterExample)
-  ), [pedagogy.counterExample, pedagogy.taxonomicRule, pedagogy.visualClue]);
+    Boolean(pedagogy.visualClue || pedagogy.taxonomicRule || pedagogy.whyThisConfusionHappens)
+  ), [pedagogy.taxonomicRule, pedagogy.visualClue, pedagogy.whyThisConfusionHappens]);
+  const sourceCoverageById = useMemo(() => {
+    const coverage = new Map();
+    const register = (sourceIdsByField, labels) => {
+      if (!sourceIdsByField || typeof sourceIdsByField !== 'object') return;
+      Object.entries(sourceIdsByField).forEach(([field, ids]) => {
+        const label = labels[field];
+        if (!label || !Array.isArray(ids)) return;
+        ids.forEach((id) => {
+          if (!id) return;
+          if (!coverage.has(id)) coverage.set(id, []);
+          const current = coverage.get(id);
+          if (!current.includes(label)) current.push(label);
+        });
+      });
+    };
+
+    register(briefData?.supportByField || briefData?.sourceIdsByField, {
+      keyDifference: t('summary.brief_key_difference_title', {}, 'Ce qui distingue'),
+      whyTempting: t('summary.brief_why_tempting_title', {}, 'Pourquoi la confusion'),
+      nextLookFor: t('summary.brief_next_look_for_title', {}, 'A regarder'),
+    });
+    register(fullData?.supportByField || fullData?.sourceIdsByField, {
+      explanation: t('summary.explanation_detail_title', {}, "Comprendre l'erreur"),
+      visualClue: t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel cle'),
+      taxonomicRule: t('summary.pedagogy.taxonomic_rule_title', {}, 'Regle taxonomique'),
+      whyThisConfusionHappens: t('summary.pedagogy.confusion_reason_title', {}, 'Pourquoi la confusion'),
+      discriminant: t('summary.brief_key_difference_title', {}, 'Ce qui distingue'),
+    });
+    return coverage;
+  }, [briefData?.supportByField, briefData?.sourceIdsByField, fullData?.supportByField, fullData?.sourceIdsByField, t]);
+  const masteryBucket = useMemo(() => {
+    const correctCount = Number(profile?.stats?.speciesMastery?.[explanationCorrectId]?.correct || 0);
+    if (correctCount >= 3) return 'familiar';
+    if (correctCount >= 1) return 'fragile';
+    return 'new';
+  }, [explanationCorrectId, profile?.stats?.speciesMastery]);
+  const confusionBucket = useMemo(() => {
+    const missedSpecies = new Set(profile?.stats?.missedSpecies || []);
+    return missedSpecies.has(Number(explanationCorrectId)) || missedSpecies.has(Number(explanationWrongId))
+      ? 'repeat'
+      : 'first';
+  }, [explanationCorrectId, explanationWrongId, profile?.stats?.missedSpecies]);
+  const visibleConfidence = useMemo(() => {
+    if (hasRequestedFull && !fullLoading && fullData && !fullUsedFallback) return fullConfidence;
+    return briefConfidence;
+  }, [briefConfidence, fullConfidence, fullData, fullLoading, fullUsedFallback, hasRequestedFull]);
+  const confidenceLabel = useMemo(() => {
+    if (visibleConfidence === 'fallback') return t('summary.confidence_fallback', {}, 'Conseil générique');
+    if (visibleConfidence === 'model_guided') return t('summary.confidence_model_guided', {}, 'Sources cohérentes');
+    if (visibleConfidence === 'limited') return t('summary.confidence_limited', {}, 'Sources limitées');
+    return t('summary.confidence_grounded', {}, 'Sources reliées');
+  }, [visibleConfidence, t]);
+  const visibleSourceIds = useMemo(() => {
+    const ids = new Set();
+    const register = (sourceIdsByField) => {
+      if (!sourceIdsByField || typeof sourceIdsByField !== 'object') return;
+      Object.values(sourceIdsByField).forEach((values) => {
+        (values || []).forEach((id) => {
+          if (id) ids.add(id);
+        });
+      });
+    };
+    register(briefData?.supportByField || briefData?.sourceIdsByField);
+    if (hasRequestedFull) {
+      register(fullData?.supportByField || fullData?.sourceIdsByField);
+    }
+    return Array.from(ids);
+  }, [briefData?.supportByField, briefData?.sourceIdsByField, fullData?.supportByField, fullData?.sourceIdsByField, hasRequestedFull]);
+  const visibleSources = useMemo(
+    () => aiSources.filter((source) => visibleSourceIds.includes(source.id)),
+    [aiSources, visibleSourceIds]
+  );
+  const sourceProviders = useMemo(() => {
+    return Array.from(
+      new Set(
+        visibleSources.map(
+          (source) => SOURCE_PROVIDER_LABELS[source.provider] || source.provider || SOURCE_PROVIDER_LABELS.unknown
+        )
+      )
+    );
+  }, [visibleSources]);
+  const visibleSourceKindSummary = useMemo(() => {
+    const descriptive = visibleSources.filter((source) => source.kind === 'description').length;
+    const taxonomic = visibleSources.filter((source) => ['taxonomy', 'synonymy'].includes(source.kind)).length;
+    const other = visibleSources.filter((source) => !['description', 'taxonomy', 'synonymy'].includes(source.kind)).length;
+    const parts = [];
+    if (descriptive > 0) {
+      parts.push(t('summary.sources_descriptive_count', { count: descriptive }, `${descriptive} sources descriptives`));
+    }
+    if (taxonomic > 0) {
+      parts.push(t('summary.sources_taxonomic_count', { count: taxonomic }, `${taxonomic} sources taxonomiques`));
+    }
+    if (other > 0) {
+      parts.push(t('summary.sources_other_count', { count: other }, `${other} autres sources`));
+    }
+    return parts.join(' · ');
+  }, [t, visibleSources]);
+  const hasDetailedExplanation = Boolean(explanation || discriminant || hasPedagogy);
 
   useEffect(() => {
     setUserDetailOverride(null);
   }, [baseUserId]);
+
+  useEffect(() => {
+    pairKeyRef.current = pairBaseKey;
+  }, [pairBaseKey]);
 
   useEffect(() => {
     let isActive = true;
@@ -147,90 +497,223 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     };
   }, [isWin, baseUserId, userDisplayTaxon.image_url, userDisplayTaxon.wikipedia_url, lang]);
 
-  useEffect(() => {
-    let isActive = true; // Drapeau pour éviter les race conditions (double réponse)
+  const applyFullPayload = useCallback(
+    (payload) => {
+      if (!payload?.full) {
+        setFullData(null);
+        setExplanation('');
+        setDiscriminant('');
+        setPedagogy(
+          buildFallbackPedagogy({
+            explanation: '',
+            correctName: pedagogyFallbackNames.correctName,
+            wrongName: pedagogyFallbackNames.wrongName,
+            language: lang,
+          })
+        );
+        return;
+      }
+      const full = payload.full;
+      setFullData(full);
+      setExplanation(full.explanation || '');
+      setDiscriminant(full.discriminant || '');
+      setPedagogy(
+        buildFallbackPedagogy({
+          pedagogy: {
+            visualClue: full.visualClue,
+            taxonomicRule: full.taxonomicRule,
+            whyThisConfusionHappens: full.whyThisConfusionHappens || full.counterExample,
+          },
+          explanation: full.explanation || '',
+          correctName: pedagogyFallbackNames.correctName,
+          wrongName: pedagogyFallbackNames.wrongName,
+          language: lang,
+        })
+      );
+    },
+    [
+      lang,
+      pedagogyFallbackNames.correctName,
+      pedagogyFallbackNames.wrongName,
+    ]
+  );
 
-    // On utilise les IDs comme dépendances pour éviter les re-renders inutiles sur changement d'objet
-    if (!isWin && explanationCorrectId && explanationWrongId) {
-      const fetchExplanationAsync = async () => {
-        setIsLoading(true);
-        setExplanation(''); // Clear previous explanation
-        try {
-          console.debug('[RoundSummaryModal] Fetching explanation for:', {
-            correctId: explanationCorrectId,
-            wrongId: explanationWrongId,
+  useEffect(() => {
+    let isActive = true;
+    if (isWin || !explanationCorrectId || !explanationWrongId) return () => {};
+    const requestPairKey = `${pairBaseKey}:brief`;
+    const requestId = ++briefRequestRef.current;
+
+    const run = async () => {
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        if (!isActive) return;
+        timedOut = true;
+        setBriefData(buildFallbackBrief({ language: lang, correctName: pedagogyFallbackNames.correctName }));
+        setBriefConfidence('fallback');
+        setBriefTraceId(null);
+        setBriefPairKey(requestPairKey);
+        setAiSources([]);
+        setBriefLoading(false);
+        void trackMetric('explanation_brief_fallback', {
+          round_id: question?.round_id || null,
+          correct_taxon_id: String(explanationCorrectId),
+          wrong_taxon_id: String(explanationWrongId),
+          code: 'client_timeout',
+        });
+      }, 2200);
+      setBriefLoading(true);
+      setBriefData(null);
+      setFullData(null);
+      setBriefConfidence('grounded');
+      setFullConfidence('grounded');
+      setFullUsedFallback(false);
+      setAiSources([]);
+      setBriefTraceId(null);
+      setFullTraceId(null);
+      setBriefPairKey(requestPairKey);
+      setFullPairKey(null);
+      setExplanation('');
+      setDiscriminant('');
+      setPedagogy({
+        visualClue: '',
+        taxonomicRule: '',
+        whyThisConfusionHappens: '',
+      });
+      void trackMetric('explanation_brief_requested', {
+        round_id: question?.round_id || null,
+        correct_taxon_id: String(explanationCorrectId),
+        wrong_taxon_id: String(explanationWrongId),
+        pack_id: activePackId || null,
+        game_mode: gameMode || null,
+        mastery_bucket: masteryBucket,
+        confusion_bucket: confusionBucket,
+      });
+      try {
+        const data = await fetchExplanation({
+          correctId: explanationCorrectId,
+          wrongId: explanationWrongId,
+          locale: lang,
+          mode: 'brief',
+          focusRank: explanationFocusRank,
+          packId: activePackId || null,
+          gameMode: gameMode || null,
+          masteryBucket,
+          confusionBucket,
+        });
+        if (!isActive) return;
+        clearTimeout(timeoutId);
+        if (timedOut) return;
+        if (pairKeyRef.current !== pairBaseKey || briefRequestRef.current !== requestId) {
+          void trackMetric('explanation_render_ignored_stale', {
+            trace_id: data?.trace_id || data?.traceId || null,
+            pair_key: requestPairKey,
+            mode: 'brief',
           });
-          const data = await fetchExplanation(
-            explanationCorrectId,
-            explanationWrongId,
-            lang,
-            explanationFocusRank
-          );
-          if (isActive) {
-            setExplanation(data.explanation || '');
-            setDiscriminant(data.discriminant || '');
-            setAiSources(Array.isArray(data.sources) ? data.sources : []);
-            setPedagogy(buildFallbackPedagogy({
-              pedagogy: data.pedagogy,
-              explanation: data.explanation || '',
-              correctName: pedagogyFallbackNames.correctName,
-              wrongName: pedagogyFallbackNames.wrongName,
-              language: lang,
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to fetch explanation:', {
-            error: error.message,
-            status: error.status,
-            code: error.code,
-            correctId: explanationCorrectId,
-            wrongId: explanationWrongId,
-          });
-          if (isActive) {
-            setExplanation('');
-            setDiscriminant('');
-            setAiSources([]);
-            setPedagogy(buildFallbackPedagogy({
-              explanation: '',
-              correctName: pedagogyFallbackNames.correctName,
-              wrongName: pedagogyFallbackNames.wrongName,
-              language: lang,
-            }));
-          }
-        } finally {
-          if (isActive) setIsLoading(false);
+          return;
         }
-      };
-      fetchExplanationAsync();
-    } else if (!isWin) {
-      // Logique existante...
-    }
-    
+        const normalized = normalizeExplanationPayload({
+          data,
+          language: lang,
+          correctName: pedagogyFallbackNames.correctName,
+          wrongName: pedagogyFallbackNames.wrongName,
+        });
+        setBriefData(normalized.brief || buildFallbackBrief({ language: lang, correctName: pedagogyFallbackNames.correctName }));
+        setAiSources(normalized.sources);
+        setBriefConfidence(normalized.brief?.support?.level || normalized.confidence);
+        setBriefTraceId(normalized.traceId);
+        setBriefPairKey(normalized.pairKey || requestPairKey);
+        void trackMetric('explanation_brief_loaded', {
+          round_id: question?.round_id || null,
+          correct_taxon_id: String(explanationCorrectId),
+          wrong_taxon_id: String(explanationWrongId),
+          fallback: normalized.fallback,
+          confidence: normalized.brief?.support?.level || normalized.confidence,
+          source_count: normalized.sources.length,
+          trace_id: normalized.traceId,
+          pair_key: normalized.pairKey || requestPairKey,
+        });
+        if (normalized.fallback) {
+          void trackMetric('explanation_brief_fallback', {
+            round_id: question?.round_id || null,
+            correct_taxon_id: String(explanationCorrectId),
+            wrong_taxon_id: String(explanationWrongId),
+            trace_id: normalized.traceId,
+            pair_key: normalized.pairKey || requestPairKey,
+          });
+        }
+        void trackMetric('explanation_confidence', {
+          round_id: question?.round_id || null,
+          correct_taxon_id: String(explanationCorrectId),
+          wrong_taxon_id: String(explanationWrongId),
+          confidence: normalized.brief?.support?.level || normalized.confidence,
+          mode: 'brief',
+          trace_id: normalized.traceId,
+          pair_key: normalized.pairKey || requestPairKey,
+        });
+      } catch (error) {
+        if (!isActive) return;
+        clearTimeout(timeoutId);
+        if (timedOut) return;
+        setBriefData(buildFallbackBrief({ language: lang, correctName: pedagogyFallbackNames.correctName }));
+        setBriefConfidence('fallback');
+        setBriefPairKey(requestPairKey);
+        setAiSources([]);
+        void trackMetric('explanation_brief_fallback', {
+          round_id: question?.round_id || null,
+          correct_taxon_id: String(explanationCorrectId),
+          wrong_taxon_id: String(explanationWrongId),
+          code: error?.code || null,
+          pair_key: requestPairKey,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+        if (isActive && !timedOut) setBriefLoading(false);
+      }
+    };
+
+    run();
     return () => {
-      isActive = false; // Cleanup: ignore les résultats si le composant est démonté/rechargé
+      isActive = false;
     };
   }, [
+    activePackId,
+    confusionBucket,
     explanationCorrectId,
     explanationFocusRank,
     explanationWrongId,
+    gameMode,
     isWin,
     lang,
+    masteryBucket,
+    pairBaseKey,
     pedagogyFallbackNames.correctName,
     pedagogyFallbackNames.wrongName,
+    question?.round_id,
   ]);
 
   useEffect(() => {
     trackedExplanationOpenRef.current = null;
+    trackedSourcesExpandRef.current = false;
+    trackedRenderedRef.current = null;
+    trackedBadgeRef.current = null;
+    setHasRequestedFull(false);
+    setSourcesExpanded(false);
     setExplanationFeedback(null);
-  }, [explanationCorrectId, explanationWrongId, isWin]);
+    setFullLoading(false);
+    setFullUsedFallback(false);
+    setFullTraceId(null);
+    setFullPairKey(null);
+  }, [explanationCorrectId, explanationWrongId, isWin, pairBaseKey]);
 
   useEffect(() => {
     if (
       isWin ||
-      isLoading ||
+      fullLoading ||
       !hasPedagogy ||
       !explanationCorrectId ||
-      !explanationWrongId
+      !explanationWrongId ||
+      !hasRequestedFull
     ) {
       return;
     }
@@ -246,17 +729,164 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     });
   }, [
     hasPedagogy,
+    hasRequestedFull,
     explanationCorrectId,
     explanationFocusRank,
     explanationWrongId,
-    isLoading,
+    fullLoading,
     isWin,
     question?.round_id,
   ]);
 
+  const loadFullExplanation = useCallback(async () => {
+    if (
+      !FULL_EXPLANATION_ENABLED ||
+      isWin ||
+      fullLoading ||
+      hasRequestedFull ||
+      !explanationCorrectId ||
+      !explanationWrongId
+    ) {
+      return;
+    }
+    const requestPairKey = `${pairBaseKey}:full`;
+    const requestId = ++fullRequestRef.current;
+    setHasRequestedFull(true);
+    setFullLoading(true);
+    void trackMetric('explanation_full_requested', {
+      round_id: question?.round_id || null,
+      correct_taxon_id: String(explanationCorrectId),
+      wrong_taxon_id: String(explanationWrongId),
+      pack_id: activePackId || null,
+      game_mode: gameMode || null,
+      mastery_bucket: masteryBucket,
+      confusion_bucket: confusionBucket,
+    });
+    try {
+      const data = await fetchExplanation({
+        correctId: explanationCorrectId,
+        wrongId: explanationWrongId,
+        locale: lang,
+        mode: 'full',
+        focusRank: explanationFocusRank,
+        packId: activePackId || null,
+        gameMode: gameMode || null,
+        masteryBucket,
+        confusionBucket,
+      });
+      if (pairKeyRef.current !== pairBaseKey || fullRequestRef.current !== requestId) {
+        void trackMetric('explanation_render_ignored_stale', {
+          trace_id: data?.trace_id || data?.traceId || null,
+          pair_key: requestPairKey,
+          mode: 'full',
+        });
+        return;
+      }
+      const normalized = normalizeExplanationPayload({
+        data,
+        language: lang,
+        correctName: pedagogyFallbackNames.correctName,
+        wrongName: pedagogyFallbackNames.wrongName,
+      });
+      setAiSources((prev) => (prev.length > 0 ? prev : normalized.sources));
+      setFullConfidence(normalized.full?.support?.level || normalized.confidence);
+      setFullTraceId(normalized.traceId);
+      setFullPairKey(normalized.pairKey || requestPairKey);
+      setFullUsedFallback(Boolean(normalized.fallback));
+      applyFullPayload(normalized);
+      void trackMetric('explanation_full_loaded', {
+        round_id: question?.round_id || null,
+        correct_taxon_id: String(explanationCorrectId),
+        wrong_taxon_id: String(explanationWrongId),
+        fallback: normalized.fallback,
+        confidence: normalized.full?.support?.level || normalized.confidence,
+        source_count: normalized.sources.length,
+        trace_id: normalized.traceId,
+        pair_key: normalized.pairKey || requestPairKey,
+      });
+      void trackMetric('explanation_confidence', {
+        round_id: question?.round_id || null,
+        correct_taxon_id: String(explanationCorrectId),
+        wrong_taxon_id: String(explanationWrongId),
+        confidence: normalized.full?.support?.level || normalized.confidence,
+        mode: 'full',
+        trace_id: normalized.traceId,
+        pair_key: normalized.pairKey || requestPairKey,
+      });
+    } catch (error) {
+      if (pairKeyRef.current !== pairBaseKey || fullRequestRef.current !== requestId) {
+        void trackMetric('explanation_render_ignored_stale', {
+          pair_key: requestPairKey,
+          mode: 'full',
+        });
+        return;
+      }
+      setFullConfidence('fallback');
+      setFullUsedFallback(true);
+      setFullPairKey(requestPairKey);
+      applyFullPayload({
+        full: {
+          explanation: '',
+          visualClue: '',
+          taxonomicRule: '',
+          whyThisConfusionHappens: '',
+          discriminant: '',
+        },
+      });
+      void trackMetric('explanation_full_loaded', {
+        round_id: question?.round_id || null,
+        correct_taxon_id: String(explanationCorrectId),
+        wrong_taxon_id: String(explanationWrongId),
+        fallback: true,
+        confidence: 'fallback',
+        code: error?.code || null,
+        pair_key: requestPairKey,
+      });
+    } finally {
+      if (pairKeyRef.current === pairBaseKey && fullRequestRef.current === requestId) {
+        setFullLoading(false);
+      }
+    }
+  }, [
+    activePackId,
+    applyFullPayload,
+    confusionBucket,
+    explanationCorrectId,
+    explanationFocusRank,
+    explanationWrongId,
+    fullLoading,
+    gameMode,
+    hasRequestedFull,
+    isWin,
+    lang,
+    masteryBucket,
+    pairBaseKey,
+    pedagogyFallbackNames.correctName,
+    pedagogyFallbackNames.wrongName,
+    question?.round_id,
+  ]);
+
+  const toggleSourcesExpanded = useCallback(() => {
+    setSourcesExpanded((prev) => {
+      const next = !prev;
+      if (next && !trackedSourcesExpandRef.current) {
+        trackedSourcesExpandRef.current = true;
+        void trackMetric('explanation_source_expand', {
+          round_id: question?.round_id || null,
+          correct_taxon_id: explanationCorrectId ? String(explanationCorrectId) : null,
+          wrong_taxon_id: explanationWrongId ? String(explanationWrongId) : null,
+          source_count: visibleSources.length,
+          trace_id: fullTraceId || briefTraceId || null,
+          pair_key: fullPairKey || briefPairKey || `${pairBaseKey}:brief`,
+        });
+      }
+      return next;
+    });
+  }, [briefPairKey, briefTraceId, explanationCorrectId, explanationWrongId, fullPairKey, fullTraceId, pairBaseKey, question?.round_id, visibleSources.length]);
+
   const handleExplanationFeedback = useCallback(
     (isUseful) => {
-      if (!hasPedagogy || isLoading || explanationFeedback !== null) return;
+      if (!hasRequestedFull || !hasPedagogy || fullLoading || explanationFeedback !== null) return;
       setExplanationFeedback(isUseful);
       void trackMetric('explanation_feedback', {
         useful: Boolean(isUseful),
@@ -264,18 +894,95 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         correct_taxon_id: explanationCorrectId ? String(explanationCorrectId) : null,
         wrong_taxon_id: explanationWrongId ? String(explanationWrongId) : null,
         focus_rank: explanationFocusRank || null,
+        trace_id: fullTraceId || briefTraceId || null,
+        pair_key: fullPairKey || briefPairKey || `${pairBaseKey}:brief`,
       });
     },
     [
+      briefPairKey,
+      briefTraceId,
+      hasRequestedFull,
       hasPedagogy,
       explanationCorrectId,
       explanationFeedback,
       explanationFocusRank,
       explanationWrongId,
-      isLoading,
+      fullPairKey,
+      fullTraceId,
+      fullLoading,
+      pairBaseKey,
       question?.round_id,
     ]
   );
+
+  useEffect(() => {
+    if (isWin || briefLoading || !briefData) return;
+    const renderedKey = `${pairBaseKey}:brief:${briefConfidence}:${briefTraceId || 'no-trace'}`;
+    if (trackedRenderedRef.current === renderedKey) return;
+    trackedRenderedRef.current = renderedKey;
+    void trackMetric('explanation_rendered', {
+      trace_id: briefTraceId,
+      pair_key: briefPairKey || `${pairBaseKey}:brief`,
+      mode: 'brief',
+      displayed_confidence: briefConfidence,
+      displayed_fallback: briefConfidence === 'fallback',
+      has_full_visible: false,
+    });
+  }, [briefConfidence, briefData, briefLoading, briefPairKey, briefTraceId, isWin, pairBaseKey]);
+
+  useEffect(() => {
+    if (isWin || !hasRequestedFull || fullLoading || !fullData) return;
+    const renderedKey = `${pairBaseKey}:full:${fullConfidence}:${fullTraceId || 'no-trace'}:${fullUsedFallback}`;
+    if (trackedRenderedRef.current === renderedKey) return;
+    trackedRenderedRef.current = renderedKey;
+    void trackMetric('explanation_rendered', {
+      trace_id: fullTraceId || briefTraceId,
+      pair_key: fullPairKey || `${pairBaseKey}:full`,
+      mode: 'full',
+      displayed_confidence: fullUsedFallback ? briefConfidence : fullConfidence,
+      displayed_fallback: fullUsedFallback,
+      has_full_visible: true,
+    });
+  }, [
+    briefConfidence,
+    briefTraceId,
+    fullConfidence,
+    fullData,
+    fullLoading,
+    fullPairKey,
+    fullTraceId,
+    fullUsedFallback,
+    hasRequestedFull,
+    isWin,
+    pairBaseKey,
+  ]);
+
+  useEffect(() => {
+    if (isWin || briefLoading || !briefData) return;
+    const badgeKey = `${pairBaseKey}:${visibleConfidence}:${hasRequestedFull && !fullUsedFallback ? 'full' : 'brief'}`;
+    if (trackedBadgeRef.current === badgeKey) return;
+    trackedBadgeRef.current = badgeKey;
+    void trackMetric('explanation_badge_displayed', {
+      trace_id: fullTraceId || briefTraceId,
+      pair_key: (hasRequestedFull && !fullUsedFallback ? fullPairKey : briefPairKey) || `${pairBaseKey}:brief`,
+      displayed_confidence: visibleConfidence,
+      displayed_fallback: visibleConfidence === 'fallback',
+      has_full_visible: Boolean(hasRequestedFull && fullData),
+    });
+  }, [
+    briefData,
+    briefLoading,
+    briefPairKey,
+    briefTraceId,
+    fullData,
+    fullPairKey,
+    fullTraceId,
+    fullUsedFallback,
+    hasRequestedFull,
+    isWin,
+    pairBaseKey,
+    visibleConfidence,
+  ]);
 
   // Enter key → advance to next question (Escape is handled by BottomSheet)
   useEffect(() => {
@@ -295,6 +1002,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const correctImageUrl = getObservationImageUrl(question?.bonne_reponse) || correctDisplayTaxon.image_url;
   const sheetSnapPoints = isWin ? [0.56, 0.68, 0.82] : [0.45, 0.85, 1];
+  const sourceToggleLabel = sourcesExpanded
+    ? t('summary.sources_toggle_hide', {}, 'Masquer les sources')
+    : t('summary.sources_toggle_show', {}, 'Voir les sources');
+  const renderSourceKind = (kind) =>
+    t(`summary.source_kind_${kind}`, {}, kind || t('summary.source_kind_description', {}, 'Description'));
 
   return (
     <BottomSheet
@@ -436,70 +1148,214 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           {/* Explanation Section (only if wrong) */}
           {!isWin && (
             <div className="summary-card explanation-section">
-              <div
-                className="explanation-content"
-              >
-                {isLoading ? (
-                  <div className="explanation-section__loader">
-                    <div className="spinner"></div>
+              <div className="explanation-section__header">
+                <div>
+                  <p className="explanation-section__eyebrow">
+                    {t('summary.explanation_title', {}, 'Repere IA')}
+                  </p>
+                  <h3 className="explanation-section__headline">
+                    {t('summary.explanation_title', {}, 'Repere IA')}
+                  </h3>
+                </div>
+                <span className={`summary-confidence-badge summary-confidence-badge--${visibleConfidence}`}>
+                  {confidenceLabel}
+                </span>
+              </div>
+
+              <div className="explanation-content">
+                {briefLoading && !briefData ? (
+                  <div className="explanation-brief-loading" aria-live="polite">
+                    <div className="explanation-skeleton-line explanation-skeleton-line--wide"></div>
+                    <div className="explanation-skeleton-line"></div>
+                    <div className="explanation-skeleton-grid">
+                      <div className="explanation-skeleton-card"></div>
+                      <div className="explanation-skeleton-card"></div>
+                      <div className="explanation-skeleton-card"></div>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    {explanation && <p className="explanation-section__text">{explanation}</p>}
-                    {hasPedagogy && (
-                      <div className="pedagogy-blocks">
-                        <article className="pedagogy-block">
-                          <h4 className="pedagogy-block__title">
-                            {t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel clé')}
-                          </h4>
-                          <p className="pedagogy-block__text">{pedagogy.visualClue}</p>
-                        </article>
-                        <article className="pedagogy-block">
-                          <h4 className="pedagogy-block__title">
-                            {t('summary.pedagogy.taxonomic_rule_title', {}, 'Règle taxonomique')}
-                          </h4>
-                          <p className="pedagogy-block__text">{pedagogy.taxonomicRule}</p>
-                        </article>
-                        <article className="pedagogy-block">
-                          <h4 className="pedagogy-block__title">
-                            {t('summary.pedagogy.counter_example_title', {}, 'Contre-exemple')}
-                          </h4>
-                          <p className="pedagogy-block__text">{pedagogy.counterExample}</p>
-                        </article>
-                      </div>
+                    {briefData && (
+                      <section className="explanation-brief" aria-live="polite">
+                        <p className="explanation-section__text">{briefData.displayText}</p>
+                        <div className="explanation-brief-grid">
+                          <article className="explanation-brief-card">
+                            <h4 className="explanation-brief-card__title">
+                              {t('summary.brief_key_difference_title', {}, 'Ce qui distingue')}
+                            </h4>
+                            <p className="explanation-brief-card__text">{briefData.keyDifference}</p>
+                          </article>
+                          <article className="explanation-brief-card">
+                            <h4 className="explanation-brief-card__title">
+                              {t('summary.brief_why_tempting_title', {}, 'Pourquoi la confusion')}
+                            </h4>
+                            <p className="explanation-brief-card__text">{briefData.whyTempting}</p>
+                          </article>
+                          <article className="explanation-brief-card">
+                            <h4 className="explanation-brief-card__title">
+                              {t('summary.brief_next_look_for_title', {}, 'A regarder')}
+                            </h4>
+                            <p className="explanation-brief-card__text">{briefData.nextLookFor}</p>
+                          </article>
+                        </div>
+                      </section>
                     )}
-                    {discriminant && (
-                      <p className="explanation-discriminant">
-                        <span className="discriminant-icon" aria-hidden="true">🔍</span>
-                        {discriminant}
-                      </p>
-                    )}
-                    {aiSources.length > 0 && (
-                      <p className="explanation-sources">
-                        {t('summary.explanation_sources')}{' '}
-                        {aiSources.join(', ')}
-                      </p>
-                    )}
-                    {hasPedagogy && (
-                      <div className="explanation-feedback-actions" role="group" aria-label={t('summary.explanation_feedback_label', {}, "L'explication t'a aide ?")}>
+
+                    {FULL_EXPLANATION_ENABLED && !hasRequestedFull && (
+                      <div className="explanation-detail-cta">
                         <button
                           type="button"
-                          className={`explanation-feedback-btn ${explanationFeedback === true ? 'is-active' : ''}`}
-                          onClick={() => handleExplanationFeedback(true)}
-                          disabled={explanationFeedback !== null}
+                          className="btn btn--secondary explanation-detail-btn"
+                          onClick={loadFullExplanation}
+                          disabled={fullLoading}
                         >
-                          {t('summary.explanation_feedback_yes', {}, 'Utile')}
-                        </button>
-                        <button
-                          type="button"
-                          className={`explanation-feedback-btn ${explanationFeedback === false ? 'is-active' : ''}`}
-                          onClick={() => handleExplanationFeedback(false)}
-                          disabled={explanationFeedback !== null}
-                        >
-                          {t('summary.explanation_feedback_no', {}, 'Pas utile')}
+                          {fullLoading
+                            ? t('summary.explanation_detail_loading', {}, 'Analyse en cours…')
+                            : t('summary.explanation_detail_button', {}, 'Comprendre en detail')}
                         </button>
                       </div>
                     )}
+
+                    {hasRequestedFull && (
+                      <section className="explanation-detail-section" aria-live="polite">
+                        <div className="explanation-detail-section__header">
+                          <h4 className="explanation-detail-section__title">
+                            {t('summary.explanation_detail_title', {}, "Comprendre l'erreur")}
+                          </h4>
+                        </div>
+                        {fullLoading && !hasDetailedExplanation ? (
+                          <div className="explanation-detail-loading">
+                            <div className="explanation-skeleton-line explanation-skeleton-line--wide"></div>
+                            <div className="explanation-skeleton-line"></div>
+                            <div className="explanation-skeleton-grid">
+                              <div className="explanation-skeleton-card"></div>
+                              <div className="explanation-skeleton-card"></div>
+                              <div className="explanation-skeleton-card"></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {explanation && <p className="explanation-section__text">{explanation}</p>}
+                            {hasPedagogy && (
+                              <div className="pedagogy-blocks">
+                                <article className="pedagogy-block">
+                                  <h4 className="pedagogy-block__title">
+                                    {t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel cle')}
+                                  </h4>
+                                  <p className="pedagogy-block__text">{pedagogy.visualClue}</p>
+                                </article>
+                                <article className="pedagogy-block">
+                                  <h4 className="pedagogy-block__title">
+                                    {t('summary.pedagogy.taxonomic_rule_title', {}, 'Regle taxonomique')}
+                                  </h4>
+                                  <p className="pedagogy-block__text">{pedagogy.taxonomicRule}</p>
+                                </article>
+                                <article className="pedagogy-block">
+                                  <h4 className="pedagogy-block__title">
+                                    {t('summary.pedagogy.confusion_reason_title', {}, 'Pourquoi la confusion')}
+                                  </h4>
+                                  <p className="pedagogy-block__text">{pedagogy.whyThisConfusionHappens}</p>
+                                </article>
+                              </div>
+                            )}
+                            {discriminant && (
+                              <p className="explanation-discriminant">
+                                <span className="discriminant-icon" aria-hidden="true">🔍</span>
+                                {discriminant}
+                              </p>
+                            )}
+                            {hasPedagogy && (
+                              <div
+                                className="explanation-feedback-actions"
+                                role="group"
+                                aria-label={t('summary.explanation_feedback_label', {}, "Cette explication t'a aide ?")}
+                              >
+                                <button
+                                  type="button"
+                                  className={`explanation-feedback-btn ${explanationFeedback === true ? 'is-active' : ''}`}
+                                  onClick={() => handleExplanationFeedback(true)}
+                                  disabled={explanationFeedback !== null}
+                                >
+                                  {t('summary.explanation_feedback_yes', {}, 'Utile')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`explanation-feedback-btn ${explanationFeedback === false ? 'is-active' : ''}`}
+                                  onClick={() => handleExplanationFeedback(false)}
+                                  disabled={explanationFeedback !== null}
+                                >
+                                  {t('summary.explanation_feedback_no', {}, 'Pas utile')}
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </section>
+                    )}
+
+                    <section className="explanation-sources-panel">
+                      <div className="explanation-sources-panel__summary">
+                        <div className="explanation-sources-panel__copy">
+                          <h4 className="explanation-sources-panel__title">
+                            {t('summary.explanation_sources', {}, 'Sources utilisees')}
+                          </h4>
+                          <p className="explanation-sources-panel__meta">
+                            {visibleSources.length > 0
+                              ? [visibleSourceKindSummary, sourceProviders.join(' · ')].filter(Boolean).join(' · ')
+                              : t('summary.sources_empty', {}, 'Aucune source detaillee disponible pour ce conseil.')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="explanation-sources-toggle"
+                          onClick={toggleSourcesExpanded}
+                          disabled={visibleSources.length === 0}
+                          aria-expanded={sourcesExpanded}
+                        >
+                          {sourceToggleLabel}
+                        </button>
+                      </div>
+
+                      {sourcesExpanded && visibleSources.length > 0 && (
+                        <div className="explanation-sources-list">
+                          {visibleSources.map((source) => (
+                            <article key={source.id} className="explanation-source-card">
+                              <div className="explanation-source-card__header">
+                                <div>
+                                  <h5 className="explanation-source-card__title">{source.label}</h5>
+                                  <p className="explanation-source-card__provider">
+                                    {SOURCE_PROVIDER_LABELS[source.provider] || source.provider || SOURCE_PROVIDER_LABELS.unknown}
+                                  </p>
+                                </div>
+                                <span className="explanation-source-card__kind">
+                                  {renderSourceKind(source.kind)}
+                                </span>
+                              </div>
+                              {source.snippet && (
+                                <p className="explanation-source-card__snippet">{source.snippet}</p>
+                              )}
+                              <div className="explanation-source-card__footer">
+                                {sourceCoverageById.get(source.id)?.length > 0 && (
+                                  <p className="explanation-source-card__coverage">
+                                    {sourceCoverageById.get(source.id).join(' · ')}
+                                  </p>
+                                )}
+                                {source.url && (
+                                  <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="explanation-source-card__link"
+                                  >
+                                    {t('common.view', {}, 'Voir →')}
+                                  </a>
+                                )}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </section>
                   </>
                 )}
               </div>

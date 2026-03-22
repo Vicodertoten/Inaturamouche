@@ -14,6 +14,32 @@ const AI_RUNTIME_AVAILABLE = Boolean(config.aiEnabled && config.aiApiKey);
 const SOCKET_SKIP_REASON = 'Socket binding not permitted in this environment';
 const DEFAULT_AI_TEXT = 'Ces deux especes se distinguent par leur morphologie et leur habitat.';
 
+const buildFullAiJson = ({
+  explanation = "Observe d'abord la silhouette generale, puis compare la structure la plus stable visible sur la photo. Ce repere reste utile meme quand la couleur, l'angle ou l'arriere-plan rendent les deux especes tres proches au premier regard.",
+  visualClue = 'Compare la forme generale, le contraste et un detail structurel visible.',
+  taxonomicRule = 'Pars du genre ou de la famille, puis confirme un caractere stable.',
+  whyThisConfusionHappens = "L'espece confuse peut sembler proche si la photo masque le meilleur repere visuel.",
+  discriminant = 'Silhouette et trait structurel stable',
+} = {}) =>
+  JSON.stringify({
+    explanation,
+    visual_clue: visualClue,
+    taxonomic_rule: taxonomicRule,
+    why_this_confusion_happens: whyThisConfusionHappens,
+    discriminant,
+  });
+
+const buildBriefAiJson = ({
+  keyDifference = 'Compare la silhouette generale et un caractere stable.',
+  whyTempting = 'les deux especes peuvent sembler proches au premier regard',
+  nextLookFor = "un detail structurel net sur l'espece correcte",
+} = {}) =>
+  JSON.stringify({
+    key_difference: keyDifference,
+    why_tempting: whyTempting,
+    next_look_for: nextLookFor,
+  });
+
 async function listenOnEphemeralPort(instance) {
   return new Promise((resolve, reject) => {
     const onError = (err) => {
@@ -54,6 +80,10 @@ function buildExternalFetchMock({
         ancestor_ids: [id],
         observations_count: 100,
         wikipedia_url: `https://fr.wikipedia.org/wiki/Species_${id}`,
+        wikipedia_summary:
+          id % 2 === 0
+            ? `Species ${id} montre une allure trapue, un bec compact et une silhouette plus courte.`
+            : `Species ${id} montre une silhouette droite, un bec crochu et un detail structurel stable.`,
         default_photo: {
           url: 'https://example.com/photo.jpg',
         },
@@ -66,6 +96,20 @@ function buildExternalFetchMock({
         statusText: 'OK',
         json: async () => ({ results }),
         text: async () => JSON.stringify({ results }),
+      };
+    }
+
+    if (rawUrl.includes('/page/summary/')) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          type: 'standard',
+          extract:
+            'Silhouette droite, bec crochu et structure stable sont des repères visuels utiles pour identifier cette espèce.',
+        }),
+        text: async () => '',
       };
     }
 
@@ -156,7 +200,11 @@ integrationTest('POST /api/quiz/explain returns a valid explanation payload', as
   const body = await res.json();
   assert.equal(typeof body.explanation, 'string');
   assert.ok(body.explanation.length > 0);
+  assert.ok(body.brief === null || typeof body.brief === 'object');
+  assert.ok(body.full === null || typeof body.full === 'object');
   assert.equal(typeof body.fallback, 'boolean');
+  assert.equal(typeof body.trace_id, 'string');
+  assert.equal(typeof body.pair_key, 'string');
 });
 
 integrationTest('POST /api/quiz/explain sets fallback=false when AI output passes quality checks', async (t) => {
@@ -165,8 +213,10 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
     return;
   }
   globalThis.fetch = buildExternalFetchMock({
-    aiText:
-      "Compare la forme des ailes, le bec et la posture generale. Ces details visuels permettent de distinguer clairement ces deux especes proches.",
+    aiText: buildFullAiJson({
+      correctId: 901,
+      wrongId: 902,
+    }),
   });
 
   const res = await postExplain({
@@ -180,6 +230,11 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
   assert.equal(body.fallback, false);
   assert.equal(typeof body.explanation, 'string');
   assert.ok(body.explanation.length > 0);
+  assert.equal(body.mode, 'full');
+  assert.ok(['grounded', 'model_guided'].includes(body.confidence));
+  assert.equal(body.full?.discriminant, 'Silhouette et trait structurel stable');
+  assert.ok(body.full?.supportByField);
+  assert.equal(typeof body.trace_id, 'string');
 });
 
 integrationTest('POST /api/quiz/explain sets fallback=true when AI output is low quality', async (t) => {
@@ -188,8 +243,14 @@ integrationTest('POST /api/quiz/explain sets fallback=true when AI output is low
     return;
   }
   globalThis.fetch = buildExternalFetchMock({
-    aiText:
-      "Regarde,, la silhouette et les couleuurs inhabituelles pour separer ces especes proches. Le critere principal est de de comparer l'aile.",
+    aiText: JSON.stringify({
+      explanation:
+        "Regarde,, la silhouette et les couleuurs inhabituelles pour separer ces especes proches. Le critere principal est de de comparer l'aile.",
+      visual_clue: 'Compare les ailes,, et la posture.',
+      taxonomic_rule: 'Pars du genre et compare.',
+      why_this_confusion_happens: "L'autre espece peut sembler proche mais.",
+      discriminant: "L'autre est un o",
+    }),
   });
 
   const res = await postExplain({
@@ -231,6 +292,36 @@ integrationTest('POST /api/quiz/explain sets fallback=true when AI response is e
   assert.equal(body.fallback, true);
   assert.equal(typeof body.explanation, 'string');
   assert.ok(body.explanation.length > 0);
+});
+
+integrationTest('POST /api/quiz/explain returns a structured brief payload', async (t) => {
+  if (!AI_RUNTIME_AVAILABLE) {
+    t.skip('AI runtime not configured in this environment');
+    return;
+  }
+  globalThis.fetch = buildExternalFetchMock({
+    aiText: buildBriefAiJson({
+      correctId: 907,
+      wrongId: 908,
+    }),
+  });
+
+  const res = await postExplain({
+    correctId: 907,
+    wrongId: 908,
+    locale: 'fr',
+    mode: 'brief',
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.mode, 'brief');
+  assert.equal(body.fallback, false);
+  assert.equal(typeof body.brief?.displayText, 'string');
+  assert.ok(body.brief.displayText.length > 0);
+  assert.ok(body.brief?.support);
+  assert.equal(body.full, null);
+  assert.equal(typeof body.trace_id, 'string');
 });
 
 integrationTest('POST /api/quiz/explain rejects invalid payloads with standardized BAD_REQUEST errors', async () => {

@@ -111,6 +111,7 @@ export function buildPedagogyBlocks(
   {
     visualClue,
     taxonomicRule,
+    whyThisConfusionHappens,
     counterExample,
     explanation,
     correctName,
@@ -120,13 +121,21 @@ export function buildPedagogyBlocks(
 ) {
   const visual = normalizeExplanation(visualClue || '', { correctName, wrongName, locale });
   const rule = normalizeExplanation(taxonomicRule || '', { correctName, wrongName, locale });
-  const counter = normalizeExplanation(counterExample || '', { correctName, wrongName, locale });
+  const confusionReason = normalizeExplanation(whyThisConfusionHappens || counterExample || '', {
+    correctName,
+    wrongName,
+    locale,
+  });
   const normalizedExplanation = normalizeExplanation(explanation || '', { correctName, wrongName, locale });
+
+  const finalConfusionReason =
+    confusionReason || buildFallbackPedagogyText({ key: 'counterExample', correctName, wrongName, locale });
 
   return {
     visualClue: visual || normalizedExplanation || buildFallbackPedagogyText({ key: 'visualClue', correctName, wrongName, locale }),
     taxonomicRule: rule || buildFallbackPedagogyText({ key: 'taxonomicRule', correctName, wrongName, locale }),
-    counterExample: counter || buildFallbackPedagogyText({ key: 'counterExample', correctName, wrongName, locale }),
+    whyThisConfusionHappens: finalConfusionReason,
+    counterExample: finalConfusionReason,
   };
 }
 
@@ -217,7 +226,18 @@ export function parseAIResponse(text) {
       discriminant: parsed.discriminant ? String(parsed.discriminant).trim() : null,
       visualClue: parsed.visual_clue ? String(parsed.visual_clue).trim() : null,
       taxonomicRule: parsed.taxonomic_rule ? String(parsed.taxonomic_rule).trim() : null,
-      counterExample: parsed.counter_example ? String(parsed.counter_example).trim() : null,
+      whyThisConfusionHappens:
+        parsed.why_this_confusion_happens
+          ? String(parsed.why_this_confusion_happens).trim()
+          : parsed.counter_example
+            ? String(parsed.counter_example).trim()
+            : null,
+      counterExample:
+        parsed.why_this_confusion_happens
+          ? String(parsed.why_this_confusion_happens).trim()
+          : parsed.counter_example
+            ? String(parsed.counter_example).trim()
+            : null,
     };
   }
 
@@ -285,6 +305,506 @@ export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
   };
 }
 
+const BRIEF_FIELD_LABELS = {
+  keyDifference: 'difference cle',
+  whyTempting: 'confusion plausible',
+  nextLookFor: 'repere a regarder',
+};
+
+const FULL_FIELD_LABELS = {
+  explanation: 'explication',
+  visualClue: 'indice visuel',
+  taxonomicRule: 'regle taxonomique',
+  whyThisConfusionHappens: 'pourquoi la confusion',
+  discriminant: 'critere',
+};
+
+const BRIEF_FIELD_ALLOWED_KINDS = {
+  keyDifference: ['description', 'taxonomy'],
+  whyTempting: ['description', 'taxonomy'],
+  nextLookFor: ['description'],
+};
+
+const FULL_FIELD_ALLOWED_KINDS = {
+  explanation: ['description'],
+  visualClue: ['description'],
+  taxonomicRule: ['description', 'taxonomy', 'synonymy'],
+  whyThisConfusionHappens: ['description', 'taxonomy'],
+  discriminant: ['description', 'taxonomy'],
+};
+
+const MATCH_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'tout', 'avec', 'pour', 'dans',
+  'une', 'des', 'les', 'que', 'qui', 'sur', 'par', 'plus', 'sont', 'est', 'pas', 'aux', 'chez',
+  'ook', 'een', 'met', 'van', 'dat', 'die', 'het', 'een', 'voor', 'naar', 'deze', 'zijn',
+  'look', 'next', 'time', 'regarde', 'fois', 'prochaine', 'error', 'erreur', 'species', 'espece',
+]);
+
+function hasBlockingQualityIssue(issue) {
+  return (
+    issue.includes('trop de lettres répétées') ||
+    issue.includes('mot anormalement long') ||
+    issue.includes('séquences de lettres suspectes') ||
+    issue.includes('comparaison anonyme') ||
+    issue.includes('symboles non textuels')
+  );
+}
+
+function toSnakeCaseKey(value) {
+  return String(value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+}
+
+function normalizeSourceIdsByField(value, keys) {
+  const normalized = {};
+  keys.forEach((key) => {
+    const snakeKey = toSnakeCaseKey(key);
+    const input = Array.isArray(value?.[key])
+      ? value[key]
+      : Array.isArray(value?.[snakeKey])
+        ? value[snakeKey]
+        : [];
+    normalized[key] = Array.from(
+      new Set(
+        input
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .slice(0, 3)
+      )
+    );
+  });
+  return normalized;
+}
+
+function validateWordRange(value, { minWords, maxWords }, label, issues) {
+  const wordCount = countWords(value);
+  if (wordCount < minWords) issues.push(`QUALITY: ${label} trop court (${wordCount} mots)`);
+  if (wordCount > maxWords) issues.push(`QUALITY: ${label} trop long (${wordCount} mots)`);
+}
+
+function normalizeBriefPayload(parsed, { correctName, wrongName, locale }) {
+  const fallbackKeyDifference = parsed?.discriminant || parsed?.visual_clue || parsed?.visualClue || '';
+  const fallbackNextLookFor = parsed?.visual_clue || parsed?.visualClue || parsed?.key_difference || parsed?.keyDifference || '';
+  return {
+    keyDifference: normalizeExplanation(parsed?.key_difference || parsed?.keyDifference || '', {
+      correctName,
+      wrongName,
+      locale,
+    }),
+    whyTempting: normalizeExplanation(parsed?.why_tempting || parsed?.whyTempting || '', {
+      correctName,
+      wrongName,
+      locale,
+    }),
+    nextLookFor: normalizeExplanation(parsed?.next_look_for || parsed?.nextLookFor || fallbackNextLookFor, {
+      correctName,
+      wrongName,
+      locale,
+    }),
+    sourceIdsByField: normalizeSourceIdsByField(parsed?.source_ids_by_field || parsed?.sourceIdsByField, [
+      'keyDifference',
+      'whyTempting',
+      'nextLookFor',
+    ]),
+    fallbackKeyDifference: normalizeExplanation(fallbackKeyDifference, { correctName, wrongName, locale }),
+  };
+}
+
+function normalizeFullPayload(parsed, { correctName, wrongName, locale }) {
+  const normalizedExplanation = normalizeExplanation(parsed?.explanation || '', { correctName, wrongName, locale });
+  const normalizedVisual = normalizeExplanation(parsed?.visual_clue || parsed?.visualClue || normalizedExplanation, {
+    correctName,
+    wrongName,
+    locale,
+  });
+  const normalizedTaxonomic = normalizeExplanation(
+    parsed?.taxonomic_rule || parsed?.taxonomicRule || parsed?.discriminant || normalizedVisual,
+    {
+      correctName,
+      wrongName,
+      locale,
+    }
+  );
+  const normalizedCounter = normalizeExplanation(
+    parsed?.why_this_confusion_happens ||
+      parsed?.whyThisConfusionHappens ||
+      parsed?.counter_example ||
+      parsed?.counterExample ||
+      normalizedExplanation,
+    {
+      correctName,
+      wrongName,
+      locale,
+    }
+  );
+  return {
+    explanation: normalizedExplanation,
+    visualClue: normalizedVisual,
+    taxonomicRule: normalizedTaxonomic,
+    whyThisConfusionHappens: normalizedCounter,
+    counterExample: normalizedCounter,
+    discriminant: normalizeExplanation(parsed?.discriminant || parsed?.key_difference || normalizedVisual, {
+      correctName,
+      wrongName,
+      locale,
+    }),
+    sourceIdsByField: normalizeSourceIdsByField(parsed?.source_ids_by_field || parsed?.sourceIdsByField, [
+      'explanation',
+      'visualClue',
+      'taxonomicRule',
+      'whyThisConfusionHappens',
+      'discriminant',
+    ]),
+  };
+}
+
+export function parseExplanationModeResponse(text, mode, { correctName, wrongName, locale = 'fr' } = {}) {
+  if (!text) return null;
+  try {
+    const cleanJson = String(text).replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(cleanJson);
+    return mode === 'brief'
+      ? normalizeBriefPayload(parsed, { correctName, wrongName, locale })
+      : normalizeFullPayload(parsed, { correctName, wrongName, locale });
+  } catch {
+    return null;
+  }
+}
+
+export function composeBriefDisplayText({
+  keyDifference,
+  whyTempting,
+  nextLookFor,
+  locale = 'fr',
+}) {
+  const cleanSegment = (value) => String(value || '').trim().replace(/[.;:!?]+$/u, '');
+  const lowerFirst = (value) => {
+    const clean = cleanSegment(value);
+    if (!clean) return '';
+    return clean.charAt(0).toLowerCase() + clean.slice(1);
+  };
+  const startsWithVerb = (value) =>
+    /^(observe|observer|regarde|regarder|compare|comparer|note|noter|check|look|kijk|let op)\b/iu.test(
+      cleanSegment(value)
+    );
+  const safeKeyDifference = cleanSegment(keyDifference);
+  const safeWhyTempting = lowerFirst(whyTempting);
+  const safeNextLookFor = cleanSegment(nextLookFor);
+  if (locale === 'en') {
+    const nextSentence = startsWithVerb(safeNextLookFor)
+      ? `Next time, ${lowerFirst(safeNextLookFor)}.`
+      : `Next time, look for ${lowerFirst(safeNextLookFor)}.`;
+    return `${safeKeyDifference}. Your choice makes sense: ${safeWhyTempting}. ${nextSentence}`;
+  }
+  if (locale === 'nl') {
+    const nextSentence = startsWithVerb(safeNextLookFor)
+      ? `Kijk de volgende keer ${lowerFirst(safeNextLookFor)}.`
+      : `Kijk de volgende keer naar ${lowerFirst(safeNextLookFor)}.`;
+    return `${safeKeyDifference}. Je vergissing is logisch: ${safeWhyTempting}. ${nextSentence}`;
+  }
+  const nextSentence = startsWithVerb(safeNextLookFor)
+    ? `La prochaine fois, ${lowerFirst(safeNextLookFor)}.`
+    : `La prochaine fois, regarde ${lowerFirst(safeNextLookFor)}.`;
+  return `${safeKeyDifference}. Ton erreur est logique : ${safeWhyTempting}. ${nextSentence}`;
+}
+
+export function validateBriefExplanation(responseObj, { correctName, wrongName, locale = 'fr', sourceMap }) {
+  const issues = [];
+  const warnings = [];
+  if (!responseObj || typeof responseObj !== 'object') {
+    return { valid: false, issues: ['Réponse brief non-objet'], warnings, brief: null };
+  }
+
+  const keyDifference = responseObj.keyDifference || responseObj.fallbackKeyDifference || responseObj.nextLookFor || '';
+  const whyTempting = responseObj.whyTempting || '';
+  const nextLookFor = responseObj.nextLookFor || keyDifference || '';
+
+  validateWordRange(keyDifference, OUTPUT_CONSTRAINTS.brief.keyDifference, 'difference cle', warnings);
+  validateWordRange(whyTempting, OUTPUT_CONSTRAINTS.brief.whyTempting, 'confusion plausible', warnings);
+  validateWordRange(nextLookFor, OUTPUT_CONSTRAINTS.brief.nextLookFor, 'repere a regarder', warnings);
+  const fieldIssues = [
+    ...collectQualityIssues(keyDifference, { label: 'difference cle' }),
+    ...collectQualityIssues(whyTempting, { label: 'confusion plausible' }),
+    ...collectQualityIssues(nextLookFor, { label: 'repere a regarder' }),
+  ];
+  fieldIssues.forEach((issue) => {
+    if (hasBlockingQualityIssue(issue)) {
+      issues.push(issue);
+    } else {
+      warnings.push(issue);
+    }
+  });
+
+  const displayText = normalizeExplanation(
+    composeBriefDisplayText({
+      keyDifference,
+      whyTempting,
+      nextLookFor,
+      locale,
+    }),
+    { correctName, wrongName, locale }
+  );
+  validateWordRange(displayText, OUTPUT_CONSTRAINTS.brief.displayText, 'micro-explication', warnings);
+  const displayIssues = collectQualityIssues(displayText, { label: 'micro-explication' });
+  displayIssues.forEach((issue) => {
+    if (hasBlockingQualityIssue(issue)) {
+      issues.push(issue);
+    } else {
+      warnings.push(issue);
+    }
+  });
+
+  if (!keyDifference || !whyTempting || !nextLookFor) {
+    issues.push('QUALITY: brief incomplet');
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues,
+    warnings,
+    brief: {
+      keyDifference,
+      whyTempting,
+      nextLookFor,
+      displayText,
+      sourceIdsByField: responseObj.sourceIdsByField || {},
+    },
+  };
+}
+
+export function validateFullExplanation(
+  responseObj,
+  { correctName, wrongName, correctScientificName, wrongScientificName, locale = 'fr', sourceMap }
+) {
+  const issues = [];
+  const warnings = [];
+  if (!responseObj || typeof responseObj !== 'object') {
+    return { valid: false, issues: ['Réponse full non-objet'], warnings, full: null };
+  }
+
+  Object.entries(FULL_FIELD_LABELS).forEach(([field, label]) => {
+    validateWordRange(responseObj[field], OUTPUT_CONSTRAINTS.full[field], label, warnings);
+    const fieldIssues = collectQualityIssues(responseObj[field], { label });
+    fieldIssues.forEach((issue) => {
+      if (hasBlockingQualityIssue(issue)) {
+        issues.push(issue);
+      } else {
+        warnings.push(issue);
+      }
+    });
+  });
+
+  if (
+    !responseObj.explanation ||
+    !responseObj.visualClue ||
+    !responseObj.taxonomicRule ||
+    !responseObj.whyThisConfusionHappens ||
+    !responseObj.discriminant
+  ) {
+    issues.push('QUALITY: full incomplet');
+  }
+
+  const pairScopeIssues = collectPairScopeIssues(responseObj, {
+    correctName,
+    wrongName,
+    correctScientificName,
+    wrongScientificName,
+    locale,
+  });
+  issues.push(...pairScopeIssues);
+
+  return {
+    valid: issues.length === 0,
+    issues,
+    warnings,
+    full: {
+      ...responseObj,
+      sourceIdsByField: responseObj.sourceIdsByField || {},
+    },
+  };
+}
+
+function collectPairScopeIssues(
+  responseObj,
+  { correctName, wrongName, correctScientificName, wrongScientificName, locale = 'fr' } = {}
+) {
+  const issues = [];
+  const text = [
+    responseObj?.explanation,
+    responseObj?.visualClue,
+    responseObj?.taxonomicRule,
+    responseObj?.whyThisConfusionHappens,
+    responseObj?.discriminant,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const normalizedText = normalizeMatchText(text);
+  const leftNames = [correctName, correctScientificName].filter(Boolean).map((name) => normalizeMatchText(name));
+  const rightNames = [wrongName, wrongScientificName].filter(Boolean).map((name) => normalizeMatchText(name));
+  const hasLeftMention = leftNames.some((name) => name && normalizedText.includes(name));
+  const hasRightMention = rightNames.some((name) => name && normalizedText.includes(name));
+  if (leftNames.length > 0 && rightNames.length > 0 && (!hasLeftMention || !hasRightMention)) {
+    issues.push('QUALITY: full ne cite pas clairement les deux espèces');
+  }
+
+  const genericDriftPatterns = [
+    /\bpoissons?\b.*\bmammiferes?\s+marins?\b/iu,
+    /\bmammiferes?\s+marins?\b.*\bpoissons?\b/iu,
+    /\bdauphins?\b|\bbaleines?\b|\bbranchies\b|\bpoumons\b/iu,
+  ];
+  if (genericDriftPatterns.some((pattern) => pattern.test(text)) && (!hasLeftMention || !hasRightMention)) {
+    issues.push('QUALITY: full derive hors paire');
+  }
+
+  const genericBoilerplatePatterns =
+    locale === 'fr'
+      ? [
+          /\bla difference principale entre\b/iu,
+          /\bcompare la taille, la forme des oreilles, du museau et le pelage\b/iu,
+          /\ble bord de la feuille\b.*\bla tige\b.*\bla fleur\b/iu,
+        ]
+      : [];
+  if (genericBoilerplatePatterns.some((pattern) => pattern.test(text)) && (!hasLeftMention || !hasRightMention)) {
+    issues.push('QUALITY: full trop générique pour cette paire');
+  }
+
+  return issues;
+}
+
+function normalizeMatchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeForMatch(text) {
+  return Array.from(
+    new Set(
+      normalizeMatchText(text)
+        .split(/\s+/)
+        .filter((token) => token.length >= 3 && !MATCH_STOPWORDS.has(token))
+    )
+  );
+}
+
+function scoreFactAgainstText(textTokens, fact, { allowedKinds = [], preferredTaxonIds = [] } = {}) {
+  if (!fact?.text || (allowedKinds.length > 0 && !allowedKinds.includes(fact.kind))) {
+    return 0;
+  }
+  const factTokens = tokenizeForMatch(fact.text);
+  if (factTokens.length === 0 || textTokens.length === 0) return 0;
+  const overlap = factTokens.filter((token) => textTokens.includes(token)).length;
+  if (overlap === 0) return 0;
+  let score = overlap * 3;
+  if (fact.kind === 'description') score += 1;
+  if (preferredTaxonIds.includes(fact.taxonId)) score += 1;
+  return score;
+}
+
+function attributeTextToSources(text, facts = [], { allowedKinds = [], preferredTaxonIds = [], limit = 3 } = {}) {
+  const textTokens = tokenizeForMatch(text);
+  if (textTokens.length === 0) return [];
+  const scored = facts
+    .map((fact) => ({
+      sourceId: fact.sourceId,
+      score: scoreFactAgainstText(textTokens, fact, { allowedKinds, preferredTaxonIds }),
+      kind: fact.kind,
+    }))
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const seen = new Set();
+  return scored
+    .filter((row) => {
+      if (!row.sourceId || seen.has(row.sourceId)) return false;
+      seen.add(row.sourceId);
+      return true;
+    })
+    .slice(0, limit)
+    .map((row) => row.sourceId);
+}
+
+function confidenceFromSupport({ attributedSourceIds = [], sourceMap, attributedFieldCount = 0, totalFields = 0 }) {
+  if (attributedSourceIds.length === 0) return 'limited';
+  const descriptionCount = attributedSourceIds.filter((id) => sourceMap.get(id)?.kind === 'description').length;
+  if (descriptionCount === 0) return 'limited';
+  if (attributedFieldCount >= Math.max(2, totalFields - 1)) return 'grounded';
+  return 'model_guided';
+}
+
+export function buildBriefSupport(brief, bundle, sourceMap) {
+  const facts = Array.isArray(bundle?.facts) ? bundle.facts : [];
+  const supportByField = {
+    keyDifference: attributeTextToSources(brief?.keyDifference, facts, {
+      allowedKinds: BRIEF_FIELD_ALLOWED_KINDS.keyDifference,
+      preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
+    }),
+    whyTempting: attributeTextToSources(brief?.whyTempting, facts, {
+      allowedKinds: BRIEF_FIELD_ALLOWED_KINDS.whyTempting,
+      preferredTaxonIds: [bundle?.wrong?.taxonId, bundle?.correct?.taxonId].filter(Boolean),
+    }),
+    nextLookFor: attributeTextToSources(brief?.nextLookFor, facts, {
+      allowedKinds: BRIEF_FIELD_ALLOWED_KINDS.nextLookFor,
+      preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
+    }),
+  };
+  const sourceIds = Array.from(new Set(Object.values(supportByField).flat().filter(Boolean)));
+  const attributedFieldCount = Object.values(supportByField).filter((ids) => ids.length > 0).length;
+  return {
+    level: confidenceFromSupport({
+      attributedSourceIds: sourceIds,
+      sourceMap,
+      attributedFieldCount,
+      totalFields: 3,
+    }),
+    sourceIds,
+    sourceIdsByField: supportByField,
+  };
+}
+
+export function buildFullSupport(full, bundle, sourceMap) {
+  const facts = Array.isArray(bundle?.facts) ? bundle.facts : [];
+  const supportByField = {
+    explanation: attributeTextToSources(full?.explanation, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.explanation,
+      preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
+    }),
+    visualClue: attributeTextToSources(full?.visualClue, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.visualClue,
+      preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
+    }),
+    taxonomicRule: attributeTextToSources(full?.taxonomicRule, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.taxonomicRule,
+      preferredTaxonIds: [bundle?.correct?.taxonId, bundle?.wrong?.taxonId].filter(Boolean),
+    }),
+    whyThisConfusionHappens: attributeTextToSources(full?.whyThisConfusionHappens, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.whyThisConfusionHappens,
+      preferredTaxonIds: [bundle?.wrong?.taxonId, bundle?.correct?.taxonId].filter(Boolean),
+    }),
+    discriminant: attributeTextToSources(full?.discriminant, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.discriminant,
+      preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
+    }),
+  };
+  const attributedSourceIds = Array.from(new Set(Object.values(supportByField).flat().filter(Boolean)));
+  const attributedFieldCount = Object.values(supportByField).filter((ids) => ids.length > 0).length;
+  return {
+    level: confidenceFromSupport({
+      attributedSourceIds,
+      sourceMap,
+      attributedFieldCount,
+      totalFields: 5,
+    }),
+    sourceIds: attributedSourceIds,
+    supportByField,
+  };
+}
+
 // ── Fallback intelligent ────────────────────────────────────────
 
 /**
@@ -295,39 +815,138 @@ export function validateAndClean(responseObj, {correctName, wrongName} = {}) {
 export function buildMorphologyFallback(correctTaxon, wrongTaxon, severity, dataCorrect, dataWrong) {
   const tone = PERSONA.toneByContext[severity] || PERSONA.toneByContext.MEDIUM;
 
-  // Identifier le groupe taxonomique
-  const group = correctTaxon?.iconic_taxon_name
-    || dataCorrect?.taxonomy?.iconic_taxon_name
-    || null;
-
-  // Chercher des tips pour ce groupe
-  const tips = FALLBACK_TIPS[group] || FALLBACK_TIPS._default;
-  // Prendre un tip aléatoire (basé sur les IDs pour être déterministe par paire)
+  const group = getFallbackGroup(correctTaxon, wrongTaxon, dataCorrect, dataWrong);
+  const tips = FALLBACK_TIPS[group] || FALLBACK_TIPS[correctTaxon?.iconic_taxon_name] || FALLBACK_TIPS._default;
   const tipIndex = ((correctTaxon?.id || 0) + (wrongTaxon?.id || 0)) % tips.length;
-  const tip = tips[tipIndex];
+  const tip = String(tips[tipIndex] || FALLBACK_TIPS._default[0] || '').replace(/[!?]+$/u, '.');
 
-  // AMÉLIORATION: Injection du nom pour contexte
-  const correctName = getCommonName(correctTaxon) || "cette espèce";
-  const contextIntro = `Pour reconnaître ${correctName}, `;
-
-  const explanation = `${tone.lead}${contextIntro}${tip.toLowerCase()}`;
+  const correctName = getCommonName(correctTaxon) || 'cette espèce';
+  const wrongName = getCommonName(wrongTaxon) || "l'espèce confondue";
+  const isHugeMismatch = severity === 'HUGE';
   const discriminant = getGroupDiscriminant(group);
+  const keyDifference = buildFallbackKeyDifference(correctName, wrongName, group, isHugeMismatch);
+  const whyThisConfusionHappens = buildFallbackConfusionReason(correctName, wrongName, group, isHugeMismatch);
+  const nextLookFor = buildFallbackNextLookFor(correctName, group, tip);
+  const explanation = `${tone.lead}${keyDifference} ${nextLookFor}`.trim();
   const pedagogy = buildPedagogyBlocks({
-    visualClue: `${contextIntro}${tip.toLowerCase()}`,
+    visualClue: nextLookFor,
     taxonomicRule: `Retiens ce repère : ${discriminant}.`,
-    counterExample: `${getCommonName(wrongTaxon) || "l'espèce confondue"} peut sembler proche au premier regard, mais ce critère permet de trancher.`,
+    whyThisConfusionHappens,
     explanation,
     correctName,
-    wrongName: getCommonName(wrongTaxon),
+    wrongName,
   });
 
   return {
     explanation,
     discriminant,
+    keyDifference,
+    whyTempting: whyThisConfusionHappens,
+    nextLookFor,
     pedagogy,
     sources: [...(dataCorrect?.sources || []), ...(dataWrong?.sources || [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 2),
     fallback: true,
   };
+}
+
+function getFallbackGroup(correctTaxon, wrongTaxon, dataCorrect, dataWrong) {
+  const iconic = correctTaxon?.iconic_taxon_name || dataCorrect?.taxonomy?.iconic_taxon_name || null;
+  const taxonomyText = [
+    correctTaxon?.name,
+    wrongTaxon?.name,
+    getAncestorName(correctTaxon, 'family'),
+    getAncestorName(correctTaxon, 'order'),
+    getAncestorName(correctTaxon, 'class'),
+    getAncestorName(wrongTaxon, 'family'),
+    getAncestorName(wrongTaxon, 'order'),
+    getAncestorName(wrongTaxon, 'class'),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  const habitatText = [
+    ...(dataCorrect?.claims?.descriptionBacked || []),
+    ...(dataWrong?.claims?.descriptionBacked || []),
+  ]
+    .map((claim) => claim?.text || '')
+    .join(' ')
+    .toLowerCase();
+
+  if (iconic === 'Aves') {
+    if (/(anatidae|laridae|rallidae|scolopacidae|phalacrocoracidae|podicipedidae|alcedinidae|sternidae)/.test(taxonomyText)) {
+      return 'water_bird';
+    }
+    return 'land_bird';
+  }
+
+  if (iconic === 'Mammalia') {
+    if (/(phocidae|otariidae|delphinidae|balaenidae|ziphiidae)/.test(taxonomyText)) return 'marine_mammal';
+    if (/(mustelidae|myocastoridae|castoridae|lutra|otter|nutria|ragondin|phoque)/.test(taxonomyText) || /(rivi|marais|berge|water|aquat)/.test(habitatText)) {
+      return 'semi_aquatic_mammal';
+    }
+    return 'land_mammal';
+  }
+
+  if (iconic === 'Plantae') {
+    if (/(jungermann|marchanti|lophocol|nowellia|hepatic|liverwort|marchantiophyta)/.test(taxonomyText)) {
+      return 'bryophyte_liverwort';
+    }
+    return 'flowering_plant';
+  }
+
+  if (iconic === 'Actinopterygii') return 'fish_like_aquatic';
+  return iconic;
+}
+
+function buildFallbackKeyDifference(correctName, wrongName, group, isHugeMismatch) {
+  const pairs = {
+    water_bird: `${correctName} et ${wrongName} se distinguent surtout par la silhouette, le bec et le contexte aquatique.`,
+    land_bird: `${correctName} et ${wrongName} se distinguent surtout par le bec, la queue et la silhouette.`,
+    semi_aquatic_mammal: `${correctName} et ${wrongName} se distinguent surtout par la tête, la queue et le mode de déplacement.`,
+    marine_mammal: `${correctName} et ${wrongName} se distinguent surtout par les nageoires, la silhouette et le milieu marin.`,
+    flowering_plant: `${correctName} et ${wrongName} se distinguent surtout par les feuilles, la tige et la structure de la fleur.`,
+    bryophyte_liverwort: `${correctName} et ${wrongName} se distinguent surtout par la forme des feuilles et leur insertion.`,
+    fish_like_aquatic: `${correctName} et ${wrongName} se distinguent surtout par les nageoires, la forme du corps et le milieu.`,
+    land_mammal: `${correctName} et ${wrongName} se distinguent surtout par la tête, les oreilles et le pelage.`,
+  };
+  if (pairs[group]) return pairs[group];
+  if (isHugeMismatch) {
+    return `${correctName} et ${wrongName} se distinguent déjà par leur silhouette générale et leur milieu de vie.`;
+  }
+  return `${correctName} et ${wrongName} se distinguent surtout par un repère visuel stable.`;
+}
+
+function buildFallbackConfusionReason(correctName, wrongName, group, isHugeMismatch) {
+  const pairs = {
+    water_bird: `La confusion est plausible si la photo est lointaine, sombre ou prise en mouvement sur l'eau.`,
+    land_bird: `La confusion est plausible si la photo masque le bec, la queue ou les contrastes du plumage.`,
+    semi_aquatic_mammal: `La confusion est plausible si seule une partie du corps sort de l'eau ou si la photo est prise de loin.`,
+    marine_mammal: `La confusion est plausible si l'animal est partiellement immergé ou vu très brièvement.`,
+    flowering_plant: `La confusion est plausible si la photo montre surtout la tige florale ou un détail isolé.`,
+    bryophyte_liverwort: `La confusion est plausible car ces espèces sont petites, proches du support et difficiles à lire sans détail net.`,
+    fish_like_aquatic: `La confusion est plausible si la forme générale domine et que les détails fins sont peu visibles.`,
+    land_mammal: `La confusion est plausible si l'angle masque la tête ou si le pelage paraît uniforme.`,
+  };
+  if (pairs[group]) return pairs[group];
+  if (isHugeMismatch) {
+    return `${wrongName} peut rappeler ${correctName} au premier regard si l'image est partielle ou peu détaillée.`;
+  }
+  return `La confusion est plausible au premier regard si l'image masque le meilleur repère.`;
+}
+
+function buildFallbackNextLookFor(correctName, group, tip) {
+  const direct = {
+    water_bird: `Observe d'abord le bec, la silhouette et la présence de marques nettes sur la tête ou les ailes.`,
+    land_bird: `Observe d'abord le bec, la queue et le contraste général du plumage.`,
+    semi_aquatic_mammal: `Observe d'abord la forme de la tête, la queue et la façon dont l'animal se tient hors de l'eau.`,
+    marine_mammal: `Observe d'abord les nageoires, la silhouette générale et le contexte marin.`,
+    flowering_plant: `Observe d'abord les feuilles, la tige et la structure de la fleur ou de l'inflorescence.`,
+    bryophyte_liverwort: `Observe d'abord la forme des feuilles, leur asymétrie et leur insertion sur la tige.`,
+    fish_like_aquatic: `Observe d'abord les nageoires, la forme du corps et les contrastes du profil.`,
+    land_mammal: `Observe d'abord les oreilles, le museau, la queue et le pelage.`,
+  };
+  if (direct[group]) return direct[group];
+  return `Observe d'abord un détail structurel stable pour reconnaître ${correctName}. ${tip}`.trim();
 }
 
 function getGroupDiscriminant(group) {
@@ -342,6 +961,14 @@ function getGroupDiscriminant(group) {
     Arachnida: 'Abdomen, pattes, yeux',
     Mollusca: 'Coquille, stries, ouverture',
     Actinopterygii: 'Corps, nageoires, couleur',
+    water_bird: 'Bec, silhouette aquatique, marques de tete',
+    land_bird: 'Bec, queue, silhouette',
+    semi_aquatic_mammal: 'Tete, queue, posture hors de l eau',
+    marine_mammal: 'Nageoires, silhouette, milieu marin',
+    flowering_plant: 'Feuilles, tige, structure florale',
+    bryophyte_liverwort: 'Forme des feuilles, insertion, asymetrie',
+    fish_like_aquatic: 'Nageoires, profil, milieu',
+    land_mammal: 'Oreilles, museau, pelage',
   };
   return map[group] || 'Silhouette, couleurs, milieu de vie';
 }

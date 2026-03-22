@@ -1,7 +1,5 @@
 // server/services/ai/promptBuilder.js
-// Prompts v6 — simples, directs, fiables
-// Philosophie : moins de contraintes = plus de réponses exploitables.
-// On demande du TEXTE BRUT, pas du JSON. Le parsing est côté outputFilter.
+// Prompts v7 — brief auto + explication detaillee, tous deux strictement structures.
 
 import { PERSONA } from './aiConfig.js';
 
@@ -52,38 +50,141 @@ export function calculateSeverity(correctTaxon, wrongTaxon) {
 
 const LOCALE_LABELS = { fr: 'français', en: 'English', nl: 'Nederlands' };
 
-export function buildExplanationSystemPrompt({ severity, locale }) {
+function buildPersonaRules({ severity, locale, includeFieldRules = [] }) {
   const tone = PERSONA.toneByContext[severity] || PERSONA.toneByContext.MEDIUM;
   const lang = LOCALE_LABELS[locale] || 'français';
 
-  return `Tu es Papy Mouche, un naturaliste passionné qui aide les gens à identifier les espèces sur le terrain. Tu tutoies, tu es bienveillant et direct.
+  return `Tu es ${PERSONA.name}, ${PERSONA.role}.
+Tu reponds UNIQUEMENT en ${lang}.
+Tu aides a distinguer deux especes apres une confusion dans un quiz naturaliste.
 
-L'utilisateur a confondu deux espèces dans un quiz. Explique-lui comment les distinguer.
+REGLES ABSOLUES :
+1. Cite toujours explicitement les deux especes. N'utilise jamais "le premier", "l'autre", "the first", "de andere".
+2. Reste concret, fiable, et utile sur photo ou sur le terrain.
+3. N'invente aucun fait absent des preuves fournies.
+4. Si un critere n'est pas appuye par les preuves, n'en parle pas.
+5. N'ajoute pas de sources libres dans le texte.
+6. Pas d'humour parasite, pas de jargon non explique, pas de longues digressions.
+7. Concentre-toi sur les faits les plus utiles pour distinguer les deux especes.
 
-CONSIGNES STRICTES :
-1. Réponds UNIQUEMENT en ${lang}.
-2. FORMAT : Remplis le JSON. Utilise 'internal_critique' pour faire ta "repasse" et corriger tes fautes.
-3. NOMINATION : Utilise les noms exacts ci-dessous. Ne dis JAMAIS "le premier" ou "l'autre".
-4. STYLE : Adopte le ton de Papy Mouche (vivant, un peu imagé). Varie la structure de tes phrases pour ne pas être répétitif.
-5. CONTENU : Donne LE critère visuel concret, mais amène-le avec fluidité.
-6. DIDACTIQUE : Tu DOIS remplir 3 blocs pédagogiques distincts:
-  - visual_clue : 1 indice visuel observable sur photo/terrain.
-  - taxonomic_rule : 1 règle courte de tri taxonomique (famille/genre + caractère).
-  - counter_example : 1 confusion fréquente et pourquoi elle est trompeuse.
+STYLE :
+- ton ${tone.description}
+- phrases courtes
+- un repere fort avant tout
+- reponse utile en lecture rapide
 
-Exemple de réflexion attendue (JSON) :
-{
-  "internal_critique": "J'ai écrit 'le premier', je dois remplacer par 'Le Bolet'. J'ai oublié un 's' à 'tubes'. Correction effectuée.",
-  "intro": "${tone.lead}",
-  "explanation": "Regarde bien le chapeau du Bolet bai : il est tout visqueux et brun ! À l'inverse, l'Amanite phalloïde se trahit par ses lamelles blanches.",
-  "discriminant": "Tubes visqueux vs lamelles blanches",
-  "visual_clue": "Le Bolet bai a des tubes sous le chapeau, pas des lamelles.",
-  "taxonomic_rule": "Chez ces champignons, vérifie d'abord le dessous du chapeau : tubes ou lamelles.",
-  "counter_example": "La couleur brune peut tromper : certaines amanites brunes ont pourtant des lamelles nettes."
-}`;
+CHAMPS A REMPLIR :
+${includeFieldRules.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}`;
 }
 
-export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _locale, severity, dataCorrect, dataWrong }) {
+export function buildBriefSystemPrompt({ severity, locale }) {
+  return buildPersonaRules({
+    severity,
+    locale,
+    includeFieldRules: [
+      'key_difference : 4 a 16 mots, difference visuelle ou structurelle principale.',
+      "why_tempting : 6 a 24 mots, pourquoi l'erreur semble logique au premier regard.",
+      'next_look_for : 5 a 18 mots, detail concret a verifier la prochaine fois.',
+    ],
+  });
+}
+
+export function buildFullSystemPrompt({ severity, locale }) {
+  return `${buildPersonaRules({
+    severity,
+    locale,
+    includeFieldRules: [
+      'explanation : 30 a 90 mots, explication pedagogique concise.',
+      'visual_clue : 8 a 24 mots, indice visuel observable immediatement.',
+      'taxonomic_rule : 8 a 22 mots, regle de tri taxonomique actionnable.',
+      'why_this_confusion_happens : 10 a 28 mots, pourquoi cette confusion precise est plausible.',
+      'discriminant : 2 a 12 mots, formule nominale sans narration.',
+    ],
+  })}
+
+REGLES FULL SUPPLEMENTAIRES :
+- Parle uniquement de la bonne espece et de l'espece choisie.
+- N'introduis jamais de troisieme espece, de genre externe, de comparaison libre ou d'analogie hors paire.
+- Ne donne pas de cours general de biologie si ce n'est pas directement utile a cette confusion.
+- Si les preuves sont faibles, reste court, prudent et concret.
+- Pour une severite HUGE, reste sur des contrastes tres visibles: silhouette, milieu, structure generale.`;
+}
+
+export function buildRepairSystemPrompt({ mode, locale }) {
+  const lang = LOCALE_LABELS[locale] || 'français';
+  const fieldRules =
+    mode === 'brief'
+      ? [
+          'key_difference',
+          'why_tempting',
+          'next_look_for',
+        ]
+      : [
+          'explanation',
+          'visual_clue',
+          'taxonomic_rule',
+          'why_this_confusion_happens',
+          'discriminant',
+        ];
+
+  return `Tu es un reparateur de sortie JSON.
+Tu reponds UNIQUEMENT en ${lang}.
+Ta mission est de transformer un brouillon de reponse IA en JSON valide.
+
+REGLES :
+1. N'invente pas de nouveaux faits.
+2. Conserve le sens utile du brouillon quand il est recuperable.
+3. Supprime tout texte parasite, markdown, ou commentaire.
+4. Si une information manque, remplis avec la formulation la plus sobre possible a partir du brouillon.
+5. Retourne uniquement un objet JSON avec ces champs: ${fieldRules.join(', ')}.`;
+}
+
+function buildPlayerContext({ packId, gameMode, masteryBucket, confusionBucket }) {
+  const parts = [];
+  if (packId) parts.push(`pack=${packId}`);
+  if (gameMode) parts.push(`mode=${gameMode}`);
+  if (masteryBucket) parts.push(`niveau=${masteryBucket}`);
+  if (confusionBucket) parts.push(`confusion=${confusionBucket}`);
+  return parts.length > 0 ? `Contexte joueur: ${parts.join(' | ')}.` : null;
+}
+
+function buildFactLines(facts = [], maxItems = 5) {
+  return facts.slice(0, maxItems).map((fact) => `- ${fact.category}: ${fact.text}`);
+}
+
+function buildEvidenceSummary(evidence) {
+  const lines = [];
+  const label = evidence?.label || evidence?.taxonomy?.scientific || 'Espece inconnue';
+  lines.push(`ESPECE: ${label}`);
+  if (evidence?.taxonomy?.scientific) lines.push(`Nom scientifique: ${evidence.taxonomy.scientific}`);
+  if (evidence?.taxonomy?.family) lines.push(`Famille: ${evidence.taxonomy.family}`);
+  if (evidence?.taxonomy?.genus) lines.push(`Genre: ${evidence.taxonomy.genus}`);
+  if (evidence?.taxonomy?.rank) lines.push(`Rang: ${evidence.taxonomy.rank}`);
+  if (Array.isArray(evidence?.promptFacts?.description) && evidence.promptFacts.description.length > 0) {
+    lines.push('Faits descriptifs utiles:');
+    lines.push(...buildFactLines(evidence.promptFacts.description, 5));
+  }
+  if (Array.isArray(evidence?.promptFacts?.taxonomy) && evidence.promptFacts.taxonomy.length > 0) {
+    lines.push('Repères taxonomiques:');
+    lines.push(...buildFactLines(evidence.promptFacts.taxonomy, 2));
+  }
+  if (Array.isArray(evidence?.promptFacts?.distribution) && evidence.promptFacts.distribution.length > 0) {
+    lines.push('Contexte:');
+    lines.push(...buildFactLines(evidence.promptFacts.distribution, 2));
+  }
+  return lines.join('\n');
+}
+
+function buildSharedExplanationParts({
+  correctTaxon,
+  wrongTaxon,
+  severity,
+  bundle,
+  packId,
+  gameMode,
+  masteryBucket,
+  confusionBucket,
+}) {
   const correct = {
     scientific: correctTaxon?.name || 'inconnue',
     common: getCommonName(correctTaxon) || null,
@@ -99,23 +200,84 @@ export function buildExplanationUserParts({ correctTaxon, wrongTaxon, locale: _l
   const parts = [];
 
   parts.push({
-    text: `Confusion entre : ${correctLabel} (CORRECT) et ${wrongLabel} (INCORRECT). Distance : ${severity}.`,
+    text: `Confusion entre ${correctLabel} (bonne reponse) et ${wrongLabel} (reponse choisie). Severite taxonomique: ${severity}.`,
   });
-
-  // Injection explicite des noms dans les headers de données pour guider l'IA
-  if (dataCorrect?.contextText) {
-    parts.push({ text: `NOM À UTILISER : "${correctLabel}"\nDESCRIPTION :\n${dataCorrect.contextText}` });
-  } else {
-    parts.push({ text: `NOM À UTILISER : "${correctLabel}"\n(pas de description)` });
+  const playerContext = buildPlayerContext({ packId, gameMode, masteryBucket, confusionBucket });
+  if (playerContext) {
+    parts.push({ text: playerContext });
   }
-
-  if (dataWrong?.contextText) {
-    parts.push({ text: `NOM À UTILISER : "${wrongLabel}"\nDESCRIPTION :\n${dataWrong.contextText}` });
-  } else {
-    parts.push({ text: `NOM À UTILISER : "${wrongLabel}"\n(pas de description)` });
+  if (Array.isArray(bundle?.contrastFacts) && bundle.contrastFacts.length > 0) {
+    parts.push({
+      text: `Contrastes serveur:\n${buildFactLines(bundle.contrastFacts, 3).join('\n')}`,
+    });
   }
-
+  if (bundle?.correct) {
+    parts.push({ text: buildEvidenceSummary(bundle.correct) });
+  }
+  if (bundle?.wrong) {
+    parts.push({ text: buildEvidenceSummary(bundle.wrong) });
+  }
   return parts;
+}
+
+export function buildBriefUserParts({
+  correctTaxon,
+  wrongTaxon,
+  severity,
+  bundle,
+  packId,
+  gameMode,
+  masteryBucket,
+  confusionBucket,
+}) {
+  return buildSharedExplanationParts({
+    correctTaxon,
+    wrongTaxon,
+    severity,
+    bundle,
+    packId,
+    gameMode,
+    masteryBucket,
+    confusionBucket,
+  });
+}
+
+export function buildFullUserParts({
+  correctTaxon,
+  wrongTaxon,
+  severity,
+  bundle,
+  packId,
+  gameMode,
+  masteryBucket,
+  confusionBucket,
+  imageContext = null,
+}) {
+  const parts = buildSharedExplanationParts({
+    correctTaxon,
+    wrongTaxon,
+    severity,
+    bundle,
+    packId,
+    gameMode,
+    masteryBucket,
+    confusionBucket,
+  });
+  if (imageContext?.enabled && imageContext?.note) {
+    parts.push({ text: `Contexte image (desactive en v1): ${imageContext.note}` });
+  }
+  return parts;
+}
+
+export function buildRepairUserParts({ rawText, mode }) {
+  return [
+    {
+      text: `Mode cible: ${mode}`,
+    },
+    {
+      text: `Brouillon a reparer:\n${String(rawText || '').slice(0, 3000)}`,
+    },
+  ];
 }
 
 // ── Prompt d'énigme ─────────────────────────────────────────────
