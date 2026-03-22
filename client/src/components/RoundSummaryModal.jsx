@@ -294,13 +294,14 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   const title = isWin ? t('summary.win_title') : t('summary.lose_title');
   const correctImageUrl = getObservationImageUrl(question?.bonne_reponse) || correctDisplayTaxon.image_url;
+  const sheetSnapPoints = isWin ? [0.56, 0.68, 0.82] : [0.45, 0.85, 1];
 
   return (
     <BottomSheet
       open={true}
       onClose={onNext}
-      initialSnap={isWin ? 0 : 1}
-      snapPoints={[0.45, 0.85, 1]}
+      initialSnap={1}
+      snapPoints={sheetSnapPoints}
       className={`summary-sheet ${isWin ? 'summary-sheet--win' : 'summary-sheet--lose'}`}
       ariaLabel={title}
       overlayClose={false}
