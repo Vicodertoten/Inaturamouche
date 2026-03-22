@@ -68,8 +68,8 @@ Locales supportees: `fr`, `en`, `nl`.
   - Reponse: statut de manche et details utiles (correct, liens, etat hard/taxonomic).
 
 - `POST /api/quiz/explain`
-  - Body: `correctId`, `wrongId`, `locale`, `focusRank`
-  - Reponse: explication + discriminant + sources (si dispo).
+  - Body: `correctId`, `wrongId`, `locale`, `mode`, `packId`, `gameMode`, `masteryBucket`, `confusionBucket`, `imageContext`
+  - Reponse: payload `brief` ou `full`, `explanation`, `discriminant`, `sources`, `confidence`, `fallback`, `reasonCodes`.
   - Note: fallback automatique vers locale `en` si besoin.
 
 - `GET /api/quiz/balance-dashboard`

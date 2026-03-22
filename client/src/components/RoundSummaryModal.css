@@ -415,6 +415,24 @@
   color: var(--error-color, #ff6b6b);
 }
 
+.summary-confidence-badge--photo_grounded {
+  background: rgba(52, 199, 89, 0.12);
+  border-color: rgba(52, 199, 89, 0.3);
+  color: var(--success-color, #34c759);
+}
+
+.summary-confidence-badge--photo_limited {
+  background: rgba(63, 140, 255, 0.12);
+  border-color: rgba(63, 140, 255, 0.3);
+  color: #5da2ff;
+}
+
+.summary-confidence-badge--unavailable {
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.28);
+  color: var(--error-color, #ff6b6b);
+}
+
 .explanation-brief,
 .explanation-detail-section,
 .explanation-sources-panel {
@@ -434,6 +452,13 @@
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-color-light, var(--text-color));
+}
+
+.explanation-detail-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .explanation-brief-grid,
@@ -461,6 +486,20 @@
 
 .explanation-brief-card__text {
   margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text-color);
+}
+
+.explanation-brief-card__list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explanation-brief-card__list-item {
   font-size: 0.75rem;
   line-height: 1.35;
   color: var(--text-color);

@@ -48,6 +48,8 @@ vi.mock('../services/metrics', () => ({
 
 const question = {
   round_id: 'round-1',
+  image_url: 'https://static.inaturalist.org/photos/1/medium.jpeg',
+  image_meta: [{ width: 1200, height: 800 }],
   bonne_reponse: {
     id: 1,
     name: 'Phalacrocorax carbo',
@@ -208,18 +210,18 @@ describe('RoundSummaryModal', () => {
         trace_id: 'trace-full',
         pair_key: 'round-1:1:2:full',
         full: {
-          explanation: '',
-          visualClue: '',
-          taxonomicRule: '',
-          whyThisConfusionHappens: '',
-          discriminant: '',
-          support: { level: 'fallback', sourceIds: [] },
+          photoSummary: 'Je n’ai pas pu analyser cette photo de façon fiable.',
+          observedClues: [],
+          whyThisPhotoCouldMislead: 'Cette image ne permet pas une lecture assez sûre.',
+          nextCheck: 'Garde le repère rapide et reviens à un détail structurel net.',
+          caution: 'Analyse photo indisponible pour cette image.',
+          support: { level: 'unavailable', sourceIds: [] },
           supportByField: {
-            explanation: [],
-            visualClue: [],
-            taxonomicRule: [],
-            whyThisConfusionHappens: [],
-            discriminant: [],
+            photoSummary: [],
+            observedClues: [],
+            whyThisPhotoCouldMislead: [],
+            nextCheck: [],
+            caution: [],
           },
         },
         sources: [],
@@ -239,13 +241,13 @@ describe('RoundSummaryModal', () => {
       expect(screen.getByText('Sources cohérentes')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Comprendre en detail/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Analyser cette photo/i }));
 
     await waitFor(() => {
       expect(trackMetricMock).toHaveBeenCalledWith(
         'explanation_full_loaded',
         expect.objectContaining({
-          confidence: 'fallback',
+          confidence: 'unavailable',
         })
       );
     });
@@ -318,7 +320,20 @@ describe('RoundSummaryModal', () => {
       expect(screen.getByText('Compare la silhouette droite et le bec crochu.')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Comprendre en detail/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Analyser cette photo/i }));
+
+    expect(fetchExplanationMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        mode: 'full',
+        imageContext: expect.objectContaining({
+          source: 'round_photo',
+          url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+          downscaled: true,
+          inputBucket: '<=384-target',
+        }),
+      })
+    );
 
     const nextQuestion = {
       ...question,
@@ -358,18 +373,18 @@ describe('RoundSummaryModal', () => {
       trace_id: 'trace-full-stale',
       pair_key: 'round-1:1:2:full',
       full: {
-        explanation: 'Ancienne explication stale.',
-        visualClue: 'Ancien indice',
-        taxonomicRule: 'Ancienne règle',
-        whyThisConfusionHappens: 'Ancienne raison',
-        discriminant: 'Ancien discriminant',
-        support: { level: 'grounded', sourceIds: ['inat-desc-1'] },
+        photoSummary: 'Ancienne analyse photo stale.',
+        observedClues: ['Ancien indice'],
+        whyThisPhotoCouldMislead: 'Ancienne raison',
+        nextCheck: 'Ancien détail',
+        caution: '',
+        support: { level: 'photo_grounded', sourceIds: ['inat-desc-1'] },
         supportByField: {
-          explanation: ['inat-desc-1'],
-          visualClue: ['inat-desc-1'],
-          taxonomicRule: [],
-          whyThisConfusionHappens: ['inat-desc-1'],
-          discriminant: ['inat-desc-1'],
+          photoSummary: ['inat-desc-1'],
+          observedClues: ['inat-desc-1'],
+          whyThisPhotoCouldMislead: ['inat-desc-1'],
+          nextCheck: ['inat-desc-1'],
+          caution: [],
         },
       },
       sources: [],
@@ -384,6 +399,6 @@ describe('RoundSummaryModal', () => {
       );
     });
 
-    expect(screen.queryByText('Ancienne explication stale.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ancienne analyse photo stale.')).not.toBeInTheDocument();
   });
 });

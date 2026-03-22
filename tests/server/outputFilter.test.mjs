@@ -89,12 +89,14 @@ test('validateBriefExplanation accepts a content-first brief payload', () => {
       whyTempting: 'les deux especes peuvent sembler proches au premier regard',
       nextLookFor: 'un detail structurel net chez la bonne espece',
     },
-    { locale: 'fr', sourceMap }
+    { locale: 'fr', sourceMap, correctName: 'Grand Cormoran', wrongName: 'Oie naine' }
   );
 
   assert.equal(out.valid, true);
   assert.equal(typeof out.brief.displayText, 'string');
   assert.ok(out.brief.displayText.length > 0);
+  assert.ok(out.brief.displayText.includes('Grand Cormoran'));
+  assert.ok(out.brief.displayText.includes('Oie naine'));
 });
 
 test('validateFullExplanation rejects anonymous comparisons in content-first mode', () => {
@@ -105,12 +107,12 @@ test('validateFullExplanation rejects anonymous comparisons in content-first mod
 
   const out = validateFullExplanation(
     {
-      explanation:
-        "Le Grand Cormoran se distingue de l'Oie naine par une silhouette plus droite et un bec crochu.",
-      visualClue: 'Compare la forme generale, le contraste et un detail structurel visible.',
-      taxonomicRule: "Compare d'abord le bec et la posture, puis confirme la silhouette.",
-      whyThisConfusionHappens: "L'autre peut sembler proche au premier regard.",
-      discriminant: 'Le premier est plus sombre',
+      photoSummary:
+        "Sur cette photo, le Grand Cormoran se distingue de l'Oie naine par une silhouette plus droite et un bec crochu.",
+      observedClues: ['Le premier est plus sombre'],
+      whyThisPhotoCouldMislead: "Sur cette photo, l'autre peut sembler proche au premier regard.",
+      nextCheck: "Regarde d'abord le bec puis la posture.",
+      caution: '',
     },
     { locale: 'fr', sourceMap }
   );
@@ -122,12 +124,12 @@ test('validateFullExplanation rejects anonymous comparisons in content-first mod
 test('validateFullExplanation rejects pair drift when the response does not cite the two species', () => {
   const out = validateFullExplanation(
     {
-      explanation:
-        'La différence entre un poisson et un mammifère marin réside dans leur respiration et leur reproduction.',
-      visualClue: 'Présence de nageoires et d écailles contre une peau lisse.',
-      taxonomicRule: 'Vérifier la présence de branchies ou de poumons.',
-      whyThisConfusionHappens: 'La forme hydrodynamique peut tromper.',
-      discriminant: 'Respiration aérienne',
+      photoSummary:
+        'Sur cette photo, la différence entre un poisson et un mammifère marin réside dans leur respiration et leur reproduction.',
+      observedClues: ['Présence de nageoires et d écailles'],
+      whyThisPhotoCouldMislead: 'La forme hydrodynamique peut tromper.',
+      nextCheck: 'Vérifier la présence de branchies ou de poumons.',
+      caution: '',
     },
     {
       locale: 'fr',
@@ -186,38 +188,91 @@ test('buildBriefSupport attributes sources after validation', () => {
   assert.ok(support.sourceIds.includes('inat-desc-1'));
 });
 
-test('buildFullSupport can downgrade to limited when only taxonomy support matches', () => {
+test('buildFullSupport only reports photo_grounded with multiple fact-backed fields', () => {
   const bundle = {
     correct: { taxonId: 1 },
     wrong: { taxonId: 2 },
     facts: [
       {
         id: 'f1',
-        sourceId: 'inat-tax-1',
+        sourceId: 'inat-desc-1',
         provider: 'inaturalist',
-        kind: 'taxonomy',
-        category: 'taxonomy',
+        kind: 'description',
+        category: 'description',
         taxonId: 1,
-        text: 'Même famille mais genre différent.',
+        text: 'Silhouette droite, bec crochu et cou long visibles sur la photo.',
+      },
+      {
+        id: 'f2',
+        sourceId: 'wiki-desc-1',
+        provider: 'wikimedia',
+        kind: 'description',
+        category: 'description',
+        taxonId: 2,
+        text: 'Cette photo peut tasser les proportions et rendre l allure plus trapue.',
       },
     ],
   };
   const sourceMap = new Map([
-    ['inat-tax-1', { id: 'inat-tax-1', kind: 'taxonomy' }],
+    ['round-photo', { id: 'round-photo', kind: 'image' }],
+    ['inat-desc-1', { id: 'inat-desc-1', kind: 'description' }],
+    ['wiki-desc-1', { id: 'wiki-desc-1', kind: 'description' }],
   ]);
 
   const support = buildFullSupport(
     {
-      explanation: 'Même famille mais pas le même genre.',
-      visualClue: 'Silhouette générale différente.',
-      taxonomicRule: 'Commence par la famille puis confirme le genre.',
-      whyThisConfusionHappens: 'La couleur seule peut tromper.',
-      discriminant: 'Famille puis genre',
+      photoSummary: 'Sur cette photo, le Grand Cormoran montre une silhouette droite et un bec crochu.',
+      observedClues: ['Silhouette droite', 'Bec crochu'],
+      whyThisPhotoCouldMislead: 'Sur cette photo, la distance peut tasser les proportions.',
+      nextCheck: 'Regarde le bec puis la longueur du cou.',
+      caution: '',
     },
     bundle,
-    sourceMap
+    sourceMap,
+    { photoSourceId: 'round-photo' }
+  );
+
+  assert.equal(support.level, 'photo_grounded');
+  assert.equal(support.minimumSupportMet, true);
+  assert.ok(support.sourceIds.includes('round-photo'));
+  assert.ok(support.sourceIds.includes('inat-desc-1'));
+});
+
+test('buildFullSupport does not count the photo source alone as sufficient support', () => {
+  const bundle = {
+    correct: { taxonId: 1 },
+    wrong: { taxonId: 2 },
+    facts: [
+      {
+        id: 'f1',
+        sourceId: 'inat-desc-1',
+        provider: 'inaturalist',
+        kind: 'description',
+        category: 'description',
+        taxonId: 1,
+        text: 'Silhouette droite, bec crochu et cou long visibles sur la photo.',
+      },
+    ],
+  };
+  const sourceMap = new Map([
+    ['round-photo', { id: 'round-photo', kind: 'image' }],
+    ['inat-desc-1', { id: 'inat-desc-1', kind: 'description' }],
+  ]);
+
+  const support = buildFullSupport(
+    {
+      photoSummary: 'Sur cette photo, le Grand Cormoran montre une silhouette droite et un bec crochu.',
+      observedClues: ['Silhouette droite'],
+      whyThisPhotoCouldMislead: 'Sur cette photo, la distance peut tasser les proportions.',
+      nextCheck: 'Vérifie un détail sans rapport.',
+      caution: '',
+    },
+    bundle,
+    sourceMap,
+    { photoSourceId: 'round-photo' }
   );
 
   assert.equal(support.level, 'limited');
-  assert.deepEqual(support.sourceIds, ['inat-tax-1']);
+  assert.equal(support.minimumSupportMet, false);
+  assert.deepEqual(support.supportByField.observedClues, ['inat-desc-1']);
 });

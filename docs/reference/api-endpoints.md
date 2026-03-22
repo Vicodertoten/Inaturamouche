@@ -190,10 +190,15 @@ Demande une explication IA comparant deux espèces.
 | `correctId` | number (int, positive) | ✅ | ID du taxon correct |
 | `wrongId` | number (int, positive) | ✅ | ID du taxon erroné |
 | `locale` | `fr\|en\|nl` | `fr` | Langue de l'explication |
-| `focusRank` | string (max 32) | — | Rang taxonomique de focus |
+| `mode` | `brief\|full` | `full` | Type d'explication demandé |
+| `packId` | string (max 120) | — | Contexte de pack injecté au prompt et à la clé de cache |
+| `gameMode` | `easy\|hard\|riddle\|taxonomic` | — | Contexte de jeu injecté au prompt et à la clé de cache |
+| `masteryBucket` | `new\|fragile\|familiar` | — | Bucket de maîtrise utilisé pour le prompt/cache |
+| `confusionBucket` | `first\|repeat` | — | Bucket de confusion utilisé pour le prompt/cache |
+| `imageContext` | object | Conditionnel | Requis de fait pour `mode=full`; URL limitée aux hôtes image iNaturalist autorisés |
 
 **Contrainte :** `correctId ≠ wrongId`.  
-**Réponse :** explication + discriminant + sources (si disponibles).  
+**Réponse :** payload `brief` ou `full`, `explanation`, `discriminant`, `sources`, `confidence`, `fallback`, `reasonCodes`.  
 **Fallback :** locale `en` si la traduction échoue.
 
 #### `GET /api/quiz/balance-dashboard`

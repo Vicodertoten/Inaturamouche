@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import './RoundSummaryModal.css';
 import { BottomSheet } from '../shared/ui';
-import { getSizedImageUrl } from '../utils/imageUtils';
+import { getQuestionThumbnail, getSizedImageUrl } from '../utils/imageUtils';
 import { toSafeHttpUrl } from '../utils/mediaUtils';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { useUser } from '../context/UserContext.jsx';
@@ -26,6 +26,7 @@ const getObservationImageUrl = (taxon) => {
 
 const trimText = (value) => (typeof value === 'string' ? value.trim() : '');
 const SOURCE_PROVIDER_LABELS = {
+  round_photo: 'Photo du round',
   inaturalist: 'iNaturalist',
   wikimedia: 'Wikimedia / Wikipedia',
   col: 'Catalogue of Life',
@@ -63,31 +64,6 @@ const normalizeAiSources = (sources = []) => {
       };
     })
     .filter(Boolean);
-};
-
-const buildFallbackPedagogy = ({ pedagogy, explanation, correctName, wrongName, language }) => {
-  const source = pedagogy && typeof pedagogy === 'object' ? pedagogy : {};
-  const correct = correctName || (language === 'en' ? 'the correct species' : 'la bonne espèce');
-  const wrong = wrongName || (language === 'en' ? 'the confused species' : "l'espèce confondue");
-
-  const defaults = language === 'en'
-    ? {
-        visualClue: `Visual clue: focus on shape, pattern, and texture to recognize ${correct}.`,
-        taxonomicRule: 'Taxonomic rule: start from family/genus, then confirm one stable field mark.',
-        counterExample: `${wrong} may share color or habitat, but not the key structural trait.`,
-      }
-    : {
-        visualClue: `Indice visuel clé : observe forme, motif et texture pour reconnaître ${correct}.`,
-        taxonomicRule: 'Règle taxonomique : pars de la famille/du genre, puis confirme un caractère stable.',
-        counterExample: `${wrong} peut partager la couleur ou l’habitat, mais pas le caractère structurel décisif.`,
-      };
-
-  return {
-    visualClue: trimText(source.visualClue) || trimText(explanation) || defaults.visualClue,
-    taxonomicRule: trimText(source.taxonomicRule) || defaults.taxonomicRule,
-    whyThisConfusionHappens:
-      trimText(source.whyThisConfusionHappens) || trimText(source.counterExample) || defaults.counterExample,
-  };
 };
 
 const buildFallbackBrief = ({ language, correctName }) => ({
@@ -131,6 +107,95 @@ const buildFallbackBrief = ({ language, correctName }) => ({
   },
 });
 
+const buildUnavailablePhotoFull = ({ language }) => {
+  if (language === 'en') {
+    return {
+      photoSummary: 'The round photo could not be analysed reliably.',
+      observedClues: [],
+      whyThisPhotoCouldMislead: 'This image does not offer a reliable enough reading for a photo-specific explanation.',
+      nextCheck: 'Keep the quick hint and recheck one clear structural clue on the photo.',
+      caution: 'Photo analysis unavailable for this image.',
+      support: { level: 'unavailable', sourceIds: [] },
+      supportByField: {
+        photoSummary: [],
+        observedClues: [],
+        whyThisPhotoCouldMislead: [],
+        nextCheck: [],
+        caution: [],
+      },
+      sourceIdsByField: {
+        photoSummary: [],
+        observedClues: [],
+        whyThisPhotoCouldMislead: [],
+        nextCheck: [],
+        caution: [],
+      },
+      imageAnalysis: {
+        source: 'round_photo',
+        downscaled: true,
+        inputBucket: '<=384-target',
+      },
+    };
+  }
+  if (language === 'nl') {
+    return {
+      photoSummary: 'De foto van deze ronde kon niet betrouwbaar worden geanalyseerd.',
+      observedClues: [],
+      whyThisPhotoCouldMislead: 'Deze afbeelding is niet duidelijk genoeg voor een echt foto-specifieke uitleg.',
+      nextCheck: 'Gebruik de korte hint en controleer op de foto één duidelijk structureel kenmerk.',
+      caution: 'Fotoanalyse niet beschikbaar voor deze afbeelding.',
+      support: { level: 'unavailable', sourceIds: [] },
+      supportByField: {
+        photoSummary: [],
+        observedClues: [],
+        whyThisPhotoCouldMislead: [],
+        nextCheck: [],
+        caution: [],
+      },
+      sourceIdsByField: {
+        photoSummary: [],
+        observedClues: [],
+        whyThisPhotoCouldMislead: [],
+        nextCheck: [],
+        caution: [],
+      },
+      imageAnalysis: {
+        source: 'round_photo',
+        downscaled: true,
+        inputBucket: '<=384-target',
+      },
+    };
+  }
+  return {
+    photoSummary: "Je n'ai pas pu analyser cette photo de manche de façon fiable.",
+    observedClues: [],
+    whyThisPhotoCouldMislead:
+      "Cette image n'offre pas une lecture assez sûre pour une explication vraiment centrée sur la photo.",
+    nextCheck: 'Garde le repère rapide et vérifie un détail structurel net sur la photo.',
+    caution: 'Analyse photo indisponible pour cette image.',
+    support: { level: 'unavailable', sourceIds: [] },
+    supportByField: {
+      photoSummary: [],
+      observedClues: [],
+      whyThisPhotoCouldMislead: [],
+      nextCheck: [],
+      caution: [],
+    },
+    sourceIdsByField: {
+      photoSummary: [],
+      observedClues: [],
+      whyThisPhotoCouldMislead: [],
+      nextCheck: [],
+      caution: [],
+    },
+    imageAnalysis: {
+      source: 'round_photo',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
+  };
+};
+
 const normalizeExplanationPayload = ({ data, language, correctName, wrongName }) => {
   const normalizedSources = normalizeAiSources(data?.sources);
   const confidence = data?.confidence || (data?.fallback ? 'fallback' : 'grounded');
@@ -140,25 +205,19 @@ const normalizeExplanationPayload = ({ data, language, correctName, wrongName })
     data?.full ||
     (legacyExplanation
       ? {
-          explanation: legacyExplanation,
-          visualClue: trimText(legacyPedagogy?.visualClue),
-          taxonomicRule: trimText(legacyPedagogy?.taxonomicRule),
-          whyThisConfusionHappens:
+          photoSummary: legacyExplanation,
+          observedClues: [
+            trimText(data?.discriminant) || trimText(legacyPedagogy?.visualClue),
+          ].filter(Boolean),
+          whyThisPhotoCouldMislead:
             trimText(legacyPedagogy?.whyThisConfusionHappens) || trimText(legacyPedagogy?.counterExample),
-          counterExample:
-            trimText(legacyPedagogy?.whyThisConfusionHappens) || trimText(legacyPedagogy?.counterExample),
-          discriminant: trimText(data?.discriminant),
+          nextCheck: trimText(legacyPedagogy?.visualClue) || trimText(legacyPedagogy?.taxonomicRule),
+          caution: '',
           support: {
             level: confidence,
             sourceIds: [],
           },
-          sourceIdsByField: {
-            explanation: [],
-            visualClue: [],
-            taxonomicRule: [],
-            whyThisConfusionHappens: [],
-            discriminant: [],
-          },
+          sourceIdsByField: {},
         }
       : null);
   const brief =
@@ -216,11 +275,16 @@ const normalizeExplanationPayload = ({ data, language, correctName, wrongName })
     : null;
   const normalizedFull = full
     ? {
-        ...full,
-        whyThisConfusionHappens:
-          full.whyThisConfusionHappens || full.counterExample || '',
-        counterExample:
-          full.whyThisConfusionHappens || full.counterExample || '',
+        photoSummary: trimText(full.photoSummary || full.explanation),
+        observedClues: Array.isArray(full.observedClues)
+          ? full.observedClues.map((value) => trimText(value)).filter(Boolean).slice(0, 3)
+          : [trimText(full.visualClue), trimText(full.discriminant)].filter(Boolean).slice(0, 3),
+        whyThisPhotoCouldMislead: trimText(
+          full.whyThisPhotoCouldMislead || full.whyThisConfusionHappens || full.counterExample
+        ),
+        nextCheck: trimText(full.nextCheck || full.taxonomicRule),
+        caution: trimText(full.caution),
+        imageAnalysis: full.imageAnalysis || null,
         support: full.support || {
           level: confidence,
           sourceIds: Array.from(
@@ -232,28 +296,72 @@ const normalizeExplanationPayload = ({ data, language, correctName, wrongName })
           ),
         },
         supportByField: {
-          explanation: full.supportByField?.explanation || full.sourceIdsByField?.explanation || [],
-          visualClue: full.supportByField?.visualClue || full.sourceIdsByField?.visualClue || [],
-          taxonomicRule: full.supportByField?.taxonomicRule || full.sourceIdsByField?.taxonomicRule || [],
-          whyThisConfusionHappens:
+          photoSummary:
+            full.supportByField?.photoSummary ||
+            full.sourceIdsByField?.photoSummary ||
+            full.supportByField?.explanation ||
+            full.sourceIdsByField?.explanation ||
+            [],
+          observedClues:
+            full.supportByField?.observedClues ||
+            full.sourceIdsByField?.observedClues ||
+            full.supportByField?.visualClue ||
+            full.sourceIdsByField?.visualClue ||
+            full.supportByField?.discriminant ||
+            full.sourceIdsByField?.discriminant ||
+            [],
+          whyThisPhotoCouldMislead:
+            full.supportByField?.whyThisPhotoCouldMislead ||
+            full.sourceIdsByField?.whyThisPhotoCouldMislead ||
             full.supportByField?.whyThisConfusionHappens ||
-            full.supportByField?.counterExample ||
             full.sourceIdsByField?.whyThisConfusionHappens ||
+            full.supportByField?.counterExample ||
             full.sourceIdsByField?.counterExample ||
             [],
-          discriminant: full.supportByField?.discriminant || full.sourceIdsByField?.discriminant || [],
+          nextCheck:
+            full.supportByField?.nextCheck ||
+            full.sourceIdsByField?.nextCheck ||
+            full.supportByField?.taxonomicRule ||
+            full.sourceIdsByField?.taxonomicRule ||
+            [],
+          caution:
+            full.supportByField?.caution ||
+            full.sourceIdsByField?.caution ||
+            [],
         },
         sourceIdsByField: {
-          explanation: full.supportByField?.explanation || full.sourceIdsByField?.explanation || [],
-          visualClue: full.supportByField?.visualClue || full.sourceIdsByField?.visualClue || [],
-          taxonomicRule: full.supportByField?.taxonomicRule || full.sourceIdsByField?.taxonomicRule || [],
-          whyThisConfusionHappens:
+          photoSummary:
+            full.supportByField?.photoSummary ||
+            full.sourceIdsByField?.photoSummary ||
+            full.supportByField?.explanation ||
+            full.sourceIdsByField?.explanation ||
+            [],
+          observedClues:
+            full.supportByField?.observedClues ||
+            full.sourceIdsByField?.observedClues ||
+            full.supportByField?.visualClue ||
+            full.sourceIdsByField?.visualClue ||
+            full.supportByField?.discriminant ||
+            full.sourceIdsByField?.discriminant ||
+            [],
+          whyThisPhotoCouldMislead:
+            full.supportByField?.whyThisPhotoCouldMislead ||
+            full.sourceIdsByField?.whyThisPhotoCouldMislead ||
             full.supportByField?.whyThisConfusionHappens ||
-            full.supportByField?.counterExample ||
             full.sourceIdsByField?.whyThisConfusionHappens ||
+            full.supportByField?.counterExample ||
             full.sourceIdsByField?.counterExample ||
             [],
-          discriminant: full.supportByField?.discriminant || full.sourceIdsByField?.discriminant || [],
+          nextCheck:
+            full.supportByField?.nextCheck ||
+            full.sourceIdsByField?.nextCheck ||
+            full.supportByField?.taxonomicRule ||
+            full.sourceIdsByField?.taxonomicRule ||
+            [],
+          caution:
+            full.supportByField?.caution ||
+            full.sourceIdsByField?.caution ||
+            [],
         },
       }
     : null;
@@ -275,18 +383,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
   const { profile } = useUser();
   const { activePackId, gameMode } = useGameData();
   const lang = language; // Alias pour compatibilité
-  const [explanation, setExplanation] = useState('');
-  const [pedagogy, setPedagogy] = useState({
-    visualClue: '',
-    taxonomicRule: '',
-    whyThisConfusionHappens: '',
-  });
   const [briefData, setBriefData] = useState(null);
   const [fullData, setFullData] = useState(null);
-  const [discriminant, setDiscriminant] = useState('');
   const [aiSources, setAiSources] = useState([]);
   const [briefConfidence, setBriefConfidence] = useState('grounded');
-  const [fullConfidence, setFullConfidence] = useState('grounded');
+  const [fullConfidence, setFullConfidence] = useState('unavailable');
   const [briefTraceId, setBriefTraceId] = useState(null);
   const [fullTraceId, setFullTraceId] = useState(null);
   const [briefPairKey, setBriefPairKey] = useState(null);
@@ -358,6 +459,15 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     () => `${question?.round_id || 'no-round'}:${explanationCorrectId || 'na'}:${explanationWrongId || 'na'}`,
     [question?.round_id, explanationCorrectId, explanationWrongId]
   );
+  const roundPhotoUrl = useMemo(() => getQuestionThumbnail(question), [question]);
+  const roundPhotoMeta = useMemo(
+    () => (Array.isArray(question?.image_meta) && question.image_meta.length > 0 ? question.image_meta[0] : null),
+    [question?.image_meta]
+  );
+  const roundPhotoAnalysisUrl = useMemo(
+    () => (roundPhotoUrl ? getSizedImageUrl(roundPhotoUrl, 'small') : null),
+    [roundPhotoUrl]
+  );
   const userWikiUrl = useMemo(() => {
     if (userDisplayTaxon.wikipedia_url) return userDisplayTaxon.wikipedia_url;
     if (!userDisplayTaxon.scientificName) return null;
@@ -367,9 +477,17 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     correctName: correctDisplayTaxon.primaryName || correctDisplayTaxon.secondaryName || null,
     wrongName: userDisplayTaxon.primaryName || userDisplayTaxon.secondaryName || null,
   }), [correctDisplayTaxon.primaryName, correctDisplayTaxon.secondaryName, userDisplayTaxon.primaryName, userDisplayTaxon.secondaryName]);
-  const hasPedagogy = useMemo(() => (
-    Boolean(pedagogy.visualClue || pedagogy.taxonomicRule || pedagogy.whyThisConfusionHappens)
-  ), [pedagogy.taxonomicRule, pedagogy.visualClue, pedagogy.whyThisConfusionHappens]);
+  const hasFullAnalysisContent = useMemo(
+    () =>
+      Boolean(
+        fullData?.photoSummary ||
+          (Array.isArray(fullData?.observedClues) && fullData.observedClues.length > 0) ||
+          fullData?.whyThisPhotoCouldMislead ||
+          fullData?.nextCheck ||
+          fullData?.caution
+      ),
+    [fullData]
+  );
   const sourceCoverageById = useMemo(() => {
     const coverage = new Map();
     const register = (sourceIdsByField, labels) => {
@@ -392,11 +510,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       nextLookFor: t('summary.brief_next_look_for_title', {}, 'A regarder'),
     });
     register(fullData?.supportByField || fullData?.sourceIdsByField, {
-      explanation: t('summary.explanation_detail_title', {}, "Comprendre l'erreur"),
-      visualClue: t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel cle'),
-      taxonomicRule: t('summary.pedagogy.taxonomic_rule_title', {}, 'Regle taxonomique'),
-      whyThisConfusionHappens: t('summary.pedagogy.confusion_reason_title', {}, 'Pourquoi la confusion'),
-      discriminant: t('summary.brief_key_difference_title', {}, 'Ce qui distingue'),
+      photoSummary: t('summary.photo_analysis_summary_title', {}, "Ce que l'on voit ici"),
+      observedClues: t('summary.photo_analysis_clues_title', {}, 'Repères visibles'),
+      whyThisPhotoCouldMislead: t('summary.photo_analysis_mislead_title', {}, 'Ce qui a pu tromper'),
+      nextCheck: t('summary.photo_analysis_next_check_title', {}, 'Le détail à vérifier'),
+      caution: t('summary.photo_analysis_caution_title', {}, 'Lecture prudente'),
     });
     return coverage;
   }, [briefData?.supportByField, briefData?.sourceIdsByField, fullData?.supportByField, fullData?.sourceIdsByField, t]);
@@ -412,16 +530,21 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       ? 'repeat'
       : 'first';
   }, [explanationCorrectId, explanationWrongId, profile?.stats?.missedSpecies]);
-  const visibleConfidence = useMemo(() => {
-    if (hasRequestedFull && !fullLoading && fullData && !fullUsedFallback) return fullConfidence;
-    return briefConfidence;
-  }, [briefConfidence, fullConfidence, fullData, fullLoading, fullUsedFallback, hasRequestedFull]);
   const confidenceLabel = useMemo(() => {
-    if (visibleConfidence === 'fallback') return t('summary.confidence_fallback', {}, 'Conseil générique');
-    if (visibleConfidence === 'model_guided') return t('summary.confidence_model_guided', {}, 'Sources cohérentes');
-    if (visibleConfidence === 'limited') return t('summary.confidence_limited', {}, 'Sources limitées');
+    if (briefConfidence === 'fallback') return t('summary.confidence_fallback', {}, 'Conseil générique');
+    if (briefConfidence === 'model_guided') return t('summary.confidence_model_guided', {}, 'Sources cohérentes');
+    if (briefConfidence === 'limited') return t('summary.confidence_limited', {}, 'Sources limitées');
     return t('summary.confidence_grounded', {}, 'Sources reliées');
-  }, [visibleConfidence, t]);
+  }, [briefConfidence, t]);
+  const fullConfidenceLabel = useMemo(() => {
+    if (fullConfidence === 'photo_grounded' || fullConfidence === 'grounded') {
+      return t('summary.photo_confidence_grounded', {}, 'Analyse photo fiable');
+    }
+    if (fullConfidence === 'photo_limited' || fullConfidence === 'model_guided' || fullConfidence === 'limited') {
+      return t('summary.photo_confidence_limited', {}, 'Analyse photo prudente');
+    }
+    return t('summary.photo_confidence_unavailable', {}, 'Analyse photo indisponible');
+  }, [fullConfidence, t]);
   const visibleSourceIds = useMemo(() => {
     const ids = new Set();
     const register = (sourceIdsByField) => {
@@ -452,10 +575,14 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     );
   }, [visibleSources]);
   const visibleSourceKindSummary = useMemo(() => {
+    const image = visibleSources.filter((source) => source.kind === 'image').length;
     const descriptive = visibleSources.filter((source) => source.kind === 'description').length;
     const taxonomic = visibleSources.filter((source) => ['taxonomy', 'synonymy'].includes(source.kind)).length;
-    const other = visibleSources.filter((source) => !['description', 'taxonomy', 'synonymy'].includes(source.kind)).length;
+    const other = visibleSources.filter((source) => !['image', 'description', 'taxonomy', 'synonymy'].includes(source.kind)).length;
     const parts = [];
+    if (image > 0) {
+      parts.push(t('summary.sources_image_count', { count: image }, `${image} photo du round`));
+    }
     if (descriptive > 0) {
       parts.push(t('summary.sources_descriptive_count', { count: descriptive }, `${descriptive} sources descriptives`));
     }
@@ -467,7 +594,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     }
     return parts.join(' · ');
   }, [t, visibleSources]);
-  const hasDetailedExplanation = Boolean(explanation || discriminant || hasPedagogy);
 
   useEffect(() => {
     setUserDetailOverride(null);
@@ -497,47 +623,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     };
   }, [isWin, baseUserId, userDisplayTaxon.image_url, userDisplayTaxon.wikipedia_url, lang]);
 
-  const applyFullPayload = useCallback(
-    (payload) => {
-      if (!payload?.full) {
-        setFullData(null);
-        setExplanation('');
-        setDiscriminant('');
-        setPedagogy(
-          buildFallbackPedagogy({
-            explanation: '',
-            correctName: pedagogyFallbackNames.correctName,
-            wrongName: pedagogyFallbackNames.wrongName,
-            language: lang,
-          })
-        );
-        return;
-      }
-      const full = payload.full;
-      setFullData(full);
-      setExplanation(full.explanation || '');
-      setDiscriminant(full.discriminant || '');
-      setPedagogy(
-        buildFallbackPedagogy({
-          pedagogy: {
-            visualClue: full.visualClue,
-            taxonomicRule: full.taxonomicRule,
-            whyThisConfusionHappens: full.whyThisConfusionHappens || full.counterExample,
-          },
-          explanation: full.explanation || '',
-          correctName: pedagogyFallbackNames.correctName,
-          wrongName: pedagogyFallbackNames.wrongName,
-          language: lang,
-        })
-      );
-    },
-    [
-      lang,
-      pedagogyFallbackNames.correctName,
-      pedagogyFallbackNames.wrongName,
-    ]
-  );
-
   useEffect(() => {
     let isActive = true;
     if (isWin || !explanationCorrectId || !explanationWrongId) return () => {};
@@ -566,20 +651,13 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       setBriefData(null);
       setFullData(null);
       setBriefConfidence('grounded');
-      setFullConfidence('grounded');
+      setFullConfidence('unavailable');
       setFullUsedFallback(false);
       setAiSources([]);
       setBriefTraceId(null);
       setFullTraceId(null);
       setBriefPairKey(requestPairKey);
       setFullPairKey(null);
-      setExplanation('');
-      setDiscriminant('');
-      setPedagogy({
-        visualClue: '',
-        taxonomicRule: '',
-        whyThisConfusionHappens: '',
-      });
       void trackMetric('explanation_brief_requested', {
         round_id: question?.round_id || null,
         correct_taxon_id: String(explanationCorrectId),
@@ -702,6 +780,8 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     setExplanationFeedback(null);
     setFullLoading(false);
     setFullUsedFallback(false);
+    setFullData(null);
+    setFullConfidence('unavailable');
     setFullTraceId(null);
     setFullPairKey(null);
   }, [explanationCorrectId, explanationWrongId, isWin, pairBaseKey]);
@@ -710,7 +790,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     if (
       isWin ||
       fullLoading ||
-      !hasPedagogy ||
+      !hasFullAnalysisContent ||
       !explanationCorrectId ||
       !explanationWrongId ||
       !hasRequestedFull
@@ -728,7 +808,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       focus_rank: explanationFocusRank || null,
     });
   }, [
-    hasPedagogy,
+    hasFullAnalysisContent,
     hasRequestedFull,
     explanationCorrectId,
     explanationFocusRank,
@@ -773,6 +853,16 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         gameMode: gameMode || null,
         masteryBucket,
         confusionBucket,
+        imageContext: roundPhotoAnalysisUrl
+          ? {
+              source: 'round_photo',
+              url: roundPhotoAnalysisUrl,
+              width: roundPhotoMeta?.width || null,
+              height: roundPhotoMeta?.height || null,
+              downscaled: true,
+              inputBucket: '<=384-target',
+            }
+          : null,
       });
       if (pairKeyRef.current !== pairBaseKey || fullRequestRef.current !== requestId) {
         void trackMetric('explanation_render_ignored_stale', {
@@ -788,12 +878,18 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         correctName: pedagogyFallbackNames.correctName,
         wrongName: pedagogyFallbackNames.wrongName,
       });
-      setAiSources((prev) => (prev.length > 0 ? prev : normalized.sources));
-      setFullConfidence(normalized.full?.support?.level || normalized.confidence);
+      setAiSources((prev) => {
+        const byId = new Map();
+        [...prev, ...normalized.sources].forEach((source) => {
+          if (source?.id) byId.set(source.id, source);
+        });
+        return Array.from(byId.values());
+      });
+      setFullConfidence(normalized.full?.support?.level || normalized.confidence || 'unavailable');
       setFullTraceId(normalized.traceId);
       setFullPairKey(normalized.pairKey || requestPairKey);
-      setFullUsedFallback(Boolean(normalized.fallback));
-      applyFullPayload(normalized);
+      setFullUsedFallback(Boolean(normalized.fallback) || (normalized.full?.support?.level || normalized.confidence) === 'unavailable');
+      setFullData(normalized.full || buildUnavailablePhotoFull({ language: lang }));
       void trackMetric('explanation_full_loaded', {
         round_id: question?.round_id || null,
         correct_taxon_id: String(explanationCorrectId),
@@ -821,24 +917,16 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         });
         return;
       }
-      setFullConfidence('fallback');
+      setFullConfidence('unavailable');
       setFullUsedFallback(true);
       setFullPairKey(requestPairKey);
-      applyFullPayload({
-        full: {
-          explanation: '',
-          visualClue: '',
-          taxonomicRule: '',
-          whyThisConfusionHappens: '',
-          discriminant: '',
-        },
-      });
+      setFullData(buildUnavailablePhotoFull({ language: lang }));
       void trackMetric('explanation_full_loaded', {
         round_id: question?.round_id || null,
         correct_taxon_id: String(explanationCorrectId),
         wrong_taxon_id: String(explanationWrongId),
         fallback: true,
-        confidence: 'fallback',
+        confidence: 'unavailable',
         code: error?.code || null,
         pair_key: requestPairKey,
       });
@@ -849,7 +937,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     }
   }, [
     activePackId,
-    applyFullPayload,
     confusionBucket,
     explanationCorrectId,
     explanationFocusRank,
@@ -861,9 +948,10 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     lang,
     masteryBucket,
     pairBaseKey,
-    pedagogyFallbackNames.correctName,
-    pedagogyFallbackNames.wrongName,
     question?.round_id,
+    roundPhotoAnalysisUrl,
+    roundPhotoMeta?.height,
+    roundPhotoMeta?.width,
   ]);
 
   const toggleSourcesExpanded = useCallback(() => {
@@ -886,7 +974,8 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   const handleExplanationFeedback = useCallback(
     (isUseful) => {
-      if (!hasRequestedFull || !hasPedagogy || fullLoading || explanationFeedback !== null) return;
+      if (!hasRequestedFull || !hasFullAnalysisContent || fullLoading || explanationFeedback !== null) return;
+      if (fullConfidence === 'unavailable') return;
       setExplanationFeedback(isUseful);
       void trackMetric('explanation_feedback', {
         useful: Boolean(isUseful),
@@ -902,11 +991,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       briefPairKey,
       briefTraceId,
       hasRequestedFull,
-      hasPedagogy,
+      hasFullAnalysisContent,
       explanationCorrectId,
       explanationFeedback,
       explanationFocusRank,
       explanationWrongId,
+      fullConfidence,
       fullPairKey,
       fullTraceId,
       fullLoading,
@@ -939,12 +1029,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       trace_id: fullTraceId || briefTraceId,
       pair_key: fullPairKey || `${pairBaseKey}:full`,
       mode: 'full',
-      displayed_confidence: fullUsedFallback ? briefConfidence : fullConfidence,
-      displayed_fallback: fullUsedFallback,
+      displayed_confidence: fullConfidence,
+      displayed_fallback: fullConfidence === 'unavailable',
       has_full_visible: true,
     });
   }, [
-    briefConfidence,
     briefTraceId,
     fullConfidence,
     fullData,
@@ -959,14 +1048,14 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   useEffect(() => {
     if (isWin || briefLoading || !briefData) return;
-    const badgeKey = `${pairBaseKey}:${visibleConfidence}:${hasRequestedFull && !fullUsedFallback ? 'full' : 'brief'}`;
+    const badgeKey = `${pairBaseKey}:${briefConfidence}:brief`;
     if (trackedBadgeRef.current === badgeKey) return;
     trackedBadgeRef.current = badgeKey;
     void trackMetric('explanation_badge_displayed', {
-      trace_id: fullTraceId || briefTraceId,
-      pair_key: (hasRequestedFull && !fullUsedFallback ? fullPairKey : briefPairKey) || `${pairBaseKey}:brief`,
-      displayed_confidence: visibleConfidence,
-      displayed_fallback: visibleConfidence === 'fallback',
+      trace_id: briefTraceId,
+      pair_key: briefPairKey || `${pairBaseKey}:brief`,
+      displayed_confidence: briefConfidence,
+      displayed_fallback: briefConfidence === 'fallback',
       has_full_visible: Boolean(hasRequestedFull && fullData),
     });
   }, [
@@ -974,14 +1063,11 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     briefLoading,
     briefPairKey,
     briefTraceId,
+    briefConfidence,
     fullData,
-    fullPairKey,
-    fullTraceId,
-    fullUsedFallback,
     hasRequestedFull,
     isWin,
     pairBaseKey,
-    visibleConfidence,
   ]);
 
   // Enter key → advance to next question (Escape is handled by BottomSheet)
@@ -1157,7 +1243,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                     {t('summary.explanation_title', {}, 'Repere IA')}
                   </h3>
                 </div>
-                <span className={`summary-confidence-badge summary-confidence-badge--${visibleConfidence}`}>
+                <span className={`summary-confidence-badge summary-confidence-badge--${briefConfidence}`}>
                   {confidenceLabel}
                 </span>
               </div>
@@ -1210,8 +1296,8 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                           disabled={fullLoading}
                         >
                           {fullLoading
-                            ? t('summary.explanation_detail_loading', {}, 'Analyse en cours…')
-                            : t('summary.explanation_detail_button', {}, 'Comprendre en detail')}
+                            ? t('summary.explanation_detail_loading', {}, 'Analyse photo en cours…')
+                            : t('summary.explanation_detail_button', {}, 'Analyser cette photo')}
                         </button>
                       </div>
                     )}
@@ -1220,10 +1306,13 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                       <section className="explanation-detail-section" aria-live="polite">
                         <div className="explanation-detail-section__header">
                           <h4 className="explanation-detail-section__title">
-                            {t('summary.explanation_detail_title', {}, "Comprendre l'erreur")}
+                            {t('summary.explanation_detail_title', {}, 'Analyse de cette photo')}
                           </h4>
+                          <span className={`summary-confidence-badge summary-confidence-badge--${fullConfidence}`}>
+                            {fullConfidenceLabel}
+                          </span>
                         </div>
-                        {fullLoading && !hasDetailedExplanation ? (
+                        {fullLoading && !hasFullAnalysisContent ? (
                           <div className="explanation-detail-loading">
                             <div className="explanation-skeleton-line explanation-skeleton-line--wide"></div>
                             <div className="explanation-skeleton-line"></div>
@@ -1235,36 +1324,52 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                           </div>
                         ) : (
                           <>
-                            {explanation && <p className="explanation-section__text">{explanation}</p>}
-                            {hasPedagogy && (
-                              <div className="pedagogy-blocks">
-                                <article className="pedagogy-block">
-                                  <h4 className="pedagogy-block__title">
-                                    {t('summary.pedagogy.visual_clue_title', {}, 'Indice visuel cle')}
-                                  </h4>
-                                  <p className="pedagogy-block__text">{pedagogy.visualClue}</p>
-                                </article>
-                                <article className="pedagogy-block">
-                                  <h4 className="pedagogy-block__title">
-                                    {t('summary.pedagogy.taxonomic_rule_title', {}, 'Regle taxonomique')}
-                                  </h4>
-                                  <p className="pedagogy-block__text">{pedagogy.taxonomicRule}</p>
-                                </article>
-                                <article className="pedagogy-block">
-                                  <h4 className="pedagogy-block__title">
-                                    {t('summary.pedagogy.confusion_reason_title', {}, 'Pourquoi la confusion')}
-                                  </h4>
-                                  <p className="pedagogy-block__text">{pedagogy.whyThisConfusionHappens}</p>
-                                </article>
+                            {fullData?.photoSummary && (
+                              <p className="explanation-section__text">{fullData.photoSummary}</p>
+                            )}
+                            {hasFullAnalysisContent && (
+                              <div className="explanation-brief-grid">
+                                {Array.isArray(fullData?.observedClues) && fullData.observedClues.length > 0 && (
+                                  <article className="explanation-brief-card">
+                                    <h4 className="explanation-brief-card__title">
+                                      {t('summary.photo_analysis_clues_title', {}, 'Repères visibles')}
+                                    </h4>
+                                    <ul className="explanation-brief-card__list">
+                                      {fullData.observedClues.map((clue, index) => (
+                                        <li key={`${clue}-${index}`} className="explanation-brief-card__list-item">
+                                          {clue}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </article>
+                                )}
+                                {fullData?.whyThisPhotoCouldMislead && (
+                                  <article className="explanation-brief-card">
+                                    <h4 className="explanation-brief-card__title">
+                                      {t('summary.photo_analysis_mislead_title', {}, 'Ce qui a pu tromper')}
+                                    </h4>
+                                    <p className="explanation-brief-card__text">{fullData.whyThisPhotoCouldMislead}</p>
+                                  </article>
+                                )}
+                                {fullData?.nextCheck && (
+                                  <article className="explanation-brief-card">
+                                    <h4 className="explanation-brief-card__title">
+                                      {t('summary.photo_analysis_next_check_title', {}, 'Le détail à vérifier')}
+                                    </h4>
+                                    <p className="explanation-brief-card__text">{fullData.nextCheck}</p>
+                                  </article>
+                                )}
+                                {fullData?.caution && (
+                                  <article className="explanation-brief-card">
+                                    <h4 className="explanation-brief-card__title">
+                                      {t('summary.photo_analysis_caution_title', {}, 'Lecture prudente')}
+                                    </h4>
+                                    <p className="explanation-brief-card__text">{fullData.caution}</p>
+                                  </article>
+                                )}
                               </div>
                             )}
-                            {discriminant && (
-                              <p className="explanation-discriminant">
-                                <span className="discriminant-icon" aria-hidden="true">🔍</span>
-                                {discriminant}
-                              </p>
-                            )}
-                            {hasPedagogy && (
+                            {hasFullAnalysisContent && fullConfidence !== 'unavailable' && (
                               <div
                                 className="explanation-feedback-actions"
                                 role="group"

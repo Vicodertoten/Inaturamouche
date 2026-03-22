@@ -1,17 +1,17 @@
 // server/services/aiService.js
-// ─── Pont de compatibilité vers le nouveau module AI v3 ───
-// Ce fichier re-exporte les fonctions du nouveau pipeline AI
-// pour éviter de casser les imports existants.
+// Bridge de compatibilité vers le module IA actuel.
+// Les anciens imports `aiService.js` pointent maintenant vers `server/services/ai/`.
 //
-// Le nouveau système se trouve dans server/services/ai/
-// Architecture : RAG → Draft → Fact-Check → Output Filter → Fallback
+// Architecture réelle :
+// RAG evidence bundle -> Gemini JSON generation -> validation/support gating
+// -> optional repair pass -> deterministic fallback.
 //
-// Ancien code déplacé dans server/services/ai/ :
-//   - aiConfig.js      → Model config, persona, output constraints
-//   - ragSources.js    → RAG pipeline (iNat, Wikipedia, GBIF, CoL)
-//   - promptBuilder.js → System/user prompt construction
-//   - outputFilter.js  → Validation, normalization, fallback
-//   - aiPipeline.js    → 2-stage Draft → FactCheck pipeline
-//   - index.js         → Barrel export
+// Modules :
+//   - aiConfig.js      -> model config, cache policies, security constants
+//   - ragSources.js    -> collecte RAG (Wikipedia, iNaturalist, GBIF, CoL)
+//   - promptBuilder.js -> prompts brief/full/repair/riddle
+//   - outputFilter.js  -> validation, attribution, fallback morphology
+//   - aiPipeline.js    -> orchestration complete
+//   - index.js         -> barrel export
 
 export { generateCustomExplanation, generateRiddle } from './ai/index.js';

@@ -35,3 +35,33 @@ test("SmartCache evicts oldest entries", () => {
   assert.equal(cache.get("b"), 2);
   assert.equal(cache.get("c"), 3);
 });
+
+test("SmartCache applies dynamic TTLs during revalidation without refreshing stale values immediately", async () => {
+  const cache = new SmartCache({ ttl: 10, staleTtl: 200 });
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  let fetchCount = 0;
+
+  cache.set("k", "old");
+  await sleep(20);
+
+  const staleValue = await cache.getOrFetch(
+    "k",
+    async () => {
+      fetchCount += 1;
+      await sleep(30);
+      return fetchCount === 1 ? "fresh" : "fresher";
+    },
+    {
+      resolveEntryOptions: (value) => (value === "fresh" ? { ttl: 50, staleTtl: 100 } : { ttl: 10, staleTtl: 20 }),
+    }
+  );
+
+  assert.equal(staleValue, "old");
+  assert.equal(cache.getEntry("k")?.isStale, true);
+
+  await sleep(40);
+  const refreshed = cache.getEntry("k");
+  assert.equal(refreshed?.value, "fresh");
+  assert.equal(refreshed?.isStale, false);
+  assert.equal(fetchCount, 1);
+});

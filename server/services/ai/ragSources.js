@@ -47,6 +47,12 @@ const truncate = (text, maxLen) => {
   return normalized.slice(0, cut > maxLen * 0.7 ? cut : maxLen).trim();
 };
 
+const normalizeSnippetKey = (text) =>
+  truncate(text, 240)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const getCommonName = (taxon) =>
   taxon?.preferred_common_name || taxon?.common_name || null;
 
@@ -155,27 +161,37 @@ async function fetchWikipediaSummaries(taxon, locale = 'fr', { logger } = {}) {
   const enCommonName = taxon?.english_common_name || taxon?.preferred_common_name;
   const fetches = [];
 
+  const buildSummaryResult = (lang, requestedTitle) => (json) =>
+    json?.type === 'standard' && json.extract
+      ? {
+          lang,
+          extract: json.extract,
+          title: json.title || requestedTitle,
+          requestedTitle,
+        }
+      : null;
+
   fetches.push(
     safeFetchJson(apiUrl('en', scientificName), { timeoutMs, logger })
-      .then((json) => json?.type === 'standard' && json.extract ? { lang: 'en', extract: json.extract } : null)
+      .then(buildSummaryResult('en', scientificName))
   );
 
   if (enCommonName && enCommonName !== scientificName) {
     fetches.push(
       safeFetchJson(apiUrl('en', enCommonName), { timeoutMs, logger })
-        .then((json) => json?.type === 'standard' && json.extract ? { lang: 'en', extract: json.extract } : null)
+        .then(buildSummaryResult('en', enCommonName))
     );
   }
 
   if (locale !== 'en') {
     fetches.push(
       safeFetchJson(apiUrl(locale, scientificName), { timeoutMs, logger })
-        .then((json) => json?.type === 'standard' && json.extract ? { lang: locale, extract: json.extract } : null)
+        .then(buildSummaryResult(locale, scientificName))
     );
     if (commonName && commonName !== scientificName) {
       fetches.push(
         safeFetchJson(apiUrl(locale, commonName), { timeoutMs, logger })
-          .then((json) => json?.type === 'standard' && json.extract ? { lang: locale, extract: json.extract } : null)
+          .then(buildSummaryResult(locale, commonName))
       );
     }
   }
@@ -201,7 +217,17 @@ function extractInatDescription(taxon) {
   const summary = truncate(rawSummary, DATA_SOURCES.inaturalist.maxDescLength);
   if (!summary || summary.length < 20) return '';
   if (/^(espèce|species)$/i.test(summary.trim())) return '';
-  return summary;
+  return {
+    text: summary,
+    origin:
+      taxon?.wikipedia_summary || taxon?.wikipedia_description
+        ? 'wikipedia_mirror'
+        : 'inaturalist',
+    url:
+      taxon?.wikipedia_summary || taxon?.wikipedia_description
+        ? taxon?.wikipedia_url || null
+        : taxon?.url || `https://www.inaturalist.org/taxa/${taxon.id}`,
+  };
 }
 
 async function fetchGbifMatch(taxon, { logger } = {}) {
@@ -297,21 +323,7 @@ export async function collectTaxonEvidence(taxon, locale = 'fr', { logger } = {}
       const descriptionSources = [];
       const taxonomySources = [];
       const distributionSources = [];
-
-      const inatDescription = extractInatDescription(taxon);
-      if (inatDescription) {
-        descriptionSources.push(
-          buildSourceRecord({
-            id: `inat-desc-${taxon.id}`,
-            provider: 'inaturalist',
-            kind: 'description',
-            label: `${label} — iNaturalist`,
-            url: taxon?.url || `https://www.inaturalist.org/taxa/${taxon.id}`,
-            lang: locale,
-            snippet: inatDescription,
-          })
-        );
-      }
+      const seenDescriptionSnippets = new Set();
 
       taxonomySources.push(
         buildSourceRecord({
@@ -326,18 +338,43 @@ export async function collectTaxonEvidence(taxon, locale = 'fr', { logger } = {}
       );
 
       wikiSummaries.forEach((entry, index) => {
+        const snippetKey = normalizeSnippetKey(entry.extract);
+        if (!snippetKey || seenDescriptionSnippets.has(snippetKey)) return;
+        seenDescriptionSnippets.add(snippetKey);
         descriptionSources.push(
           buildSourceRecord({
             id: `wiki-desc-${taxon.id}-${index + 1}`,
             provider: 'wikimedia',
             kind: 'description',
-            label: `${label} — Wikipedia`,
-            url: `https://${entry.lang}.wikipedia.org/wiki/${encodeURIComponent(taxon.name)}`,
+            label: `${label} — Wikipedia (${entry.lang})`,
+            url: `https://${entry.lang}.wikipedia.org/wiki/${encodeURIComponent(entry.title || taxon.name)}`,
             lang: entry.lang,
             snippet: entry.extract,
           })
         );
       });
+
+      const inatDescription = extractInatDescription(taxon);
+      if (inatDescription?.text) {
+        const snippetKey = normalizeSnippetKey(inatDescription.text);
+        if (snippetKey && !seenDescriptionSnippets.has(snippetKey)) {
+          seenDescriptionSnippets.add(snippetKey);
+          const isWikipediaMirror = inatDescription.origin === 'wikipedia_mirror';
+          descriptionSources.push(
+            buildSourceRecord({
+              id: `inat-desc-${taxon.id}`,
+              provider: isWikipediaMirror ? 'wikimedia' : 'inaturalist',
+              kind: 'description',
+              label: isWikipediaMirror
+                ? `${label} — Wikipedia via iNaturalist`
+                : `${label} — iNaturalist`,
+              url: inatDescription.url || taxon?.url || `https://www.inaturalist.org/taxa/${taxon.id}`,
+              lang: locale,
+              snippet: inatDescription.text,
+            })
+          );
+        }
+      }
 
       const colSupport = buildCatalogueOfLifeSupport(taxon);
       if (colSupport) {

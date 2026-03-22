@@ -9,7 +9,7 @@ export const MODEL_CONFIG = {
     brief: {
       model: 'gemini-2.5-flash-lite',
       timeoutMs: 2_200,
-      maxRetries: 1,
+      maxAttempts: 2,
       pricePerMillion: { input: 0.1, output: 0.4 },
       generate: {
         temperature: 0.15,
@@ -30,7 +30,7 @@ export const MODEL_CONFIG = {
     full: {
       model: 'gemini-2.5-flash',
       timeoutMs: 5_000,
-      maxRetries: 1,
+      maxAttempts: 2,
       pricePerMillion: { input: 0.3, output: 2.5 },
       generate: {
         temperature: 0.2,
@@ -40,21 +40,34 @@ export const MODEL_CONFIG = {
         responseSchema: {
           type: 'OBJECT',
           properties: {
-            explanation: { type: 'STRING', description: 'Explication pédagogique synthétique.' },
-            visual_clue: { type: 'STRING', description: 'Indice visuel observable immédiatement.' },
-            taxonomic_rule: { type: 'STRING', description: 'Règle de tri taxonomique courte et actionnable.' },
-            why_this_confusion_happens: {
+            photo_summary: {
               type: 'STRING',
-              description: 'Pourquoi cette confusion précise est plausible et comment la corriger.',
+              description: 'Ce que la photo montre ici pour distinguer les deux espèces.',
             },
-            discriminant: { type: 'STRING', description: 'Le repère-clé sous forme nominale.' },
+            observed_clues: {
+              type: 'ARRAY',
+              items: { type: 'STRING' },
+              description: 'Deux ou trois repères courts vraiment visibles sur cette photo.',
+            },
+            why_this_photo_could_mislead: {
+              type: 'STRING',
+              description: 'Pourquoi cette photo précise a pu conduire au mauvais choix.',
+            },
+            next_check: {
+              type: 'STRING',
+              description: 'Le détail concret à vérifier la prochaine fois sur une photo similaire.',
+            },
+            caution: {
+              type: 'STRING',
+              description: "Mention prudente si certains détails sont peu visibles ou ambigus sur l'image.",
+            },
           },
           required: [
-            'explanation',
-            'visual_clue',
-            'taxonomic_rule',
-            'why_this_confusion_happens',
-            'discriminant',
+            'photo_summary',
+            'observed_clues',
+            'why_this_photo_could_mislead',
+            'next_check',
+            'caution',
           ],
         },
       },
@@ -62,7 +75,7 @@ export const MODEL_CONFIG = {
     repair: {
       model: 'gemini-2.5-flash-lite',
       timeoutMs: 1_500,
-      maxRetries: 1,
+      maxAttempts: 1,
       pricePerMillion: { input: 0.1, output: 0.4 },
     },
   },
@@ -70,7 +83,7 @@ export const MODEL_CONFIG = {
   riddle: {
     model: 'gemini-2.5-flash',
     timeoutMs: 45_000,
-    maxRetries: 2,
+    maxAttempts: 3,
     pricePerMillion: { input: 0.3, output: 2.5 },
     generate: {
       temperature: 0.8,
@@ -123,11 +136,11 @@ export const OUTPUT_CONSTRAINTS = {
     displayText: { minWords: 12, maxWords: 70 },
   },
   full: {
-    explanation: { minWords: 8, maxWords: 90 },
-    visualClue: { minWords: 4, maxWords: 24 },
-    taxonomicRule: { minWords: 4, maxWords: 22 },
-    whyThisConfusionHappens: { minWords: 5, maxWords: 28 },
-    discriminant: { minWords: 2, maxWords: 12 },
+    photoSummary: { minWords: 8, maxWords: 70 },
+    observedClue: { minWords: 2, maxWords: 12 },
+    whyThisPhotoCouldMislead: { minWords: 5, maxWords: 28 },
+    nextCheck: { minWords: 3, maxWords: 22 },
+    caution: { minWords: 0, maxWords: 24 },
   },
   riddle: { clueCount: 3, maxClueLength: 180 },
 };
@@ -215,10 +228,21 @@ export const DATA_SOURCES = {
   },
 };
 
+export const IMAGE_FETCH_SECURITY = {
+  allowedHosts: [
+    'static.inaturalist.org',
+    'www.inaturalist.org',
+    'inaturalist-open-data.s3.amazonaws.com',
+  ],
+  maxRedirects: 0,
+  maxBytes: 5 * 1024 * 1024,
+  timeoutMs: 4_000,
+};
+
 export const CACHE_VERSIONS = {
   taxonEvidence: 'v2-evidence-bundle',
   taxonomySupport: 'v2-taxonomy-support',
-  briefExplanation: 'v2-brief-gemini-flash-lite',
-  fullExplanation: 'v3-full-gemini-flash-narrow-scope',
+  briefExplanation: 'v3-brief-grounded-cache-key',
+  fullExplanation: 'v5-full-photo-grounded-cache-key',
   riddle: 'v11-gemini-3-preview',
 };

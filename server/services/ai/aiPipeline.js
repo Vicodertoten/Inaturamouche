@@ -1,10 +1,18 @@
 // server/services/ai/aiPipeline.js
 // Pipeline IA v7 — repere bref auto + explication detaillee a la demande.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { config } from '../../config/index.js';
 import { SmartCache } from '../../../lib/smart-cache.js';
-import { MODEL_CONFIG, CACHE_VERSIONS, OUTPUT_CONSTRAINTS, EXPLANATION_CACHE_POLICIES } from './aiConfig.js';
+import {
+  MODEL_CONFIG,
+  CACHE_VERSIONS,
+  OUTPUT_CONSTRAINTS,
+  EXPLANATION_CACHE_POLICIES,
+  IMAGE_FETCH_SECURITY,
+} from './aiConfig.js';
 import { recordClientEvent } from '../metricsStore.js';
 import { collectEvidenceBundle, collectSpeciesData } from './ragSources.js';
 import {
@@ -32,11 +40,10 @@ import {
   normalizeRiddleClues,
 } from './outputFilter.js';
 
-const { aiApiKey, aiEnabled } = config;
 const shouldLogVerboseTraces = config.nodeEnv !== 'production';
 const PROMPT_VERSIONS = {
   brief: 'brief-v3-stable-demo',
-  full: 'full-v4-narrow-pair',
+  full: 'full-v5-photo-analysis',
 };
 
 // ── Caches ──────────────────────────────────────────────────────
@@ -73,13 +80,218 @@ const createTimeoutSignal = (ms) => {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getDisplayName = (taxon) => taxon?.preferred_common_name || taxon?.common_name || taxon?.name || null;
+const PHOTO_SOURCE_ID = 'round-photo';
+const ALLOWED_IMAGE_HOSTS = new Set(IMAGE_FETCH_SECURITY.allowedHosts);
+
+function hashValue(value) {
+  return createHash('sha256').update(String(value || '')).digest('hex').slice(0, 12);
+}
+
+function isAllowedImageHost(hostname) {
+  return ALLOWED_IMAGE_HOSTS.has(String(hostname || '').toLowerCase());
+}
+
+function isPrivateIpv4Address(address) {
+  const parts = String(address || '')
+    .split('.')
+    .map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+  if (parts[0] === 10 || parts[0] === 127) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+  if (parts[0] === 0) return true;
+  return false;
+}
+
+function isPrivateIpv6Address(address) {
+  const normalized = String(address || '').toLowerCase();
+  return (
+    normalized === '::1' ||
+    normalized === '::' ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd') ||
+    normalized.startsWith('fe80:') ||
+    normalized.startsWith('::ffff:127.') ||
+    normalized.startsWith('::ffff:10.') ||
+    normalized.startsWith('::ffff:192.168.') ||
+    /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./u.test(normalized)
+  );
+}
+
+function isPrivateIpAddress(address) {
+  const family = isIP(String(address || ''));
+  if (family === 4) return isPrivateIpv4Address(address);
+  if (family === 6) return isPrivateIpv6Address(address);
+  return false;
+}
+
+async function assertSafeImageUrl(rawUrl) {
+  const url = new URL(String(rawUrl || ''));
+  if (url.protocol !== 'https:') {
+    throw new Error('Image URL protocol rejected');
+  }
+  if (url.username || url.password) {
+    throw new Error('Image URL credentials rejected');
+  }
+  if (url.port && url.port !== '443') {
+    throw new Error('Image URL port rejected');
+  }
+  if (!isAllowedImageHost(url.hostname)) {
+    throw new Error('Image host rejected');
+  }
+  if (isIP(url.hostname) && isPrivateIpAddress(url.hostname)) {
+    throw new Error('Image IP rejected');
+  }
+
+  const resolvedAddresses = await lookup(url.hostname, { all: true, verbatim: true });
+  if (!Array.isArray(resolvedAddresses) || resolvedAddresses.length === 0) {
+    throw new Error('Image host resolution failed');
+  }
+  if (resolvedAddresses.some((entry) => isPrivateIpAddress(entry?.address))) {
+    throw new Error('Image host resolved to private IP');
+  }
+
+  return url;
+}
+
+function guessMimeType(url, contentTypeHeader) {
+  const header = String(contentTypeHeader || '').toLowerCase();
+  if (header.startsWith('image/')) return header.split(';')[0];
+  const lowerUrl = String(url || '').toLowerCase();
+  if (lowerUrl.endsWith('.png')) return 'image/png';
+  if (lowerUrl.endsWith('.webp')) return 'image/webp';
+  if (lowerUrl.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+async function readResponseBytesLimited(response, maxBytes) {
+  const contentLengthHeader = response.headers.get('content-length');
+  const declaredLength = Number.parseInt(String(contentLengthHeader || ''), 10);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new Error(`Image too large: declared=${declaredLength}`);
+  }
+
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const arrayBuffer = await response.arrayBuffer();
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      throw new Error('Image decode failed');
+    }
+    if (arrayBuffer.byteLength > maxBytes) {
+      throw new Error(`Image too large: actual=${arrayBuffer.byteLength}`);
+    }
+    return Buffer.from(arrayBuffer);
+  }
+
+  const chunks = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = Buffer.from(value);
+    totalBytes += chunk.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel('image_too_large').catch(() => {});
+      throw new Error(`Image too large: streamed=${totalBytes}`);
+    }
+    chunks.push(chunk);
+  }
+
+  if (totalBytes === 0) {
+    throw new Error('Image decode failed');
+  }
+  return Buffer.concat(chunks, totalBytes);
+}
+
+export async function fetchImageInlinePart(imageContext, logger) {
+  if (!imageContext?.url) {
+    throw new Error('Image context missing URL');
+  }
+
+  const safeUrl = await assertSafeImageUrl(imageContext.url);
+  const response = await fetch(safeUrl, {
+    headers: {
+      Accept: 'image/*',
+    },
+    redirect: 'manual',
+    signal: createTimeoutSignal(IMAGE_FETCH_SECURITY.timeoutMs),
+  });
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error(`Image redirect refused: ${response.status}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Image fetch failed: ${response.status}`);
+  }
+  const contentTypeHeader = response.headers.get('content-type');
+  if (!/^image\//iu.test(String(contentTypeHeader || ''))) {
+    throw new Error(`Image content-type rejected: ${contentTypeHeader || 'missing'}`);
+  }
+  const mimeType = guessMimeType(safeUrl.href, contentTypeHeader);
+  const buffer = await readResponseBytesLimited(response, IMAGE_FETCH_SECURITY.maxBytes);
+  return {
+    inline_data: {
+      mime_type: mimeType,
+      data: buffer.toString('base64'),
+    },
+    meta: {
+      source: imageContext.source || 'round_photo',
+      downscaled: Boolean(imageContext?.downscaled),
+      inputBucket: imageContext?.inputBucket || '<=384-target',
+      width: imageContext?.width || null,
+      height: imageContext?.height || null,
+    },
+  };
+}
+
+function buildRoundPhotoSource(imageContext) {
+  if (!imageContext?.url) return null;
+  return {
+    id: PHOTO_SOURCE_ID,
+    provider: 'round_photo',
+    kind: 'image',
+    label: 'Photo du round',
+    url: imageContext.url,
+    lang: 'unknown',
+    license: null,
+    snippet: '',
+  };
+}
 
 // ── Appel Gemini avec retry ─────────────────────────────────────
 
-async function callGeminiWithRetry({
+function parseRetryAfterMs(headerValue) {
+  if (!headerValue) return null;
+  const seconds = Number.parseFloat(String(headerValue).trim());
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
+  const asDate = Date.parse(String(headerValue));
+  if (Number.isFinite(asDate)) {
+    return Math.max(0, asDate - Date.now());
+  }
+  return null;
+}
+
+function computeRetryDelayMs(attemptNumber, retryAfterHeader) {
+  const baseDelayMs = Math.min(5_000, 500 * (2 ** Math.max(0, attemptNumber - 1)));
+  const jitterMs = Math.floor(Math.random() * 250);
+  const retryAfterMs = parseRetryAfterMs(retryAfterHeader);
+  return Math.max(baseDelayMs + jitterMs, retryAfterMs || 0);
+}
+
+function isRetriableGeminiError(error) {
+  const message = String(error?.message || '');
+  return error?.name === 'AbortError' || /timeout|aborted|network|fetch failed/i.test(message);
+}
+
+export async function callGeminiWithRetry({
   model,
   timeoutMs,
-  maxRetries,
+  maxAttempts,
   pricePerMillion,
   systemPrompt,
   userParts,
@@ -90,7 +302,7 @@ async function callGeminiWithRetry({
   metricsAnonUserId = null,
 }) {
   const apiUrl = MODEL_CONFIG.apiUrlTemplate(model);
-  const retryBudget = maxRetries || 1;
+  const attemptBudget = Math.max(1, Number(maxAttempts) || 1);
 
   const requestBody = {
     contents: [{ role: 'user', parts: userParts }],
@@ -102,18 +314,17 @@ async function callGeminiWithRetry({
 
   let lastError = null;
 
-  for (let attempt = 1; attempt <= retryBudget; attempt++) {
+  for (let attempt = 1; attempt <= attemptBudget; attempt++) {
     try {
       if (attempt > 1) {
-        logger?.info?.({ attempt, label }, `Retry ${attempt}/${retryBudget}`);
-        await sleep(1000 * attempt); // Backoff progressif
+        logger?.info?.({ attempt, maxAttempts: attemptBudget, label }, `Retry ${attempt}/${attemptBudget}`);
       }
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': aiApiKey,
+          'x-goog-api-key': config.aiApiKey,
         },
         body: JSON.stringify(requestBody),
         signal: createTimeoutSignal(timeoutMs),
@@ -121,10 +332,21 @@ async function callGeminiWithRetry({
 
       if (!response.ok) {
         const errorBody = await response.text();
-        logger?.error?.({ status: response.status, body: errorBody?.slice(0, 200), attempt }, `${label} API error`);
+        const retryAfterHeader = response.headers.get('retry-after');
+        logger?.error?.(
+          {
+            status: response.status,
+            body: errorBody?.slice(0, 200),
+            attempt,
+            retryAfter: retryAfterHeader || null,
+          },
+          `${label} API error`
+        );
 
-        // 429 (rate limit) ou 503 (overloaded) → retry
-        if ((response.status === 429 || response.status >= 500) && attempt < retryBudget) {
+        if ((response.status === 429 || response.status >= 500) && attempt < attemptBudget) {
+          const delayMs = computeRetryDelayMs(attempt, retryAfterHeader);
+          logger?.warn?.({ attempt, delayMs, status: response.status, label }, `${label} will retry after API error`);
+          await sleep(delayMs);
           lastError = new Error(`Gemini ${response.status}`);
           continue;
         }
@@ -132,8 +354,21 @@ async function callGeminiWithRetry({
       }
 
       const data = await response.json();
+      const finishReason = data?.candidates?.[0]?.finishReason || null;
+      const promptFeedback = data?.promptFeedback || null;
+      if (finishReason || promptFeedback) {
+        logger?.info?.(
+          {
+            label,
+            attempt,
+            model,
+            finishReason,
+            promptFeedback,
+          },
+          `${label} generation metadata`
+        );
+      }
 
-      // Log usage
       const usage = data?.usageMetadata;
       if (usage) {
         const promptTokens = Number(usage.promptTokenCount ?? 0) || 0;
@@ -167,6 +402,8 @@ async function callGeminiWithRetry({
             candidate_tokens: candidateTokens,
             total_tokens: totalTokens,
             estimated_cost_usd: estimatedCostUsd,
+            finish_reason: finishReason,
+            prompt_feedback_block_reason: promptFeedback?.blockReason || null,
           },
         }).catch(() => {});
       }
@@ -174,8 +411,10 @@ async function callGeminiWithRetry({
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) {
         logger?.warn?.({ apiResponse: JSON.stringify(data).slice(0, 300), attempt }, `${label} empty response`);
-        if (attempt < maxRetries) {
-          lastError = new Error('Empty response');
+        if (attempt < attemptBudget) {
+          const delayMs = computeRetryDelayMs(attempt, null);
+          await sleep(delayMs);
+          lastError = new Error(`Empty response (${finishReason || 'no_finish_reason'})`);
           continue;
         }
         throw new Error(`Empty response from ${label}`);
@@ -184,8 +423,10 @@ async function callGeminiWithRetry({
       return text;
     } catch (err) {
       lastError = err;
-      if (attempt >= retryBudget) throw err;
-      logger?.warn?.({ error: err.message, attempt }, `${label} attempt failed, will retry`);
+      if (attempt >= attemptBudget || !isRetriableGeminiError(err)) throw err;
+      const delayMs = computeRetryDelayMs(attempt, null);
+      logger?.warn?.({ error: err.message, attempt, delayMs, label }, `${label} attempt failed, will retry`);
+      await sleep(delayMs);
     }
   }
 
@@ -227,10 +468,22 @@ function dedupeReasonCodes(codes = []) {
   return Array.from(new Set(codes.filter(Boolean)));
 }
 
+function getImageReasonKey(error) {
+  const message = String(error?.message || '');
+  if (/host rejected|protocol rejected|credentials rejected|port rejected|private ip/i.test(message)) {
+    return 'image_security_rejected';
+  }
+  if (/content-type rejected/i.test(message)) return 'image_content_type_rejected';
+  if (/too large/i.test(message)) return 'image_too_large';
+  if (/redirect refused/i.test(message)) return 'image_redirect_rejected';
+  if (/decode/i.test(message)) return 'image_decode_failed';
+  return 'image_fetch_failed';
+}
+
 function getCachePolicy(mode, result) {
   const table = EXPLANATION_CACHE_POLICIES[mode === 'brief' ? 'brief' : 'full'];
   if (result?.fallback) return table.fallback;
-  if (result?.confidence === 'grounded') return table.success;
+  if (result?.confidence === 'grounded' || result?.confidence === 'photo_grounded') return table.success;
   if (result?.confidence === 'model_guided') return table.model_guided;
   return table.limited;
 }
@@ -272,7 +525,7 @@ async function repairExplanationOutput({
   return callGeminiWithRetry({
     model: repairConfig.model,
     timeoutMs: repairConfig.timeoutMs,
-    maxRetries: repairConfig.maxRetries,
+    maxAttempts: repairConfig.maxAttempts,
     pricePerMillion: repairConfig.pricePerMillion,
     systemPrompt: buildRepairSystemPrompt({ mode, locale }),
     userParts: buildRepairUserParts({ rawText, mode }),
@@ -288,17 +541,28 @@ function buildLegacyAliases(result, locale, correctTaxon, wrongTaxon) {
   const full = result.full;
   const brief = result.brief;
   const explanation =
+    full?.photoSummary ||
     full?.explanation ||
     brief?.displayText ||
     getFallbackMicrocopy(locale);
-  const discriminant = full?.discriminant || brief?.keyDifference || null;
+  const discriminant =
+    (Array.isArray(full?.observedClues) ? full.observedClues[0] : null) ||
+    full?.discriminant ||
+    brief?.keyDifference ||
+    null;
   return {
     explanation,
     discriminant,
     pedagogy: buildPedagogyBlocks({
-      visualClue: full?.visualClue || brief?.nextLookFor,
-      taxonomicRule: full?.taxonomicRule || null,
-      whyThisConfusionHappens: full?.whyThisConfusionHappens || brief?.whyTempting,
+      visualClue:
+        (Array.isArray(full?.observedClues) ? full.observedClues.join(' · ') : null) ||
+        full?.visualClue ||
+        brief?.nextLookFor,
+      taxonomicRule: full?.nextCheck || full?.taxonomicRule || null,
+      whyThisConfusionHappens:
+        full?.whyThisPhotoCouldMislead ||
+        full?.whyThisConfusionHappens ||
+        brief?.whyTempting,
       explanation,
       correctName: getDisplayName(correctTaxon),
       wrongName: getDisplayName(wrongTaxon),
@@ -350,6 +614,8 @@ function buildBriefFallback(correctTaxon, wrongTaxon, locale, bundle) {
     whyTempting: brief.whyTempting,
     nextLookFor: brief.nextLookFor,
     locale,
+    correctName: getDisplayName(correctTaxon),
+    wrongName: getDisplayName(wrongTaxon),
   });
   return {
     mode: 'brief',
@@ -363,45 +629,95 @@ function buildBriefFallback(correctTaxon, wrongTaxon, locale, bundle) {
   };
 }
 
-function buildFullFallback(correctTaxon, wrongTaxon, locale, bundle) {
+function getFullFallbackCopy(locale = 'fr') {
+  if (locale === 'en') {
+    return {
+      photoLead: 'I could not read this round photo reliably enough for a precise photo-only analysis.',
+      whyPhotoCouldMislead: 'This image hides the best field mark or flattens the proportions at first glance.',
+      caution: 'Photo-specific analysis unavailable: use the stable pair clue instead.',
+    };
+  }
+  if (locale === 'nl') {
+    return {
+      photoLead: 'Ik kon deze rondefoto niet betrouwbaar genoeg lezen voor een echt foto-specifieke analyse.',
+      whyPhotoCouldMislead: 'Deze afbeelding verbergt het beste kenmerk of maakt de verhoudingen op het eerste gezicht vlakker.',
+      caution: 'Fotoanalyse niet beschikbaar: gebruik het stabiele verschil tussen dit soortenpaar.',
+    };
+  }
+  return {
+    photoLead: "Je n'ai pas pu lire cette photo de manche assez finement pour une analyse purement photo.",
+    whyPhotoCouldMislead:
+      "Cette image masque probablement le meilleur critère ou tasse les proportions au premier regard.",
+    caution: 'Analyse photo indisponible : garde le repère stable propre à cette paire.',
+  };
+}
+
+function buildFallbackObservedClues(fallback) {
+  const discriminantClues = String(fallback?.discriminant || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const extraClues = [
+    fallback?.keyDifference,
+    fallback?.nextLookFor,
+  ]
+    .map((value) => String(value || '').replace(/[.:!?]+$/u, '').trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...discriminantClues, ...extraClues]))
+    .map((value) => value.replace(/^Observe d'abord\s+/iu, '').replace(/^Regarde d'abord\s+/iu, '').trim())
+    .filter((value) => value.split(/\s+/).filter(Boolean).length <= 12)
+    .slice(0, 3);
+}
+
+function buildFullFallback(correctTaxon, wrongTaxon, locale, bundle, imageContext, reasonCodes = []) {
   const severity = calculateSeverity(correctTaxon, wrongTaxon);
-  const fallback = buildMorphologyFallback(
+  const copy = getFullFallbackCopy(locale);
+  const morphologyFallback = buildMorphologyFallback(
     correctTaxon,
     wrongTaxon,
     severity,
-    { taxonomy: bundle?.correct?.taxonomy, sources: bundle?.correct?.allSources?.map((source) => source.label) || [] },
-    { taxonomy: bundle?.wrong?.taxonomy, sources: bundle?.wrong?.allSources?.map((source) => source.label) || [] }
+    {
+      taxonomy: bundle?.correct?.taxonomy,
+      sources: bundle?.correct?.allSources?.map((source) => source.label) || [],
+      claims: bundle?.correct?.claims,
+    },
+    {
+      taxonomy: bundle?.wrong?.taxonomy,
+      sources: bundle?.wrong?.allSources?.map((source) => source.label) || [],
+      claims: bundle?.wrong?.claims,
+    }
   );
+  const observedClues = buildFallbackObservedClues(morphologyFallback);
   const full = {
-    explanation: fallback.explanation || getFallbackMicrocopy(locale),
-    visualClue: fallback.pedagogy?.visualClue || getFallbackMicrocopy(locale),
-    taxonomicRule: fallback.pedagogy?.taxonomicRule || getFallbackMicrocopy(locale),
-    whyThisConfusionHappens:
-      fallback.pedagogy?.whyThisConfusionHappens ||
-      fallback.pedagogy?.counterExample ||
-      getFallbackMicrocopy(locale),
-    counterExample:
-      fallback.pedagogy?.whyThisConfusionHappens ||
-      fallback.pedagogy?.counterExample ||
-      getFallbackMicrocopy(locale),
-    discriminant: fallback.discriminant || null,
+    photoSummary: `${copy.photoLead} ${morphologyFallback.keyDifference}`.trim(),
+    observedClues,
+    whyThisPhotoCouldMislead: morphologyFallback.whyTempting || copy.whyPhotoCouldMislead,
+    nextCheck: morphologyFallback.nextLookFor,
+    caution: copy.caution,
     support: {
       level: 'fallback',
       sourceIds: [],
     },
     supportByField: {
-      explanation: [],
-      visualClue: [],
-      taxonomicRule: [],
-      whyThisConfusionHappens: [],
-      discriminant: [],
+      photoSummary: [],
+      observedClues: [],
+      whyThisPhotoCouldMislead: [],
+      nextCheck: [],
+      caution: [],
     },
     sourceIdsByField: {
-      explanation: [],
-      visualClue: [],
-      taxonomicRule: [],
-      whyThisConfusionHappens: [],
-      discriminant: [],
+      photoSummary: [],
+      observedClues: [],
+      whyThisPhotoCouldMislead: [],
+      nextCheck: [],
+      caution: [],
+    },
+    imageAnalysis: {
+      source: imageContext?.source || 'round_photo',
+      downscaled: Boolean(imageContext?.downscaled),
+      inputBucket: imageContext?.inputBucket || '<=384-target',
+      imageAvailable: Boolean(imageContext?.url),
     },
   };
   return {
@@ -411,9 +727,29 @@ function buildFullFallback(correctTaxon, wrongTaxon, locale, bundle) {
     sources: bundle?.sources || [],
     confidence: 'fallback',
     fallback: true,
-    reasonCodes: ['fallback'],
+    reasonCodes: dedupeReasonCodes(['fallback', 'full_unavailable', ...reasonCodes]),
     ...buildLegacyAliases({ brief: null, full }, locale, correctTaxon, wrongTaxon),
   };
+}
+
+export function buildExplanationCacheKey({
+  mode = 'full',
+  locale = 'fr',
+  correctTaxon,
+  wrongTaxon,
+  packId = null,
+  gameMode = null,
+  masteryBucket = null,
+  confusionBucket = null,
+  imageContext = null,
+}) {
+  const fullImageKey = mode === 'full' ? hashValue(imageContext?.url || 'no-image') : null;
+  const promptVersion = PROMPT_VERSIONS[mode] || 'unknown';
+  return `${
+    mode === 'brief' ? CACHE_VERSIONS.briefExplanation : CACHE_VERSIONS.fullExplanation
+  }:${promptVersion}:${locale}:${correctTaxon?.id || 'na'}-${wrongTaxon?.id || 'na'}:${packId || 'na'}:${
+    gameMode || 'na'
+  }:${masteryBucket || 'na'}:${confusionBucket || 'na'}${fullImageKey ? `:${fullImageKey}` : ''}`;
 }
 
 export async function generateCustomExplanation(
@@ -423,7 +759,6 @@ export async function generateCustomExplanation(
   logger,
   {
     mode = 'full',
-    focusRank: _focusRank = null,
     packId = null,
     gameMode = null,
     masteryBucket = null,
@@ -435,7 +770,7 @@ export async function generateCustomExplanation(
 ) {
   const traceId = randomUUID();
   const pairKey = `${correctTaxon?.id || 'na'}:${wrongTaxon?.id || 'na'}:${locale}:${mode}`;
-  if (!aiEnabled || !aiApiKey) {
+  if (!config.aiEnabled || !config.aiApiKey) {
     logger?.warn?.('AI explanations disabled or no API key');
     const bundle = await collectEvidenceBundle(correctTaxon, wrongTaxon, locale, { logger }).catch(() => ({
       sources: [],
@@ -444,7 +779,7 @@ export async function generateCustomExplanation(
     }));
     const fallbackResult = mode === 'brief'
       ? buildBriefFallback(correctTaxon, wrongTaxon, locale, bundle)
-      : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle);
+      : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle, imageContext, ['ai_disabled']);
     return { ...fallbackResult, traceId, pairKey, severity: calculateSeverity(correctTaxon, wrongTaxon) };
   }
 
@@ -459,13 +794,52 @@ export async function generateCustomExplanation(
       correct: null,
       wrong: null,
     }));
-    const disabledResult = buildFullFallback(correctTaxon, wrongTaxon, locale, bundle);
-    disabledResult.reasonCodes = dedupeReasonCodes([...(disabledResult.reasonCodes || []), 'full_disabled']);
+    const disabledResult = buildFullFallback(correctTaxon, wrongTaxon, locale, bundle, imageContext, ['full_disabled']);
     return { ...disabledResult, traceId, pairKey, severity };
   }
-  const cacheKey = `${
-    mode === 'brief' ? CACHE_VERSIONS.briefExplanation : CACHE_VERSIONS.fullExplanation
-  }:${locale}:${correctTaxon.id}-${wrongTaxon.id}:${masteryBucket || 'na'}:${confusionBucket || 'na'}`;
+  if (mode === 'full' && !config.aiExplanationFullImageAware) {
+    const bundle = await collectEvidenceBundle(correctTaxon, wrongTaxon, locale, { logger }).catch(() => ({
+      sources: [],
+      correct: null,
+      wrong: null,
+    }));
+    const disabledResult = buildFullFallback(
+      correctTaxon,
+      wrongTaxon,
+      locale,
+      bundle,
+      imageContext,
+      ['full_photo_disabled']
+    );
+    return { ...disabledResult, traceId, pairKey, severity };
+  }
+  if (mode === 'full' && !imageContext?.url) {
+    const bundle = await collectEvidenceBundle(correctTaxon, wrongTaxon, locale, { logger }).catch(() => ({
+      sources: [],
+      correct: null,
+      wrong: null,
+    }));
+    const unavailableResult = buildFullFallback(
+      correctTaxon,
+      wrongTaxon,
+      locale,
+      bundle,
+      imageContext,
+      ['image_missing']
+    );
+    return { ...unavailableResult, traceId, pairKey, severity };
+  }
+  const cacheKey = buildExplanationCacheKey({
+    mode,
+    locale,
+    correctTaxon,
+    wrongTaxon,
+    packId,
+    gameMode,
+    masteryBucket,
+    confusionBucket,
+    imageContext,
+  });
   const cache = mode === 'brief' ? briefExplanationCache : fullExplanationCache;
   const modelConfig = getModeConfig(mode);
   const cacheEntryBefore = cache.getEntry(cacheKey);
@@ -476,7 +850,8 @@ export async function generateCustomExplanation(
       cacheKey,
       async () => {
         const bundle = await collectEvidenceBundle(correctTaxon, wrongTaxon, locale, { logger });
-        const sourceMap = buildSourceMap(bundle.sources);
+        let activeSources = bundle.sources;
+        let sourceMap = buildSourceMap(activeSources);
         const bundleSummary = buildBundleSummary(bundle);
         const reasonCodes = [];
         let result = null;
@@ -484,6 +859,9 @@ export async function generateCustomExplanation(
         let repaired = false;
         let rawText = null;
         let repairedText = null;
+        let fullImagePart = null;
+        let fullImageMeta = null;
+        let photoSource = null;
 
         logger?.info?.(
           {
@@ -499,11 +877,62 @@ export async function generateCustomExplanation(
           'Starting explanation generation'
         );
 
+        if (mode === 'full') {
+          try {
+            const imageAsset = await fetchImageInlinePart(imageContext, logger);
+            fullImagePart = imageAsset.inline_data;
+            fullImageMeta = imageAsset.meta;
+            photoSource = buildRoundPhotoSource(imageContext);
+            activeSources = photoSource ? [photoSource, ...bundle.sources] : bundle.sources;
+            sourceMap = buildSourceMap(activeSources);
+            logger?.info?.(
+              {
+                traceId,
+                pairKey,
+                mode,
+                imageUrlHash: hashValue(imageContext?.url),
+                imageFetchStatus: 'ok',
+                imageInputBucket: fullImageMeta?.inputBucket || null,
+                imageDimensions:
+                  fullImageMeta?.width || fullImageMeta?.height
+                    ? { width: fullImageMeta.width, height: fullImageMeta.height }
+                    : null,
+              },
+              'Round photo fetched for full analysis'
+            );
+          } catch (imageError) {
+            const imageReason = getImageReasonKey(imageError);
+            reasonCodes.push(imageReason);
+            logger?.warn?.(
+              {
+                traceId,
+                pairKey,
+                mode,
+                imageUrlHash: imageContext?.url ? hashValue(imageContext.url) : null,
+                imageFetchStatus: 'failed',
+                error: imageError.message,
+              },
+              'Unable to fetch round photo for full analysis'
+            );
+            result = buildFullFallback(
+              correctTaxon,
+              wrongTaxon,
+              locale,
+              bundle,
+              imageContext,
+              [...reasonCodes, imageReason]
+            );
+          }
+        }
+
         try {
+          if (result) {
+            return result;
+          }
           rawText = await callGeminiWithRetry({
             model: modelConfig.model,
             timeoutMs: modelConfig.timeoutMs,
-            maxRetries: modelConfig.maxRetries,
+            maxAttempts: modelConfig.maxAttempts,
             pricePerMillion: modelConfig.pricePerMillion,
             systemPrompt:
               mode === 'brief'
@@ -530,7 +959,15 @@ export async function generateCustomExplanation(
                     gameMode,
                     masteryBucket,
                     confusionBucket,
-                    imageContext: config.aiExplanationFullImageAware ? imageContext : null,
+                    imageContext:
+                      mode === 'full' && fullImagePart
+                        ? {
+                            ...fullImageMeta,
+                            inlineDataPart: fullImagePart,
+                            metaText:
+                              "Photo jointe : analyse cette image precise du round. Si un detail n'est pas lisible, dis-le prudemment.",
+                          }
+                        : null,
                   }),
             genConfig: modelConfig.generate,
             logger,
@@ -603,44 +1040,63 @@ export async function generateCustomExplanation(
             if (validation.valid) {
               const support = buildBriefSupport(validation.brief, bundle, sourceMap);
               const confidence = support.level;
-              if (confidence === 'limited') reasonCodes.push('attribution_weak');
               if (
                 Number(bundle?.correct?.descriptionSources?.length || 0) === 0 ||
                 Number(bundle?.wrong?.descriptionSources?.length || 0) === 0
               ) {
                 reasonCodes.push('evidence_missing');
               }
-              const brief = {
-                ...validation.brief,
-                displayText:
-                  validation.brief.displayText ||
-                  composeBriefDisplayText({ ...validation.brief, locale }),
-                support,
-                supportByField: support.sourceIdsByField,
-                sourceIdsByField: support.sourceIdsByField,
-              };
-              logger?.info?.(
-                {
-                  traceId,
-                  pairKey,
-                  mode,
-                  parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
-                  validationWarnings: validation.warnings,
+              if (!support.minimumSupportMet) {
+                reasonCodes.push('support_insufficient');
+                logger?.warn?.(
+                  {
+                    traceId,
+                    pairKey,
+                    mode,
+                    parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
+                    validationWarnings: validation.warnings,
+                    support,
+                  },
+                  'Brief AI response rejected for insufficient support'
+                );
+              } else {
+                const brief = {
+                  ...validation.brief,
+                  displayText:
+                    validation.brief.displayText ||
+                    composeBriefDisplayText({
+                      ...validation.brief,
+                      locale,
+                      correctName: getDisplayName(correctTaxon),
+                      wrongName: getDisplayName(wrongTaxon),
+                    }),
+                  support,
                   supportByField: support.sourceIdsByField,
+                  sourceIdsByField: support.sourceIdsByField,
+                };
+                logger?.info?.(
+                  {
+                    traceId,
+                    pairKey,
+                    mode,
+                    parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
+                    validationWarnings: validation.warnings,
+                    supportByField: support.sourceIdsByField,
+                    confidence,
+                  },
+                  'Brief explanation accepted'
+                );
+                result = {
+                  mode: 'brief',
+                  brief,
+                  full: null,
+                  sources: bundle.sources,
                   confidence,
-                },
-                'Brief explanation accepted'
-              );
-              result = {
-                mode: 'brief',
-                brief,
-                full: null,
-                sources: bundle.sources,
-                confidence,
-                fallback: false,
-                reasonCodes: dedupeReasonCodes(reasonCodes),
-                ...buildLegacyAliases({ brief, full: null }, locale, correctTaxon, wrongTaxon),
-              };
+                  fallback: false,
+                  reasonCodes: dedupeReasonCodes(reasonCodes),
+                  ...buildLegacyAliases({ brief, full: null }, locale, correctTaxon, wrongTaxon),
+                };
+              }
             } else {
               reasonCodes.push('quality_rejected');
               logger?.warn?.(
@@ -665,46 +1121,68 @@ export async function generateCustomExplanation(
               sourceMap,
             });
             if (validation.valid) {
-              const support = buildFullSupport(validation.full, bundle, sourceMap);
+              const support = buildFullSupport(validation.full, bundle, sourceMap, {
+                photoSourceId: photoSource?.id || null,
+              });
               const confidence = support.level;
-              if (confidence === 'limited') reasonCodes.push('attribution_weak');
               if (
                 Number(bundle?.correct?.descriptionSources?.length || 0) === 0 ||
                 Number(bundle?.wrong?.descriptionSources?.length || 0) === 0
               ) {
                 reasonCodes.push('evidence_missing');
               }
-              const full = {
-                ...validation.full,
-                support: {
-                  level: support.level,
-                  sourceIds: support.sourceIds,
-                },
-                supportByField: support.supportByField,
-                sourceIdsByField: support.supportByField,
-              };
-              logger?.info?.(
-                {
-                  traceId,
-                  pairKey,
-                  mode,
-                  parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
-                  validationWarnings: validation.warnings,
+              if (!support.minimumSupportMet) {
+                reasonCodes.push('support_insufficient');
+                logger?.warn?.(
+                  {
+                    traceId,
+                    pairKey,
+                    mode,
+                    parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
+                    validationWarnings: validation.warnings,
+                    support,
+                  },
+                  'Full AI response rejected for insufficient support'
+                );
+              } else {
+                const full = {
+                  ...validation.full,
+                  imageAnalysis: {
+                    source: fullImageMeta?.source || 'round_photo',
+                    downscaled: Boolean(fullImageMeta?.downscaled),
+                    inputBucket: fullImageMeta?.inputBucket || '<=384-target',
+                    imageAvailable: true,
+                  },
+                  support: {
+                    level: support.level,
+                    sourceIds: support.sourceIds,
+                  },
                   supportByField: support.supportByField,
+                  sourceIdsByField: support.supportByField,
+                };
+                logger?.info?.(
+                  {
+                    traceId,
+                    pairKey,
+                    mode,
+                    parsedPayload: shouldLogVerboseTraces ? parsed : undefined,
+                    validationWarnings: validation.warnings,
+                    supportByField: support.supportByField,
+                    confidence,
+                  },
+                  'Full explanation accepted'
+                );
+                result = {
+                  mode: 'full',
+                  brief: null,
+                  full,
+                  sources: activeSources,
                   confidence,
-                },
-                'Full explanation accepted'
-              );
-              result = {
-                mode: 'full',
-                brief: null,
-                full,
-                sources: bundle.sources,
-                confidence,
-                fallback: false,
-                reasonCodes: dedupeReasonCodes(reasonCodes),
-                ...buildLegacyAliases({ brief: null, full }, locale, correctTaxon, wrongTaxon),
-              };
+                  fallback: false,
+                  reasonCodes: dedupeReasonCodes(reasonCodes),
+                  ...buildLegacyAliases({ brief: null, full }, locale, correctTaxon, wrongTaxon),
+                };
+              }
             } else {
               reasonCodes.push('quality_rejected');
               const classification = classifyValidationIssues(validation.issues);
@@ -744,7 +1222,7 @@ export async function generateCustomExplanation(
           result =
             mode === 'brief'
               ? buildBriefFallback(correctTaxon, wrongTaxon, locale, bundle)
-              : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle);
+              : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle, imageContext, reasonCodes);
           result.reasonCodes = dedupeReasonCodes([...reasonCodes, ...(result.reasonCodes || []), 'cached_fallback_prevented']);
         }
 
@@ -756,11 +1234,9 @@ export async function generateCustomExplanation(
       },
       {
         onError: (err) => logger?.error?.({ error: err.message }, 'Explanation cache error'),
+        resolveEntryOptions: (value) => getCachePolicy(mode, value),
       }
     );
-
-    const cachePolicy = getCachePolicy(mode, result);
-    cache.set(cacheKey, result, cachePolicy);
 
     void recordClientEvent({
       name: 'explanation_pipeline_result',
@@ -804,7 +1280,7 @@ export async function generateCustomExplanation(
     }));
     const fallbackResult = mode === 'brief'
       ? buildBriefFallback(correctTaxon, wrongTaxon, locale, bundle)
-      : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle);
+      : buildFullFallback(correctTaxon, wrongTaxon, locale, bundle, imageContext, [getReasonKeyFromError(error)]);
     fallbackResult.reasonCodes = dedupeReasonCodes([...(fallbackResult.reasonCodes || []), getReasonKeyFromError(error)]);
     cache.set(cacheKey, fallbackResult, getCachePolicy(mode, fallbackResult));
     return {
@@ -835,7 +1311,7 @@ export async function generateRiddle(targetTaxon, locale = 'fr', logger) {
 
   const fallbackClues = buildFallbackRiddleClues(targetTaxon, speciesData);
 
-  if (!aiEnabled || !aiApiKey) {
+  if (!config.aiEnabled || !config.aiApiKey) {
     return { clues: fallbackClues, sources: speciesData.sources, source: 'fallback' };
   }
 
@@ -849,7 +1325,7 @@ export async function generateRiddle(targetTaxon, locale = 'fr', logger) {
         const text = await callGeminiWithRetry({
           model: MODEL_CONFIG.riddle.model,
           timeoutMs: MODEL_CONFIG.riddle.timeoutMs,
-          maxRetries: MODEL_CONFIG.riddle.maxRetries,
+          maxAttempts: MODEL_CONFIG.riddle.maxAttempts,
           pricePerMillion: MODEL_CONFIG.riddle.pricePerMillion,
           systemPrompt: buildRiddleSystemPrompt({ locale }),
           userParts: buildRiddleUserParts({ targetTaxon, locale, speciesData }),

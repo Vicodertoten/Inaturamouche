@@ -33,7 +33,7 @@ Cette documentation est la source canonique du projet. Elle décrit l'état actu
 |---|---|
 | Architecture globale | [`docs/explanation/architecture.md`](../docs/explanation/architecture.md) |
 | Pipeline de questions | [`docs/explanation/question-pipeline.md`](../docs/explanation/question-pipeline.md) |
-| Système IA (Papy Mouche) | [`docs/explanation/ai-system.md`](../docs/explanation/ai-system.md) |
+| Système IA (explications + devinettes) | [`docs/explanation/ai-system.md`](../docs/explanation/ai-system.md) |
 | Sécurité des rounds | [`docs/explanation/round-security.md`](../docs/explanation/round-security.md) |
 | Stratégie de cache | [`docs/explanation/caching-strategy.md`](../docs/explanation/caching-strategy.md) |
 | État frontend | [`docs/explanation/frontend-state.md`](../docs/explanation/frontend-state.md) |

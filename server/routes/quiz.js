@@ -37,7 +37,17 @@ const explainSchema = z
     gameMode: z.enum(['easy', 'hard', 'riddle', 'taxonomic']).optional().nullable(),
     masteryBucket: z.enum(['new', 'fragile', 'familiar']).optional().nullable(),
     confusionBucket: z.enum(['first', 'repeat']).optional().nullable(),
-    focusRank: z.string().trim().max(32).optional().nullable(),
+    imageContext: z
+      .object({
+        source: z.literal('round_photo').default('round_photo'),
+        url: z.string().trim().url().max(2000),
+        width: z.coerce.number().int().positive().max(8000).optional().nullable(),
+        height: z.coerce.number().int().positive().max(8000).optional().nullable(),
+        downscaled: z.boolean().optional().nullable(),
+        inputBucket: z.string().trim().max(32).optional().nullable(),
+      })
+      .optional()
+      .nullable(),
   })
   .refine((data) => data.correctId !== data.wrongId, {
     message: 'correctId and wrongId must differ',
@@ -86,7 +96,7 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
     gameMode,
     masteryBucket,
     confusionBucket,
-    focusRank,
+    imageContext,
   } = req.valid;
   const logger = req.log;
   const requestId = req.id;
@@ -147,7 +157,7 @@ router.post('/api/quiz/explain', explainLimiter, explainDailyLimiter, validate(e
         gameMode,
         masteryBucket,
         confusionBucket,
-        focusRank,
+        imageContext,
         metricsSessionId,
         metricsAnonUserId,
       }

@@ -94,20 +94,24 @@ export function buildFullSystemPrompt({ severity, locale }) {
     severity,
     locale,
     includeFieldRules: [
-      'explanation : 30 a 90 mots, explication pedagogique concise.',
-      'visual_clue : 8 a 24 mots, indice visuel observable immediatement.',
-      'taxonomic_rule : 8 a 22 mots, regle de tri taxonomique actionnable.',
-      'why_this_confusion_happens : 10 a 28 mots, pourquoi cette confusion precise est plausible.',
-      'discriminant : 2 a 12 mots, formule nominale sans narration.',
+      'photo_summary : 20 a 70 mots, ce que cette photo montre ici pour distinguer les deux especes.',
+      'observed_clues : tableau de 2 ou 3 reperes tres courts, visibles sur cette photo.',
+      'why_this_photo_could_mislead : 10 a 28 mots, pourquoi cette photo precise a pu tromper.',
+      'next_check : 5 a 22 mots, detail concret a verifier la prochaine fois.',
+      'caution : phrase tres courte, ou chaine vide si rien a signaler.',
     ],
   })}
 
 REGLES FULL SUPPLEMENTAIRES :
+- Le full est une analyse de LA PHOTO du round, pas une fiche generale sur l espece.
 - Parle uniquement de la bonne espece et de l'espece choisie.
 - N'introduis jamais de troisieme espece, de genre externe, de comparaison libre ou d'analogie hors paire.
+- Commence par ce qui est visible ici: silhouette, contraste, structure, posture, contexte.
+- Si un detail n'est pas clairement visible, dis-le avec prudence dans caution.
+- N'affirme jamais voir un detail qui n'est probablement pas lisible sur la photo.
 - Ne donne pas de cours general de biologie si ce n'est pas directement utile a cette confusion.
-- Si les preuves sont faibles, reste court, prudent et concret.
-- Pour une severite HUGE, reste sur des contrastes tres visibles: silhouette, milieu, structure generale.`;
+- Pour une severite HUGE, reste sur des contrastes tres visibles: silhouette, milieu, structure generale.
+- Utilise des formulations du type "sur cette photo", "ici", "si ce detail est bien visible".`;
 }
 
 export function buildRepairSystemPrompt({ mode, locale }) {
@@ -120,11 +124,11 @@ export function buildRepairSystemPrompt({ mode, locale }) {
           'next_look_for',
         ]
       : [
-          'explanation',
-          'visual_clue',
-          'taxonomic_rule',
-          'why_this_confusion_happens',
-          'discriminant',
+          'photo_summary',
+          'observed_clues',
+          'why_this_photo_could_mislead',
+          'next_check',
+          'caution',
         ];
 
   return `Tu es un reparateur de sortie JSON.
@@ -263,8 +267,15 @@ export function buildFullUserParts({
     masteryBucket,
     confusionBucket,
   });
-  if (imageContext?.enabled && imageContext?.note) {
-    parts.push({ text: `Contexte image (desactive en v1): ${imageContext.note}` });
+  parts.push({
+    text:
+      "Analyse maintenant la photo du round. Decris ce qui est visible ici et ce qui a pu tromper sur cette image precise.",
+  });
+  if (imageContext?.metaText) {
+    parts.push({ text: imageContext.metaText });
+  }
+  if (imageContext?.inlineDataPart) {
+    parts.push(imageContext.inlineDataPart);
   }
   return parts;
 }

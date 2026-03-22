@@ -68,14 +68,15 @@ Routes UI principales:
 
 Architecture RAG → Generate → Validate → Fallback pour explications educatives:
 
-- **Model**: Gemini 2.5 Flash avec sortie JSON structuree (`responseMimeType: "application/json"`)
-- **Persona**: "Papy Mouche", naturaliste bienveillant et pedagogique
+- **Modeles**: `gemini-2.5-flash-lite` pour `brief`, `gemini-2.5-flash` pour `full`, tous deux en JSON structure
+- **Persona**: coach naturaliste pour les explications, prompt "Papy Mouche" uniquement pour les devinettes
 - **Pipeline**:
-  1. RAG: collecte de donnees via Wikipedia et iNaturalist
+  1. RAG: collecte de donnees via Wikipedia, iNaturalist, GBIF et Catalogue of Life
   2. Prompt: construction contextuelle avec severite d'erreur (HUGE/MEDIUM/CLOSE)
-  3. Generation: appel API avec schema JSON strict (internal_critique, explanation, discriminant)
-  4. Validation: verification de qualite (longueur, orthographe, contenu)
-  5. Fallback: conseils generiques par classe taxonomique si echec
+  3. Generation: appel API avec schema JSON strict adapte au mode `brief` ou `full`
+  4. Validation: verification de qualite, scope de paire et attribution minimale aux sources
+  5. Repair: second passage court si le JSON est invalide
+  6. Fallback: conseils deterministes pair-specifics si l'IA ou la photo ne sont pas exploitables
 - **Observabilite**: metriques AI (latence, cout, taux de fallback, raisons d'echec)
 - **Configuration**: `server/services/ai/aiConfig.js`
 - **RAG Sources**: Wikipedia (summaries), iNaturalist (descriptions)

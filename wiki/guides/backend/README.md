@@ -37,17 +37,17 @@ La signature HMAC est basee sur `ROUND_HMAC_SECRET`.
 
 Architecture RAG → Generate → Validate → Fallback:
 
-- **Model**: Gemini 2.5 Flash avec JSON structure (`responseMimeType: "application/json"`, `responseSchema`)
+- **Modeles**: `gemini-2.5-flash-lite` pour `brief`, `gemini-2.5-flash` pour `full`, JSON structure
 - **Modules**:
-  - `aiConfig.js`: configuration modele, persona "Papy Mouche", contraintes de sortie
-  - `aiPipeline.js`: orchestration complete (RAG + generation + validation + fallback)
+  - `aiConfig.js`: configuration modele, politiques de cache, constantes de securite
+  - `aiPipeline.js`: orchestration complete (RAG + generation + validation + support gating + fallback)
   - `promptBuilder.js`: construction des prompts avec severite et contexte
-  - `ragSources.js`: collecte de donnees depuis Wikipedia et iNaturalist
-  - `outputFilter.js`: validation qualite et nettoyage des reponses
+  - `ragSources.js`: collecte de donnees depuis Wikipedia, iNaturalist, GBIF et CoL
+  - `outputFilter.js`: validation qualite, scope de paire, attribution et fallback
 - **Features**:
-  - Auto-correction via champ `internal_critique` dans le schema JSON
-  - Fallback generiques par classe taxonomique si echec de generation
-  - Support explications (differentiation especes). Le mode enigmes est archive.
+  - Repair pass si le JSON est invalide
+  - Fallback `full` hybride: indisponibilite photo + conseil morphologique pair-specific
+  - Support explications `brief` et `full`. Le mode enigmes reste separe.
   - Cache des reponses generees pour reduire les couts
 - **Observabilite**: metriques AI dans metricsStore (latence, cout, taux de fallback, raisons)
 

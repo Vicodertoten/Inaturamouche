@@ -155,7 +155,7 @@ function cleanTypography(text) {
     .trim();
 }
 
-export function normalizeExplanation(text, {correctName, wrongName, locale} = {}) {
+export function normalizeExplanation(text, {correctName, wrongName, locale, preservePhotoContext = false} = {}) {
   if (!text) return '';
   let value = text.trim().replace(/\s+/g, ' ');
 
@@ -179,8 +179,10 @@ export function normalizeExplanation(text, {correctName, wrongName, locale} = {}
     });
   }
 
-  value = value.replace(/\b(visible|montr[ée]e?|présent[ée]e?)\s+(sur|dans)\s+(la|l')\s*(premi[eè]re|seconde|deuxi[eè]me)?\s*(image|photo)\b/gi, '');
-  value = value.replace(/\b(sur|dans)\s+(la|l')\s*(image|photo)\b/gi, '');
+  if (!preservePhotoContext) {
+    value = value.replace(/\b(visible|montr[ée]e?|présent[ée]e?)\s+(sur|dans)\s+(la|l')\s*(premi[eè]re|seconde|deuxi[eè]me)?\s*(image|photo)\b/gi, '');
+    value = value.replace(/\b(sur|dans)\s+(la|l')\s*(image|photo)\b/gi, '');
+  }
   value = value.replace(/\b(selon|d'apr[eè]s)\s+wikip[ée]dia\b/gi, '');
   
   return cleanTypography(value);
@@ -312,11 +314,11 @@ const BRIEF_FIELD_LABELS = {
 };
 
 const FULL_FIELD_LABELS = {
-  explanation: 'explication',
-  visualClue: 'indice visuel',
-  taxonomicRule: 'regle taxonomique',
-  whyThisConfusionHappens: 'pourquoi la confusion',
-  discriminant: 'critere',
+  photoSummary: 'resume photo',
+  observedClues: 'reperes observes',
+  whyThisPhotoCouldMislead: 'pourquoi cette photo a pu tromper',
+  nextCheck: 'detail a verifier',
+  caution: 'lecture prudente',
 };
 
 const BRIEF_FIELD_ALLOWED_KINDS = {
@@ -326,11 +328,11 @@ const BRIEF_FIELD_ALLOWED_KINDS = {
 };
 
 const FULL_FIELD_ALLOWED_KINDS = {
-  explanation: ['description'],
-  visualClue: ['description'],
-  taxonomicRule: ['description', 'taxonomy', 'synonymy'],
-  whyThisConfusionHappens: ['description', 'taxonomy'],
-  discriminant: ['description', 'taxonomy'],
+  photoSummary: ['description'],
+  observedClues: ['description'],
+  whyThisPhotoCouldMislead: ['description'],
+  nextCheck: ['description'],
+  caution: [],
 };
 
 const MATCH_STOPWORDS = new Set([
@@ -412,49 +414,50 @@ function normalizeBriefPayload(parsed, { correctName, wrongName, locale }) {
 }
 
 function normalizeFullPayload(parsed, { correctName, wrongName, locale }) {
-  const normalizedExplanation = normalizeExplanation(parsed?.explanation || '', { correctName, wrongName, locale });
-  const normalizedVisual = normalizeExplanation(parsed?.visual_clue || parsed?.visualClue || normalizedExplanation, {
-    correctName,
-    wrongName,
-    locale,
-  });
-  const normalizedTaxonomic = normalizeExplanation(
-    parsed?.taxonomic_rule || parsed?.taxonomicRule || parsed?.discriminant || normalizedVisual,
-    {
+  const normalizePhotoText = (value) =>
+    normalizeExplanation(value || '', {
       correctName,
       wrongName,
       locale,
-    }
-  );
-  const normalizedCounter = normalizeExplanation(
-    parsed?.why_this_confusion_happens ||
+      preservePhotoContext: true,
+    });
+  const normalizedSummary = normalizePhotoText(parsed?.photo_summary || parsed?.photoSummary || parsed?.explanation || '');
+  const observedCluesInput = Array.isArray(parsed?.observed_clues)
+    ? parsed.observed_clues
+    : Array.isArray(parsed?.observedClues)
+      ? parsed.observedClues
+      : [
+          parsed?.visual_clue || parsed?.visualClue || parsed?.discriminant || '',
+        ];
+  const observedClues = observedCluesInput
+    .map((value) => normalizePhotoText(value))
+    .filter(Boolean)
+    .slice(0, 3);
+  const normalizedWhy = normalizePhotoText(
+    parsed?.why_this_photo_could_mislead ||
+      parsed?.whyThisPhotoCouldMislead ||
+      parsed?.why_this_confusion_happens ||
       parsed?.whyThisConfusionHappens ||
       parsed?.counter_example ||
       parsed?.counterExample ||
-      normalizedExplanation,
-    {
-      correctName,
-      wrongName,
-      locale,
-    }
+      normalizedSummary
   );
+  const normalizedNextCheck = normalizePhotoText(
+    parsed?.next_check || parsed?.nextCheck || observedClues[0] || normalizedSummary
+  );
+  const normalizedCaution = normalizePhotoText(parsed?.caution || '');
   return {
-    explanation: normalizedExplanation,
-    visualClue: normalizedVisual,
-    taxonomicRule: normalizedTaxonomic,
-    whyThisConfusionHappens: normalizedCounter,
-    counterExample: normalizedCounter,
-    discriminant: normalizeExplanation(parsed?.discriminant || parsed?.key_difference || normalizedVisual, {
-      correctName,
-      wrongName,
-      locale,
-    }),
+    photoSummary: normalizedSummary,
+    observedClues,
+    whyThisPhotoCouldMislead: normalizedWhy,
+    nextCheck: normalizedNextCheck,
+    caution: normalizedCaution,
     sourceIdsByField: normalizeSourceIdsByField(parsed?.source_ids_by_field || parsed?.sourceIdsByField, [
-      'explanation',
-      'visualClue',
-      'taxonomicRule',
-      'whyThisConfusionHappens',
-      'discriminant',
+      'photoSummary',
+      'observedClues',
+      'whyThisPhotoCouldMislead',
+      'nextCheck',
+      'caution',
     ]),
   };
 }
@@ -477,6 +480,8 @@ export function composeBriefDisplayText({
   whyTempting,
   nextLookFor,
   locale = 'fr',
+  correctName = '',
+  wrongName = '',
 }) {
   const cleanSegment = (value) => String(value || '').trim().replace(/[.;:!?]+$/u, '');
   const lowerFirst = (value) => {
@@ -484,6 +489,14 @@ export function composeBriefDisplayText({
     if (!clean) return '';
     return clean.charAt(0).toLowerCase() + clean.slice(1);
   };
+  const pairLead =
+    correctName && wrongName
+      ? locale === 'en'
+        ? `To tell ${cleanSegment(correctName)} from ${cleanSegment(wrongName)}, keep this in mind`
+        : locale === 'nl'
+          ? `Om ${cleanSegment(correctName)} van ${cleanSegment(wrongName)} te onderscheiden, onthoud dit`
+          : `Pour distinguer ${cleanSegment(correctName)} de ${cleanSegment(wrongName)}, retiens ceci`
+      : '';
   const startsWithVerb = (value) =>
     /^(observe|observer|regarde|regarder|compare|comparer|note|noter|check|look|kijk|let op)\b/iu.test(
       cleanSegment(value)
@@ -491,22 +504,23 @@ export function composeBriefDisplayText({
   const safeKeyDifference = cleanSegment(keyDifference);
   const safeWhyTempting = lowerFirst(whyTempting);
   const safeNextLookFor = cleanSegment(nextLookFor);
+  const leadSentence = pairLead ? `${pairLead}${locale === 'fr' ? ' :' : ':'} ${safeKeyDifference}.` : `${safeKeyDifference}.`;
   if (locale === 'en') {
     const nextSentence = startsWithVerb(safeNextLookFor)
       ? `Next time, ${lowerFirst(safeNextLookFor)}.`
       : `Next time, look for ${lowerFirst(safeNextLookFor)}.`;
-    return `${safeKeyDifference}. Your choice makes sense: ${safeWhyTempting}. ${nextSentence}`;
+    return `${leadSentence} Your choice makes sense: ${safeWhyTempting}. ${nextSentence}`;
   }
   if (locale === 'nl') {
     const nextSentence = startsWithVerb(safeNextLookFor)
       ? `Kijk de volgende keer ${lowerFirst(safeNextLookFor)}.`
       : `Kijk de volgende keer naar ${lowerFirst(safeNextLookFor)}.`;
-    return `${safeKeyDifference}. Je vergissing is logisch: ${safeWhyTempting}. ${nextSentence}`;
+    return `${leadSentence} Je vergissing is logisch: ${safeWhyTempting}. ${nextSentence}`;
   }
   const nextSentence = startsWithVerb(safeNextLookFor)
     ? `La prochaine fois, ${lowerFirst(safeNextLookFor)}.`
     : `La prochaine fois, regarde ${lowerFirst(safeNextLookFor)}.`;
-  return `${safeKeyDifference}. Ton erreur est logique : ${safeWhyTempting}. ${nextSentence}`;
+  return `${leadSentence} Ton erreur est logique : ${safeWhyTempting}. ${nextSentence}`;
 }
 
 export function validateBriefExplanation(responseObj, { correctName, wrongName, locale = 'fr', sourceMap }) {
@@ -542,6 +556,8 @@ export function validateBriefExplanation(responseObj, { correctName, wrongName, 
       whyTempting,
       nextLookFor,
       locale,
+      correctName,
+      wrongName,
     }),
     { correctName, wrongName, locale }
   );
@@ -559,6 +575,8 @@ export function validateBriefExplanation(responseObj, { correctName, wrongName, 
     issues.push('QUALITY: brief incomplet');
   }
 
+  issues.push(...collectBriefScopeIssues({ displayText, keyDifference, whyTempting, nextLookFor }, { correctName, wrongName, locale }));
+
   return {
     valid: issues.length === 0,
     issues,
@@ -573,6 +591,36 @@ export function validateBriefExplanation(responseObj, { correctName, wrongName, 
   };
 }
 
+function collectBriefScopeIssues(
+  { displayText, keyDifference, whyTempting, nextLookFor },
+  { correctName, wrongName, locale = 'fr' } = {}
+) {
+  const issues = [];
+  const text = [displayText, keyDifference, whyTempting, nextLookFor].filter(Boolean).join(' ');
+  const normalizedText = normalizeMatchText(text);
+  const leftNames = [correctName].filter(Boolean).map((name) => normalizeMatchText(name));
+  const rightNames = [wrongName].filter(Boolean).map((name) => normalizeMatchText(name));
+  const hasLeftMention = leftNames.some((name) => name && normalizedText.includes(name));
+  const hasRightMention = rightNames.some((name) => name && normalizedText.includes(name));
+  if (leftNames.length > 0 && rightNames.length > 0 && (!hasLeftMention || !hasRightMention)) {
+    issues.push('QUALITY: brief ne cite pas clairement les deux espèces');
+  }
+
+  const genericBoilerplatePatterns =
+    locale === 'fr'
+      ? [
+          /\bun detail structurel net\b/iu,
+          /\bun caractere stable\b/iu,
+          /\bcompare la silhouette generale\b/iu,
+        ]
+      : [];
+  if (genericBoilerplatePatterns.some((pattern) => pattern.test(text)) && (!hasLeftMention || !hasRightMention)) {
+    issues.push('QUALITY: brief trop générique pour cette paire');
+  }
+
+  return issues;
+}
+
 export function validateFullExplanation(
   responseObj,
   { correctName, wrongName, correctScientificName, wrongScientificName, locale = 'fr', sourceMap }
@@ -583,9 +631,45 @@ export function validateFullExplanation(
     return { valid: false, issues: ['Réponse full non-objet'], warnings, full: null };
   }
 
-  Object.entries(FULL_FIELD_LABELS).forEach(([field, label]) => {
-    validateWordRange(responseObj[field], OUTPUT_CONSTRAINTS.full[field], label, warnings);
-    const fieldIssues = collectQualityIssues(responseObj[field], { label });
+  validateWordRange(responseObj.photoSummary, OUTPUT_CONSTRAINTS.full.photoSummary, FULL_FIELD_LABELS.photoSummary, warnings);
+  validateWordRange(
+    responseObj.whyThisPhotoCouldMislead,
+    OUTPUT_CONSTRAINTS.full.whyThisPhotoCouldMislead,
+    FULL_FIELD_LABELS.whyThisPhotoCouldMislead,
+    warnings
+  );
+  validateWordRange(responseObj.nextCheck, OUTPUT_CONSTRAINTS.full.nextCheck, FULL_FIELD_LABELS.nextCheck, warnings);
+  validateWordRange(responseObj.caution, OUTPUT_CONSTRAINTS.full.caution, FULL_FIELD_LABELS.caution, warnings);
+
+  const clueList = Array.isArray(responseObj.observedClues) ? responseObj.observedClues : [];
+  clueList.forEach((clue, index) => {
+    validateWordRange(
+      clue,
+      OUTPUT_CONSTRAINTS.full.observedClue,
+      `${FULL_FIELD_LABELS.observedClues} ${index + 1}`,
+      warnings
+    );
+  });
+
+  const fieldValues = [
+    responseObj.photoSummary,
+    ...clueList,
+    responseObj.whyThisPhotoCouldMislead,
+    responseObj.nextCheck,
+    responseObj.caution,
+  ];
+  fieldValues.forEach((value, index) => {
+    const label =
+      index === 0
+        ? FULL_FIELD_LABELS.photoSummary
+        : index <= clueList.length
+          ? `${FULL_FIELD_LABELS.observedClues} ${index}`
+          : index === clueList.length + 1
+            ? FULL_FIELD_LABELS.whyThisPhotoCouldMislead
+            : index === clueList.length + 2
+              ? FULL_FIELD_LABELS.nextCheck
+              : FULL_FIELD_LABELS.caution;
+    const fieldIssues = collectQualityIssues(value, { label });
     fieldIssues.forEach((issue) => {
       if (hasBlockingQualityIssue(issue)) {
         issues.push(issue);
@@ -596,11 +680,10 @@ export function validateFullExplanation(
   });
 
   if (
-    !responseObj.explanation ||
-    !responseObj.visualClue ||
-    !responseObj.taxonomicRule ||
-    !responseObj.whyThisConfusionHappens ||
-    !responseObj.discriminant
+    !responseObj.photoSummary ||
+    clueList.length === 0 ||
+    !responseObj.whyThisPhotoCouldMislead ||
+    !responseObj.nextCheck
   ) {
     issues.push('QUALITY: full incomplet');
   }
@@ -631,11 +714,11 @@ function collectPairScopeIssues(
 ) {
   const issues = [];
   const text = [
-    responseObj?.explanation,
-    responseObj?.visualClue,
-    responseObj?.taxonomicRule,
-    responseObj?.whyThisConfusionHappens,
-    responseObj?.discriminant,
+    responseObj?.photoSummary,
+    ...(Array.isArray(responseObj?.observedClues) ? responseObj.observedClues : []),
+    responseObj?.whyThisPhotoCouldMislead,
+    responseObj?.nextCheck,
+    responseObj?.caution,
   ]
     .filter(Boolean)
     .join(' ');
@@ -646,6 +729,10 @@ function collectPairScopeIssues(
   const hasRightMention = rightNames.some((name) => name && normalizedText.includes(name));
   if (leftNames.length > 0 && rightNames.length > 0 && (!hasLeftMention || !hasRightMention)) {
     issues.push('QUALITY: full ne cite pas clairement les deux espèces');
+  }
+
+  if (!/\b(photo|image|ici|visible|visibles|on voit|si ce detail)\b/iu.test(text)) {
+    issues.push('QUALITY: full ne parle pas clairement de la photo');
   }
 
   const genericDriftPatterns = [
@@ -663,6 +750,7 @@ function collectPairScopeIssues(
           /\bla difference principale entre\b/iu,
           /\bcompare la taille, la forme des oreilles, du museau et le pelage\b/iu,
           /\ble bord de la feuille\b.*\bla tige\b.*\bla fleur\b/iu,
+          /\bmode de reproduction\b/iu,
         ]
       : [];
   if (genericBoilerplatePatterns.some((pattern) => pattern.test(text)) && (!hasLeftMention || !hasRightMention)) {
@@ -755,53 +843,71 @@ export function buildBriefSupport(brief, bundle, sourceMap) {
   };
   const sourceIds = Array.from(new Set(Object.values(supportByField).flat().filter(Boolean)));
   const attributedFieldCount = Object.values(supportByField).filter((ids) => ids.length > 0).length;
+  const descriptionCount = sourceIds.filter((id) => sourceMap.get(id)?.kind === 'description').length;
+  const level = confidenceFromSupport({
+    attributedSourceIds: sourceIds,
+    sourceMap,
+    attributedFieldCount,
+    totalFields: 3,
+  });
+  const minimumSupportMet = descriptionCount >= 1 && attributedFieldCount >= 2;
   return {
-    level: confidenceFromSupport({
-      attributedSourceIds: sourceIds,
-      sourceMap,
-      attributedFieldCount,
-      totalFields: 3,
-    }),
+    level,
     sourceIds,
     sourceIdsByField: supportByField,
+    attributedFieldCount,
+    descriptionCount,
+    minimumSupportMet,
   };
 }
 
-export function buildFullSupport(full, bundle, sourceMap) {
+export function buildFullSupport(full, bundle, sourceMap, { photoSourceId = null } = {}) {
   const facts = Array.isArray(bundle?.facts) ? bundle.facts : [];
   const supportByField = {
-    explanation: attributeTextToSources(full?.explanation, facts, {
-      allowedKinds: FULL_FIELD_ALLOWED_KINDS.explanation,
+    photoSummary: attributeTextToSources(full?.photoSummary, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.photoSummary,
       preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
     }),
-    visualClue: attributeTextToSources(full?.visualClue, facts, {
-      allowedKinds: FULL_FIELD_ALLOWED_KINDS.visualClue,
+    observedClues: attributeTextToSources((full?.observedClues || []).join(' '), facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.observedClues,
       preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
     }),
-    taxonomicRule: attributeTextToSources(full?.taxonomicRule, facts, {
-      allowedKinds: FULL_FIELD_ALLOWED_KINDS.taxonomicRule,
-      preferredTaxonIds: [bundle?.correct?.taxonId, bundle?.wrong?.taxonId].filter(Boolean),
-    }),
-    whyThisConfusionHappens: attributeTextToSources(full?.whyThisConfusionHappens, facts, {
-      allowedKinds: FULL_FIELD_ALLOWED_KINDS.whyThisConfusionHappens,
+    whyThisPhotoCouldMislead: attributeTextToSources(full?.whyThisPhotoCouldMislead, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.whyThisPhotoCouldMislead,
       preferredTaxonIds: [bundle?.wrong?.taxonId, bundle?.correct?.taxonId].filter(Boolean),
     }),
-    discriminant: attributeTextToSources(full?.discriminant, facts, {
-      allowedKinds: FULL_FIELD_ALLOWED_KINDS.discriminant,
+    nextCheck: attributeTextToSources(full?.nextCheck, facts, {
+      allowedKinds: FULL_FIELD_ALLOWED_KINDS.nextCheck,
       preferredTaxonIds: [bundle?.correct?.taxonId].filter(Boolean),
     }),
+    caution: [],
   };
-  const attributedSourceIds = Array.from(new Set(Object.values(supportByField).flat().filter(Boolean)));
+  const factualSourceIds = Array.from(new Set(Object.values(supportByField).flat().filter(Boolean)));
+  const sourceIds = photoSourceId
+    ? Array.from(new Set([photoSourceId, ...factualSourceIds]))
+    : factualSourceIds;
   const attributedFieldCount = Object.values(supportByField).filter((ids) => ids.length > 0).length;
+  const descriptionCount = factualSourceIds.filter((id) => sourceMap.get(id)?.kind === 'description').length;
+  const minimumSupportMet =
+    Boolean(photoSourceId) &&
+    descriptionCount >= 1 &&
+    attributedFieldCount >= 2 &&
+    factualSourceIds.length >= 2;
+  const level = !photoSourceId
+    ? 'unavailable'
+    : descriptionCount >= 2 && attributedFieldCount >= 3
+      ? 'photo_grounded'
+      : minimumSupportMet
+        ? 'photo_limited'
+        : 'limited';
   return {
-    level: confidenceFromSupport({
-      attributedSourceIds,
-      sourceMap,
-      attributedFieldCount,
-      totalFields: 5,
-    }),
-    sourceIds: attributedSourceIds,
+    level,
+    sourceIds,
     supportByField,
+    attributedFieldCount,
+    descriptionCount,
+    minimumSupportMet,
+    photoAttached: Boolean(photoSourceId),
   };
 }
 

@@ -15,18 +15,18 @@ const SOCKET_SKIP_REASON = 'Socket binding not permitted in this environment';
 const DEFAULT_AI_TEXT = 'Ces deux especes se distinguent par leur morphologie et leur habitat.';
 
 const buildFullAiJson = ({
-  explanation = "Observe d'abord la silhouette generale, puis compare la structure la plus stable visible sur la photo. Ce repere reste utile meme quand la couleur, l'angle ou l'arriere-plan rendent les deux especes tres proches au premier regard.",
-  visualClue = 'Compare la forme generale, le contraste et un detail structurel visible.',
-  taxonomicRule = 'Pars du genre ou de la famille, puis confirme un caractere stable.',
-  whyThisConfusionHappens = "L'espece confuse peut sembler proche si la photo masque le meilleur repere visuel.",
-  discriminant = 'Silhouette et trait structurel stable',
+  photoSummary = "Sur cette photo, observe d'abord la silhouette generale puis le detail structurel le plus net pour separer les deux especes.",
+  observedClues = ['silhouette generale', 'detail structurel visible'],
+  whyThisPhotoCouldMislead = "Cette photo peut tasser les proportions et rendre la confusion plausible au premier regard.",
+  nextCheck = 'regarde ensuite un detail structurel stable',
+  caution = '',
 } = {}) =>
   JSON.stringify({
-    explanation,
-    visual_clue: visualClue,
-    taxonomic_rule: taxonomicRule,
-    why_this_confusion_happens: whyThisConfusionHappens,
-    discriminant,
+    photo_summary: photoSummary,
+    observed_clues: observedClues,
+    why_this_photo_could_mislead: whyThisPhotoCouldMislead,
+    next_check: nextCheck,
+    caution,
   });
 
 const buildBriefAiJson = ({
@@ -137,6 +137,20 @@ function buildExternalFetchMock({
       };
     }
 
+    if (rawUrl.startsWith('https://example.com/') || rawUrl.startsWith('https://static.inaturalist.org/')) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          get: (name) => (String(name || '').toLowerCase() === 'content-type' ? 'image/jpeg' : null),
+        },
+        arrayBuffer: async () => new Uint8Array([255, 216, 255, 217]).buffer,
+        text: async () => '',
+        json: async () => ({}),
+      };
+    }
+
     return {
       ok: true,
       status: 200,
@@ -194,6 +208,12 @@ integrationTest('POST /api/quiz/explain returns a valid explanation payload', as
     correctId: 101,
     wrongId: 202,
     locale: 'fr',
+    imageContext: {
+      source: 'round_photo',
+      url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
   });
 
   assert.equal(res.status, 200);
@@ -223,6 +243,12 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
     correctId: 901,
     wrongId: 902,
     locale: 'fr',
+    imageContext: {
+      source: 'round_photo',
+      url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
   });
 
   assert.equal(res.status, 200);
@@ -231,8 +257,8 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
   assert.equal(typeof body.explanation, 'string');
   assert.ok(body.explanation.length > 0);
   assert.equal(body.mode, 'full');
-  assert.ok(['grounded', 'model_guided'].includes(body.confidence));
-  assert.equal(body.full?.discriminant, 'Silhouette et trait structurel stable');
+  assert.ok(['photo_grounded', 'photo_limited'].includes(body.confidence));
+  assert.equal(body.full?.observedClues?.[0], 'Silhouette generale');
   assert.ok(body.full?.supportByField);
   assert.equal(typeof body.trace_id, 'string');
 });
@@ -257,6 +283,12 @@ integrationTest('POST /api/quiz/explain sets fallback=true when AI output is low
     correctId: 903,
     wrongId: 904,
     locale: 'fr',
+    imageContext: {
+      source: 'round_photo',
+      url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
   });
 
   assert.equal(res.status, 200);
@@ -285,6 +317,12 @@ integrationTest('POST /api/quiz/explain sets fallback=true when AI response is e
     correctId: 905,
     wrongId: 906,
     locale: 'fr',
+    imageContext: {
+      source: 'round_photo',
+      url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
   });
 
   assert.equal(res.status, 200);

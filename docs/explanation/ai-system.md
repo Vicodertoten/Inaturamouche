@@ -1,237 +1,186 @@
 # Système IA — Explications et Devinettes
 
-> Comment Papy Mouche distingue un Bolet de Satan d'un Cèpe de Bordeaux, et pourquoi il ne se trompe (presque) jamais.
+> État réel de l’implémentation dans `server/services/ai/` au 22 mars 2026.
 
-## Vue d'ensemble
+## Vue d’ensemble
 
-Le système IA génère deux types de contenu :
-- **Explications** (`generateCustomExplanation`) — après une réponse, explique les différences morphologiques entre l'espèce correcte et celle choisie par erreur.
-- **Devinettes** (`generateRiddle`) — en mode riddle, fournit 3 indices progressifs pour deviner l'espèce sans voir la photo.
+Le système IA produit deux familles de sorties :
 
-Les deux suivent le même pipeline en 4 étapes :
+- `generateCustomExplanation()` pour expliquer une confusion entre deux espèces.
+- `generateRiddle()` pour produire 3 indices de devinette.
 
-```mermaid
-flowchart LR
-    A["1. RAG<br/>Collecte données"] --> B["2. Génération<br/>Gemini 2.5 Flash"]
-    B --> C["3. Validation<br/>Qualité + Nettoyage"]
-    C --> D{"Qualité OK ?"}
-    D -->|oui| E["✅ Réponse IA"]
-    D -->|non| F["🔄 Fallback<br/>morphologique"]
+Pour les explications, il existe deux modes :
 
-    style A fill:#e8f5e9
-    style B fill:#fff3e0
-    style C fill:#e3f2fd
-    style F fill:#ffebee
-```
+- `brief` : repère court, textuel, sans analyse d’image.
+- `full` : analyse photo-spécifique quand une image de manche valide est fournie.
 
-## Étape 1 — RAG (Retrieval-Augmented Generation)
+Le pipeline réel est :
 
-**Fichier** : `server/services/ai/ragSources.js`
+1. Collecte d’évidence : Wikipedia + iNaturalist + GBIF + Catalogue of Life.
+2. Génération Gemini : JSON structuré, prompts séparés pour `brief` et `full`.
+3. Validation : parsing JSON, qualité textuelle, scope de paire, attribution aux sources.
+4. Réparation : second passage court uniquement si le JSON est invalide.
+5. Fallback : sortie déterministe pair-specific quand l’IA ou la photo ne sont pas exploitables.
 
-Avant d'appeler l'IA, le système collecte des données factuelles depuis Wikipedia pour ancrer la génération dans la réalité.
+## Fichiers clés
 
-```mermaid
-flowchart TD
-    INPUT["Taxon correct + Taxon erroné"] --> COLLECT["collectSpeciesData()"]
+- `server/services/ai/aiPipeline.js`
+- `server/services/ai/ragSources.js`
+- `server/services/ai/promptBuilder.js`
+- `server/services/ai/outputFilter.js`
+- `server/services/ai/aiConfig.js`
 
-    COLLECT --> SCI_EN["Wikipedia EN<br/>nom scientifique"]
-    COLLECT --> SCI_LOC["Wikipedia locale<br/>nom scientifique"]
-    COLLECT --> COMMON_EN["Wikipedia EN<br/>nom commun"]
-    COLLECT --> COMMON_LOC["Wikipedia locale<br/>nom commun"]
+## Modèles et sorties
 
-    SCI_EN --> MERGE["Fusionner + tronquer"]
-    SCI_LOC --> MERGE
-    COMMON_EN --> MERGE
-    COMMON_LOC --> MERGE
+### Explication `brief`
 
-    MERGE --> DATA["{ scientificName,<br/>commonName,<br/>summaries: { en, locale } }"]
-```
+- Modèle : `gemini-2.5-flash-lite`
+- Timeout : `2200 ms`
+- Tentatives max : `2`
+- Format : JSON strict
+- Champs :
+  - `key_difference`
+  - `why_tempting`
+  - `next_look_for`
 
-### Détails techniques
+### Explication `full`
 
-- **API** : Wikipedia REST v1 (`{lang}.wikipedia.org/api/rest_v1/page/summary/{title}`)
-- **Timeout** : 5 secondes par requête (`safeFetch()`)
-- **Traitement** : les résumés sont nettoyés (HTML strippé, whitespace normalisé) puis tronqués pour rester dans les limites de tokens
-- **Tolérance** : si Wikipedia ne retourne rien, le pipeline continue sans données RAG — l'IA s'appuie alors uniquement sur ses connaissances internes
-- **Langues** : la locale du joueur (fr/en/nl) + anglais comme fallback
+- Modèle : `gemini-2.5-flash`
+- Timeout : `5000 ms`
+- Tentatives max : `2`
+- Format : JSON strict
+- Champs :
+  - `photo_summary`
+  - `observed_clues`
+  - `why_this_photo_could_mislead`
+  - `next_check`
+  - `caution`
 
-### Calcul de sévérité
+### Repair pass
 
-**Fichier** : `server/services/ai/promptBuilder.js`
+- Modèle : `gemini-2.5-flash-lite`
+- Usage : uniquement après échec de parsing JSON
+- But : convertir un brouillon récupérable en JSON valide sans ajouter de faits
 
-La distance taxonomique entre les deux espèces détermine le ton de l'explication :
+## Persona
 
-| Sévérité | Condition | Comportement IA |
-|----------|-----------|-----------------|
-| `CLOSE` | Même genre | Détails fins : couleur, texture, habitat |
-| `MEDIUM` | Même famille | Différences structurelles |
-| `HUGE` | Classe/règne différent | Évidences grossières, ton rassurant |
+La persona active n’est plus “Papy Mouche” dans le pipeline d’explication. Le système courant utilise un **coach naturaliste** :
 
-## Étape 2 — Génération (Gemini 2.5 Flash)
+- ton sobre, concret, non infantilisant
+- obligation de citer explicitement les deux espèces
+- interdiction d’inventer des faits absents des preuves
+- priorité à l’utilité terrain / photo
 
-**Fichier** : `server/services/ai/aiPipeline.js`
+Le mode devinette conserve un prompt “Papy Mouche” séparé.
 
-### Configuration du modèle
+## Stratégie RAG
 
-| Paramètre | Explication | Devinette |
-|-----------|-------------|-----------|
-| Modèle | `gemini-2.5-flash` | `gemini-2.5-flash` |
-| Température | 0.4 (factuel) | 0.8 (créatif) |
-| Top-P | 0.8 | 0.95 |
-| Max tokens | 4000 | 4000 |
-| Timeout | 45 s | 45 s |
-| Retries | 2 | 2 |
+### Sources utilisées
 
-### Persona : Papy Mouche
+- Wikipedia REST summaries en parallèle
+- descriptions iNaturalist
+- support taxonomique GBIF
+- support taxonomique Catalogue of Life
 
-Le system prompt définit le personnage **Papy Mouche**, un naturaliste pédagogue :
+### Garde-fous RAG
 
-> *Naturaliste enseignant passionné qui tutoie l'utilisateur, cite les espèces par leur nom, et utilise un ton encourageant.*
+- timeout par requête
+- `Promise.allSettled()` pour éviter qu’une source fasse échouer tout le bundle
+- troncature stricte des snippets
+- déduplication des résumés Wikipedia
+- déduplication explicite des miroirs Wikipedia exposés via iNaturalist
+- labels de source plus précis, par exemple `Wikipedia (fr)` ou `Wikipedia via iNaturalist`
 
-Contraintes du prompt :
-- Explication : **5–200 mots**
-- Devinette : **3 indices, max 180 caractères chacun**
-- Format de sortie : **JSON strict** avec champ `internal_critique` (auto-évaluation forcée avant la réponse finale)
+## Sécurité image pour le mode `full`
 
-### Schéma de sortie (Explication)
+Le backend n’accepte plus une URL arbitraire :
 
-```json
-{
-  "internal_critique": "L'explication couvre bien les différences de chapeau...",
-  "intro": "Bonne intuition !",
-  "explanation": "Le Cèpe de Bordeaux a un chapeau brun-noisette...",
-  "discriminant": "Réseau de pores blanc sous le chapeau (vs lames)"
-}
-```
+- allowlist stricte d’hôtes iNaturalist/CDN
+- refus des IP privées / loopback
+- refus des redirections
+- protocole `https` obligatoire
+- `content-type` vérifié (`image/*`)
+- `Content-Length` borné
+- plafond strict de bytes lus avant conversion base64
 
-### Retry avec backoff
+Si ces contrôles échouent, le pipeline ne tente pas d’analyse photo et passe au fallback déterministe.
 
-```mermaid
-flowchart TD
-    CALL["POST Gemini API"] --> STATUS{"Status ?"}
-    STATUS -->|200| PARSE["Parser JSON"]
-    STATUS -->|429 ou 500+| WAIT["Attendre<br/>1s × attempt"]
-    WAIT --> RETRY{"Tentative ≤ 2 ?"}
-    RETRY -->|oui| CALL
-    RETRY -->|non| FAIL["❌ Erreur"]
-    STATUS -->|autre erreur| FAIL
+## Validation et support
 
-    PARSE --> TOKENS["Logger tokens<br/>+ coût estimé"]
-    TOKENS --> RESULT["Réponse IA"]
-```
+La validation ne s’arrête pas au JSON :
 
-### Estimation de coût
+- nettoyage typographique
+- détection d’artefacts de génération
+- contrôle de scope : la réponse doit rester sur la paire correcte/erronée
+- contrôle photo pour le mode `full`
+- attribution heuristique des champs aux faits RAG
 
-Le pipeline calcule un coût estimé après chaque appel :
-- Input : **$0.30 / 1M tokens**
-- Output : **$2.50 / 1M tokens**
+L’attribution est maintenant un **garde-fou bloquant** :
 
-Ce coût est loggé et agrégé dans le dashboard de métriques (voir [metrics-system.md](metrics-system.md)).
+- `brief` : au moins 2 champs doivent être factuellement attribués
+- `full` : photo jointe obligatoire + plusieurs champs factuellement attribués + au moins 2 sources factuelles distinctes pour sortir du `limited`
 
-## Étape 3 — Validation et nettoyage
+Le niveau `photo_grounded` n’est plus accordé simplement parce qu’une photo était jointe.
 
-**Fichier** : `server/services/ai/outputFilter.js`
+## Retry et observabilité Gemini
 
-La sortie brute de l'IA passe par un pipeline de nettoyage en 3 phases :
+Les appels Gemini utilisent une sémantique claire :
 
-### Phase A — Parse et validation structurelle
+- `maxAttempts` = nombre total de tentatives
+- retry sur `429`, `5xx`, timeouts et erreurs réseau
+- respect du header `Retry-After`
+- backoff exponentiel borné + jitter
+- logs de `finishReason` et `promptFeedback`
+- enregistrement des tokens et du coût estimé dans `metricsStore`
 
-`parseAIResponse()` extrait le JSON depuis la réponse Gemini, en gérant :
-- Réponses wrappées dans des blocs markdown (`` ```json ```)
-- Champs manquants (fallback sur valeurs vides)
-- JSON invalide (→ fallback)
+## Cache
 
-### Phase B — Nettoyage typographique
+### Clés de cache des explications
 
-`cleanTypography()` corrige :
-- Espaces manquants avant la ponctuation française (` !`, ` ?`, ` :`)
-- Capitalisation après les points
-- Whitespace excessif
+La clé inclut maintenant :
 
-### Phase C — Détection de problèmes de qualité
+- version de cache
+- version de prompt
+- locale
+- paire `correct/wrong`
+- `packId`
+- `gameMode`
+- `masteryBucket`
+- `confusionBucket`
+- hash d’image pour le mode `full`
 
-`collectQualityIssues()` cherche 9 catégories de défauts :
+### Politique
 
-| Catégorie | Exemple | Action |
-|-----------|---------|--------|
-| Lettres répétées | "leeee chapeau" | Signaler |
-| Mots dupliqués | "le le champignon" | Signaler |
-| Mots cassés | "champ/ignon" | Signaler |
-| Ponctuation anormale | "!!!!" | Signaler |
-| Bruit de métadonnées | "```json" | Signaler |
-| Symboles non-textuels | "★ ▶" | Signaler |
-| Séquences suspectes | "aaaa" sans sens | Signaler |
-| Troncation | Phrase coupée sans fin | Signaler |
-| Comparaison anonyme | "le premier" au lieu du nom | Remplacer |
+- TTLs variables selon `confidence`
+- les fallbacks sont cachés plus court
+- `SmartCache` applique désormais les TTL dynamiques au moment du fetch ou de la revalidation
+- le pipeline ne réécrit plus systématiquement une valeur stale après `getOrFetch()`
 
-### Phase D — Normalisation
+## Fallbacks
 
-`normalizeExplanation()` remplace les pronoms vagues par les noms réels des espèces :
-- "le premier" → "*Boletus edulis*"
-- "the first species" → "*Boletus satanas*"
+### `brief`
 
-## Étape 4 — Fallback morphologique
+Fallback morphologique pair-specific basé sur le groupe taxonomique et la sévérité de la confusion.
 
-Si l'IA échoue (erreur réseau, qualité insuffisante, timeout), le système génère un **fallback déterministe** :
+### `full`
 
-**`buildMorphologyFallback()`** sélectionne un conseil prédéfini basé sur le groupe iconique du taxon :
+Fallback hybride :
 
-| Groupe iconique | Conseil type |
-|----------------|--------------|
-| Fungi | "Observe la forme du chapeau, les lamelles ou tubes sous le chapeau..." |
-| Aves | "Regarde la taille, la forme du bec, les couleurs du plumage..." |
-| Insecta | "Compte les pattes, observe les antennes, les ailes..." |
-| Plantae | "Examine la forme des feuilles, la disposition des pétales..." |
-| Mammalia | "Observe la taille, la forme des oreilles, le pelage..." |
+- annonce claire qu’une lecture photo fine n’est pas disponible
+- conserve un conseil morphologique déterministe utile pour cette paire
+- garde un `next_check` concret au lieu de retourner une simple indisponibilité vide
 
-Le fallback est marqué `source: 'morphology-fallback'` pour le distinguer dans les métriques.
+## API publique
 
-## Cache IA
+L’endpoint `POST /api/quiz/explain` n’expose plus `focusRank` : ce paramètre n’était pas implémenté dans le pipeline.
 
-Les résultats sont mis en cache de manière agressive pour éviter les appels répétés (et les coûts) :
+## Devinettes
 
-| Cache | TTL | Stale | Max entries |
-|-------|-----|-------|-------------|
-| `explanationCache` | 7 jours | 30 jours | 1 000 |
-| `riddleCache` | 7 jours | 30 jours | 1 000 |
+`generateRiddle()` reste plus simple :
 
-La clé de cache combine le taxon correct, le taxon erroné, et la locale. Deux joueurs posant la même question dans la même langue reçoivent la même explication.
+- collecte d’un bundle espèce unique
+- génération JSON avec `clues`
+- normalisation / fallback de remplissage si besoin
+- cache dédié
 
-## Flux complet — Diagramme de séquence
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Server
-    participant W as Wikipedia
-    participant G as Gemini
-
-    C->>S: GET /api/explain?correct=123&wrong=456&locale=fr
-    S->>S: Cache explanationCache ?
-    alt Cache hit
-        S-->>C: 200 { explanation, source: 'cache' }
-    else Cache miss
-        S->>W: GET fr.wikipedia.org/summary/Boletus_edulis
-        S->>W: GET en.wikipedia.org/summary/Boletus_edulis
-        S->>W: GET fr.wikipedia.org/summary/Boletus_satanas
-        S->>W: GET en.wikipedia.org/summary/Boletus_satanas
-        W-->>S: Résumés Wikipedia (4 requêtes parallèles)
-
-        S->>S: buildExplanationPrompt(severity, speciesData)
-        S->>G: POST generativelanguage.googleapis.com
-        G-->>S: JSON { internal_critique, intro, explanation, discriminant }
-
-        S->>S: parseAIResponse() → cleanTypography() → collectQualityIssues()
-        alt Qualité OK
-            S->>S: Cache 7j
-            S-->>C: 200 { explanation, source: 'ai' }
-        else Qualité insuffisante
-            S->>S: buildMorphologyFallback()
-            S-->>C: 200 { explanation, source: 'morphology-fallback' }
-        end
-    end
-```
-
----
-
-*Fichiers clés : [server/services/ai/aiPipeline.js](../../server/services/ai/aiPipeline.js), [server/services/ai/aiConfig.js](../../server/services/ai/aiConfig.js), [server/services/ai/ragSources.js](../../server/services/ai/ragSources.js), [server/services/ai/promptBuilder.js](../../server/services/ai/promptBuilder.js), [server/services/ai/outputFilter.js](../../server/services/ai/outputFilter.js)*
+Le mode devinette ne partage pas tous les garde-fous d’attribution du pipeline d’explication.
