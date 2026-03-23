@@ -111,6 +111,7 @@ const mockHomeCatalog = {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('inaturamouche_tutorial_seen', 'true');
+    window.localStorage.setItem('inaturamouche_onboarding_done', '1');
     window.localStorage.setItem('SEEDING_COMPLETE_V1', '1');
     window.localStorage.setItem('RARITY_REBUILD_V6', '1');
   });
@@ -330,14 +331,16 @@ test('wide viewport shows whole explanation container and allows scroll', async 
   await expect(page).toHaveURL(/\/play$/);
 
   // pick first choice (wrong by our route logic)
-  await page.locator('.answer-button').first().click();
+  await page.locator('.choices button').first().click();
 
   // the summary modal should appear
   const modal = page.locator('.summary-modal');
   await expect(modal).toBeVisible();
 
   const explanationCard = modal.locator('.explanation-section');
+  const explanationContent = modal.locator('.explanation-content');
   await expect(explanationCard).toBeVisible();
+  await expect(explanationContent).toBeVisible();
 
   // check that bounding box is fully within viewport and content is scrollable
   const box = await explanationCard.boundingBox();
@@ -349,7 +352,7 @@ test('wide viewport shows whole explanation container and allows scroll', async 
   }
 
   // the inner content should have overflow:auto style applied
-  const overflow = await explanationCard.evaluate((el) => window.getComputedStyle(el).overflow);
+  const overflow = await explanationContent.evaluate((el) => window.getComputedStyle(el).overflow);
   expect(overflow).toMatch(/auto|scroll/);
 });
 

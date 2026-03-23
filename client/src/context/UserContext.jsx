@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { getDefaultProfile, loadProfileFromStore, saveProfile } from '../services/PlayerProfile';
 import { checkDailyStreak } from '../services/StreakService';
 import { migrateLocalStorageToIndexedDB } from '../services/MigrationService';
@@ -100,6 +100,11 @@ export function UserProvider({ children }) {
   const [profile, setProfile] = useState(() => sanitizeProfile());
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [collectionVersion, setCollectionVersion] = useState(0);
+  const translateRef = useRef(t);
+
+  useEffect(() => {
+    translateRef.current = t;
+  }, [t]);
 
   // Initialize: load profile, migrate legacy data, and seed encyclopedia
   useEffect(() => {
@@ -135,7 +140,7 @@ export function UserProvider({ children }) {
         let loadedProfile = persistedProfile;
         
         // Check daily streak on app load
-        loadedProfile = checkDailyStreak(loadedProfile, t);
+        loadedProfile = checkDailyStreak(loadedProfile, translateRef.current);
         
         if (!isMounted) return;
         setProfile(sanitizeProfile(loadedProfile));

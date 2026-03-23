@@ -21,17 +21,6 @@ function formatPackId(id) {
 }
 
 /**
- * Check whether onboarding has already been completed.
- */
-export function isOnboardingDone() {
-  try {
-    return window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Mark onboarding as done in localStorage.
  */
 function markOnboardingDone() {
@@ -52,7 +41,7 @@ function markOnboardingDone() {
 export default function Onboarding({ onComplete }) {
   const { t } = useLanguage();
   const { packs, loading: packsLoading } = usePacks();
-  const { activePackId, setActivePackId } = useGameData();
+  const { setActivePackId } = useGameData();
   const geoDefaultPack = useGeoDefaultPack();
   const { getPhotos, loadPreview } = usePackPreviews();
 

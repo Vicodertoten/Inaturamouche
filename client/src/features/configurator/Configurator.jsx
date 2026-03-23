@@ -219,7 +219,8 @@ function Configurator({ onStartGame }) {
 
   // Saved custom packs
   const [savedPacksVersion, setSavedPacksVersion] = useState(0);
-  const savedPacks = useMemo(() => getSavedPacks(), [savedPacksVersion]);
+  void savedPacksVersion;
+  const savedPacks = getSavedPacks();
 
   const handleSelectSavedPack = useCallback(
     (savedPack) => {

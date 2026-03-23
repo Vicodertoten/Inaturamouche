@@ -289,7 +289,8 @@ const HomePage = () => {
     }
   }, [activePackId, customOpen, setActivePackId]);
 
-  const savedPacks = useMemo(() => getSavedPacks(), [savedPacksVersion]);
+  void savedPacksVersion;
+  const savedPacks = getSavedPacks();
   const advancedPanelRef = useRef(null);
   const advancedButtonRef = useRef(null);
   const customPanelRef = useRef(null);

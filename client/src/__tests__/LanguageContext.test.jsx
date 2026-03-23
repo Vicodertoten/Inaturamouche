@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { detectBrowserLanguage } from '../context/LanguageContext.jsx';
 
 // Helper to temporarily override navigator values
 function withNavigator(styles, fn) {
-  const original = { ...global.navigator };
-  Object.defineProperty(global, 'navigator', {
+  const original = { ...globalThis.navigator };
+  Object.defineProperty(globalThis, 'navigator', {
     value: { ...original, ...styles },
     configurable: true,
     writable: true,
@@ -12,7 +12,7 @@ function withNavigator(styles, fn) {
   try {
     fn();
   } finally {
-    Object.defineProperty(global, 'navigator', {
+    Object.defineProperty(globalThis, 'navigator', {
       value: original,
       configurable: true,
       writable: true,
@@ -22,10 +22,10 @@ function withNavigator(styles, fn) {
 
 describe('detectBrowserLanguage', () => {
   it('returns default when navigator undefined', () => {
-    const realNav = global.navigator;
-    delete global.navigator;
+    const realNav = globalThis.navigator;
+    delete globalThis.navigator;
     expect(detectBrowserLanguage()).toBe('fr');
-    global.navigator = realNav;
+    globalThis.navigator = realNav;
   });
 
   it('picks language from navigator.language', () => {

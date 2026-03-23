@@ -1069,6 +1069,7 @@ export function useGameActions({
       setSessionSpeciesData,
       setSessionStats,
       triggerRarityCelebration,
+      t,
       updateProfile,
     ]
   );
