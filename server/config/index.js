@@ -92,10 +92,16 @@ export const config = {
   // AI Service
   aiApiKey: process.env.AI_API_KEY,
   aiEnabled: parseBoolean(process.env.AI_ENABLED, true),
-  aiExplanationFullEnabled: parseBoolean(process.env.AI_EXPLANATION_FULL_ENABLED, true),
-  aiExplanationFullImageAware: parseBoolean(process.env.AI_EXPLANATION_FULL_IMAGE_AWARE, true),
-  explainRateLimitPerMinute: parseIntWithFallback(process.env.EXPLAIN_RATE_LIMIT_PER_MINUTE, 8, { min: 1, max: 200 }),
-  explainDailyQuotaPerIp: parseIntWithFallback(process.env.EXPLAIN_DAILY_QUOTA_PER_IP, 60, { min: 1, max: 5000 }),
+  aiExplanationFullEnabled: parseBoolean(
+    process.env.AI_EXPLANATION_FULL_ENABLED,
+    process.env.NODE_ENV !== 'production'
+  ),
+  aiExplanationFullImageAware: parseBoolean(
+    process.env.AI_EXPLANATION_FULL_IMAGE_AWARE,
+    process.env.NODE_ENV !== 'production'
+  ),
+  explainRateLimitPerMinute: parseIntWithFallback(process.env.EXPLAIN_RATE_LIMIT_PER_MINUTE, 20, { min: 1, max: 200 }),
+  explainDailyQuotaPerIp: parseIntWithFallback(process.env.EXPLAIN_DAILY_QUOTA_PER_IP, 200, { min: 1, max: 5000 }),
 
   // Reports
   reportsRequireWriteToken: parseBoolean(process.env.REPORTS_REQUIRE_WRITE_TOKEN, false),

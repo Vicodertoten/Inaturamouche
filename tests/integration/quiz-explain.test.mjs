@@ -234,8 +234,13 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
   }
   globalThis.fetch = buildExternalFetchMock({
     aiText: buildFullAiJson({
-      correctId: 901,
-      wrongId: 902,
+      photoSummary:
+        'Sur cette photo, Species 901 se distingue de Species 902 par une silhouette plus droite et un bec plus crochu.',
+      observedClues: ['silhouette plus droite', 'bec plus crochu'],
+      whyThisPhotoCouldMislead:
+        'Sur cette photo, Species 902 peut sembler proche parce que la perspective tasse les proportions et masque sa silhouette plus courte.',
+      nextCheck:
+        'Sur cette photo, compare d abord le bec crochu de Species 901 puis la silhouette plus courte de Species 902.',
     }),
   });
 
@@ -258,9 +263,44 @@ integrationTest('POST /api/quiz/explain sets fallback=false when AI output passe
   assert.ok(body.explanation.length > 0);
   assert.equal(body.mode, 'full');
   assert.ok(['photo_grounded', 'photo_limited'].includes(body.confidence));
-  assert.equal(body.full?.observedClues?.[0], 'Silhouette generale');
+  assert.equal(body.full?.observedClues?.[0], 'Silhouette plus droite');
   assert.ok(body.full?.supportByField);
   assert.equal(typeof body.trace_id, 'string');
+});
+
+integrationTest('POST /api/quiz/explain sets fallback=true when full output omits the pair names', async (t) => {
+  if (!AI_RUNTIME_AVAILABLE) {
+    t.skip('AI runtime not configured in this environment');
+    return;
+  }
+  globalThis.fetch = buildExternalFetchMock({
+    aiText: buildFullAiJson({
+      photoSummary:
+        "Sur cette photo, observe d'abord la silhouette generale puis le detail structurel le plus net.",
+      observedClues: ['silhouette generale', 'detail structurel visible'],
+      whyThisPhotoCouldMislead:
+        'Sur cette photo, la perspective peut tasser les proportions et rendre la confusion plausible.',
+      nextCheck: 'Sur cette photo, regarde ensuite un detail structurel stable.',
+    }),
+  });
+
+  const res = await postExplain({
+    correctId: 909,
+    wrongId: 910,
+    locale: 'fr',
+    imageContext: {
+      source: 'round_photo',
+      url: 'https://static.inaturalist.org/photos/1/small.jpeg',
+      downscaled: true,
+      inputBucket: '<=384-target',
+    },
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.fallback, true);
+  assert.ok(Array.isArray(body.reasonCodes));
+  assert.ok(body.reasonCodes.includes('pair_mismatch'));
 });
 
 integrationTest('POST /api/quiz/explain sets fallback=true when AI output is low quality', async (t) => {

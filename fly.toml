@@ -12,6 +12,8 @@ primary_region = 'cdg'
 [env]
   NODE_ENV = 'production'
   PORT = '8080'
+  AI_EXPLANATION_FULL_ENABLED = 'false'
+  AI_EXPLANATION_FULL_IMAGE_AWARE = 'false'
 
 [http_service]
   internal_port = 8080

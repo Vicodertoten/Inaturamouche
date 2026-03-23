@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { act } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import RoundSummaryModal from '../components/RoundSummaryModal.jsx';
 
@@ -85,6 +85,10 @@ describe('RoundSummaryModal', () => {
     trackMetricMock.mockReset();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows only attributed sources in the brief summary and source list', async () => {
     fetchExplanationMock.mockResolvedValueOnce({
       mode: 'brief',
@@ -167,6 +171,70 @@ describe('RoundSummaryModal', () => {
     });
 
     expect(screen.getByText(/Le repere rapide n'est pas disponible/)).toBeInTheDocument();
+  });
+
+  it('keeps loading the brief explanation until the server responds', async () => {
+    vi.useFakeTimers();
+    const deferredBrief = createDeferred();
+
+    fetchExplanationMock.mockImplementationOnce(() => deferredBrief.promise);
+
+    render(
+      <RoundSummaryModal
+        status="lose"
+        question={question}
+        userAnswer={userAnswer}
+        onNext={() => {}}
+        explanationContext={{ correctId: 1, wrongId: 2 }}
+      />
+    );
+
+    expect(document.querySelector('.explanation-brief-loading')).not.toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(screen.queryByText('Conseil générique')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Le repere rapide n'est pas disponible/)).not.toBeInTheDocument();
+    expect(document.querySelector('.explanation-brief-loading')).not.toBeNull();
+
+    await act(async () => {
+      deferredBrief.resolve({
+        mode: 'brief',
+        confidence: 'grounded',
+        fallback: false,
+        brief: {
+          displayText: 'Compare la silhouette droite et le bec crochu.',
+          keyDifference: 'Silhouette droite et bec crochu',
+          whyTempting: 'allure trapue proche au premier regard',
+          nextLookFor: 'un long cou et un bec crochu',
+          support: {
+            level: 'grounded',
+            sourceIds: ['inat-desc-1'],
+          },
+          supportByField: {
+            keyDifference: ['inat-desc-1'],
+            whyTempting: [],
+            nextLookFor: ['inat-desc-1'],
+          },
+        },
+        sources: [
+          {
+            id: 'inat-desc-1',
+            provider: 'inaturalist',
+            kind: 'description',
+            label: 'Grand Cormoran — iNaturalist',
+            url: 'https://www.inaturalist.org/taxa/1',
+            snippet: 'Silhouette droite, bec crochu, cou long.',
+          },
+        ],
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('Compare la silhouette droite et le bec crochu.')).toBeInTheDocument();
+    expect(screen.queryByText('Conseil générique')).not.toBeInTheDocument();
   });
 
   it('keeps the brief confidence badge when the full explanation falls back', async () => {

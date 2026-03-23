@@ -8,6 +8,9 @@
   command = "npm ci && npm run build"
   publish = "dist"
 
+[build.environment]
+  VITE_AI_EXPLANATION_FULL_ENABLED = "false"
+
 ########################################
 # Redirects
 ########################################

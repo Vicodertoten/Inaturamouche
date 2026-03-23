@@ -389,11 +389,11 @@ export const submitQuizAnswer = (
 /**
  * Récupère l'explication IA pour une réponse incorrecte.
  */
-export const fetchExplanation = (correctIdOrPayload, wrongId, locale = 'fr', focusRank = null) => {
+export const fetchExplanation = (correctIdOrPayload, wrongId, locale = 'fr') => {
     const payload =
       correctIdOrPayload && typeof correctIdOrPayload === 'object'
         ? correctIdOrPayload
-        : { correctId: correctIdOrPayload, wrongId, locale, focusRank };
+        : { correctId: correctIdOrPayload, wrongId, locale };
     const mode = payload?.mode === 'brief' ? 'brief' : 'full';
     return apiPost(
       '/api/quiz/explain',

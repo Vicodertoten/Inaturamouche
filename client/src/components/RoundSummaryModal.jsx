@@ -12,7 +12,9 @@ import { trackMetric } from '../services/metrics';
 const supportsLazyLoading =
   typeof HTMLImageElement !== 'undefined' && 'loading' in HTMLImageElement.prototype;
 const runtimeEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
-const FULL_EXPLANATION_ENABLED = runtimeEnv.VITE_AI_EXPLANATION_FULL_ENABLED !== 'false';
+const FULL_EXPLANATION_ENABLED = runtimeEnv.PROD
+  ? runtimeEnv.VITE_AI_EXPLANATION_FULL_ENABLED === 'true'
+  : runtimeEnv.VITE_AI_EXPLANATION_FULL_ENABLED !== 'false';
 
 const getObservationImageUrl = (taxon) => {
   if (!taxon) return null;
@@ -468,6 +470,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     () => (roundPhotoUrl ? getSizedImageUrl(roundPhotoUrl, 'small') : null),
     [roundPhotoUrl]
   );
+  const canRequestFullExplanation = FULL_EXPLANATION_ENABLED && Boolean(roundPhotoAnalysisUrl);
   const userWikiUrl = useMemo(() => {
     if (userDisplayTaxon.wikipedia_url) return userDisplayTaxon.wikipedia_url;
     if (!userDisplayTaxon.scientificName) return null;
@@ -630,23 +633,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     const requestId = ++briefRequestRef.current;
 
     const run = async () => {
-      let timedOut = false;
-      const timeoutId = setTimeout(() => {
-        if (!isActive) return;
-        timedOut = true;
-        setBriefData(buildFallbackBrief({ language: lang, correctName: pedagogyFallbackNames.correctName }));
-        setBriefConfidence('fallback');
-        setBriefTraceId(null);
-        setBriefPairKey(requestPairKey);
-        setAiSources([]);
-        setBriefLoading(false);
-        void trackMetric('explanation_brief_fallback', {
-          round_id: question?.round_id || null,
-          correct_taxon_id: String(explanationCorrectId),
-          wrong_taxon_id: String(explanationWrongId),
-          code: 'client_timeout',
-        });
-      }, 2200);
       setBriefLoading(true);
       setBriefData(null);
       setFullData(null);
@@ -673,15 +659,12 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           wrongId: explanationWrongId,
           locale: lang,
           mode: 'brief',
-          focusRank: explanationFocusRank,
           packId: activePackId || null,
           gameMode: gameMode || null,
           masteryBucket,
           confusionBucket,
         });
         if (!isActive) return;
-        clearTimeout(timeoutId);
-        if (timedOut) return;
         if (pairKeyRef.current !== pairBaseKey || briefRequestRef.current !== requestId) {
           void trackMetric('explanation_render_ignored_stale', {
             trace_id: data?.trace_id || data?.traceId || null,
@@ -731,8 +714,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         });
       } catch (error) {
         if (!isActive) return;
-        clearTimeout(timeoutId);
-        if (timedOut) return;
         setBriefData(buildFallbackBrief({ language: lang, correctName: pedagogyFallbackNames.correctName }));
         setBriefConfidence('fallback');
         setBriefPairKey(requestPairKey);
@@ -745,8 +726,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
           pair_key: requestPairKey,
         });
       } finally {
-        clearTimeout(timeoutId);
-        if (isActive && !timedOut) setBriefLoading(false);
+        if (isActive) setBriefLoading(false);
       }
     };
 
@@ -758,7 +738,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     activePackId,
     confusionBucket,
     explanationCorrectId,
-    explanationFocusRank,
     explanationWrongId,
     gameMode,
     isWin,
@@ -820,7 +799,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
 
   const loadFullExplanation = useCallback(async () => {
     if (
-      !FULL_EXPLANATION_ENABLED ||
+      !canRequestFullExplanation ||
       isWin ||
       fullLoading ||
       hasRequestedFull ||
@@ -848,7 +827,6 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
         wrongId: explanationWrongId,
         locale: lang,
         mode: 'full',
-        focusRank: explanationFocusRank,
         packId: activePackId || null,
         gameMode: gameMode || null,
         masteryBucket,
@@ -937,9 +915,9 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
     }
   }, [
     activePackId,
+    canRequestFullExplanation,
     confusionBucket,
     explanationCorrectId,
-    explanationFocusRank,
     explanationWrongId,
     fullLoading,
     gameMode,
@@ -1030,7 +1008,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
       pair_key: fullPairKey || `${pairBaseKey}:full`,
       mode: 'full',
       displayed_confidence: fullConfidence,
-      displayed_fallback: fullConfidence === 'unavailable',
+      displayed_fallback: fullUsedFallback,
       has_full_visible: true,
     });
   }, [
@@ -1287,7 +1265,7 @@ const RoundSummaryModal = ({ status, question, onNext, userAnswer, explanationCo
                       </section>
                     )}
 
-                    {FULL_EXPLANATION_ENABLED && !hasRequestedFull && (
+                    {canRequestFullExplanation && !hasRequestedFull && (
                       <div className="explanation-detail-cta">
                         <button
                           type="button"
