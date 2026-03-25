@@ -469,6 +469,11 @@ const fr = {
     period_helper: "Activez cette option pour cibler un moment de l’année (peu importe l’année).",
     period_from: 'Début',
     period_to: 'Fin',
+    period_month: 'Mois',
+    period_day: 'Jour',
+    period_month_placeholder: 'Mois',
+    period_day_placeholder: 'Jour',
+    period_incomplete: 'Choisis un début et une fin pour activer ce filtre.',
   },
   geo: {
     tab_place: 'Lieu',

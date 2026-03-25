@@ -1,6 +1,6 @@
 # API Endpoints Reference
 
-> **Source de vérité** — Généré à partir du code source (`server/routes/*.js`, `server/middleware/rateLimiter.js`, `server/config/index.js`, `server/app.js`).
+> Reference maintenue contre `server/routes/*.js`, `server/middleware/rateLimiter.js`, `server/config/index.js` et `server/app.js`.
 
 Base URL locale : `http://localhost:3001`  
 Production : `https://inaturaquizz.com/api/*` (proxy Netlify → Fly.io)
@@ -63,8 +63,8 @@ Tous les endpoints sous `/api/*` sont soumis au rate limiter global. Certains en
 | `apiLimiter` | `GET\|POST /api/*` (global) | 15 min | 600 | `RATE_LIMIT_EXCEEDED` |
 | `quizLimiter` | `GET /api/quiz-question`, `POST /api/quiz/submit` | 1 min | 60 | `QUIZ_RATE_LIMIT_EXCEEDED` |
 | `proxyLimiter` | `GET /api/taxon/:id`, `GET /api/taxa`, `GET /api/observations/species_counts`, `GET /api/places`, `GET /api/places/by-id` | 1 min | 120 | `PROXY_RATE_LIMIT_EXCEEDED` |
-| `explainLimiter` | `POST /api/quiz/explain` | 1 min | `EXPLAIN_RATE_LIMIT_PER_MINUTE` (défaut: 8) | `EXPLAIN_RATE_LIMIT_EXCEEDED` |
-| `explainDailyLimiter` | `POST /api/quiz/explain` | 24 h | `EXPLAIN_DAILY_QUOTA_PER_IP` (défaut: 60) | `EXPLAIN_DAILY_QUOTA_EXCEEDED` |
+| `explainLimiter` | `POST /api/quiz/explain` | 1 min | `EXPLAIN_RATE_LIMIT_PER_MINUTE` (défaut: 20) | `EXPLAIN_RATE_LIMIT_EXCEEDED` |
+| `explainDailyLimiter` | `POST /api/quiz/explain` | 24 h | `EXPLAIN_DAILY_QUOTA_PER_IP` (défaut: 200) | `EXPLAIN_DAILY_QUOTA_EXCEEDED` |
 | `reportsLimiter` | `POST /api/reports` | `REPORTS_RATE_LIMIT_WINDOW_MS` (défaut: 10 min) | `REPORTS_RATE_LIMIT_PER_WINDOW` (défaut: 8) | `REPORT_RATE_LIMIT_EXCEEDED` |
 
 **Note :** `apiLimiter` s'applique **en plus** des limiters spécifiques. L'identification IP utilise `getClientIp()` (trust proxy configuré via `TRUST_PROXY_LIST`). Les headers de rate limit suivent le standard `draft-7`.
@@ -200,6 +200,8 @@ Demande une explication IA comparant deux espèces.
 **Contrainte :** `correctId ≠ wrongId`.  
 **Réponse :** payload `brief` ou `full`, `explanation`, `discriminant`, `sources`, `confidence`, `fallback`, `reasonCodes`.  
 **Fallback :** locale `en` si la traduction échoue.
+
+**Note :** `gameMode` accepte encore `riddle` et `taxonomic` comme contexte de prompt/cache, meme si ces modes sont archives cote quiz.
 
 #### `GET /api/quiz/balance-dashboard`
 
@@ -363,11 +365,21 @@ Ingestion d'événements analytiques (max 50 par requête).
 | `report_submit` | Soumission d'un rapport |
 | `client_error` | Erreur côté client |
 | `api_error` | Erreur API |
-| `explanation_open` | Ouverture d'une explication IA |
-| `explanation_feedback` | Feedback sur une explication |
+| `explanation_open` | Ouverture du module d'explication |
+| `explanation_brief_requested` | Demande du mode brief |
+| `explanation_brief_loaded` | Brief charge |
+| `explanation_brief_fallback` | Brief servi en fallback |
+| `explanation_full_requested` | Demande du mode full |
+| `explanation_full_loaded` | Full charge |
+| `explanation_source_expand` | Ouverture des sources |
+| `explanation_confidence` | Affichage ou collecte du niveau de confiance |
+| `explanation_feedback` | Feedback utilisateur sur l'explication |
+| `explanation_rendered` | Rendu effectif de l'explication |
+| `explanation_render_ignored_stale` | Rendu stale ignore |
+| `explanation_badge_displayed` | Badge d'explication affiche |
 | `share_click` | Clic sur partager |
 
-> **⚠️ Attention :** la validation utilise `z.enum(EVENT_NAMES)` — seuls ces 13 noms exacts sont acceptés. Tout autre nom sera rejeté avec `BAD_REQUEST`.
+> **⚠️ Attention :** la validation utilise `z.enum(EVENT_NAMES)` — seuls ces 23 noms exacts sont acceptés. Tout autre nom sera rejeté avec `BAD_REQUEST`.
 
 **Headers optionnels :** `X-Client-Session-Id`, `X-Anon-User-Id` (fallback si absents du body).
 
@@ -377,7 +389,7 @@ Ingestion d'événements analytiques (max 50 par requête).
 
 Token requis si `METRICS_DASHBOARD_REQUIRE_TOKEN=true` (défaut en production).
 
-**Réponse :** dashboard complet des métriques (fenêtres 72h et 1h).
+**Réponse :** snapshot complet des metriques, calcule a la demande.
 
 ---
 

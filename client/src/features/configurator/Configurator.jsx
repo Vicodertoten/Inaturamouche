@@ -8,6 +8,7 @@ import { useLanguage } from '../../context/LanguageContext.jsx';
 import { usePacks } from '../../context/PacksContext.jsx';
 import { notify } from '../../services/notifications';
 import { buildPackSnapshot, encodePackSnapshot, buildPackShareUrl } from '../../utils/packShare';
+import { isPeriodFilterIncomplete } from '../../utils/periodFilter';
 import { savePack as savePackToStorage, getSavedPacks, deleteSavedPack } from '../../utils/savedPacks';
 import { copyToClipboard } from '../../utils/shareCard';
 import { getPackEducationalWarningKey } from '../../utils/packWarnings';
@@ -417,11 +418,15 @@ function Configurator({ onStartGame }) {
     [setMediaType]
   );
 
+  const isCustomPeriodStartBlocked =
+    activePackId === 'custom' && isPeriodFilterIncomplete(customFilters);
+
   const handleStartClick = useCallback(() => {
+    if (packsLoading || isCustomPeriodStartBlocked) return;
     if (typeof onStartGame === 'function') {
       onStartGame({ maxQuestions, mediaType });
     }
-  }, [maxQuestions, mediaType, onStartGame]);
+  }, [isCustomPeriodStartBlocked, maxQuestions, mediaType, onStartGame, packsLoading]);
 
   const handleRegionOverrideChange = useCallback((event) => {
     const value = String(event.target.value || '').trim().toLowerCase();
@@ -761,7 +766,7 @@ function Configurator({ onStartGame }) {
           <button
             onClick={handleStartClick}
             className="btn btn--primary start-button start-button-glow play-btn tutorial-start-game"
-            disabled={packsLoading}
+            disabled={packsLoading || isCustomPeriodStartBlocked}
             aria-label={t('common.start_game')}
           >
             {t('common.start_game')}

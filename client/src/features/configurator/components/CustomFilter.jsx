@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import AutocompleteInput from '../../../shared/ui/AutocompleteInput';
 import { useLanguage } from '../../../context/LanguageContext.jsx';
+import { getDaysInMonth, isPeriodFilterIncomplete } from '../../../utils/periodFilter';
 
 const GeoFilter = lazy(() => import('../../../components/GeoFilter.jsx'));
 
@@ -31,8 +32,41 @@ const FilterSection = ({ label, helper, enabled, onToggle, children }) => (
 );
 
 function CustomFilter({ filters, dispatch }) {
-  const { t, formatTaxonName } = useLanguage();
+  const { t, formatTaxonName, language } = useLanguage();
   const removeLabel = t('customFilter.remove_taxon');
+  const periodIsIncomplete = isPeriodFilterIncomplete(filters);
+
+  const monthOptions = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(language, { month: 'long', timeZone: 'UTC' });
+    return Array.from({ length: 12 }, (_, idx) => {
+      const monthValue = String(idx + 1).padStart(2, '0');
+      return {
+        value: monthValue,
+        label: formatter.format(new Date(Date.UTC(2000, idx, 1))),
+      };
+    });
+  }, [language]);
+
+  const startDayOptions = useMemo(() => {
+    const totalDays = getDaysInMonth(filters.periodStartMonth);
+    return Array.from({ length: totalDays }, (_, idx) => String(idx + 1).padStart(2, '0'));
+  }, [filters.periodStartMonth]);
+
+  const endDayOptions = useMemo(() => {
+    const totalDays = getDaysInMonth(filters.periodEndMonth);
+    return Array.from({ length: totalDays }, (_, idx) => String(idx + 1).padStart(2, '0'));
+  }, [filters.periodEndMonth]);
+
+  const updatePeriodMonth = (monthField, dayField, nextMonth, currentDay) => {
+    dispatch({ type: 'SET_FILTER', payload: { name: monthField, value: nextMonth } });
+    if (!nextMonth) {
+      dispatch({ type: 'SET_FILTER', payload: { name: dayField, value: '' } });
+      return;
+    }
+    if (currentDay && Number(currentDay) > getDaysInMonth(nextMonth)) {
+      dispatch({ type: 'SET_FILTER', payload: { name: dayField, value: '' } });
+    }
+  };
 
   return (
     <div className="custom-filter-container">
@@ -109,25 +143,129 @@ function CustomFilter({ filters, dispatch }) {
       >
         <p className="custom-filter-description">{t('customFilter.period_helper')}</p>
         <div className="date-filters">
-          <label htmlFor="filter-d1">{t('customFilter.period_from')}</label>
-          <input
-            id="filter-d1"
-            className="form-input"
-            type="date"
-            name="d1"
-            value={filters.d1}
-            onChange={(e) => dispatch({ type: 'SET_FILTER', payload: { name: 'd1', value: e.target.value } })}
-          />
-          <label htmlFor="filter-d2">{t('customFilter.period_to')}</label>
-          <input
-            id="filter-d2"
-            className="form-input"
-            type="date"
-            name="d2"
-            value={filters.d2}
-            onChange={(e) => dispatch({ type: 'SET_FILTER', payload: { name: 'd2', value: e.target.value } })}
-          />
+          <fieldset className="period-fieldset">
+            <legend>{t('customFilter.period_from')}</legend>
+            <div className="period-select-row">
+              <div className="period-select-group">
+                <label htmlFor="filter-period-start-month">
+                  {t('customFilter.period_month', {}, 'Mois')}
+                </label>
+                <select
+                  id="filter-period-start-month"
+                  className="form-input"
+                  name="periodStartMonth"
+                  value={filters.periodStartMonth}
+                  onChange={(e) =>
+                    updatePeriodMonth(
+                      'periodStartMonth',
+                      'periodStartDay',
+                      e.target.value,
+                      filters.periodStartDay
+                    )
+                  }
+                >
+                  <option value="">{t('customFilter.period_month_placeholder', {}, 'Mois')}</option>
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="period-select-group">
+                <label htmlFor="filter-period-start-day">
+                  {t('customFilter.period_day', {}, 'Jour')}
+                </label>
+                <select
+                  id="filter-period-start-day"
+                  className="form-input"
+                  name="periodStartDay"
+                  value={filters.periodStartDay}
+                  disabled={!filters.periodStartMonth}
+                  onChange={(e) =>
+                    dispatch({
+                      type: 'SET_FILTER',
+                      payload: { name: 'periodStartDay', value: e.target.value },
+                    })
+                  }
+                >
+                  <option value="">{t('customFilter.period_day_placeholder', {}, 'Jour')}</option>
+                  {startDayOptions.map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="period-fieldset">
+            <legend>{t('customFilter.period_to')}</legend>
+            <div className="period-select-row">
+              <div className="period-select-group">
+                <label htmlFor="filter-period-end-month">
+                  {t('customFilter.period_month', {}, 'Mois')}
+                </label>
+                <select
+                  id="filter-period-end-month"
+                  className="form-input"
+                  name="periodEndMonth"
+                  value={filters.periodEndMonth}
+                  onChange={(e) =>
+                    updatePeriodMonth(
+                      'periodEndMonth',
+                      'periodEndDay',
+                      e.target.value,
+                      filters.periodEndDay
+                    )
+                  }
+                >
+                  <option value="">{t('customFilter.period_month_placeholder', {}, 'Mois')}</option>
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="period-select-group">
+                <label htmlFor="filter-period-end-day">
+                  {t('customFilter.period_day', {}, 'Jour')}
+                </label>
+                <select
+                  id="filter-period-end-day"
+                  className="form-input"
+                  name="periodEndDay"
+                  value={filters.periodEndDay}
+                  disabled={!filters.periodEndMonth}
+                  onChange={(e) =>
+                    dispatch({
+                      type: 'SET_FILTER',
+                      payload: { name: 'periodEndDay', value: e.target.value },
+                    })
+                  }
+                >
+                  <option value="">{t('customFilter.period_day_placeholder', {}, 'Jour')}</option>
+                  {endDayOptions.map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
         </div>
+        {periodIsIncomplete && (
+          <p className="filter-validation-error">
+            {t(
+              'customFilter.period_incomplete',
+              {},
+              'Choisis un début et une fin pour activer ce filtre.'
+            )}
+          </p>
+        )}
       </FilterSection>
     </div>
   );

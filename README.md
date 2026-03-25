@@ -4,25 +4,34 @@ Quiz naturaliste educatif base sur des observations iNaturalist. Frontend React 
 
 ## Fonctionnalites principales
 
-- **2 modes de jeu actifs**: Easy, Hard (les modes Riddle et Taxonomic sont archives)
-- **44 packs thematiques**: Discovery (14), Threatened (12), Curated (14), Creative (4)
+- **2 modes de jeu actifs**: Easy et Hard
+- **44 packs actifs**: 11 exposes sur la Home, 33 dans le catalogue, 16 definitions legacy conservees cote serveur
+- **Catalogue serveur**: 61 definitions de packs au total (44 actives, 16 legacy, 1 custom)
 - **Systeme de progression**: XP, niveaux, streak, achievements, collection d'especes
-- **IA educative**: Explications personnalisees via Gemini 2.5 Flash (RAG + JSON structure)
+- **IA optionnelle**: explications personnalisees via Gemini 2.5 Flash (RAG + JSON structure)
 - **PWA offline-ready**: Installation sur device, cache intelligent
 - **Multilingue**: fr, en, nl avec detection automatique
 - **Partage**: Collections et defis partageables
-- **Metrics first-party**: Analyse produit sans tracking tiers invasif
+- **Metrics first-party**: analyse produit sans tracking tiers invasif
 
-## Liens rapides
+## Documentation
 
-- [wiki/INDEX.md](wiki/INDEX.md) — point d'entrée documentation
+- [wiki/INDEX.md](wiki/INDEX.md) — point d'entree canonique
 - [wiki/GETTING_STARTED.md](wiki/GETTING_STARTED.md) — démarrage local
-- [wiki/ARCHITECTURE.md](wiki/ARCHITECTURE.md) — vue d'ensemble
+- [wiki/ARCHITECTURE.md](wiki/ARCHITECTURE.md) — vue d'ensemble rapide
 - [wiki/API_REFERENCE.md](wiki/API_REFERENCE.md) — endpoints API
-- [wiki/BETA_SMOKE_MATRIX.md](wiki/BETA_SMOKE_MATRIX.md) — matrice smoke beta
-- [docs/reference/](docs/reference/) — documentation de référence détaillée (6 fichiers)
+- [docs/reference/](docs/reference/) — reference detaillee
 - [docs/explanation/](docs/explanation/) — documentation d'explication (7 fichiers, diagrammes Mermaid)
-- [CONTRIBUTING.md](CONTRIBUTING.md) — guide de contribution
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution et politique documentaire
+- [AGENT.md](AGENT.md) — cadre pour agents IA
+
+Structure documentaire :
+
+- `README.md` : vue produit + quickstart
+- `wiki/` : documentation canonique courte
+- `docs/reference/` : contrats et valeurs exactes
+- `docs/explanation/` : architecture et raisonnement
+- `docs/archive/` : notes internes et historiques non canoniques
 
 ## Demarrage local
 
@@ -54,7 +63,7 @@ npm --prefix client run dev
 ## Stack technique
 
 **Backend:**
-- Express 5, Node.js 20+
+- Express 5, Node.js 22+
 - Gemini 2.5 Flash (IA avec JSON structure)
 - Zod validation, Pino logging
 - SmartCache (TTL + stale)
@@ -62,15 +71,21 @@ npm --prefix client run dev
 
 **Frontend:**
 - React 19, React Router, Vite
-- Zustand (state), TanStack Query
+- Zustand, React Context, Dexie
 - Leaflet maps, Dexie (IndexedDB)
 - PWA (vite-plugin-pwa)
 - Vitest + Playwright E2E
 
 **Data:**
-- 44 packs V3 (dynamic + list-based)
+- 61 definitions de packs (44 actives, 16 legacy, 1 custom)
 - iNaturalist observations (CC licenses)
 - Local storage: progression, preferences
+
+## Deploiement
+
+- Frontend: Netlify
+- API: Fly.io (`inaturamouche-api.fly.dev`)
+- Runtime de deploiement: Node 22 (Dockerfile et Dockerfile.fly)
 
 ## Donnees et attribution
 

@@ -64,7 +64,7 @@ graph TB
 
 ### Monorepo, pas de microservices
 
-Un seul dépôt, un seul `package.json` racine avec workspaces implicites. Raisons :
+Un seul depot, avec un package racine pour le serveur et un package dedie dans `client/`. Raisons :
 
 1. **Équipe réduite** — un développeur principal, pas besoin de coordination inter-repo.
 2. **Partage de code** — `shared/scoring.js` est importé côté client ET serveur pour garantir que le calcul de score est identique.
@@ -79,7 +79,7 @@ Un seul dépôt, un seul `package.json` racine avec workspaces implicites. Raiso
 | Coût | Free tier | Free tier |
 | Cold start | Aucun | ~2s (conteneur Docker) |
 
-Le proxy Netlify (`/api/* → https://inaturamouche.fly.dev/api/:splat`) évite d'exposer l'URL Fly.io et supprime les requêtes CORS preflight.
+Le proxy Netlify (`/api/* → https://inaturamouche-api.fly.dev/api/:splat`) evite d'exposer l'URL Fly.io au navigateur et supprime les requetes CORS preflight.
 
 ### Pas de base de données
 

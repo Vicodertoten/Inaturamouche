@@ -72,19 +72,22 @@ describe('customFilterReducer', () => {
   it('SET_FILTER sets arbitrary field', () => {
     const s = customFilterReducer(initialCustomFilters, {
       type: 'SET_FILTER',
-      payload: { name: 'd1', value: '2024-01-01' },
+      payload: { name: 'periodStartMonth', value: '01' },
     });
-    expect(s.d1).toBe('2024-01-01');
+    expect(s.periodStartMonth).toBe('01');
   });
 
-  it('RESTORE replaces full state', () => {
-    const restored = { ...initialCustomFilters, taxa_enabled: true, d1: '2025-01-01' };
+  it('RESTORE normalizes legacy period fields', () => {
+    const restored = { ...initialCustomFilters, taxa_enabled: true, d1: '2025-01-01', d2: '2025-02-15' };
     const s = customFilterReducer(initialCustomFilters, {
       type: 'RESTORE',
       payload: restored,
     });
     expect(s.taxa_enabled).toBe(true);
-    expect(s.d1).toBe('2025-01-01');
+    expect(s.periodStartMonth).toBe('01');
+    expect(s.periodStartDay).toBe('01');
+    expect(s.periodEndMonth).toBe('02');
+    expect(s.periodEndDay).toBe('15');
   });
 
   it('RESTORE with null keeps current state', () => {

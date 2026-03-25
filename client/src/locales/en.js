@@ -469,6 +469,11 @@ const en = {
     period_helper: 'Enable this option to focus on a portion of the year (the exact year does not matter).',
     period_from: 'From',
     period_to: 'To',
+    period_month: 'Month',
+    period_day: 'Day',
+    period_month_placeholder: 'Month',
+    period_day_placeholder: 'Day',
+    period_incomplete: 'Choose both a start and an end to enable this filter.',
   },
   geo: {
     tab_place: 'Place',

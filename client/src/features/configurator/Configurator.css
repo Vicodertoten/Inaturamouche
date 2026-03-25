@@ -826,12 +826,46 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  align-items: center;
+  align-items: stretch;
 }
 
-.date-filters label {
+.period-fieldset {
+  min-width: min(100%, 240px);
+  flex: 1 1 240px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.period-fieldset legend {
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.period-select-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.period-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.period-select-group label {
   font-weight: 600;
   color: var(--text-color);
+}
+
+.filter-validation-error {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--accent-color) 78%, #fff 22%);
 }
 
 

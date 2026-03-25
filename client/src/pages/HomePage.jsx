@@ -13,6 +13,7 @@ import { trackMetric } from '../services/metrics';
 import { debugError, debugLog, debugWarn } from '../utils/logger';
 import { getTodayDailySeed, isDailyCompleted, isDailySeedStale } from '../utils/dailyChallenge';
 import { buildPackSnapshot, encodePackSnapshot, buildPackShareUrl } from '../utils/packShare';
+import { isPeriodFilterIncomplete } from '../utils/periodFilter';
 import { savePack as savePackToStorage, getSavedPacks, deleteSavedPack } from '../utils/savedPacks';
 import { copyToClipboard } from '../utils/shareCard';
 import { isOnboardingDone } from '../features/onboarding';
@@ -107,6 +108,8 @@ const HomePage = () => {
   const dailyAlreadyCompleted = isDailyCompleted(todaySeed);
   const hasPlayedGame = (profile?.stats?.gamesPlayed || 0) > 0;
   const recentPackIds = useMemo(() => readRecentPackIds(), []);
+  const isCustomPeriodStartBlocked =
+    activePackId === 'custom' && isPeriodFilterIncomplete(customFilters);
 
   /* ── Auto-select geo-based pack for new players ── */
   useEffect(() => {
@@ -184,6 +187,7 @@ const HomePage = () => {
 
   /* ── Handlers ── */
   const handleStart = useCallback(() => {
+    if (packsLoading || isCustomPeriodStartBlocked) return;
     preloadPlayPage();
     setAdvancedOpen(false);
     pushRecentPackId(activePackId);
@@ -197,7 +201,18 @@ const HomePage = () => {
     });
     startGame({ maxQuestions, mediaType });
     navigate('/play');
-  }, [activePackId, gameMode, hasActiveSession, maxQuestions, mediaType, navigate, preloadPlayPage, startGame]);
+  }, [
+    activePackId,
+    gameMode,
+    hasActiveSession,
+    isCustomPeriodStartBlocked,
+    maxQuestions,
+    mediaType,
+    navigate,
+    packsLoading,
+    preloadPlayPage,
+    startGame,
+  ]);
 
   const handleResumeGame = useCallback(async () => {
     preloadPlayPage();
@@ -545,6 +560,7 @@ const HomePage = () => {
         advancedPanelRef={advancedPanelRef}
         settingsLabel={settingsLabel}
         activePack={activePack}
+        startDisabled={packsLoading || isCustomPeriodStartBlocked}
         dailyAlreadyCompleted={dailyAlreadyCompleted}
         handleDailyChallenge={handleDailyChallenge}
         reviewStats={reviewStats}

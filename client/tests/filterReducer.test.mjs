@@ -17,3 +17,15 @@ test("customFilterReducer toggles flags", () => {
   const toggledBack = customFilterReducer(toggled, { type: "TOGGLE_PLACE" });
   assert.equal(toggledBack.place_enabled, false);
 });
+
+test("customFilterReducer restores legacy period dates as month/day fields", () => {
+  const restored = customFilterReducer(initialCustomFilters, {
+    type: "RESTORE",
+    payload: { ...initialCustomFilters, d1: "2024-01-05", d2: "2024-02-20" },
+  });
+
+  assert.equal(restored.periodStartMonth, "01");
+  assert.equal(restored.periodStartDay, "05");
+  assert.equal(restored.periodEndMonth, "02");
+  assert.equal(restored.periodEndDay, "20");
+});

@@ -6,6 +6,8 @@ SPA React de iNaturaQuizz (Vite + PWA).
 
 - React 19
 - React Router
+- Zustand + React Context
+- Dexie
 - Vite + vite-plugin-pwa
 - Vitest + Playwright
 
@@ -51,8 +53,7 @@ Endpoints utilises:
 - `/api/taxa`
 - `/api/places`
 - `/api/places/by-id`
-- `/api/daily/score` (archive — 410)
-- `/api/daily/leaderboard` (archive — 410)
+- `/api/daily/score` et `/api/daily/leaderboard` existent encore cote API mais sont archives (`410`)
 - `/api/metrics/events`
 
 ## PWA

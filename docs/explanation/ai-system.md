@@ -4,10 +4,9 @@
 
 ## Vue d’ensemble
 
-Le système IA produit deux familles de sorties :
+Le systeme IA actif produit surtout des explications de confusion entre deux especes via `generateCustomExplanation()`.
 
-- `generateCustomExplanation()` pour expliquer une confusion entre deux espèces.
-- `generateRiddle()` pour produire 3 indices de devinette.
+Un helper `generateRiddle()` existe encore dans le code pour des usages archives, mais il ne fait plus partie du parcours produit principal.
 
 Pour les explications, il existe deux modes :
 
@@ -174,13 +173,6 @@ Fallback hybride :
 
 L’endpoint `POST /api/quiz/explain` n’expose plus `focusRank` : ce paramètre n’était pas implémenté dans le pipeline.
 
-## Devinettes
+## Helper archive
 
-`generateRiddle()` reste plus simple :
-
-- collecte d’un bundle espèce unique
-- génération JSON avec `clues`
-- normalisation / fallback de remplissage si besoin
-- cache dédié
-
-Le mode devinette ne partage pas tous les garde-fous d’attribution du pipeline d’explication.
+`generateRiddle()` reste present dans le code, avec son propre prompt et son propre cache, mais doit etre considere comme un reliquat archive et non comme une fonctionnalite produit active.

@@ -31,6 +31,6 @@ Deux options supportees dans le repo:
 
 Pour aller plus loin :
 
-- [Configuration (reference)](../../docs/reference/configuration.md)
-- [Scripts & operations (reference)](../../docs/reference/scripts-ops.md)
-- [Metriques (explication)](../../docs/explanation/metrics-system.md)
+- [Configuration (reference)](../../../docs/reference/configuration.md)
+- [Scripts & operations (reference)](../../../docs/reference/scripts-ops.md)
+- [Metriques (explication)](../../../docs/explanation/metrics-system.md)

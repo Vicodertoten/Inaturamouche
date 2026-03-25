@@ -19,9 +19,9 @@ La liste complete est dans `wiki/API_REFERENCE.md`.
 - Rate limiting: global + endpoints sensibles
 - Signature HMAC des manches: `ROUND_HMAC_SECRET`
 - Cache: SmartCache (TTL + stale) pour questions, taxons, autocomplete
-- IA: Gemini 2.5 Flash avec JSON structure pour explications educatives (le mode enigmes est archive)
+- IA: Gemini 2.5 Flash pour explications educatives, avec fallbacks deterministes
 - Metrics: Store first-party avec retention configurable (metricsStore.js)
-- Packs: Catalogue V3 avec 44 packs (discovery, threatened, curated, creative)
+- Packs: 61 definitions serveur (44 actives, 16 legacy, 1 custom)
 
 ## Commandes
 

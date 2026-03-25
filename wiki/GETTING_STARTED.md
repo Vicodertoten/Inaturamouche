@@ -70,6 +70,9 @@ URLs:
 ## Qualite et tests
 
 ```bash
+# docs
+npm run docs:check
+
 # lint
 npm --prefix client run lint
 npm run lint:server
@@ -87,6 +90,7 @@ npm run ci
 Notes:
 - Les tests integration demarrent un serveur HTTP local et mockent les appels externes.
 - En environnement restreint, certains tests peuvent etre skips si l ouverture de socket est interdite.
+- La baseline documentaire et de deploiement est Node 22+. La CI peut encore refleter un runtime plus ancien tant qu'elle n'a pas ete harmonisee.
 
 ## Build et run
 

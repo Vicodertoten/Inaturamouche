@@ -15,7 +15,8 @@ Le frontend est une SPA React (Vite) avec PWA et modes de jeu (easy, hard).
 
 ## Features principales
 
-- **Modes de jeu**: Easy, Hard (les modes Riddle et Taxonomic sont archives)
+- **Modes de jeu**: Easy, Hard
+- **Defi du jour**: partie seedee cote client, sans leaderboard actif cote API
 - **Systeme de progression**: XP, niveaux, streak, achievements
 - **Collection**: Suivi des especes observees avec rarete
 - **Partage**: Collections et defis partageables via tokens
@@ -25,14 +26,14 @@ Le frontend est une SPA React (Vite) avec PWA et modes de jeu (easy, hard).
 
 Routes UI principales:
 
-- `/`: HomePage (catalogue packs, daily challenge, stats)
+- `/`: HomePage (catalogue, defi du jour, reprise de session, stats)
 - `/play`: PlayPage (jeu principal avec modes easy/hard)
 - `/end`: EndPage (recap de manche)
 - `/collection`: CollectionPage (especes observees)
 - `/collection/share/:token`: SharedCollectionPage (partage de collection)
 - `/results/share/:token`: SharedResultsPage (partage de resultats de quiz)
 - `/pack/import/:token`: ImportPackPage (import de packs communautaires)
-- `/guide`: GuidePage (guide utilisateur)
+- `/guide`: GuidePage (guide pedagogique / usages enseignants)
 - `/profile`: ProfilePage (profil utilisateur, XP, achievements)
 - `/challenge/:token`: ChallengePage (defis partageables)
 - `/about`: AboutPage (presentation du projet)
@@ -64,6 +65,6 @@ Les credits photo sont affiches dans le viewer (`ImageViewer`) via `photoMeta`.
 
 Pour aller plus loin :
 
-- [Etat frontend (explication)](../../docs/explanation/frontend-state.md)
-- [Scoring & progression (reference)](../../docs/reference/scoring-progression.md)
-- [Donnees client (reference)](../../docs/reference/client-data.md)
+- [Etat frontend (explication)](../../../docs/explanation/frontend-state.md)
+- [Scoring & progression (reference)](../../../docs/reference/scoring-progression.md)
+- [Donnees client (reference)](../../../docs/reference/client-data.md)

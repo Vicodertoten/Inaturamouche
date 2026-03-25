@@ -1,6 +1,15 @@
 # Documentation iNaturaQuizz
 
-Cette documentation est la source canonique du projet. Elle décrit l'état actuel du codebase.
+Cette documentation est la source canonique du projet. Elle decrit l'etat actuel du codebase.
+
+## Hierarchie canonique
+
+1. `README.md` : vue produit, demarrage local, liens
+2. `wiki/` : point d'entree et guides courts
+3. `docs/reference/` : contrats et valeurs exactes
+4. `docs/explanation/` : architecture et raisonnement
+
+`docs/archive/` conserve les notes internes et historiques. Ces fichiers ne sont pas canoniques.
 
 ## Commencer
 
@@ -42,3 +51,8 @@ Cette documentation est la source canonique du projet. Elle décrit l'état actu
 ## Contribuer
 
 - [CONTRIBUTING.md](../CONTRIBUTING.md)
+- [AGENT.md](../AGENT.md)
+
+## Archives
+
+- [docs/archive/README.md](../docs/archive/README.md)

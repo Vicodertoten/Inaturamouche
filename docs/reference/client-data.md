@@ -1,154 +1,97 @@
 # Client Data Reference
 
-> **Source de vérité** — Généré à partir de `client/src/services/db.js`, `client/src/services/PlayerProfile.js`, `client/vite.config.js`, `client/src/services/apiErrors.js`.
+> Reference maintenue contre `client/src/services/db.js`, `client/src/services/PlayerProfile.js`, `client/vite.config.js` et `client/src/services/apiErrors.js`.
 
----
+## 1. IndexedDB / Dexie
 
-## 1. IndexedDB (Dexie)
+- Librairie: Dexie v4
+- Nom de la base: `inaturalist_quiz`
+- Version de schema courante: `8`
 
-> Source : `client/src/services/db.js`
+### Tables actives
 
-### Base de données
+| Table | Cle | Role |
+|-------|-----|------|
+| `taxa` | `id` | Encyclopedie locale des taxons |
+| `stats` | `id` | Progression et revision par espece |
+| `active_session` | `id` | Sauvegarde d'une partie en cours |
+| `profiles` | `key` | Profil joueur (`playerProfile`) |
 
-- **Nom** : `inaturalist_quiz`
-- **Librairie** : Dexie v4 (wrapper IndexedDB)
-- **Version actuelle** : 8
+### Tables legacy conservees pour migration
 
-### Historique des versions
+| Table | Role |
+|-------|------|
+| `collection` | Ancienne progression par espece |
+| `species` | Ancienne table taxons |
+| `taxonomy_cache` | Cache taxonomique |
+| `taxon_groups` | Ancienne structure de groupes |
 
-| Version | Changements principaux |
-|---------|----------------------|
-| 3 | Schéma initial : `taxa`, `stats`, `collection`, `species`, `taxonomy_cache`, `taxon_groups` |
-| 4 | Index `taxa.name`, composites `stats.[iconic_taxon_id+masteryLevel]` et `[iconic_taxon_id+lastSeenAt]`. Migration : populate `iconic_taxon_id` sur stats |
-| 5 | Table `active_session` pour pause/resume |
-| 6 | Champs Spaced Repetition sur stats : `nextReviewDate`, `reviewInterval`, `easeFactor` |
-| 7 | Champs rareté sur taxa : `rarity_tier`, `observations_count`. Migration : calcul `rarity_tier` |
-| 8 | Table `profiles` — unification sur Dexie. Migration depuis legacy IDB `inaturamouche-player` |
+### Evolutions de schema utiles
 
-### Schéma v8 (actuel)
+| Version | Changement |
+|---------|------------|
+| 3 | Base `taxa` / `stats` + tables legacy |
+| 4 | Index de recherche et denormalisation `iconic_taxon_id` |
+| 5 | Table `active_session` |
+| 6 | Champs de spaced repetition sur `stats` |
+| 7 | Rarete sur `taxa` |
+| 8 | Table `profiles` et unification du profil dans Dexie |
 
-#### Table `taxa` — Encyclopédie des espèces
+## 2. Profil joueur
 
-```
-PK: id (iNaturalist taxon ID)
-Index: iconic_taxon_id, updatedAt, name, rarity_tier, observations_count
-```
+Stockage:
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `id` | number | PK — ID iNaturalist |
-| `iconic_taxon_id` | number | Groupe taxonomique (filtrage) |
-| `updatedAt` | string/number | Timestamp de dernière mise à jour |
-| `name` | string | Nom (indexé pour recherche textuelle) |
-| `rarity_tier` | string | Catégorie de rareté dérivée |
-| `observations_count` | number | Nombre brut d'observations iNaturalist |
+- table `profiles`
+- cle unique: `playerProfile`
 
-#### Table `stats` — Progression par espèce
+Blocs principaux du profil:
 
-```
-PK: id (même que taxa.id)
-Index: iconic_taxon_id, [iconic_taxon_id+masteryLevel], [iconic_taxon_id+lastSeenAt], lastSeenAt, nextReviewDate
-```
+- `xp`
+- `stats` : parties, precisions, packs joues, streaks, missed species
+- `achievements`
+- `pokedex`
+- `dailyStreak`
+- `rewards`
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `id` | number | PK — ID taxon |
-| `iconic_taxon_id` | number | Groupe taxonomique (dénormalisé) |
-| `masteryLevel` | number | Niveau de maîtrise (0-4) |
-| `lastSeenAt` | string | Date de dernière rencontre |
-| `nextReviewDate` | string | Date de prochaine révision (SR) |
-| `reviewInterval` | number | Intervalle actuel en jours |
-| `easeFactor` | number | Facteur de difficulté Anki-like |
+Migrations supportees:
 
-#### Table `active_session` — Session de jeu en cours
+- `localStorage` -> Dexie
+- ancienne base IndexedDB `inaturamouche-player` -> Dexie
+- champ legacy `totalScore` -> `xp`
 
-```
-PK: id (toujours 1)
-```
+## 3. PWA / Service Worker
 
-Stocke une seule session active pour permettre pause/resume : `currentQuestionIndex`, `score`, `history`, `gameConfig`, `timestamp`.
+Configuration: `client/vite.config.js`
 
-#### Table `profiles` — Profil joueur
+| Pattern | Strategie | Cache |
+|---------|-----------|-------|
+| `*.woff2` | `CacheFirst` | `fonts-cache` |
+| `/api/taxa/autocomplete`, `/api/observations/species_counts` | `StaleWhileRevalidate` | `api-meta-swr` |
+| `/api/quiz-question` | `NetworkOnly` | `api-quiz-no-cache` |
+| `/api/*` | `NetworkOnly` | `api-no-cache` |
+| `static.inaturalist.org/photos/*` | `CacheFirst` | `inat-photos` |
+| `inaturalist-open-data.s3.amazonaws.com/*` | `CacheFirst` | `inat-photos-legacy` |
 
-```
-PK: key (toujours 'playerProfile')
-```
+Manifest principal:
 
-Stocke le profil joueur complet (voir [scoring-progression.md](scoring-progression.md#6-player-profile) pour le schéma).
+- `name`: `iNaturaQuizz`
+- `short_name`: `iNatura`
+- `start_url`: `/`
+- `display`: `standalone`
+- `theme_color`: `#0E7C86`
 
-#### Tables legacy (conservées pour migration)
+## 4. Etat frontend persistant vs transient
 
-| Table | PK | Description |
-|-------|-----|-------------|
-| `collection` | `taxon_id` | Ancienne collection (migrée vers `stats`) |
-| `species` | `id` | Ancienne table espèces (migrée vers `taxa`) |
-| `taxonomy_cache` | `id` | Cache phylogénétique |
-| `taxon_groups` | `id` | Cache groupes taxonomiques |
+- React Context: `Game`, `User`, `Language`, `Packs`
+- Zustand: `useGameMetaStore` pour XP/streak/achievements de session
+- `useReducer`: filtres custom
+- Dexie: profil, encyclopedie, stats, reprise de session
 
-### Helpers exportés
+## 5. Codes d'erreur client
 
-| Fonction | Description |
-|----------|-------------|
-| `getStats(taxonId)` | Récupère les stats d'un taxon |
-| `getTaxon(taxonId)` | Récupère les données d'un taxon |
-| `getTaxonWithStats(taxonId)` | Récupère taxon + stats combinés |
-| `checkStorageQuota()` | Vérifie le quota de stockage disponible |
-| `checkSpaceBeforeWrite(estimatedSize)` | Vérifie l'espace avant écriture (marge 10%) |
+Mapping principal depuis `client/src/services/apiErrors.js` :
 
----
-
-## 2. PWA Service Worker (Workbox)
-
-> Source : `client/vite.config.js` — plugin `vite-plugin-pwa`
-
-### Configuration
-
-- **Register type** : `autoUpdate`
-- **Mode** : `production` (sourcemaps désactivées)
-- **Cleanup** : caches obsolètes nettoyés automatiquement
-- **Fallback SPA** : `/api/` exclu (`navigateFallbackDenylist: [/^\/api\//]`)
-
-### Runtime Caching Rules
-
-| # | Pattern | Strategy | Cache Name | TTL | Max Entries |
-|---|---------|----------|------------|-----|-------------|
-| 0 | `*.woff2` | CacheFirst | `fonts-cache` | 1 an | 10 |
-| 1 | `/api/taxa/autocomplete`, `/api/observations/species_counts` | StaleWhileRevalidate | `api-meta-swr` | 1h | 300 |
-| 2 | `/api/quiz-question` (exact) | NetworkOnly | `api-quiz-no-cache` | — | — |
-| 3 | `/api/*` (catch-all) | NetworkOnly | `api-no-cache` | — | — |
-| 4 | `static.inaturalist.org/photos/*` | CacheFirst | `inat-photos` | 7 jours | 400 |
-| 5 | `inaturalist-open-data.s3.amazonaws.com/*` | CacheFirst | `inat-photos-legacy` | 7 jours | 200 |
-
-### Stratégies expliquées
-
-| Stratégie | Comportement |
-|-----------|-------------|
-| **CacheFirst** | Cache d'abord, réseau en fallback. Idéal pour contenus statiques. |
-| **StaleWhileRevalidate** | Sert le cache immédiatement, revalide en arrière-plan. Équilibre fraîcheur/performance. |
-| **NetworkOnly** | Toujours réseau. Empêche de resservir des questions déjà vues ou des données stale. |
-
-### PWA Manifest
-
-```json
-{
-  "name": "iNaturaQuizz",
-  "short_name": "iNatura",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0E7C86"
-}
-```
-
----
-
-## 3. Error Codes (i18n client)
-
-> Source : `client/src/services/apiErrors.js`
-
-### Mapping server code → client key
-
-| Code serveur | Clé client |
+| Code serveur | Cle client |
 |-------------|------------|
 | `INTERNAL_SERVER_ERROR` | `internal` |
 | `BAD_REQUEST` | `bad_request` |
@@ -163,66 +106,26 @@ Stocke le profil joueur complet (voir [scoring-progression.md](scoring-progressi
 | `EXPLAIN_DAILY_QUOTA_EXCEEDED` | `rate_limited` |
 | `REPORT_RATE_LIMIT_EXCEEDED` | `rate_limited` |
 
-### Messages traduits
+## 6. Build frontend
 
-| Clé | FR | EN | NL |
-|-----|-----|-----|-----|
-| `internal` | Erreur interne du serveur | Internal server error | Interne serverfout |
-| `bad_request` | Paramètres invalides | Bad request | Ongeldige parameters |
-| `not_found` | Introuvable | Not Found | Niet gevonden |
-| `pool_unavailable` | Aucune observation trouvée... | No observations found... | Geen waarnemingen gevonden... |
-| `inat_unavailable` | Service iNaturalist temporairement indisponible | The iNaturalist service is temporarily unavailable | De iNaturalist-service is tijdelijk niet beschikbaar |
-| `inat_timeout` | Service iNaturalist lent | The iNaturalist service is currently slow | De iNaturalist-service reageert momenteel traag |
-| `taxonomy_not_found` | Taxon non trouvé | Taxon not found | Taxon niet gevonden |
-| `generic` | Une erreur est survenue... | Something went wrong... | Er ging iets mis... |
-| `rate_limited` | Trop de requêtes | Too many requests | Te veel verzoeken |
+Path aliases declares dans `client/vite.config.js` :
 
-### Langues supportées : `fr`, `en`, `nl`
+- `@`
+- `@components`
+- `@pages`
+- `@services`
+- `@contexts`
+- `@hooks`
+- `@utils`
+- `@features`
+- `@shared`
+- `@styles`
+- `@locales`
 
-Le registre est volontairement léger (~10 traductions) pour éviter d'importer les locales complètes (~2200 lignes) dans le client réseau.
+Decoupage manuel des chunks:
 
----
+- `router`
+- `zz_leaflet`
+- `vendor`
 
-## 4. Build & Chunks
-
-> Source : `client/vite.config.js` → `build.rollupOptions`
-
-### Manual Chunks
-
-| Chunk | Contenu |
-|-------|---------|
-| `router` | `react-router-dom` |
-| `zz_leaflet` | `leaflet`, `react-leaflet`, `@react-leaflet` |
-| `d3` | `d3` (toutes les sous-libs) |
-| `vendor` | Tous les autres `node_modules` |
-
-### Path Aliases
-
-| Alias | Résolution |
-|-------|-----------|
-| `@` | `./src` |
-| `@components` | `./src/components` |
-| `@pages` | `./src/pages` |
-| `@services` | `./src/services` |
-| `@contexts` | `./src/context` |
-| `@hooks` | `./src/hooks` |
-| `@utils` | `./src/utils` |
-| `@features` | `./src/features` |
-| `@shared` | `./src/shared` |
-| `@styles` | `./src/styles` |
-| `@locales` | `./src/locales` |
-
----
-
-## 5. Legacy Migration
-
-> Source : `client/src/services/PlayerProfile.js`
-
-### Chaîne de migration
-
-1. **localStorage** (`inaturamouche_playerProfile`) → IDB profiles
-2. **Legacy IDB** (`inaturamouche-player`) → Dexie profiles
-3. **Profile fields** : `totalScore` → `xp`
-4. **Dexie v3→v8** : voir [section 1](#1-indexeddb-dexie)
-
-La migration est transparente : au premier chargement, le profil est automatiquement migré depuis l'ancien format.
+Une regle `d3` existe encore dans la config, mais elle n'est pas active tant qu'aucune dependance `d3` n'est embarquee.

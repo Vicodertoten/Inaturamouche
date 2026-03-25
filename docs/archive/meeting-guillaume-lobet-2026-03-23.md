@@ -220,19 +220,25 @@ Le but est qu'il parle de ses contraintes reelles.
 ### Sur l'usage
 
 - "Dans quel type de cours ou d'activite voyez-vous le plus de potentiel pour un outil comme ca ?"
+Tous les cours ou il y a de l'identification, guide nature et haute école naturaliste.
 - "Est-ce que vous le voyez plutot en amont d'un cours, en revision, en sortie de terrain, ou en evaluation formative ?"
 - "Quel serait pour vous le public le plus adapte: debutants, bacheliers, master, grand public ?"
+
 
 ### Sur la valeur pedagogique
 
 - "Qu'est-ce qui vous parait pedagogiquement interessant ici, et qu'est-ce qui vous parait faible ou insuffisant ?"
 - "Est-ce que la reconnaissance sur image vous semble utile comme etape d'apprentissage, ou trop reductrice si elle reste seule ?"
 - "Qu'est-ce qu'il faudrait ajouter pour que cela aide vraiment a apprendre, et pas seulement a jouer ?"
+outil pour répéter 
 
 ### Sur les blocages
 
-- "Qu'est-ce qui vous empecherait aujourd'hui de recommander ou tester un outil comme celui-ci avec des etudiants ?"
+- "Qu'est-ce qui vous empecherait aujourd'hui de recommander ou tester un outil comme celui-ci avec des etudiants ?" 
+rien si ce n'est le coté mise a l'échelle.
 - "Le principal manque serait plutot du cote contenu, evaluation, suivi enseignant, ou robustesse ?"
+outil supplémentaire pour réviser pas besoin de dashboard/compte.
+potentiellement un système de classe. car sur 200 personnes, ca devient compliqué d'aller chercher les plantes tous ensemble. potentiel d'avoir un outil numérique qui permet de facilement interroger des étudiants. potentiel d'avoir un dashboard de classe. 
 
 ### Sur les priorites
 

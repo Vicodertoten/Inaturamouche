@@ -12,6 +12,7 @@ Merci de contribuer. Cette page decrit le flux minimum attendu pour garder le co
 ## Checks avant PR
 
 ```bash
+npm run docs:check
 npm --prefix client run lint
 npm run lint:server
 npm run check:i18n
@@ -48,20 +49,27 @@ Si une route backend change:
 
 ## Documentation
 
-Source canonique : `wiki/` (vue d'ensemble) + `docs/` (référence et explication détaillées).
+Source canonique : `wiki/` + `docs/`.
 
 Structure de la documentation :
 
 ```
-wiki/INDEX.md             ← Point d'entrée, liens vers tout
-wiki/ARCHITECTURE.md      ← Vue d'ensemble architecture
-wiki/API_REFERENCE.md     ← Référence API rapide
+README.md                 ← Vue produit + quickstart
+wiki/INDEX.md             ← Point d'entree canonique
+wiki/ARCHITECTURE.md      ← Vue d'ensemble rapide
+wiki/API_REFERENCE.md     ← Reference API courte
 wiki/guides/              ← Guides backend / frontend / ops
-docs/reference/           ← 6 fichiers de référence (contrats, formats, valeurs exactes)
-docs/explanation/         ← 7 fichiers d'explication (flux, raisonnement, diagrammes Mermaid)
+docs/reference/           ← Contrats, formats, valeurs exactes
+docs/explanation/         ← Architecture, flux, raisonnement
+docs/archive/             ← Notes internes et historiques non canoniques
 ```
 
-Toute modification d'architecture, d'API ou d'ops doit être accompagnée d'une mise à jour du fichier correspondant dans `wiki/` ou `docs/`.
+Regles :
+
+- Toute modification d'architecture, d'API, d'ops, de pipeline IA, de packs ou d'etat frontend doit etre documentee dans la couche canonique appropriee.
+- Les notes de reunion, audits internes et documents historiques vont dans `docs/archive/`.
+- Ne pas ecrire "genere a partir du code" ou equivalent sauf si un pipeline d'automatisation existe reellement.
+- Pour une PR purement documentaire, `npm run docs:check` est le check par defaut.
 
 Les fichiers critiques du serveur (`lib/smart-cache.js`, `server/services/`) sont documentés en JSDoc — maintenir les annotations `@param` / `@returns` à jour lors de changements de signature.
 

@@ -1,3 +1,5 @@
+import { EMPTY_PERIOD_FIELDS, normalizeCustomFilters } from '../utils/periodFilter.js';
+
 export const initialCustomFilters = {
   taxa_enabled: false,
   includedTaxa: [],
@@ -5,8 +7,7 @@ export const initialCustomFilters = {
   place_enabled: false,
   geo: { mode: 'place' },
   period_enabled: false,
-  d1: '',
-  d2: ''
+  ...EMPTY_PERIOD_FIELDS,
 };
 
 export function customFilterReducer(state, action) {
@@ -33,7 +34,7 @@ export function customFilterReducer(state, action) {
       return { ...state, [action.payload.name]: action.payload.value };
     case 'RESTORE':
       // Restaurer l'état complet des filtres (utilisé pour la reprise de session)
-      return action.payload || state;
+      return action.payload ? normalizeCustomFilters(action.payload, initialCustomFilters) : state;
     default:
       return state;
   }

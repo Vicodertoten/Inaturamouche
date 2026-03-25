@@ -33,8 +33,10 @@ describe('savedPacks', () => {
     place_enabled: false,
     geo: { mode: 'place' },
     period_enabled: false,
-    d1: '',
-    d2: '',
+    periodStartMonth: '',
+    periodStartDay: '',
+    periodEndMonth: '',
+    periodEndDay: '',
   };
 
   it('returns empty array when no packs saved', () => {

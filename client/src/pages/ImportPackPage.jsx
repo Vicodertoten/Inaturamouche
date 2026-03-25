@@ -2,17 +2,22 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { decodePackSnapshot, snapshotToFilters } from '../utils/packShare';
+import { formatPeriodLabel } from '../utils/periodFilter';
 import { savePack, getSavedPacks } from '../utils/savedPacks';
 import './ImportPackPage.css';
 
 const ImportPackPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [imported, setImported] = useState(false);
 
   const snapshot = useMemo(() => decodePackSnapshot(token || ''), [token]);
   const filters = useMemo(() => (snapshot ? snapshotToFilters(snapshot) : null), [snapshot]);
+  const periodLabel = useMemo(
+    () => (filters ? formatPeriodLabel(filters, language) : ''),
+    [filters, language]
+  );
 
   if (!snapshot || !filters) {
     return (
@@ -94,14 +99,14 @@ const ImportPackPage = () => {
             </div>
           )}
 
-          {filters.period_enabled && (filters.d1 || filters.d2) && (
+          {filters.period_enabled && periodLabel && (
             <div className="import-filter-item">
               <span className="import-filter-icon">📅</span>
               <span>
                 <span className="import-filter-label">
                   {t('pack_share.period', {}, 'Période :')}
                 </span>
-                {[filters.d1, filters.d2].filter(Boolean).join(' → ')}
+                {periodLabel}
               </span>
             </div>
           )}

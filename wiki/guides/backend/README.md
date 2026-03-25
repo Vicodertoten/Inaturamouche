@@ -21,9 +21,7 @@ Le backend expose l API quiz et fait l orchestration des requetes iNaturalist (a
   - `reportsStore.js`: gestion des rapports de bugs
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod, helpers, contrat HTTP
-- `server/packs/*`: definitions des 44 packs V3
-- `packs-v3-spec.md`: spec freeze du catalogue V3 (44 packs)
-- `packs-v3-conventions.md`: conventions communes backend/frontend/QA
+- `server/packs/*`: catalogue des packs (61 definitions, 44 actives)
 
 ## Flux quiz
 
@@ -47,7 +45,7 @@ Architecture RAG → Generate → Validate → Fallback:
 - **Features**:
   - Repair pass si le JSON est invalide
   - Fallback `full` hybride: indisponibilite photo + conseil morphologique pair-specific
-  - Support explications `brief` et `full`. Le mode enigmes reste separe.
+  - Support explications `brief` et `full`
   - Cache des reponses generees pour reduire les couts
 - **Observabilite**: metriques AI dans metricsStore (latence, cout, taux de fallback, raisons)
 
@@ -65,7 +63,7 @@ Architecture RAG → Generate → Validate → Fallback:
 
 ## Feature flags packs
 
-- `PACKS_V3_ENABLED=true` (defaut): expose le catalogue V3 (44 packs actifs + legacy).
+- `PACKS_V3_ENABLED=true` (defaut): expose le catalogue courant (44 packs actifs + legacy + custom).
 - `PACKS_V3_ENABLED=false`: rollback en un toggle vers un set legacy-safe pour Home/Catalog sans casser `pack_id` sur quiz.
 
 ## Erreurs
@@ -76,11 +74,11 @@ Format unifie: `error.code`, `error.message`, `error.requestId`.
 
 Pour aller plus loin :
 
-- [API Endpoints (reference)](../../docs/reference/api-endpoints.md)
-- [Configuration (reference)](../../docs/reference/configuration.md)
-- [Packs & donnees (reference)](../../docs/reference/packs-data.md)
-- [Pipeline de questions (explication)](../../docs/explanation/question-pipeline.md)
-- [Systeme IA (explication)](../../docs/explanation/ai-system.md)
-- [Strategie de cache (explication)](../../docs/explanation/caching-strategy.md)
-- [Securite des rounds (explication)](../../docs/explanation/round-security.md)
-- [Metriques (explication)](../../docs/explanation/metrics-system.md)
+- [API Endpoints (reference)](../../../docs/reference/api-endpoints.md)
+- [Configuration (reference)](../../../docs/reference/configuration.md)
+- [Packs & donnees (reference)](../../../docs/reference/packs-data.md)
+- [Pipeline de questions (explication)](../../../docs/explanation/question-pipeline.md)
+- [Systeme IA (explication)](../../../docs/explanation/ai-system.md)
+- [Strategie de cache (explication)](../../../docs/explanation/caching-strategy.md)
+- [Securite des rounds (explication)](../../../docs/explanation/round-security.md)
+- [Metriques (explication)](../../../docs/explanation/metrics-system.md)

@@ -6,6 +6,7 @@ import {
   snapshotToFilters,
   buildPackShareUrl,
 } from '../utils/packShare';
+import { formatPeriodLabel } from '../utils/periodFilter';
 
 describe('packShare', () => {
   const sampleFilters = {
@@ -18,21 +19,23 @@ describe('packShare', () => {
     place_enabled: true,
     geo: { mode: 'place', place_id: '7161', place_name: 'Belgique' },
     period_enabled: true,
-    d1: '2024-03-01',
-    d2: '2024-06-30',
+    periodStartMonth: '03',
+    periodStartDay: '01',
+    periodEndMonth: '06',
+    periodEndDay: '30',
   };
 
   describe('buildPackSnapshot', () => {
-    it('creates a snapshot with version 1', () => {
+    it('creates a snapshot with version 2', () => {
       const snap = buildPackSnapshot('Test pack', sampleFilters);
-      expect(snap.v).toBe(1);
+      expect(snap.v).toBe(2);
       expect(snap.n).toBe('Test pack');
       expect(snap.te).toBe(true);
       expect(snap.it).toHaveLength(2);
       expect(snap.et).toHaveLength(1);
       expect(snap.g).toEqual({ m: 'p', p: '7161', pn: 'Belgique' });
-      expect(snap.d1).toBe('2024-03-01');
-      expect(snap.d2).toBe('2024-06-30');
+      expect(snap.d1).toBe('03-01');
+      expect(snap.d2).toBe('06-30');
     });
 
     it('truncates long names', () => {
@@ -49,8 +52,10 @@ describe('packShare', () => {
         place_enabled: false,
         geo: { mode: 'place' },
         period_enabled: false,
-        d1: '',
-        d2: '',
+        periodStartMonth: '',
+        periodStartDay: '',
+        periodEndMonth: '',
+        periodEndDay: '',
       });
       expect(snap.te).toBeUndefined();
       expect(snap.it).toBeUndefined();
@@ -78,6 +83,11 @@ describe('packShare', () => {
       expect(decodePackSnapshot('')).toBe(null);
       expect(decodePackSnapshot('garbage!!!')).toBe(null);
     });
+
+    it('rejects legacy v1 snapshots', () => {
+      const legacyToken = encodePackSnapshot({ v: 1, n: 'Old', d1: '2024-03-01', d2: '2024-06-30' });
+      expect(decodePackSnapshot(legacyToken)).toBe(null);
+    });
   });
 
   describe('snapshotToFilters', () => {
@@ -93,8 +103,11 @@ describe('packShare', () => {
       expect(filters.geo.mode).toBe('place');
       expect(filters.geo.place_id).toBe('7161');
       expect(filters.period_enabled).toBe(true);
-      expect(filters.d1).toBe('2024-03-01');
-      expect(filters.d2).toBe('2024-06-30');
+      expect(filters.periodStartMonth).toBe('03');
+      expect(filters.periodStartDay).toBe('01');
+      expect(filters.periodEndMonth).toBe('06');
+      expect(filters.periodEndDay).toBe('30');
+      expect(formatPeriodLabel(filters, 'fr')).toContain('mars');
     });
 
     it('handles map-mode geo', () => {

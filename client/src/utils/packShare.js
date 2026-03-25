@@ -1,3 +1,5 @@
+import { getPeriodTokens, normalizeCustomFilters } from './periodFilter';
+
 /**
  * Encode / decode custom filter configurations for shareable pack URLs.
  * Uses the same base64-in-URL pattern as resultsShare.js and SharedCollectionPage.
@@ -11,7 +13,7 @@
  */
 export function buildPackSnapshot(name, filters) {
   if (!filters) return null;
-  const snapshot = { v: 1, n: (name || '').slice(0, 80) };
+  const snapshot = { v: 2, n: (name || '').slice(0, 80) };
 
   // Taxa
   if (filters.taxa_enabled) {
@@ -37,8 +39,9 @@ export function buildPackSnapshot(name, filters) {
 
   // Period
   if (filters.period_enabled) {
-    if (filters.d1) snapshot.d1 = filters.d1;
-    if (filters.d2) snapshot.d2 = filters.d2;
+    const { d1, d2 } = getPeriodTokens(filters);
+    if (d1) snapshot.d1 = d1;
+    if (d2) snapshot.d2 = d2;
   }
 
   return snapshot;
@@ -68,7 +71,7 @@ export function decodePackSnapshot(token) {
     while (b64.length % 4) b64 += '=';
     const json = decodeURIComponent(escape(atob(b64)));
     const obj = JSON.parse(json);
-    if (!obj || obj.v !== 1) return null;
+    if (!obj || obj.v !== 2) return null;
     return obj;
   } catch {
     return null;
@@ -107,7 +110,7 @@ export function snapshotToFilters(snapshot) {
     }
   }
 
-  return filters;
+  return normalizeCustomFilters(filters);
 }
 
 /**

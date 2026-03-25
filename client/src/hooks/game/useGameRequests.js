@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { fetchQuizQuestion } from '../../services/api';
 import { trackMetric } from '../../services/metrics';
 import { preloadQuestionImages } from '../../utils/imagePreload';
+import { buildPeriodApiParams } from '../../utils/periodFilter';
 import { normalizeGameMode } from './gameUtils';
 
 export function useGameRequests({
@@ -110,19 +111,9 @@ export function useGameRequests({
       }
 
       if (customFilters.period_enabled) {
-        const normalizePeriodDate = (value) => {
-          if (!value) return '';
-          const parts = value.split('-');
-          if (parts.length < 3) return '';
-          const month = parts[1]?.padStart(2, '0');
-          const day = parts[2]?.padStart(2, '0');
-          if (!month || !day) return '';
-          return `2000-${month}-${day}`;
-        };
-        const normalizedStart = normalizePeriodDate(customFilters.d1);
-        const normalizedEnd = normalizePeriodDate(customFilters.d2);
-        if (normalizedStart) params.set('d1', normalizedStart);
-        if (normalizedEnd) params.set('d2', normalizedEnd);
+        const periodParams = buildPeriodApiParams(customFilters);
+        if (periodParams.d1) params.set('d1', periodParams.d1);
+        if (periodParams.d2) params.set('d2', periodParams.d2);
       }
     }
     return params;

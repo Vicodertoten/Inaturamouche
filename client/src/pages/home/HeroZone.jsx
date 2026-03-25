@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo } from 'react';
 import PackIcon from '../../components/PackIcons';
 import PackProgressBar from '../../components/PackProgressBar';
 import { SettingsIcon } from '../../components/NavigationIcons';
@@ -29,6 +29,7 @@ function HeroZone({
   qLabel,
   mediaName,
   preloadPlayPage,
+  startDisabled,
   /* advanced settings */
   advancedOpen,
   setAdvancedOpen,
@@ -88,7 +89,7 @@ function HeroZone({
             onMouseEnter={preloadPlayPage}
             onFocus={preloadPlayPage}
             onTouchStart={preloadPlayPage}
-            disabled={packsLoading}
+            disabled={packsLoading || startDisabled}
           >
             {activePackHeroImage && (
               <span

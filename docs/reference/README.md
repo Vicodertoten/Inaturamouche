@@ -1,6 +1,6 @@
 # Reference Documentation
 
-Documentation de référence technique — source de vérité générée à partir du code source.
+Documentation de reference technique maintenue contre le code source.
 
 ## Fichiers
 
@@ -8,7 +8,7 @@ Documentation de référence technique — source de vérité générée à part
 |----------|-------------|
 | [api-endpoints.md](api-endpoints.md) | Tous les endpoints API, rate limits, cache-control, codes d'erreur |
 | [configuration.md](configuration.md) | Variables d'environnement, constantes hardcodées, bornes de clamp |
-| [scoring-progression.md](scoring-progression.md) | Scoring, niveaux, streak, achievements, mastery, player profile |
-| [packs-data.md](packs-data.md) | Catalogue des 62 packs, datasets JSON, feature flag V3 |
+| [scoring-progression.md](scoring-progression.md) | Scoring actif, niveaux, streak, mastery, profil joueur |
+| [packs-data.md](packs-data.md) | Catalogue des 61 definitions de packs, datasets JSON, visibilites, feature flag V3 |
 | [client-data.md](client-data.md) | IndexedDB/Dexie schema, PWA cache rules, error codes i18n |
 | [scripts-ops.md](scripts-ops.md) | Scripts npm, CI pipeline, déploiement Netlify/Fly.io |

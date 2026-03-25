@@ -1,6 +1,6 @@
 # Scripts & Ops Reference
 
-> **Source de vérité** — Généré à partir de `scripts/`, `package.json`, `client/package.json`, `Dockerfile.fly`, `fly.toml`, `netlify.toml`.
+> Reference maintenue contre `scripts/`, `package.json`, `client/package.json`, `Dockerfile.fly`, `fly.toml` et `netlify.toml`.
 
 ---
 
@@ -17,6 +17,7 @@
 | `npm run test:integration` | Tests d'intégration (`tests/integration/*.test.mjs`) |
 | `npm run test:all` | Tous les tests (unit + integration + client) |
 | `npm run ci` | Pipeline CI complète : lint serveur → i18n → unit → integration → client |
+| `npm run docs:check` | Verifie les liens Markdown locaux et la coherence des chemins documentaires |
 | `npm run lint` | Lint client (ESLint via client/) |
 | `npm run lint:server` | Lint serveur + scripts (`eslint.server.cjs`) |
 | `npm run build` | Build production du client (Vite) |
@@ -64,6 +65,7 @@
 |--------|-------------|-------------|
 | `scripts/i18n-compare.cjs` | `check:i18n` | Compare les clés de traduction entre les fichiers locales (`fr.js`, `en.js`, `nl.js`). Détecte les clés manquantes ou en trop. |
 | `scripts/i18n-compare.js` | — | Copie/version alternative du script i18n. |
+| `scripts/check-docs-links.mjs` | `docs:check` | Vérifie que les liens Markdown locaux pointent vers des chemins existants. |
 
 ### Beta & Smoke
 
@@ -90,10 +92,10 @@
 
 | Paramètre | Valeur |
 |-----------|--------|
-| Build command | `npm run build` |
+| Build command | `npm ci && npm run build` |
 | Publish dir | `client/dist` |
 | Base | `client` |
-| Proxy | `/api/*` → Fly.io |
+| Proxy | `/api/*` → `https://inaturamouche-api.fly.dev` |
 
 **Headers** : configurés via `client/public/_headers` (CSP, cache).
 **Redirects** : configurés via `client/public/_redirects` (SPA fallback).
@@ -107,11 +109,10 @@
 | Région | `cdg` (Paris) |
 | Mémoire | 256 MB |
 | Machines min | 1 |
-| Auto-stop | activé |
-| Health check | `GET /healthz` (interval 15s, timeout 5s) |
-| Port interne | 3001 |
+| Auto-stop | desactivé (`auto_stop_machines = off`) |
+| Port interne | `8080` |
 
-**Dockerfile.fly** : multi-stage build, Node 22 Alpine, production dependencies only.
+**Dockerfile.fly** : image API seule, Node 22 Alpine, dependances production uniquement.
 
 ---
 

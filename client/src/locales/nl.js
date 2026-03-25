@@ -469,6 +469,11 @@ const nl = {
     period_helper: 'Schakel dit in om je op een deel van het jaar te richten (het exacte jaar maakt niet uit).',
     period_from: 'Vanaf',
     period_to: 'Tot en met',
+    period_month: 'Maand',
+    period_day: 'Dag',
+    period_month_placeholder: 'Maand',
+    period_day_placeholder: 'Dag',
+    period_incomplete: 'Kies zowel een begin als een einde om dit filter te activeren.',
   },
   geo: {
     tab_place: 'Locatie',

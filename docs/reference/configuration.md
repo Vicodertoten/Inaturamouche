@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> **Source de vérité** — Généré à partir de `server/config/index.js` et `.env.example`.
+> Reference maintenue contre `server/config/index.js` et `.env.example`.
 
 Toutes les variables sont lues via `process.env` avec des valeurs par défaut sensées. Les valeurs numériques sont clampées dans des bornes `[min, max]` pour éviter les configurations dangereuses.
 
@@ -41,7 +41,7 @@ Toutes les variables sont lues via `process.env` avec des valeurs par défaut se
 
 | Variable | Type | Défaut | Description |
 |----------|------|--------|-------------|
-| `CORS_ORIGINS` | csv | `localhost:5173, inaturaquizz.com, www.inaturaquizz.com, inaturamouche.netlify.app` | Origines autorisées (séparées par virgule) |
+| `CORS_ORIGINS` | csv | `http://localhost:5173, https://inaturaquizz.com, https://www.inaturaquizz.com, https://inaturamouche.netlify.app` | Origines autorisées (séparées par virgule) |
 | `CORS_ORIGIN` | csv | — | Alias accepté pour `CORS_ORIGINS` (singulier) |
 
 ---
@@ -62,10 +62,12 @@ Toutes les variables sont lues via `process.env` avec des valeurs par défaut se
 
 | Variable | Type | Défaut | Min | Max | Description |
 |----------|------|--------|-----|-----|-------------|
-| `AI_API_KEY` | string | — | — | — | Clé API Google AI (requise pour les explications) |
+| `AI_API_KEY` | string | — | — | — | Cle API Google AI (requise si `AI_ENABLED=true`) |
 | `AI_ENABLED` | bool | `true` | — | — | Active/désactive le service IA |
-| `EXPLAIN_RATE_LIMIT_PER_MINUTE` | int | `8` | 1 | 200 | Limite d'explications par minute par IP |
-| `EXPLAIN_DAILY_QUOTA_PER_IP` | int | `60` | 1 | 5 000 | Quota journalier d'explications par IP |
+| `AI_EXPLANATION_FULL_ENABLED` | bool | `true` hors prod, `false` en prod | — | — | Active le mode `full` |
+| `AI_EXPLANATION_FULL_IMAGE_AWARE` | bool | `true` hors prod, `false` en prod | — | — | Autorise l'analyse d'image pour `full` |
+| `EXPLAIN_RATE_LIMIT_PER_MINUTE` | int | `20` | 1 | 200 | Limite d'explications par minute par IP |
+| `EXPLAIN_DAILY_QUOTA_PER_IP` | int | `200` | 1 | 5 000 | Quota journalier d'explications par IP |
 
 ---
 
@@ -193,7 +195,7 @@ Ces valeurs ne sont **pas** configurables via env :
 | Constante | Valeur | Description |
 |-----------|--------|-------------|
 | `easyLureMinCloseness` | `0.82` | Closeness LCA minimale pour les leurres en mode Easy |
-| `riddleLureMinCloseness` | `0.76` | Closeness LCA minimale pour les leurres en mode Riddle |
+| `riddleLureMinCloseness` | `0.76` | Constante legacy liee au reliquat de mode `riddle` archive |
 
 ---
 

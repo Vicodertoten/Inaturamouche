@@ -4,8 +4,9 @@
 
 ## Vue d ensemble
 
-- Frontend SPA: `client/` (React + Vite + PWA)
-- Backend API: `server/` (Express 5)
+- Frontend SPA: `client/` (React 19 + Vite + PWA)
+- Backend API: `server/` (Express 5, Node 22)
+- Code partage: `shared/` et `lib/`
 - Source data: iNaturalist API
 - IA optionnelle: Gemini pour explications educatives
 
@@ -32,7 +33,7 @@ Flux principal:
   - `taxonomicAscension.js`: mode de jeu taxonomique (archive — HTTP 410)
 - `server/cache/*`: caches memoire (SmartCache)
 - `server/utils/*`: validation Zod + helpers + contrat HTTP
-- `server/packs/*`: definitions des packs V3
+- `server/packs/*`: catalogue serveur des packs (61 definitions, 44 actives)
 
 Contrats et securite:
 
@@ -44,8 +45,8 @@ Contrats et securite:
 ## Frontend
 
 - `client/src/App.jsx`: routes
-- `client/src/context/*`: etat global (user, language, packs, game)
-- `client/src/state/*`: store Zustand (XP, streak, achievements)
+- `client/src/context/*`: etat global (game, user, language, packs)
+- `client/src/state/*`: Zustand pour l'etat meta de session
 - `client/src/services/api.js`: client API (timeouts, retries)
 - `client/vite.config.js`: build + PWA
 
@@ -69,7 +70,7 @@ Routes UI principales:
 Architecture RAG → Generate → Validate → Fallback pour explications educatives:
 
 - **Modeles**: `gemini-2.5-flash-lite` pour `brief`, `gemini-2.5-flash` pour `full`, tous deux en JSON structure
-- **Persona**: coach naturaliste pour les explications, prompt "Papy Mouche" uniquement pour les devinettes
+- **Persona**: coach naturaliste pour les explications
 - **Pipeline**:
   1. RAG: collecte de donnees via Wikipedia, iNaturalist, GBIF et Catalogue of Life
   2. Prompt: construction contextuelle avec severite d'erreur (HUGE/MEDIUM/CLOSE)
